@@ -20,6 +20,7 @@ internal class Program
         }
         if(!any)
             Console.WriteLine("<Empty>");
+        Console.WriteLine();
     }
     private static string FormatProperty(Property property)
     {
@@ -57,17 +58,26 @@ internal class Program
             },
             Effects =
             {
-              new Action("Create person", new True(), new Sequence(new CreateEntity(), new SetProperty(PropertyType.Type, Properties.TypePerson), new SetProperty(PropertyType.Alive, true))),
-              new Action("Create item", new True(), new Sequence(new CreateEntity(), new SetProperty(PropertyType.Type, Properties.TypeItem), new SetProperty(PropertyType.Owner, default))),
+              new Action("Create person", null, new Sequence(new CreateEntity(), new SetProperty(PropertyType.Type, Properties.TypePerson), new SetProperty(PropertyType.Alive, true))),
+              new Action("Create item", null, new Sequence(new CreateEntity(), new SetProperty(PropertyType.Type, Properties.TypeItem), new SetProperty(PropertyType.Owner, default))),
               new Action("Alive people can die",
                   new And(new PropertyEquals(PropertyType.Type, Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true)),
                   new SetProperty(PropertyType.Alive, false)),
+              new Action("Set item owner",
+                  new And(new PropertyEquals(PropertyType.Type, Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
+                  new SetProperty(PropertyType.Owner, new PredicateParameter(new And(new PropertyEquals(PropertyType.Type, Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true))))),
             },
         };
         PrintDb(db);
         db.RunAction(db.Effects[0]);
+        db.RunAction(db.Effects[0]);
         db.RunAction(db.Effects[1]);
         PrintDb(db);
+        db.RunAction(db.Effects[2]);
+        // PrintDb(db);
+        db.RunAction(db.Effects[3]);
+        PrintDb(db);
+
 
     }
 }
@@ -202,24 +212,25 @@ class Database
     }
     public bool RunAction(Action effect)
     {
-        _ctx.EntityId = default;
-        if (!effect.If.IsTrue(_ctx))
-            return false;
-
-        return effect.Then.MakeTrue(_ctx);
+        if(_ctx.Query(effect.If, out var v))
+        {
+            _ctx.EntityId = v.IntValue;
+            return effect.Then.MakeTrue(_ctx);
+        }
+        return false;
     }
 }
 
 struct PropertyValue : IEquatable<PropertyValue>
 {
     public string? Value;
-    public int IntValue;
+    public long IntValue;
     public static implicit operator PropertyValue(string s) => new PropertyValue
     {
         Value = s,
         IntValue = Int32.MinValue,
     };
-    public static implicit operator PropertyValue(int i) => new PropertyValue
+    public static implicit operator PropertyValue(long i) => new PropertyValue
     {
         Value = null,
         IntValue = i,
@@ -315,6 +326,28 @@ class PredicateContext
     {
         Database = database;
     }
+    public bool Query(IPredicate? predicate, out PropertyValue value)
+    {
+        if (predicate == null)
+        {
+            value = default;
+            return true;
+        }
+        var eid = EntityId;
+        foreach (var entity in Database.Entities)
+        {
+            EntityId = entity.Id;
+            if (predicate.IsTrue(this))
+            {
+                EntityId = eid;
+                value = entity.Id;
+                return true;
+            }
+        }
+        EntityId = eid;
+        value = default;
+        return false;
+    }
 }
 
 class EntityExists : IPredicate
@@ -350,19 +383,45 @@ class PropertyEquals : IPredicate
     }
 }
 
+struct PredicateParameter
+{
+    private readonly IPredicate Predicate;
+    private readonly PropertyValue Value;
+    public PredicateParameter(IPredicate predicate) : this()
+    {
+        Predicate = predicate;
+    }
+    public PredicateParameter(PropertyValue value) : this()
+    {
+        Value = value;
+    }
+    public static implicit operator PredicateParameter(PropertyValue v) => new PredicateParameter(v);
+    public readonly PropertyValue GetValue(PredicateContext ctx)
+    {
+        if (Predicate == null)
+            return Value;
+
+        return ctx.Query(Predicate, out var val) ? val : default;
+    }
+}
 class SetProperty : IEffect
 {
     public readonly PropertyType Property;
-    public readonly PropertyValue Value;
+    public readonly PredicateParameter Parameter;
 
-    public SetProperty(PropertyType property, PropertyValue value)
+    public SetProperty(PropertyType property, PredicateParameter parameter)
     {
         Property = property;
-        Value = value;
+        Parameter = parameter;
+    }
+    public SetProperty(PropertyType property, PropertyValue parameter)
+    {
+        Property = property;
+        Parameter = parameter;
     }
 public bool MakeTrue(PredicateContext ctx)
     {
-        return ctx.Database.SetProperty(ctx.EntityId, Property, Value);
+        return ctx.Database.SetProperty(ctx.EntityId, Property, Parameter.GetValue(ctx));
     }
 }
 class HasProperty : IPredicate
@@ -435,9 +494,9 @@ struct Rule
 struct Action
 {
     public string Name;
-    public IPredicate If;
+    public IPredicate? If;
     public IEffect Then;
-    public Action(string name, IPredicate @if, IEffect then)
+    public Action(string name, IPredicate? @if, IEffect then)
     {
         Name = name;
         If = @if;
