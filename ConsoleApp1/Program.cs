@@ -57,14 +57,16 @@ internal class Program
             },
             Effects =
             {
-              new Rule("Create person", new True(), new And(new EntityExists(), new PropertyEquals(PropertyType.Type, Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true))),
-              new Rule("Alive people can die",
+              new Action("Create person", new True(), new Sequence(new CreateEntity(), new SetProperty(PropertyType.Type, Properties.TypePerson), new SetProperty(PropertyType.Alive, true))),
+              new Action("Create item", new True(), new Sequence(new CreateEntity(), new SetProperty(PropertyType.Type, Properties.TypeItem), new SetProperty(PropertyType.Owner, default))),
+              new Action("Alive people can die",
                   new And(new PropertyEquals(PropertyType.Type, Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true)),
-                  new PropertyEquals(PropertyType.Alive, false)),
+                  new SetProperty(PropertyType.Alive, false)),
             },
         };
         PrintDb(db);
-        db.RunEffect(db.Effects[0]);
+        db.RunAction(db.Effects[0]);
+        db.RunAction(db.Effects[1]);
         PrintDb(db);
 
     }
@@ -103,7 +105,7 @@ class Database
     private List<Entity> _entities = new() { default };
     public List<Rule> Rules = new();
     private Logger _logger = new();
-    public List<Rule> Effects = new();
+    public List<Action> Effects = new();
 
     private PredicateContext _ctx;
     public Database()
@@ -198,8 +200,9 @@ class Database
         entity.Properties.Add(new Property(property, value));
         return true;
     }
-    public bool RunEffect(Rule effect)
+    public bool RunAction(Action effect)
     {
+        _ctx.EntityId = default;
         if (!effect.If.IsTrue(_ctx))
             return false;
 
@@ -263,15 +266,14 @@ struct Property
 interface IPredicate
 {
     bool IsTrue(PredicateContext ctx);
+}
+interface IEffect
+{
     bool MakeTrue(PredicateContext ctx);
 }
 class True : IPredicate
 {
     public bool IsTrue(PredicateContext ctx) => true;
-    public bool MakeTrue(PredicateContext ctx)
-    {
-        throw new NotImplementedException();
-    }
 }
 
 class And : IPredicate
@@ -285,6 +287,14 @@ class And : IPredicate
     {
         return Predicates.All(p => p.IsTrue(ctx));
     }
+}class Sequence : IEffect
+{
+    private List<IEffect> Predicates = new();
+    public Sequence(params IEffect[] predicates)
+    {
+        Predicates.AddRange(predicates);
+    }
+    
     public bool MakeTrue(PredicateContext ctx)
     {
         bool res = true;
@@ -306,15 +316,19 @@ class PredicateContext
         Database = database;
     }
 }
+
 class EntityExists : IPredicate
 {
     public bool IsTrue(PredicateContext ctx)
     {
         return ctx.Database.EntityExists(ctx.EntityId);
     }
-    public bool MakeTrue(PredicateContext ctx)
+}
+class CreateEntity : IEffect{
+
+public bool MakeTrue(PredicateContext ctx)
     {
-        if (!ctx.Database.EntityExists(ctx.EntityId))
+        // if (!ctx.Database.EntityExists(ctx.EntityId))
             ctx.EntityId = ctx.Database.AllocateEntity();
         return true;
     }
@@ -334,7 +348,19 @@ class PropertyEquals : IPredicate
     {
         return ctx.Database.TryGetEntity(ctx.EntityId, out Entity entity) && entity.GetProperty(Property) == Value;
     }
-    public bool MakeTrue(PredicateContext ctx)
+}
+
+class SetProperty : IEffect
+{
+    public readonly PropertyType Property;
+    public readonly PropertyValue Value;
+
+    public SetProperty(PropertyType property, PropertyValue value)
+    {
+        Property = property;
+        Value = value;
+    }
+public bool MakeTrue(PredicateContext ctx)
     {
         return ctx.Database.SetProperty(ctx.EntityId, Property, Value);
     }
@@ -400,6 +426,18 @@ struct Rule
     public IPredicate If;
     public IPredicate Then;
     public Rule(string name, IPredicate @if, IPredicate then)
+    {
+        Name = name;
+        If = @if;
+        Then = then;
+    }
+}
+struct Action
+{
+    public string Name;
+    public IPredicate If;
+    public IEffect Then;
+    public Action(string name, IPredicate @if, IEffect then)
     {
         Name = name;
         If = @if;
