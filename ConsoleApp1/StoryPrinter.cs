@@ -16,8 +16,8 @@ public static class StoryPrinter
                         sb.AppendLine("  create " + createEntity.Type);
                         break;
                     // case NameEntity nameEntity:
-                    case PredicateParameter predicateParameter:
-                        sb.AppendLine($"  ${predicateParameter.ArgumentIndex} = pick({Print(predicateParameter)})");
+                    case Assign predicateParameter:
+                        sb.AppendLine($"  ${predicateParameter.VariableIndex} = pick({Print(predicateParameter.Predicate)})");
                         break;
                     // case Sequence sequence:
                     case SetProperty setProperty:
@@ -34,17 +34,15 @@ public static class StoryPrinter
         return sb.ToString();
     }
     private static string Print(PropertyPath path) => $"${path.VariableIndex}.{path.Property}";
-    public static string Print(PredicateParameter parameter, PropertyType? typeHint = null)
+    public static string Print(ComputedValue parameter, PropertyType? typeHint = null)
     {
         switch (parameter.Type)
         {
 
-            case PredicateParameter.PredicateParameterType.Value:
+            case ComputedValue.ComputedValueType.Value:
                 return Print(parameter.Value, typeHint);
-            case PredicateParameter.PredicateParameterType.Predicate:
-                return Print(parameter.Predicate!);
-            case PredicateParameter.PredicateParameterType.Argument:
-                return $"${parameter.ArgumentIndex}";
+            case ComputedValue.ComputedValueType.Path:
+                return Print(parameter.Path);
             default:
                 throw new ArgumentOutOfRangeException();
         }

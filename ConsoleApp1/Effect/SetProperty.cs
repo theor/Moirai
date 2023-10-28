@@ -1,9 +1,9 @@
 ﻿public class SetProperty : IEffect
 {
     public readonly PropertyPath PropertySet;
-    public readonly PredicateParameter Parameter;
+    public readonly ComputedValue Parameter;
 
-    public SetProperty(PropertyPath property, PredicateParameter parameter)
+    public SetProperty(PropertyPath property, ComputedValue parameter)
     {
         PropertySet = property;
         Parameter = parameter;
@@ -11,18 +11,18 @@
     public SetProperty(PropertyPath property, PropertyValue parameter)
     {
         PropertySet = property;
-        Parameter = (PredicateParameter)parameter;
+        Parameter = (ComputedValue)parameter;
     }
    
     public bool MakeTrue(PredicateContext ctx)
     {
-        return ctx.Database.SetProperty(ctx.Argument(PropertySet.VariableIndex).IntValue, PropertySet.Property, Parameter.GetValue(ctx));
+        return ctx.Database.SetProperty(ctx.Argument(PropertySet.VariableIndex).IntValue, PropertySet.Property.Value, ctx.GetValue(Parameter));
     }
 }
 
 public struct PropertyPath
 {
-    public PropertyPath(int variableIndex, PropertyType property)
+    public PropertyPath(int variableIndex, PropertyType? property = null)
     {
         VariableIndex = variableIndex;
         Property = property;
@@ -33,5 +33,5 @@ public struct PropertyPath
     // }
 
     public int VariableIndex;
-    public PropertyType Property;
+    public PropertyType? Property;
 }

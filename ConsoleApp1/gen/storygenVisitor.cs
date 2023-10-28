@@ -62,6 +62,12 @@ public interface IstorygenVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitValue([NotNull] storygenParser.ValueContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="storygenParser.string"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitString([NotNull] storygenParser.StringContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="storygenParser.bool"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

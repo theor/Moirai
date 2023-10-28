@@ -38,7 +38,7 @@ public class Tests
     {
         var s = @"
 @char_dies
-    $p = pick(type = person, alive = true)
+    $p = pick(type = ""person"", alive = true)
     set $p.alive = false
 ";
         Console.WriteLine(s);
@@ -71,29 +71,60 @@ public class Tests
         Assert.AreEqual(2, action.Effects.Count);
         var e1 = action.Effects[0];
         var e2 = action.Effects[1];
-        Assert.IsInstanceOf<PredicateParameter>(e1);
+        Assert.IsInstanceOf<Assign>(e1);
         
-        Assert.IsInstanceOf<PredicateParameter>(e2);
+        Assert.IsInstanceOf<Assign>(e2);
         
-        var pe1 = (PredicateParameter)e1;
-        var pe2 = (PredicateParameter)e2;
+        var pe1 = (Assign)e1;
+        var pe2 = (Assign)e2;
 
-        Assert.AreEqual(PredicateParameter.PredicateParameterType.Predicate, pe1.Type);
-        Assert.AreEqual(PredicateParameter.PredicateParameterType.Predicate, pe2.Type);
+        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
+        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
         
         Assert.NotNull(pe1.Predicate);
         Assert.IsInstanceOf<PropertyEquals>(pe1.Predicate);
         Assert.NotNull(pe2.Predicate);
         Assert.IsInstanceOf<PropertyNotEquals>(pe2.Predicate);
 
+    }[Test]
+    public void TestPredicateRightIsVar()
+    {
+        var s = @"
+@char_dies
+    $x = pick()
+    $y = pick(id != $x)
+";
+        Console.WriteLine(s);
+        var actions = StoryParser.Parse(s, out var errors);
+        Console.WriteLine(StoryPrinter.Print(actions));
+        Console.WriteLine(string.Join("\n", errors.Select(e => ToString())));
+        Assert.AreEqual(0, errors.Count);
+        
+        Assert.AreEqual(1, actions.Count);
+        var action = actions[0];
+        Assert.AreEqual("char_dies", action.Name);
+        Assert.AreEqual(2, action.Effects.Count);
+        var e1 = action.Effects[0];
+        var e2 = action.Effects[1];
+        Assert.IsInstanceOf<Assign>(e1);
+        
+        Assert.IsInstanceOf<Assign>(e2);
+        
+        var pe1 = (Assign)e1;
+        var pe2 = (Assign)e2;
+
+        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
+        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
+        
+  
     }
      [Test]
     public void TestWedding()
     {
         var s = @"
 @wedding
-    $x = pick(type = person, alive = true, partner = null)
-    $y = pick(type = person, alive = true, partner = null, id != $x)
+    $x = pick(type = ""person"", alive = true, partner = null)
+    $y = pick(type = ""person"", alive = true, partner = null, id != $x)
     set $x.partner = $y
     set $y.partner = $x
 ";
@@ -109,15 +140,15 @@ public class Tests
         Assert.AreEqual(4, action.Effects.Count);
         var e1 = action.Effects[0];
         var e2 = action.Effects[1];
-        Assert.IsInstanceOf<PredicateParameter>(e1);
+        Assert.IsInstanceOf<Assign>(e1);
         
-        Assert.IsInstanceOf<PredicateParameter>(e2);
+        Assert.IsInstanceOf<Assign>(e2);
         
-        var pe1 = (PredicateParameter)e1;
-        var pe2 = (PredicateParameter)e2;
+        var pe1 = (Assign)e1;
+        var pe2 = (Assign)e2;
 
-        Assert.AreEqual(PredicateParameter.PredicateParameterType.Predicate, pe1.Type);
-        Assert.AreEqual(PredicateParameter.PredicateParameterType.Predicate, pe2.Type);
+        // Assert.AreEqual(ComputedValue.PredicateParameterType.Predicate, pe1.Type);
+        // Assert.AreEqual(ComputedValue.PredicateParameterType.Predicate, pe2.Type);
         
         Assert.NotNull(pe1.Predicate);
         Assert.IsInstanceOf<And>(pe1.Predicate);

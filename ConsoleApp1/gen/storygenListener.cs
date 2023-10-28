@@ -81,6 +81,16 @@ public interface IstorygenListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitValue([NotNull] storygenParser.ValueContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="storygenParser.string"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterString([NotNull] storygenParser.StringContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="storygenParser.string"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitString([NotNull] storygenParser.StringContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="storygenParser.bool"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

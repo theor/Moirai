@@ -50,4 +50,23 @@ public class PredicateContext
     {
         Values.Add(entity);
     }
+    public PropertyValue GetValue(ComputedValue computedValue)
+    {
+        switch (computedValue.Type)
+        {
+
+            case ComputedValue.ComputedValueType.Value:
+                return computedValue.Value;
+            case ComputedValue.ComputedValueType.Path:
+                var varValue = this.Argument(computedValue.Path.VariableIndex);
+                if (!Database.TryGetEntity(varValue.IntValue, out var e))
+                    return default;
+                if (computedValue.Path.Property == null)
+                    return varValue;
+
+                return e.GetProperty(computedValue.Path.Property.Value);
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
 }

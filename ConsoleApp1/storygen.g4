@@ -1,13 +1,15 @@
 grammar storygen;
-r: LINE_BREAK* action+ ;
+r: (COMMENT | LINE_BREAK)* action+ ;
 action: ACTION_ID LINE_BREAK effect (effect)* ;
 effect: (create | set | assign) SPACE* LINE_BREAK+ SPACE*;
 set: 'set'  path '=' value;
-value: path | bool | NULL ;
+value: string | path | bool | NULL;
+string: STRING ;
+STRING : '"' (~[\\"])* '"';
 bool: 'true' | 'false';
-create: 'create' ID;
+create: 'create' string;
 assign: VAR_ID '=' call;
-call : ID '(' expr (',' expr)* ')';
+call : ID '(' ((expr (',' expr)* ')')|')');
 expr : ID op value ;
 op : '=' | '!=' ;
 path : VAR_ID ('.' ID)* | ID;
@@ -17,3 +19,6 @@ ACTION_ID: '@' [a-z][a-z_]*;
 ID : [a-z][a-z_]* ;
 SPACE: [ \t]+ -> skip;
 LINE_BREAK: ('\r\n' | '\r' | '\n');
+COMMENT
+  :  '#' ~( '\r' | '\n' )* LINE_BREAK -> skip
+  ;

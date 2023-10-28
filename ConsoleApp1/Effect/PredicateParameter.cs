@@ -1,53 +1,96 @@
-﻿public struct PredicateParameter : IEffect
+﻿public struct ComputedValue
 {
-    public enum PredicateParameterType
+    public enum ComputedValueType
     {
         Value,
-        Predicate,
-        Argument,
+        Path,
     }
 
-    public readonly PredicateParameterType Type;
-    public readonly IPredicate? Predicate;
+    public readonly ComputedValueType Type;
     public readonly PropertyValue Value;
-    public int ArgumentIndex = 0;
-    public PredicateParameter(IPredicate predicate) : this()
+    public readonly PropertyPath Path;
+    public ComputedValue(PropertyValue value)
     {
-        Predicate = predicate;
-        Type = PredicateParameterType.Predicate;
-    }
-    public PredicateParameter(PropertyValue value) : this()
-    {
+        Type = ComputedValueType.Value;
         Value = value;
-        Type = PredicateParameterType.Value;
+        Path = default;
     }
-
-    private PredicateParameter(int argumentIdx) : this()
+    public ComputedValue(PropertyPath path)
     {
-        ArgumentIndex = argumentIdx;
-        Type = PredicateParameterType.Argument;
+        Type = ComputedValueType.Value;
+        Value = default;
+        Path = path;
     }
+    public static explicit operator ComputedValue(PropertyValue value) => new ComputedValue(value);
 
-    public static PredicateParameter Argument(int idx) => new PredicateParameter(idx);
-    public static explicit operator PredicateParameter(PropertyValue v) => new PredicateParameter(v);
-    public readonly PropertyValue GetValue(PredicateContext ctx)
+}
+public struct Assign : IEffect
+{
+    public readonly int VariableIndex;
+    public readonly IPredicate Predicate;
+    public Assign(int variableIndex, IPredicate value)
     {
-        switch (Type)
-        {
-
-            case PredicateParameterType.Value:
-                return Value;
-            case PredicateParameterType.Predicate:
-                return ctx.Query(Predicate, out var val) ? val : default;
-            case PredicateParameterType.Argument:
-                return ctx.Argument(ArgumentIndex);
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
+        VariableIndex = variableIndex;
+        Predicate = value;
     }
     public bool MakeTrue(PredicateContext ctx)
     {
-        ctx.SetArgument(ArgumentIndex, ctx.Query(Predicate, out var val) ? val : default);
+        ctx.Query(Predicate, out var val);
+        ctx.SetArgument(VariableIndex, val);
         return true;
     }
 }
+
+// public struct PredicateParameter : IEffect
+// {
+//     public enum PredicateParameterType
+//     {
+//         Value,
+//         Predicate,
+//         Argument,
+//     }
+//
+//     public readonly PredicateParameterType Type;
+//     public readonly IPredicate? Predicate;
+//     public readonly PropertyValue Value;
+//     public int ArgumentIndex = 0;
+//     public PredicateParameter(IPredicate predicate) : this()
+//     {
+//         Predicate = predicate;
+//         Type = PredicateParameterType.Predicate;
+//     }
+//     public PredicateParameter(PropertyValue value) : this()
+//     {
+//         Value = value;
+//         Type = PredicateParameterType.Value;
+//     }
+//
+//     private PredicateParameter(int argumentIdx) : this()
+//     {
+//         ArgumentIndex = argumentIdx;
+//         Type = PredicateParameterType.Argument;
+//     }
+//
+//     public static PredicateParameter Argument(int idx) => new PredicateParameter(idx);
+//     public static explicit operator PredicateParameter(PropertyValue v) => new PredicateParameter(v);
+//     public readonly PropertyValue GetValue(PredicateContext ctx)
+//     {
+//         switch (Type)
+//         {
+//
+//             case PredicateParameterType.Value:
+//                 return Value;
+//             case PredicateParameterType.Predicate:
+//                 return ctx.Query(Predicate, out var val) ? val : default;
+//             case PredicateParameterType.Argument:
+//                 return ctx.Argument(ArgumentIndex);
+//             default:
+//                 throw new ArgumentOutOfRangeException();
+//         }
+//     }
+//     public bool MakeTrue(PredicateContext ctx)
+//     {
+//         ctx.SetArgument(ArgumentIndex, ctx.Query(Predicate, out var val) ? val : default);
+//         return true;
+//     }
+// }

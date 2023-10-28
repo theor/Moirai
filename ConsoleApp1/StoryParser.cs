@@ -64,44 +64,45 @@ public static class StoryParser
             _values.Clear();
             //Console.WriteLine($"  Set {context.path().GetText()} = {context.value().GetText()}");
             var left = ParsePath(context.path());
-            var right = ParsePredicateParameter(context.value(), left.prop);
-            Actions.Last().Effects.Add(new SetProperty(new(left.varIndex, left.prop), right));
+            var right = ParseComputedValue(context.value(), left.Property);
+            Actions.Last().Effects.Add(new SetProperty(left, right));
             return null;
         }
-        private PredicateParameter ParsePredicateParameter(storygenParser.ValueContext value, PropertyType type)
+        private ComputedValue ParseComputedValue(storygenParser.ValueContext value, PropertyType? type)
         {
-            PredicateParameter pp;
+            ComputedValue pp;
             if (value.NULL() != null)
-                pp = new PredicateParameter(0);
-            else if (value.path() != null)
+                pp = new ComputedValue((PropertyValue)0);
+            else if (value.@string() != null)
             {
-                string? varName = value.path().VAR_ID()?.GetText();
-                if (varName != null)
+                if (type == PropertyType.Type)
                 {
-                    int varIdx = _variables.IndexOf(varName);
-                    if (varIdx == -1)
-                        throw new System.NotImplementedException("Unknown var " + varName);
-
-                    pp = PredicateParameter.Argument(varIdx);
-                }
-                else if (type == PropertyType.Type)
-                {
-                    if (Enum.TryParse<EntityType>(value.path().GetText(), true, out var entityType))
+                    if (Enum.TryParse<EntityType>(value.@string().STRING().GetText().Trim('"'), true, out var entityType))
                     {
-                        pp = new PredicateParameter((int)entityType);
+                        pp = new ComputedValue((int)entityType);
                     }
-                    else throw new System.NotImplementedException("unknown type" + value.path().GetText());
+                    else throw new System.NotImplementedException("unknown type " + value.@string().GetText());
                 }
                 else
-                    throw new System.NotImplementedException("not a bool or var: " + value.path().ID(0));
+                    pp = new ComputedValue(value.@string().STRING().GetText());
             }
+            else if (value.path() != null)
+            {
+                PropertyPath path = ParsePath(value.path());
+                pp = new ComputedValue(path);
+
+
+            }
+            else if (value.@bool() != null)
+                pp = (ComputedValue)(PropertyValue)(value.@bool().GetText() == "true");
             else
-                pp = (PredicateParameter)(PropertyValue)(value.@bool().GetText() == "true");
+                throw new System.NotImplementedException(value.GetText());
+
             return pp;
         }
         public override List<Error> VisitCreate(storygenParser.CreateContext context)
         {
-            var type = context.ID().GetText();
+            var type = context.@string().GetText().Trim('"');
             //Console.WriteLine("  Create " + type);
             Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
             return base.VisitCreate(context);
@@ -116,9 +117,9 @@ public static class StoryParser
             _variables.Add(variable);
             //Console.WriteLine("  Assign " + context.VAR_ID());
             var visitAssign = base.VisitAssign(context);
-            Actions.Last().Effects.Add(new PredicateParameter(
-                 _predicates.Count == 1 ? _predicates[0] : 
-                    new And(_predicates)){ArgumentIndex = _variables.Count - 1});
+            Actions.Last().Effects.Add(new Assign(
+                _variables.Count - 1,
+                _predicates.Count == 1 ? _predicates[0] : new And(_predicates)));
             return visitAssign;
         }
         public override List<Error> VisitCall(storygenParser.CallContext context)
@@ -127,7 +128,6 @@ public static class StoryParser
             //Console.WriteLine("    Call " + funcName);
             if (funcName != "pick")
                 return new() { new Error(context.Start, "call unknown: " + funcName) };
-
             return base.VisitCall(context);
         }
         public override List<Error> VisitExpr(storygenParser.ExprContext context)
@@ -144,7 +144,7 @@ public static class StoryParser
             ITerminalNode? id = context.ID();
             PropertyType propertyType = ParsePropertyType(id);
             // right, true or $x -  not alive or $x.alive
-            PredicateParameter value = ParsePredicateParameter(context.value(), propertyType);
+            ComputedValue value = ParseComputedValue(context.value(), propertyType);
             if (op == "=")
                 predicate = new PropertyEquals(propertyType, value);
             else if (op == "!=")
@@ -159,23 +159,11 @@ public static class StoryParser
         public override List<Error> VisitPath(storygenParser.PathContext context)
         {
             throw new System.NotImplementedException();
-            var varId = context.VAR_ID();
-            var ids = context.ID();
-            if (ids.Length > 1)
-                return new List<Error> { new(context.Start, "expected two parts, got " + context.GetText()) };
-
-            //Console.WriteLine("    VisitValue " + string.Join(", ", context.ID().Select(i => i.GetText())));
-            _values.Add(new PropertyValue());
-            return base.VisitPath(context);
-        }
-        
-        private static PropertyType ParsePropertyType(ITerminalNode id)
-        {
-
-            return Enum.Parse<PropertyType>(id.GetText(), true);
         }
 
-        (int varIndex, PropertyType prop) ParsePath(storygenParser.PathContext context)
+        private static PropertyType ParsePropertyType(ITerminalNode id) => Enum.Parse<PropertyType>(id.GetText(), true);
+
+        PropertyPath ParsePath(storygenParser.PathContext context)
         {
             int varIndex = 0;
             var varId = context.VAR_ID();
@@ -186,11 +174,13 @@ public static class StoryParser
                     throw new System.NotImplementedException("Unknown var " + varId.GetText());
 
             }
-            if (context.ID().Length != 1)
-                throw new Exception("expected two parts, got ");
+            if (context.ID().Length == 0)
+                return new PropertyPath(varIndex);
+            if (context.ID().Length > 1)
+                throw new Exception("expected two parts, got " + context.ID().Length );
 
             PropertyType type = Enum.Parse<PropertyType>(context.ID(0).GetText(), true);
-            return (varIndex, type);
+            return new PropertyPath(varIndex, type);
         }
     }
 }

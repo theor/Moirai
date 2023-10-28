@@ -8,12 +8,14 @@ T__6=7
 T__7=8
 T__8=9
 T__9=10
-NULL=11
-VAR_ID=12
-ACTION_ID=13
-ID=14
-SPACE=15
-LINE_BREAK=16
+STRING=11
+NULL=12
+VAR_ID=13
+ACTION_ID=14
+ID=15
+SPACE=16
+LINE_BREAK=17
+COMMENT=18
 'set'=1
 '='=2
 'true'=3
@@ -24,4 +26,4 @@ LINE_BREAK=16
 ')'=8
 '!='=9
 '.'=10
-'null'=11
+'null'=12
