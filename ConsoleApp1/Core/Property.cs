@@ -8,3 +8,13 @@
         Value = value;
     }
 }
+
+public enum PropertyType
+{
+    Id,
+    Type,
+    Alive,
+    Owner,
+    Partner,
+    Name
+}

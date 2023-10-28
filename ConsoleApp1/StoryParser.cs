@@ -54,7 +54,7 @@ public static class StoryParser
         public override List<Error> VisitAction(storygenParser.ActionContext context)
         {
             string actionId = context.ACTION_ID().GetText().Substring(1);
-            Console.WriteLine("@ " + actionId);
+            //Console.WriteLine("@ " + actionId);
             Actions.Add(new Action(actionId));
             _variables.Clear();
             return base.VisitAction(context);
@@ -62,7 +62,7 @@ public static class StoryParser
         public override List<Error> VisitSet(storygenParser.SetContext context)
         {
             _values.Clear();
-            Console.WriteLine($"  Set {context.path().GetText()} = {context.value().GetText()}");
+            //Console.WriteLine($"  Set {context.path().GetText()} = {context.value().GetText()}");
             var left = ParsePath(context.path());
             var right = ParsePredicateParameter(context.value(), left.prop);
             Actions.Last().Effects.Add(new SetProperty(left.varIndex, left.prop, right));
@@ -102,7 +102,7 @@ public static class StoryParser
         public override List<Error> VisitCreate(storygenParser.CreateContext context)
         {
             var type = context.ID().GetText();
-            Console.WriteLine("  Create " + type);
+            //Console.WriteLine("  Create " + type);
             Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
             return base.VisitCreate(context);
         }
@@ -114,7 +114,7 @@ public static class StoryParser
                 return new List<Error>() { new Error(context.Start.Column, context.Start.Line, " Duplicate variable " + variable) };
 
             _variables.Add(variable);
-            Console.WriteLine("  Assign " + context.VAR_ID());
+            //Console.WriteLine("  Assign " + context.VAR_ID());
             var visitAssign = base.VisitAssign(context);
             Actions.Last().Effects.Add(new PredicateParameter(
                  _predicates.Count == 1 ? _predicates[0] : 
@@ -124,7 +124,7 @@ public static class StoryParser
         public override List<Error> VisitCall(storygenParser.CallContext context)
         {
             var funcName = context.ID().GetText();
-            Console.WriteLine("    Call " + funcName);
+            //Console.WriteLine("    Call " + funcName);
             if (funcName != "pick")
                 return new() { new Error(context.Start, "call unknown: " + funcName) };
 
@@ -133,7 +133,7 @@ public static class StoryParser
         public override List<Error> VisitExpr(storygenParser.ExprContext context)
         {
             _values.Clear();
-            Console.WriteLine("    VisitExpr " + context.GetText());
+            //Console.WriteLine("    VisitExpr " + context.GetText());
             // Actions.Last().Effects.
             // if(_values.Count != 1)
             // throw new System.NotImplementedException($"Value count: {_values.Count} != 1");
@@ -164,7 +164,7 @@ public static class StoryParser
             if (ids.Length > 1)
                 return new List<Error> { new(context.Start, "expected two parts, got " + context.GetText()) };
 
-            Console.WriteLine("    VisitValue " + string.Join(", ", context.ID().Select(i => i.GetText())));
+            //Console.WriteLine("    VisitValue " + string.Join(", ", context.ID().Select(i => i.GetText())));
             _values.Add(new PropertyValue());
             return base.VisitPath(context);
         }

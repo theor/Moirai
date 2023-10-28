@@ -23,3 +23,8 @@
     $p = pick(type=person, alive = true)
     $i = pick(type=item, owner = null)
     set $i.owner = $p
+@item_sold
+    $i = pick(type=item, owner != null)
+    $p = pick(type=person, id != $i.owner)
+    set $i.owner = $p
+    

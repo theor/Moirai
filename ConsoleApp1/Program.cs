@@ -5,6 +5,7 @@
         string line;
         string path = "w.sg";
         var db = new Database() { Effects = StoryParser.Parse(File.ReadAllText(path), out var errors) };
+        Console.WriteLine(StoryPrinter.Print(db.Effects));
         int prevAction = -1;
         while (true)
         {
@@ -146,16 +147,13 @@
     }
 }
 
+// TODO:
+// parsing:
+    // $i = pick(type=item, owner != null)
+    // $p = pick(type=person, id != $i.owner) <- $i.owner doesn't work
+// pick must be random
+// add factions ?
 
-public enum PropertyType
-{
-    Id,
-    Type,
-    Alive,
-    Owner,
-    Partner,
-    Name
-}
 // item.owner: x -> y gifted, stolen or inherited
 // owner dies -> owned items have no owners
 
@@ -166,8 +164,3 @@ public enum PropertyType
 // alive -> dies
 // owner alive, item owned -> lost, given, stolen
 // owner dead, item owned -> 
-public enum EntityType
-{
-    Person = 1,
-    Item = 2,
-}
