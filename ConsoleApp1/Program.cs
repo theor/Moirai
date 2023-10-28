@@ -1,13 +1,40 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System.Collections;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Pcg;
 
 internal class Program
 {
     public static void Main(string[] args)
     {
+        string line;
+        string path = "w.sg";
+        var db = new Database() { Effects = StoryParser.Parse(File.ReadAllText(path), out var errors) };
+        int prevAction = -1;
+        while (true)
+        {
+            Console.WriteLine("-----------------");
+            for (var index = 0; index < db.Effects.Count; index++)
+            {
+                var action = db.Effects[index];
+                Console.WriteLine($"  {index:00} {action.Name}");
+            }
+            Console.Write("> ");
+            line = Console.ReadLine() ?? "";
+            if (line == "qq")
+                break;
+
+            if (line == "" && prevAction >= 0)
+            {
+                db.RunAction(db.Effects[prevAction]);
+                db.PrintDb();
+            }
+            if (int.TryParse(line, out var i) && i >= 0 && i < db.Effects.Count)
+            {
+                prevAction = i;
+                db.RunAction(db.Effects[i]);
+                db.PrintDb();
+            }
+
+        }
         // Console.WriteLine("Hello, World!");
         // var rules = new List<Rule>
         // {
@@ -16,6 +43,34 @@ internal class Program
 
         // var effects = StoryParser.Parse(File.ReadAllText("w.sg"));
         // return;
+
+        Sample();
+        return;
+
+        db.RunAction("Create person");
+        db.RunAction("Create person");
+        db.PrintDb();
+        db.RunAction("Two people marry");
+        db.PrintDb();
+        db.RunAction("Two people separate");
+        db.PrintDb();
+        db.RunAction("Someone dies");
+        db.PrintDb();
+// return;
+        Console.WriteLine("  [ITEMS]");
+        db.RunAction("Create item");
+        db.RunAction("Create item");
+        db.PrintDb();
+        db.RunAction("Set item owner");
+        // PrintDb(db);
+        db.PrintDb();
+        db.RunAction("Set item owner");
+        db.PrintDb();
+
+
+    }
+    private static void Sample()
+    {
 
         var db = new Database
         {
@@ -30,8 +85,7 @@ internal class Program
             {
                 new Action("Create person",
                     new CreateEntity(EntityType.Person),
-                    new SetProperty(PropertyType.Alive, true),
-                    new NameEntity()
+                    new SetProperty(PropertyType.Alive, true)
                 ),
                 new Action("Create item",
                     new CreateEntity(EntityType.Item),
@@ -63,7 +117,7 @@ internal class Program
                         new PropertyEquals(EntityType.Person),
                         new PropertyNotEquals(PropertyType.Id, PredicateParameter.Argument(0)),
                         new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyEquals(PropertyType.Partner, default))){ArgumentIndex = 1},
+                        new PropertyEquals(PropertyType.Partner, default))) { ArgumentIndex = 1 },
                     new SetProperty(0, PropertyType.Partner, PredicateParameter.Argument(1)),
                     new SetProperty(1, PropertyType.Partner, PredicateParameter.Argument(0))
                 ),
@@ -91,27 +145,7 @@ internal class Program
                 //     ))),
             },
         };
-        db.RunAction("Create person");
-        db.RunAction("Create person");
-        db.PrintDb();
-        db.RunAction("Two people marry");
-        db.PrintDb();
-        db.RunAction("Two people separate");
-        db.PrintDb();
-        db.RunAction("Someone dies");
-        db.PrintDb();
-// return;
-        Console.WriteLine("  [ITEMS]");
-        db.RunAction("Create item");
-        db.RunAction("Create item");
-        db.PrintDb();
-        db.RunAction("Set item owner");
-        // PrintDb(db);
-        db.PrintDb();
-        db.RunAction("Set item owner");
-        db.PrintDb();
-
-
+        Console.WriteLine(StoryPrinter.Print(db.Effects));
     }
 }
 
@@ -279,7 +313,7 @@ public class Database
             var e = effect.Effects[index];
             if (e is PredicateParameter pp && pp.ArgumentIndex == -1)
                 throw new System.NotImplementedException("Arg index -1 on p " + index);
-                
+
             if (!e.MakeTrue(_ctx))
                 return false;
         }
@@ -514,7 +548,7 @@ class CreateEntity : IEffect
         // if (!ctx.Database.EntityExists(ctx.EntityId))
         var entity = ctx.Database.AllocateEntity(Type);
         ctx.PushArgument(entity);
-        return true;
+        return NameEntity.MakeTrue(ctx);
     }
 }
 
@@ -619,9 +653,9 @@ public struct PredicateParameter : IEffect
     }
 }
 
-class NameEntity : IEffect
+static class NameEntity
 {
-    public bool MakeTrue(PredicateContext ctx)
+    public static bool MakeTrue(PredicateContext ctx)
     {
         if (!ctx.Database.TryGetEntity(ctx.EntityId, out var e))
             return false;
@@ -634,6 +668,7 @@ class NameEntity : IEffect
 
     private static readonly string[] Names =
     {
+        // ReSharper disable StringLiteralTypo
         "Abraxas", "Adara", "Adrienne", "Aeron", "Aeronwen", "Aeronwy", "Ailbhe", "Aileen", "Aislinn", "Aithne", "Alanna", "Alastair",
         "Alastriona", "Albion", "Altalune", "Amaris", "Amina", "Amira", "Anastasia", "Andreas", "Aneira", "Angeline", "Aodh", "Aoife",
         "Arella", "Arianell", "Arianwen", "Artemis", "Artemisia", "Arthur", "Arwen", "Ascella", "Asteria", "Astoria", "Astra", "Astraea",
@@ -650,21 +685,22 @@ class NameEntity : IEffect
         "Rosabella", "Rosabelle", "Rosella", "Rosina", "Rowena", "Rune", "Sage", "Senara", "Silvana", "Sonora", "Sorcha", "Sybella",
         "Taliesin", "Tamora", "Tarian", "Titania", "Tristan", "Twyla", "Victoire", "Vivia", "Viviana", "Viviane", "Willow", "Yvaine",
         "Zella", "Áine"
+        // ReSharper restore StringLiteralTypo
     };
 
-    private string GenerateName(PredicateContext predicateContext, EntityType t, in Entity entity)
+    private static string GenerateName(PredicateContext predicateContext, EntityType t, in Entity entity)
     {
-        return Names[predicateContext.Rnd.GenerateNext((uint)Names.Length)];
-        // switch (t)
-        // {
-        //
-        //     case EntityType.TypePerson:
-        //         break;
-        //     case EntityType.TypeItem:
-        //         break;
-        //     default:
-        //         throw new ArgumentOutOfRangeException(nameof(t), t, null);
-        // }
+        var n = Names[predicateContext.Rnd.GenerateNext((uint)Names.Length)];
+        switch (t)
+        {
+        
+            case EntityType.Person:
+                return n;
+            case EntityType.Item:
+                return "Ring of " + n;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(t), t, null);
+        }
     }
 }
 
