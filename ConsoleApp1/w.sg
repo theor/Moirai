@@ -1,0 +1,25 @@
+﻿@char_born
+    create person
+    set alive = true
+@char_dies
+    $p = pick(type = person, alive = true)
+    set $p.alive = false
+@wedding
+    $x = pick(type = person, alive = true, partner = null)
+    $y = pick(type = person, alive = true, partner = null, id != $x)
+    set $x.partner = $y
+    set $y.partner = $x
+@divorce
+    $x = pick(type = person, alive = true, partner != null)
+    $y = pick(type = person, alive = true, partner != null, id != $x)
+    set $x.partner = null
+    set $y.partner = null
+    
+
+@make_item
+    create item
+    set owner = null
+@item_acquired
+    $p = pick(type=person, alive = true)
+    $i = pick(type=item, owner = null)
+    set $i.owner = $p

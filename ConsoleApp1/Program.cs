@@ -2,49 +2,10 @@
 
 using System.Collections;
 using System.Diagnostics;
+using Pcg;
 
 internal class Program
 {
-    public static void PrintDb(Database db)
-    {
-        Console.WriteLine("[DB]");
-        bool any = false;
-        foreach (var e in db.Entities)
-        {
-            any = true;
-            Console.WriteLine($"e{e.Id}");
-            if (e.Properties != null)
-                foreach (var property in e.Properties)
-                {
-                    Console.WriteLine($"  {FormatProperty(property)}");
-                }
-        }
-        if (!any)
-            Console.WriteLine("<Empty>");
-        Console.WriteLine();
-    }
-    private static string FormatProperty(Property property)
-    {
-        switch (property.Type)
-        {
-
-            case PropertyType.Type:
-                switch (property.Value.IntValue)
-                {
-                    case Properties.TypePerson: return "Type: Person";
-                    case Properties.TypeItem: return "Type: Item";
-                    default: return "Type UNKNOWN";
-                }
-            case PropertyType.Alive:
-                return property.Value.BoolValue ? "Alive" : "Dead";
-            case PropertyType.Owner:
-                return $"Owner: {property.Value.IntValue}";
-            case PropertyType.Partner:
-                return $"Partner: {property.Value.IntValue}";
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
     public static void Main(string[] args)
     {
         // Console.WriteLine("Hello, World!");
@@ -52,59 +13,79 @@ internal class Program
         // {
         //     new Rule(new Property(PropertyType.Type, "Person"))
         // };
+
+        // var effects = StoryParser.Parse(File.ReadAllText("w.sg"));
+        // return;
+
         var db = new Database
         {
             Rules =
             {
-                new Rule("Persons have liveliness", new PropertyEquals(PropertyType.Type, Properties.TypePerson),
+                new Rule("Persons have liveliness", new PropertyEquals(EntityType.Person),
                     new HasProperty(PropertyType.Alive)),
-                new Rule("Items have owners", new PropertyEquals(PropertyType.Type, Properties.TypeItem),
+                new Rule("Items have owners", new PropertyEquals(EntityType.Item),
                     new HasProperty(PropertyType.Owner)),
             },
             Effects =
             {
-                new Action("Create person", 
-                    new CreateEntity(), new SetProperty(PropertyType.Type, Properties.TypePerson),
-                        new SetProperty(PropertyType.Alive, true)),
-                new Action("Create item", 
-                    new CreateEntity(), new SetProperty(PropertyType.Type, Properties.TypeItem),
-                        new SetProperty(PropertyType.Owner, default)),
+                new Action("Create person",
+                    new CreateEntity(EntityType.Person),
+                    new SetProperty(PropertyType.Alive, true),
+                    new NameEntity()
+                ),
+                new Action("Create item",
+                    new CreateEntity(EntityType.Item),
+                    new SetProperty(PropertyType.Owner, default)),
                 new Action("Someone dies",
-                    new And(new PropertyEquals(PropertyType.Type, Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true)),
+                    new And(new PropertyEquals(EntityType.Person), new PropertyEquals(PropertyType.Alive, true)),
                     new SetProperty(PropertyType.Alive, false)),
                 // new Action("Set item owner",
-                //     new And(new PropertyEquals(PropertyType.Type, Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
+                //     new And(new PropertyEquals( Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
                 //     new SetProperty(PropertyType.Owner, new PredicateParameter(
-                //         new And(new PropertyEquals(PropertyType.Type, Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true))
+                //         new And(new PropertyEquals( Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true))
                 //     ))),
                 new Action("Set item owner",
                     new PredicateParameter(
-                        new And(new PropertyEquals(PropertyType.Type, Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true))
+                        new And(new PropertyEquals(EntityType.Person), new PropertyEquals(PropertyType.Alive, true))
                     ),
                     new PredicateParameter(
-                        new And(new PropertyEquals(PropertyType.Type, Properties.TypeItem),
-                            new And(new PropertyEquals(PropertyType.Owner, default), new PropertyNotEquals(PropertyType.Owner, PredicateParameter.Argument(0))))
+                        new And(new PropertyEquals(EntityType.Item),
+                            new And(new PropertyEquals(PropertyType.Owner, default),
+                                new PropertyNotEquals(PropertyType.Owner, PredicateParameter.Argument(0))))
                     ),
                     new SetProperty(1, PropertyType.Owner, PredicateParameter.Argument(0))),
                 new Action("Two people marry",
                     new PredicateParameter(new And(
-                        new PropertyEquals(PropertyType.Type, Properties.TypePerson),
+                        new PropertyEquals(EntityType.Person),
                         new PropertyEquals(PropertyType.Alive, true),
                         new PropertyEquals(PropertyType.Partner, default))),
                     new PredicateParameter(new And(
-                        new PropertyEquals(PropertyType.Type, Properties.TypePerson),
+                        new PropertyEquals(EntityType.Person),
                         new PropertyNotEquals(PropertyType.Id, PredicateParameter.Argument(0)),
                         new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyEquals(PropertyType.Partner, default))),
+                        new PropertyEquals(PropertyType.Partner, default))){ArgumentIndex = 1},
                     new SetProperty(0, PropertyType.Partner, PredicateParameter.Argument(1)),
                     new SetProperty(1, PropertyType.Partner, PredicateParameter.Argument(0))
                 ),
+                new Action("Two people separate",
+                    new PredicateParameter(new And(
+                        new PropertyEquals(EntityType.Person),
+                        new PropertyEquals(PropertyType.Alive, true),
+                        new PropertyNotEquals(PropertyType.Partner, default))),
+                    new PredicateParameter(new And(
+                        new PropertyEquals(EntityType.Person),
+                        new PropertyNotEquals(PropertyType.Id, PredicateParameter.Argument(0)),
+                        new PropertyEquals(PropertyType.Alive, true),
+                        new PropertyEquals(PropertyType.Partner, PredicateParameter.Argument(0)))),
+                    new SetProperty(0, PropertyType.Partner, default),
+                    new SetProperty(1, PropertyType.Partner, default)
+                ),
                 // new Action("Set item owner2",
                 //     
-                //     new And(new PropertyEquals(PropertyType.Type, Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
+                //     new And(new PropertyEquals( Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
                 //     new SetProperty(PropertyType.Owner, new PredicateParameter(
                 //         new And(
-                //             new PropertyEquals(PropertyType.Type, Properties.TypePerson),
+                //             new PropertyEquals( Properties.TypePerson),
                 //             new PropertyEquals(PropertyType.Alive, true),
                 //             new PropertyEquals(PropertyType.Owner,  ))
                 //     ))),
@@ -112,34 +93,37 @@ internal class Program
         };
         db.RunAction("Create person");
         db.RunAction("Create person");
-        PrintDb(db);
+        db.PrintDb();
         db.RunAction("Two people marry");
-        PrintDb(db);
+        db.PrintDb();
+        db.RunAction("Two people separate");
+        db.PrintDb();
         db.RunAction("Someone dies");
-        PrintDb(db);
-return;
+        db.PrintDb();
+// return;
         Console.WriteLine("  [ITEMS]");
         db.RunAction("Create item");
         db.RunAction("Create item");
-        PrintDb(db);
+        db.PrintDb();
         db.RunAction("Set item owner");
         // PrintDb(db);
-        PrintDb(db);
+        db.PrintDb();
         db.RunAction("Set item owner");
-        PrintDb(db);
+        db.PrintDb();
 
 
     }
 }
 
 
-internal enum PropertyType
+public enum PropertyType
 {
     Id,
     Type,
     Alive,
     Owner,
     Partner,
+    Name
 }
 // item.owner: x -> y gifted, stolen or inherited
 // owner dies -> owned items have no owners
@@ -151,21 +135,16 @@ internal enum PropertyType
 // alive -> dies
 // owner alive, item owned -> lost, given, stolen
 // owner dead, item owned -> 
-static class Properties
+public enum EntityType
 {
-    public const int TypePerson = 1;
-    public const int TypeItem = 2;
+    Person = 1,
+    Item = 2,
 }
 
-class Logger
-{
-}
-
-class Database
+public class Database
 {
     private List<Entity> _entities = new() { default };
-    public List<Rule> Rules = new();
-    private Logger _logger = new();
+    internal List<Rule> Rules = new();
     public List<Action> Effects = new();
 
     private PredicateContext _ctx;
@@ -175,9 +154,10 @@ class Database
     }
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
-    public long AllocateEntity()
+    public long AllocateEntity(EntityType entityType)
     {
         Entity e = new();
+        e.Properties = new() { new Property(PropertyType.Type, (int)entityType) };
         e.Id = (long)_entities.Count;
         _entities.Add(e);
         return e.Id;
@@ -220,7 +200,7 @@ class Database
     }
 
 
-    internal struct EntityScope : IDisposable
+    public struct EntityScope : IDisposable
     {
         public readonly Database Database;
         public long EntityId;
@@ -247,8 +227,9 @@ class Database
         if (!TryGetEntity(entityId, out var entity))
             return false;
 
-        if(property == PropertyType.Id)
-            throw new System.NotImplementedException();
+        if (property == PropertyType.Id)
+            throw new NotImplementedException();
+
         if (entity.Properties == null)
         {
             entity.Properties = new();
@@ -269,6 +250,7 @@ class Database
     }
     public bool RunAction(string actionName)
     {
+        Console.WriteLine($"[{actionName}]");
         foreach (var a in this.Effects)
         {
             if (a.Name == actionName)
@@ -281,16 +263,23 @@ class Database
     public bool RunAction(Action effect)
     {
         _ctx.Values.Clear();
-        int argCount = 0;
+        // int argCount = 0;
+        // for (var index = 0; index < effect.Effects.Count; index++)
+        // {
+        //     var e = effect.Effects[index];
+        //     if (e is PredicateParameter pp)
+        //     {
+        //         pp.ArgumentIndex = argCount++;
+        //         effect.Effects[index] = pp;
+        //     }
+        // }
+
         for (var index = 0; index < effect.Effects.Count; index++)
         {
             var e = effect.Effects[index];
-            if (e is PredicateParameter pp)
-            {
-                pp.ArgumentIndex = argCount++;
-                effect.Effects[index] = pp;
-                e = pp;
-            }
+            if (e is PredicateParameter pp && pp.ArgumentIndex == -1)
+                throw new System.NotImplementedException("Arg index -1 on p " + index);
+                
             if (!e.MakeTrue(_ctx))
                 return false;
         }
@@ -302,9 +291,53 @@ class Database
         // }
         // return false;
     }
+    public void PrintDb()
+    {
+        // Console.WriteLine("[DB]");
+        bool any = false;
+        foreach (var e in Entities)
+        {
+            any = true;
+            string name = e.TryGetProperty(PropertyType.Name, out var nameprop) ? (nameprop.Value ?? "") : "";
+            Console.WriteLine($"e{e.Id} {name}");
+            if (e.Properties != null)
+                foreach (var property in e.Properties)
+                {
+                    if (property.Type != PropertyType.Name)
+                        Console.WriteLine($"  {FormatProperty(property)}");
+                }
+        }
+        if (!any)
+            Console.WriteLine("<Empty>");
+        Console.WriteLine();
+    }
+    private static string FormatProperty(Property property)
+    {
+        switch (property.Type)
+        {
+
+            case PropertyType.Type:
+                switch ((EntityType)property.Value.IntValue)
+                {
+                    case EntityType.Person: return "Type: Person";
+                    case EntityType.Item: return "Type: Item";
+                    default: return "Type UNKNOWN";
+                }
+            case PropertyType.Alive:
+                return property.Value.BoolValue ? "Alive" : "Dead";
+            case PropertyType.Owner:
+                return $"Owner: {property.Value.IntValue}";
+            case PropertyType.Partner:
+                return $"Partner: {property.Value.IntValue}";
+            case PropertyType.Name:
+                return $"Name: {property.Value.Value}";
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
 }
 
-struct PropertyValue : IEquatable<PropertyValue>
+public struct PropertyValue : IEquatable<PropertyValue>
 {
     public string? Value;
     public long IntValue;
@@ -347,7 +380,7 @@ struct PropertyValue : IEquatable<PropertyValue>
     }
 }
 
-struct Property
+public struct Property
 {
     public PropertyType Type;
     public PropertyValue Value;
@@ -358,12 +391,12 @@ struct Property
     }
 }
 
-interface IPredicate
+public interface IPredicate
 {
     bool IsTrue(PredicateContext ctx);
 }
 
-interface IEffect
+public interface IEffect
 {
     bool MakeTrue(PredicateContext ctx);
 }
@@ -373,10 +406,14 @@ class True : IPredicate
     public bool IsTrue(PredicateContext ctx) => true;
 }
 
-class And : IPredicate
+public class And : IPredicate
 {
-    private List<IPredicate> Predicates = new();
+    public List<IPredicate> Predicates = new();
     public And(params IPredicate[] predicates)
+    {
+        Predicates.AddRange(predicates);
+    }
+    public And(List<IPredicate> predicates)
     {
         Predicates.AddRange(predicates);
     }
@@ -405,14 +442,16 @@ class Sequence : IEffect
     }
 }
 
-class PredicateContext
+public class PredicateContext
 {
     public readonly Database Database;
     public List<PropertyValue> Values = new();
+    public Pcg32 Rnd;
 
     public PredicateContext(Database database)
     {
         Database = database;
+        Rnd = new Pcg32(42, 42);
     }
     public long EntityId => Values[^1].IntValue;
 
@@ -426,7 +465,7 @@ class PredicateContext
         var iterationIdx = Values.Count;
         foreach (var entity in Database.Entities)
         {
-            SetArgument(iterationIdx,entity.Id);
+            SetArgument(iterationIdx, entity.Id);
             if (predicate.IsTrue(this))
             {
                 PopArgument();
@@ -445,7 +484,7 @@ class PredicateContext
     }
     public void SetArgument(int argumentIndex, PropertyValue value)
     {
-        while(Values.Count <= argumentIndex)
+        while (Values.Count <= argumentIndex)
             Values.Add(default);
         Values[argumentIndex] = value;
     }
@@ -465,19 +504,30 @@ class EntityExists : IPredicate
 
 class CreateEntity : IEffect
 {
+    public EntityType Type;
+    public CreateEntity(EntityType type)
+    {
+        Type = type;
+    }
     public bool MakeTrue(PredicateContext ctx)
     {
         // if (!ctx.Database.EntityExists(ctx.EntityId))
-        ctx.PushArgument(ctx.Database.AllocateEntity());
+        var entity = ctx.Database.AllocateEntity(Type);
+        ctx.PushArgument(entity);
         return true;
     }
 }
 
-class PropertyEquals : IPredicate
+public class PropertyEquals : IPredicate
 {
     public readonly PropertyType Property;
     public readonly PredicateParameter Value;
 
+    public PropertyEquals(EntityType type)
+    {
+        Property = PropertyType.Type;
+        Value = (PropertyValue)(int)type;
+    }
     public PropertyEquals(PropertyType property, PropertyValue value)
     {
         Property = property;
@@ -494,12 +544,17 @@ class PropertyEquals : IPredicate
     }
 }
 
-class PropertyNotEquals : IPredicate
+public class PropertyNotEquals : IPredicate
 {
     public readonly PropertyType Property;
     public readonly PredicateParameter Value;
 
     public PropertyNotEquals(PropertyType property, PredicateParameter value)
+    {
+        Property = property;
+        Value = value;
+    }
+    public PropertyNotEquals(PropertyType property, PropertyValue value)
     {
         Property = property;
         Value = value;
@@ -510,19 +565,19 @@ class PropertyNotEquals : IPredicate
     }
 }
 
-struct PredicateParameter : IEffect
+public struct PredicateParameter : IEffect
 {
-    enum PredicateParameterType
+    public enum PredicateParameterType
     {
         Value,
         Predicate,
         Argument,
     }
 
-    private readonly PredicateParameterType Type;
-    private readonly IPredicate? Predicate;
-    private readonly PropertyValue Value;
-    public int ArgumentIndex;
+    public readonly PredicateParameterType Type;
+    public readonly IPredicate? Predicate;
+    public readonly PropertyValue Value;
+    public int ArgumentIndex = 0;
     public PredicateParameter(IPredicate predicate) : this()
     {
         Predicate = predicate;
@@ -533,20 +588,20 @@ struct PredicateParameter : IEffect
         Value = value;
         Type = PredicateParameterType.Value;
     }
- 
+
     private PredicateParameter(int argumentIdx) : this()
     {
         ArgumentIndex = argumentIdx;
         Type = PredicateParameterType.Argument;
     }
- 
+
     public static PredicateParameter Argument(int idx) => new PredicateParameter(idx);
     public static implicit operator PredicateParameter(PropertyValue v) => new PredicateParameter(v);
     public readonly PropertyValue GetValue(PredicateContext ctx)
     {
         switch (Type)
         {
-    
+
             case PredicateParameterType.Value:
                 return Value;
             case PredicateParameterType.Predicate:
@@ -564,7 +619,56 @@ struct PredicateParameter : IEffect
     }
 }
 
-class SetProperty : IEffect
+class NameEntity : IEffect
+{
+    public bool MakeTrue(PredicateContext ctx)
+    {
+        if (!ctx.Database.TryGetEntity(ctx.EntityId, out var e))
+            return false;
+
+        var t = (EntityType)e.GetProperty(PropertyType.Type).IntValue;
+
+        string name = GenerateName(ctx, t, in e);
+        return ctx.Database.SetProperty(ctx.EntityId, PropertyType.Name, name);
+    }
+
+    private static readonly string[] Names =
+    {
+        "Abraxas", "Adara", "Adrienne", "Aeron", "Aeronwen", "Aeronwy", "Ailbhe", "Aileen", "Aislinn", "Aithne", "Alanna", "Alastair",
+        "Alastriona", "Albion", "Altalune", "Amaris", "Amina", "Amira", "Anastasia", "Andreas", "Aneira", "Angeline", "Aodh", "Aoife",
+        "Arella", "Arianell", "Arianwen", "Artemis", "Artemisia", "Arthur", "Arwen", "Ascella", "Asteria", "Astoria", "Astra", "Astraea",
+        "Astraia", "Astrid", "Astrophel", "Auberon", "Aud", "Audrienne", "Aurelius", "Aurora", "Autumn", "Avalon", "Azalea", "Bara",
+        "Bedivere", "Belinda", "Belladonna", "Bianca", "Blanchefleur", "Branwen", "Briar", "Bronwyn", "Caelan", "Caitriona", "Calla",
+        "Calliope", "Camellia", "Caradoc", "Cerelia", "Cerella", "Ceridwen", "Chandra", "Ciaran", "Clarimond", "Clarinda", "Clarine",
+        "Corabel", "Corabella", "Corbin", "Cordelia", "Corinda", "Corisande", "Crescent", "Darius", "Dawn", "Dominic", "Edith", "Eilidh",
+        "Elaine", "Elara", "Eleri", "Elora", "Emrys", "Endellion", "Ethelinda", "Evander", "Evangelia", "Evangelina", "Evangeline",
+        "Evangelique", "Fae", "Faye", "Ferelith", "Fiona", "Galahad", "Gawain", "Ginevra", "Gloriana", "Griffin", "Guinevere", "Gwenllian",
+        "Gwenore", "Hecate", "Hesperia", "Hestia", "Io", "Iona", "Isolde", "Izora", "Jocasta", "Khione", "Lancelot", "Lavinia", "Leander",
+        "Lethia", "Liora", "Lorcan", "Lowenna", "Lowri", "Lucan", "Lucienne", "Lucina", "Lucine", "Luna", "Lunette", "Lysander", "Lysandra",
+        "Melisande", "Melisende", "Merlin", "Mirian", "Moon", "Morgaine", "Morgana", "Morrigan", "Myrcella", "Niamh", "Nimue", "Oberon",
+        "Oleander", "Olwyn", "Opal", "Orenda", "Oriana", "Owain", "Percival", "Persephone", "Reverie", "Rhian", "River", "Rosabel",
+        "Rosabella", "Rosabelle", "Rosella", "Rosina", "Rowena", "Rune", "Sage", "Senara", "Silvana", "Sonora", "Sorcha", "Sybella",
+        "Taliesin", "Tamora", "Tarian", "Titania", "Tristan", "Twyla", "Victoire", "Vivia", "Viviana", "Viviane", "Willow", "Yvaine",
+        "Zella", "Áine"
+    };
+
+    private string GenerateName(PredicateContext predicateContext, EntityType t, in Entity entity)
+    {
+        return Names[predicateContext.Rnd.GenerateNext((uint)Names.Length)];
+        // switch (t)
+        // {
+        //
+        //     case EntityType.TypePerson:
+        //         break;
+        //     case EntityType.TypeItem:
+        //         break;
+        //     default:
+        //         throw new ArgumentOutOfRangeException(nameof(t), t, null);
+        // }
+    }
+}
+
+public class SetProperty : IEffect
 {
     public readonly PropertyType Property;
     public readonly int Target;
@@ -615,7 +719,7 @@ class HasProperty : IPredicate
 }
 
 
-struct Entity
+public struct Entity
 {
     public long Id;
     public List<Property>? Properties;
@@ -671,7 +775,7 @@ struct Rule
     }
 }
 
-struct Action
+public struct Action
 {
     public string Name;
     public List<IEffect> Effects;
