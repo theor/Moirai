@@ -29,7 +29,7 @@
     }
 
     public static PredicateParameter Argument(int idx) => new PredicateParameter(idx);
-    public static implicit operator PredicateParameter(PropertyValue v) => new PredicateParameter(v);
+    public static explicit operator PredicateParameter(PropertyValue v) => new PredicateParameter(v);
     public readonly PropertyValue GetValue(PredicateContext ctx)
     {
         switch (Type)

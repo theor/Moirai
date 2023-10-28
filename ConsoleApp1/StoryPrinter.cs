@@ -22,7 +22,7 @@ public static class StoryPrinter
                     // case Sequence sequence:
                     case SetProperty setProperty:
                         sb.AppendLine(
-                            $"  set ${setProperty.Target}.{setProperty.Property} = {Print(setProperty.Parameter)}");
+                            $"  set {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(effect));
@@ -33,6 +33,7 @@ public static class StoryPrinter
         }
         return sb.ToString();
     }
+    private static string Print(PropertyPath path) => $"${path.VariableIndex}.{path.Property}";
     public static string Print(PredicateParameter parameter, PropertyType? typeHint = null)
     {
         switch (parameter.Type)

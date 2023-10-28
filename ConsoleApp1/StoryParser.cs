@@ -65,7 +65,7 @@ public static class StoryParser
             //Console.WriteLine($"  Set {context.path().GetText()} = {context.value().GetText()}");
             var left = ParsePath(context.path());
             var right = ParsePredicateParameter(context.value(), left.prop);
-            Actions.Last().Effects.Add(new SetProperty(left.varIndex, left.prop, right));
+            Actions.Last().Effects.Add(new SetProperty(new(left.varIndex, left.prop), right));
             return null;
         }
         private PredicateParameter ParsePredicateParameter(storygenParser.ValueContext value, PropertyType type)
@@ -96,7 +96,7 @@ public static class StoryParser
                     throw new System.NotImplementedException("not a bool or var: " + value.path().ID(0));
             }
             else
-                pp = (PropertyValue)(value.@bool().GetText() == "true");
+                pp = (PredicateParameter)(PropertyValue)(value.@bool().GetText() == "true");
             return pp;
         }
         public override List<Error> VisitCreate(storygenParser.CreateContext context)

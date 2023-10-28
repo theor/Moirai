@@ -6,12 +6,12 @@
     public PropertyEquals(EntityType type)
     {
         Property = PropertyType.Type;
-        Value = (PropertyValue)(int)type;
+        Value = (PredicateParameter)(PropertyValue)(int)type;
     }
     public PropertyEquals(PropertyType property, PropertyValue value)
     {
         Property = property;
-        Value = value;
+        Value = (PredicateParameter)value;
     }
     public PropertyEquals(PropertyType property, PredicateParameter value)
     {

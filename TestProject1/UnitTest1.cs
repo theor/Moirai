@@ -26,7 +26,7 @@ public class Tests
         Assert.AreEqual(2, action.Effects.Count);
         
         Assert.IsInstanceOf<SetProperty>(action.Effects[1]);
-        Assert.AreEqual(PropertyType.Alive, ((SetProperty)action.Effects[1]).Property);
+        Assert.AreEqual(PropertyType.Alive, ((SetProperty)action.Effects[1]).PropertySet.Property);
 
         Database db = new Database { Effects = actions };
         db.RunAction(action.Name);

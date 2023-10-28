@@ -1,35 +1,37 @@
 ﻿public class SetProperty : IEffect
 {
-    public readonly PropertyType Property;
-    public readonly int Target;
+    public readonly PropertyPath PropertySet;
     public readonly PredicateParameter Parameter;
 
-    public SetProperty(PropertyType property, PredicateParameter parameter)
+    public SetProperty(PropertyPath property, PredicateParameter parameter)
     {
-        Property = property;
+        PropertySet = property;
         Parameter = parameter;
-        Target = 0;
     }
-    public SetProperty(PropertyType property, PropertyValue parameter)
+    public SetProperty(PropertyPath property, PropertyValue parameter)
     {
-        Property = property;
-        Parameter = parameter;
-        Target = 0;
+        PropertySet = property;
+        Parameter = (PredicateParameter)parameter;
     }
-    public SetProperty(int target, PropertyType property, PredicateParameter parameter)
-    {
-        Property = property;
-        Parameter = parameter;
-        Target = target;
-    }
-    public SetProperty(int target, PropertyType property, PropertyValue parameter)
-    {
-        Property = property;
-        Parameter = parameter;
-        Target = target;
-    }
+   
     public bool MakeTrue(PredicateContext ctx)
     {
-        return ctx.Database.SetProperty(ctx.Argument(Target), Property, Parameter.GetValue(ctx));
+        return ctx.Database.SetProperty(ctx.Argument(PropertySet.VariableIndex).IntValue, PropertySet.Property, Parameter.GetValue(ctx));
     }
+}
+
+public struct PropertyPath
+{
+    public PropertyPath(int variableIndex, PropertyType property)
+    {
+        VariableIndex = variableIndex;
+        Property = property;
+    }
+    // public enum PathSegmentType
+    // {
+    //     Variable, Property,
+    // }
+
+    public int VariableIndex;
+    public PropertyType Property;
 }

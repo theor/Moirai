@@ -77,10 +77,10 @@ public class Database
     }
 
     public EntityScope GetEntityScope(long entityId) => new EntityScope(this, entityId, _entities[(int)entityId]);
-    public bool SetProperty(PropertyValue entityId, PropertyType property, PropertyValue value = default)
-    {
-        return SetProperty(entityId.IntValue, property, value);
-    }
+    // public bool SetProperty(PropertyValue entityId, PropertyType property, PropertyValue value = default)
+    // {
+    //     return SetProperty(entityId.IntValue, property, value);
+    // }
     public bool SetProperty(long entityId, PropertyType property, PropertyValue value = default)
     {
         if (!TryGetEntity(entityId, out var entity))

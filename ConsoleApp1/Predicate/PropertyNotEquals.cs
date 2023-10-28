@@ -11,7 +11,7 @@
     public PropertyNotEquals(PropertyType property, PropertyValue value)
     {
         Property = property;
-        Value = value;
+        Value = (PredicateParameter)value;
     }
     public bool IsTrue(PredicateContext ctx)
     {

@@ -83,17 +83,17 @@
             {
                 new Action("Create person",
                     new CreateEntity(EntityType.Person),
-                    new SetProperty(PropertyType.Alive, true)
+                    new SetProperty(new PropertyPath(0, PropertyType.Alive), true)
                 ),
                 new Action("Create item",
                     new CreateEntity(EntityType.Item),
-                    new SetProperty(PropertyType.Owner, default)),
+                    new SetProperty(new PropertyPath(0, PropertyType.Owner), 0)),
                 new Action("Someone dies",
                     new And(new PropertyEquals(EntityType.Person), new PropertyEquals(PropertyType.Alive, true)),
-                    new SetProperty(PropertyType.Alive, false)),
+                    new SetProperty(new PropertyPath(0, PropertyType.Alive), false)),
                 // new Action("Set item owner",
                 //     new And(new PropertyEquals( Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
-                //     new SetProperty(PropertyType.Owner, new PredicateParameter(
+                //     new SetProperty(new PropertyPath(PropertyType.Owner, new) PredicateParameter(
                 //         new And(new PropertyEquals( Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true))
                 //     ))),
                 new Action("Set item owner",
@@ -102,36 +102,41 @@
                     ),
                     new PredicateParameter(
                         new And(new PropertyEquals(EntityType.Item),
-                            new And(new PropertyEquals(PropertyType.Owner, default),
+                            new And(new PropertyEquals(PropertyType.Owner, 0),
                                 new PropertyNotEquals(PropertyType.Owner, PredicateParameter.Argument(0))))
                     ),
-                    new SetProperty(1, PropertyType.Owner, PredicateParameter.Argument(0))),
+                    new SetProperty(new PropertyPath(1, PropertyType.Owner), PredicateParameter.Argument(0))),
                 new Action("Two people marry",
                     new PredicateParameter(new And(
                         new PropertyEquals(EntityType.Person),
                         new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyEquals(PropertyType.Partner, default))),
+                        new PropertyEquals(PropertyType.Partner, 0))),
                     new PredicateParameter(new And(
                         new PropertyEquals(EntityType.Person),
                         new PropertyNotEquals(PropertyType.Id, PredicateParameter.Argument(0)),
                         new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyEquals(PropertyType.Partner, default))) { ArgumentIndex = 1 },
-                    new SetProperty(0, PropertyType.Partner, PredicateParameter.Argument(1)),
-                    new SetProperty(1, PropertyType.Partner, PredicateParameter.Argument(0))
+                        new PropertyEquals(PropertyType.Partner, 0))) { ArgumentIndex = 1 },
+                    new SetProperty(new PropertyPath(0, PropertyType.Partner), PredicateParameter.Argument(1)),
+                    new SetProperty(new PropertyPath(1, PropertyType.Partner), PredicateParameter.Argument(0))
                 ),
                 new Action("Two people separate",
                     new PredicateParameter(new And(
                         new PropertyEquals(EntityType.Person),
                         new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyNotEquals(PropertyType.Partner, default))),
+                        new PropertyNotEquals(PropertyType.Partner, 0))),
                     new PredicateParameter(new And(
                         new PropertyEquals(EntityType.Person),
                         new PropertyNotEquals(PropertyType.Id, PredicateParameter.Argument(0)),
                         new PropertyEquals(PropertyType.Alive, true),
                         new PropertyEquals(PropertyType.Partner, PredicateParameter.Argument(0)))),
-                    new SetProperty(0, PropertyType.Partner, default),
-                    new SetProperty(1, PropertyType.Partner, default)
+                    new SetProperty(new PropertyPath(0, PropertyType.Partner), 0),
+                    new SetProperty(new PropertyPath(1, PropertyType.Partner), 0)
                 ),
+                new Action("item_sold",
+                    new PredicateParameter(),
+                    new PredicateParameter(new And(new PropertyEquals(EntityType.Person), new PropertyNotEquals(PropertyType.Id, 0))),
+                    new SetProperty(new PropertyPath(0, PropertyType.Owner), PredicateParameter.Argument(0))
+                    )
                 // new Action("Set item owner2",
                 //     
                 //     new And(new PropertyEquals( Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
