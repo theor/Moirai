@@ -17,7 +17,7 @@
     }
     public ComputedValue(PropertyPath path)
     {
-        Type = ComputedValueType.Value;
+        Type = ComputedValueType.Path;
         Value = default;
         Path = path;
     }

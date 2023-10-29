@@ -93,6 +93,7 @@ public class Tests
 @char_dies
     $x = pick()
     $y = pick(id != $x)
+    $z = pick(id != $y)
 ";
         Console.WriteLine(s);
         var actions = StoryParser.Parse(s, out var errors);
@@ -103,7 +104,7 @@ public class Tests
         Assert.AreEqual(1, actions.Count);
         var action = actions[0];
         Assert.AreEqual("char_dies", action.Name);
-        Assert.AreEqual(2, action.Effects.Count);
+        Assert.AreEqual(3, action.Effects.Count);
         var e1 = action.Effects[0];
         var e2 = action.Effects[1];
         Assert.IsInstanceOf<Assign>(e1);
@@ -174,8 +175,8 @@ public class Tests
     {
         var s = @"
 @char_dies
-    $p = pick(type = person, alive = true)
-    $p = pick(type = person, alive = true)
+    $p = pick(type = ""person"", alive = true)
+    $p = pick(type = ""person"", alive = true)
     set $p.alive = false
 ";
         Console.WriteLine(s);

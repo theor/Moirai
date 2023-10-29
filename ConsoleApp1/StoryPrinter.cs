@@ -33,7 +33,7 @@ public static class StoryPrinter
         }
         return sb.ToString();
     }
-    private static string Print(PropertyPath path) => $"${path.VariableIndex}.{path.Property}";
+    private static string Print(PropertyPath path) => path.Property.HasValue ? $"${path.VariableIndex}.{path.Property}" : $"${path.VariableIndex}";
     public static string Print(ComputedValue parameter, PropertyType? typeHint = null)
     {
         switch (parameter.Type)
