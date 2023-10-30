@@ -35,7 +35,7 @@ public struct AssignPick : IEffect
     }
     public bool MakeTrue(PredicateContext ctx)
     {
-        ctx.Query(Predicate, out var val);
+        ctx.PickRandom(Predicate, out var val);
         ctx.SetArgument(VariableIndex, val);
         return true;
     }

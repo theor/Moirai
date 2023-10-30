@@ -35,6 +35,39 @@ public class PredicateContext
         value = default;
         return false;
     }
+    private List<long> _pool = new();
+
+    public bool PickRandom(IPredicate predicate, out PropertyValue value)
+    {
+        FindAll(predicate, ref _pool);
+        if (_pool.Count == 0)
+        {
+            value = default;
+            return false;
+        }
+        value = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
+        return true;
+    }
+    public bool FindAll( IPredicate? predicate,ref List<long> results)
+    {
+        results.Clear();
+        if (predicate == null)
+        {
+            return true;
+        }
+        var iterationIdx = Values.Count;
+        foreach (var entity in Database.Entities)
+        {
+            SetArgument(iterationIdx, entity.Id);
+            if (predicate.IsTrue(this))
+            {
+                results.Add(entity.Id);
+            }
+            PopArgument();
+        }
+        
+        return false;
+    }
     public void PopArgument() => Values.RemoveAt(Values.Count - 1);
     public PropertyValue Argument(int idx)
     {
