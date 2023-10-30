@@ -186,15 +186,6 @@ internal class Program
     }
 }
 
-// TODO:
-// clean variant value
-// format history
-// DONE keep diff during action run
-// DONE parsing:
-// DONE $i = pick(type=item, owner != null)
-// DONE $p = pick(type=person, id != $i.owner) <- $i.owner doesn't work
-// DONE pick must be random
-// wip add factions ?
 
 // item.owner: x -> y gifted, stolen or inherited
 // owner dies -> owned items have no owners

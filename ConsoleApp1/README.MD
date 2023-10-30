@@ -1,0 +1,10 @@
+﻿- [ ] time passing
+- [ ] links
+- [x] clean variant value
+- [x] format history
+- [x] keep diff during action run
+- [x] parsing:
+  - [x] $i = pick(type=item, owner != null)
+  - [x] $p = pick(type=person, id != $i.owner) <- $i.owner doesn't work
+- [x] pick must be random
+- [x] wip add factions ?
