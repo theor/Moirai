@@ -14,10 +14,12 @@ public class Tests
         var printed = StoryPrinter.Print(actions);
         Console.WriteLine(printed);
         Assert.AreEqual(errorCount, errors.Count, string.Join(", ", errors));
-
-        var reparsed = StoryParser.Parse(printed, out var errors2);
-        Assert.AreEqual(errorCount, errors2.Count, string.Join(", ", errors2));
-        Console.WriteLine(StoryPrinter.Print(reparsed));
+        if (errorCount == 0)
+        {
+            var reparsed = StoryParser.Parse(printed, out var errors2);
+            Assert.AreEqual(errorCount, errors2.Count, string.Join(", ", errors2));
+            Console.WriteLine(StoryPrinter.Print(reparsed));
+        }
         return actions;
     }
 
@@ -68,11 +70,8 @@ public class Tests
     $x = pick alive = true
     $y = pick id != $x
 ";
-        Console.WriteLine(s);
-        var actions = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(StoryPrinter.Print(actions));
-        Console.WriteLine(string.Join("\n", errors.Select(e => e.ToString())));
-        Assert.AreEqual(0, errors.Count);
+       
+        var actions = Run(s, out var errors);
         
         Assert.AreEqual(1, actions.Count);
         var action = actions[0];
@@ -91,9 +90,9 @@ public class Tests
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
         
         Assert.NotNull(pe1.Predicate);
-        Assert.IsInstanceOf<PropertyEquals>(pe1.Predicate);
+        Assert.IsInstanceOf<PropertyOperator>(pe1.Predicate);
         Assert.NotNull(pe2.Predicate);
-        Assert.IsInstanceOf<PropertyNotEquals>(pe2.Predicate);
+        Assert.IsInstanceOf<PropertyOperator>(pe2.Predicate);
 
     }[Test]
     public void TestPredicateRightIsVar()
@@ -177,6 +176,8 @@ public class Tests
         var actions = StoryParser.Parse(File.ReadAllText(path), out var errors);
         Console.WriteLine("------------------");
         Console.WriteLine(StoryPrinter.Print(actions));
+        Assert.AreEqual(0, errors.Count, string.Join(", ", errors));
+ 
     }
     
     [Test]
@@ -188,11 +189,8 @@ public class Tests
     $p = pick type = ""person"", alive = true
     set $p.alive = false
 ";
-        Console.WriteLine(s);
-        var actions = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(StoryPrinter.Print(actions));
-        Console.WriteLine(string.Join("\n", errors));
-        Assert.AreEqual(1, errors.Count);
+       
+        var actions = Run(s, out var errors, 1);
        
     }
     [Test]
@@ -205,11 +203,7 @@ public class Tests
     set $f.owner = $p
     set $p.faction = $f
 ";
-        Console.WriteLine(s);
-        var actions = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(StoryPrinter.Print(actions));
-        Console.WriteLine(string.Join("\n", errors));
-        Assert.AreEqual(0, errors.Count);
+        var actions = Run(s, out var errors);
         Assert.AreEqual(4, actions[0].Effects.Count);
        
     }

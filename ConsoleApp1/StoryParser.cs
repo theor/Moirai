@@ -3,7 +3,7 @@ using Antlr4.Runtime.Tree;
 
 public static class StoryParser
 {
-    class Listener: IAntlrErrorListener<int>,IAntlrErrorListener<IToken>
+    class Listener : IAntlrErrorListener<int>, IAntlrErrorListener<IToken>
     {
         private readonly List<Error> _errors;
         public Listener(List<Error> errors)
@@ -11,15 +11,17 @@ public static class StoryParser
             _errors = errors;
 
         }
-        public void SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol, int line, int charPositionInLine, string msg,
+        public void SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol, int line, int charPositionInLine,
+            string msg,
             RecognitionException e)
         {
             _errors.Add(new Error(line, charPositionInLine, "Lexer:" + msg));
         }
-        public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg,
+        public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine,
+            string msg,
             RecognitionException e)
         {
-            _errors.Add(new Error(line, charPositionInLine,"Parser:" +  msg));
+            _errors.Add(new Error(line, charPositionInLine, "Parser:" + msg));
         }
     }
 
@@ -130,7 +132,7 @@ public static class StoryParser
             _variables.Add(variable);
 
             IEffect callEffect = ParseCall(context.call(), _variables.Count - 1);
-            
+
             Actions.Last().Effects.Add(callEffect);
             //Console.WriteLine("  Assign " + context.VAR_ID());
             return null;
@@ -149,7 +151,7 @@ public static class StoryParser
                     var type = context.expr(0).GetText().Trim('"');
                     return new CreateEntity(variableIndex, Enum.Parse<EntityType>(type, true));
             }
-           
+
             throw new NotImplementedException($"Unknown call '{funcName}'");
         }
         private IPredicate? ParseExpr(storygenParser.ExprContext context)
@@ -158,18 +160,24 @@ public static class StoryParser
             // left, alive
             var left = context.value(0);
             ComputedValue leftValue = ParseComputedValue(left, null);
-            if(leftValue.Type != ComputedValue.ComputedValueType.Path)
+            if (leftValue.Type != ComputedValue.ComputedValueType.Path)
                 throw new System.NotImplementedException();
+
             // right, true or $x -  not alive or $x.alive
             ComputedValue rightValue = ParseComputedValue(context.value(1), leftValue.Path.Property);
-            if (op == "=")
-                return new PropertyEquals(leftValue.Path.Property.Value, rightValue);
-            if (op == "!=")
-                return new PropertyNotEquals(leftValue.Path.Property.Value, rightValue);
 
-            AddError(context.Start, "Unknown Expr op: " + op);
-
-            return default;
+            PropertyOperator.Operator pop;
+            switch (op)
+            {
+                case "=":
+                    pop = PropertyOperator.Operator.Equals;
+                    break;
+                case "!=":
+                    pop = PropertyOperator.Operator.NotEquals;
+                    break;
+                default: return (IPredicate?)AddError(context.Start, "Unknown Expr op: " + op);
+            }
+            return new PropertyOperator(pop, leftValue.Path.Property.Value, rightValue);
         }
         private object? AddError(IToken loc, string msg)
         {
@@ -178,7 +186,7 @@ public static class StoryParser
         }
         public override object? VisitCall(storygenParser.CallContext context)
         {
-            
+
             Actions.Last().Effects.Add(ParseCall(context, _variables.Count));
             return null;
         }
@@ -207,8 +215,9 @@ public static class StoryParser
             }
             if (context.ID().Length == 0)
                 return new PropertyPath(varIndex);
+
             if (context.ID().Length > 1)
-                throw new Exception("expected two parts, got " + context.ID().Length );
+                throw new Exception("expected two parts, got " + context.ID().Length);
 
             PropertyType type = Enum.Parse<PropertyType>(context.ID(0).GetText(), true);
             return new PropertyPath(varIndex, type);

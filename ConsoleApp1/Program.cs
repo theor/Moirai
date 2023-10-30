@@ -74,9 +74,9 @@
         {
             Rules =
             {
-                new Rule("Persons have liveliness", new PropertyEquals(EntityType.Person),
+                new Rule("Persons have liveliness", new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Person),
                     new HasProperty(PropertyType.Alive)),
-                new Rule("Items have owners", new PropertyEquals(EntityType.Item),
+                new Rule("Items have owners", new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Item),
                     new HasProperty(PropertyType.Owner)),
             },
             Effects =
@@ -90,62 +90,62 @@
                     new SetProperty(new PropertyPath(0, PropertyType.Owner), 0)),
                 new Action("Someone dies",
                     new AssignPick(0, 
-                    new And(new PropertyEquals(EntityType.Person), new PropertyEquals(PropertyType.Alive, true))),
+                    new And(new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person), new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true))),
                     new SetProperty(new PropertyPath(0, PropertyType.Alive), false)),
                 // new Action("Set item owner",
-                //     new And(new PropertyEquals( Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
+                //     new And(new PropertyOperator(PropertyOperator.Operator.Equals, Properties.TypeItem), new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Owner, default)),
                 //     new SetProperty(new PropertyPath(PropertyType.Owner, new) PredicateParameter(
-                //         new And(new PropertyEquals( Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true))
+                //         new And(new PropertyOperator(PropertyOperator.Operator.Equals, Properties.TypePerson), new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true))
                 //     ))),
                 new Action("Set item owner",
                     new AssignPick(0,
-                        new And(new PropertyEquals(EntityType.Person), new PropertyEquals(PropertyType.Alive, true))
+                        new And(new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person), new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true))
                     ),
                     new AssignPick(1,
-                        new And(new PropertyEquals(EntityType.Item),
-                            new And(new PropertyEquals(PropertyType.Owner, 0),
-                                new PropertyNotEquals(PropertyType.Owner, new ComputedValue(new PropertyPath(1)))))
+                        new And(new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Item),
+                            new And(new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Owner, 0),
+                                new PropertyOperator( PropertyOperator.Operator.NotEquals, PropertyType.Owner, new ComputedValue(new PropertyPath(1)))))
                     ),
                     new SetProperty(new PropertyPath(1, PropertyType.Owner),new ComputedValue(new PropertyPath(0)))),
                 new Action("Two people marry",
                     new AssignPick(0, new And(
-                        new PropertyEquals(EntityType.Person),
-                        new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyEquals(PropertyType.Partner, 0))),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Partner, 0))),
                     new AssignPick(1, new And(
-                        new PropertyEquals(EntityType.Person),
-                        new PropertyNotEquals(PropertyType.Id, new ComputedValue(0)),
-                        new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyEquals(PropertyType.Partner, 0))) ,
+                        new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person),
+                        new PropertyOperator( PropertyOperator.Operator.NotEquals, PropertyType.Id, new ComputedValue(0)),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Partner, 0))) ,
                     new SetProperty(new PropertyPath(0, PropertyType.Partner), new ComputedValue(1)),
                     new SetProperty(new PropertyPath(1, PropertyType.Partner), new ComputedValue(0))
                 ),
                 new Action("Two people separate",
                     new AssignPick(0, new And(
-                        new PropertyEquals(EntityType.Person),
-                        new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyNotEquals(PropertyType.Partner, 0))),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
+                        new PropertyOperator( PropertyOperator.Operator.NotEquals, PropertyType.Partner, 0))),
                     new AssignPick(1, new And(
-                        new PropertyEquals(EntityType.Person),
-                        new PropertyNotEquals(PropertyType.Id, new ComputedValue(0)),
-                        new PropertyEquals(PropertyType.Alive, true),
-                        new PropertyEquals(PropertyType.Partner, new ComputedValue(0)))),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person),
+                        new PropertyOperator( PropertyOperator.Operator.NotEquals, PropertyType.Id, new ComputedValue(0)),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
+                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Partner, new ComputedValue(0)))),
                     new SetProperty(new PropertyPath(0, PropertyType.Partner), 0),
                     new SetProperty(new PropertyPath(1, PropertyType.Partner), 0)
                 ),
                 // new Action("item_sold",
                 //     new Assign(),
-                //     new PredicateParameter(new And(new PropertyEquals(EntityType.Person), new PropertyNotEquals(PropertyType.Id, 0))),
+                //     new PredicateParameter(new And(new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person), new PropertyOperator(PropertyOperator.Operator.NotEquals,  PropertyType.Id, 0))),
                 //     new SetProperty(new PropertyPath(0, PropertyType.Owner), new ComputedValue(0))
                 //     )
                 // new Action("Set item owner2",
                 //     
-                //     new And(new PropertyEquals( Properties.TypeItem), new PropertyEquals(PropertyType.Owner, default)),
+                //     new And(new PropertyOperator(PropertyOperator.Operator.Equals, Properties.TypeItem), new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Owner, default)),
                 //     new SetProperty(PropertyType.Owner, new PredicateParameter(
                 //         new And(
-                //             new PropertyEquals( Properties.TypePerson),
-                //             new PropertyEquals(PropertyType.Alive, true),
-                //             new PropertyEquals(PropertyType.Owner,  ))
+                //             new PropertyOperator(PropertyOperator.Operator.Equals, Properties.TypePerson),
+                //             new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
+                //             new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Owner,  ))
                 //     ))),
             },
         };

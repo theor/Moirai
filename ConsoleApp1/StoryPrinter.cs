@@ -53,7 +53,7 @@ public static class StoryPrinter
         if (s != null)
             return s;
         if (typeHint == PropertyType.Type)
-            return ((EntityType)value.IntValue).ToString();
+            return $"\"{((EntityType)value.IntValue).ToString().ToLowerInvariant()}\"";
 
         return value.IntValue.ToString();
     }
@@ -67,10 +67,15 @@ public static class StoryPrinter
             // break;
             // case HasProperty hasProperty:
             // break;
-            case PropertyEquals propertyEquals:
-                return $"{propertyEquals.Property} = {Print(propertyEquals.Value, propertyEquals.Property)}";
-            case PropertyNotEquals propertyNotEquals:
-                return $"{propertyNotEquals.Property} != {Print(propertyNotEquals.Value, propertyNotEquals.Property)}";
+            case PropertyOperator propertyEquals:
+                string op = propertyEquals.Op switch
+                {
+
+                    PropertyOperator.Operator.Equals => "=",
+                    PropertyOperator.Operator.NotEquals => "!=",
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+                return $"{propertyEquals.Property} {op} {Print(propertyEquals.Value, propertyEquals.Property)}";
             // case True @true:
             // break;
             default:

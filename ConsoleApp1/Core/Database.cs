@@ -170,18 +170,13 @@ public class Database
             Console.WriteLine("<Empty>");
         Console.WriteLine();
     }
-    private static string FormatProperty(Property property)
+    private string FormatProperty(Property property)
     {
         switch (property.Type)
         {
 
             case PropertyType.Type:
-                switch ((EntityType)property.Value.IntValue)
-                {
-                    case EntityType.Person: return "Type: Person";
-                    case EntityType.Item: return "Type: Item";
-                    default: return "Type UNKNOWN";
-                }
+                return "Type: " + (EntityType)property.Value.IntValue;
             case PropertyType.Alive:
                 return property.Value.BoolValue ? "Alive" : "Dead";
             case PropertyType.Owner:
@@ -190,6 +185,8 @@ public class Database
                 return $"Partner: {property.Value.IntValue}";
             case PropertyType.Name:
                 return $"Name: {property.Value.Value}";
+            case PropertyType.Faction:
+                return $"Faction: {(TryGetEntity(property.Value.IntValue, out var f) ? f.GetProperty(PropertyType.Name).Value : "")}";
             default:
                 throw new ArgumentOutOfRangeException();
         }

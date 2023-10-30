@@ -31,7 +31,7 @@
 @create_faction
     $p = pick type="person", faction = null
     $f = create "faction"
-    set $f.founder = $p
+    set $f.owner = $p
     set $p.faction = $f
 
 @char_joins_faction
