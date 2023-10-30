@@ -1,4 +1,6 @@
-﻿public struct ComputedValue
+﻿using Pcg.Core;
+
+public struct ComputedValue
 {
     public enum ComputedValueType
     {

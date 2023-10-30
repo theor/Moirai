@@ -55,6 +55,22 @@ public static class StoryPrinter
         if (typeHint == PropertyType.Type)
             return $"\"{((EntityType)value.IntValue).ToString().ToLowerInvariant()}\"";
 
+        switch (value.Type)
+        {
+
+            case PropertyValue.ValueType.String:
+                return $"\"{value.Value}\"";
+            case PropertyValue.ValueType.EntityId:
+                if (value.IntValue == 0)
+                    return "null";
+                return "#"+value.IntValue;
+            case PropertyValue.ValueType.Number:
+                return value.IntValue.ToString();
+            case PropertyValue.ValueType.Bool:
+                return value.BoolValue ? "true" : "false";
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
         return value.IntValue.ToString();
     }
     public static string Print(IPredicate predicate)

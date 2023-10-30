@@ -1,10 +1,14 @@
 ﻿using System.Diagnostics;
+using Pcg.Core;
 
 public class Database
 {
     private List<Entity> _entities = new() { default };
     internal List<Rule> Rules = new();
     public List<Action> Effects = new();
+
+    public History? History;
+    public Changeset CurrentChangeset;
 
     private PredicateContext _ctx;
     public Database()
@@ -19,6 +23,8 @@ public class Database
         e.Properties = new() { new Property(PropertyType.Type, (int)entityType) };
         e.Id = (long)_entities.Count;
         _entities.Add(e);
+        CurrentChangeset.Changes?.Add(Change.Create(new EntityId(e.Id), entityType));
+
         return e.Id;
     }
     public void AddEntity(ref Entity e)
@@ -99,11 +105,14 @@ public class Database
             var entityProperty = entity.Properties[index];
             if (entityProperty.Type == property)
             {
+                var prev = entityProperty.Value;
                 entityProperty.Value = value;
                 entity.Properties[index] = entityProperty;
+                CurrentChangeset.Changes?.Add(Change.Set(new EntityId(entityId), property, prev, value));
                 return true;
             }
         }
+        CurrentChangeset.Changes?.Add(Change.Set(new EntityId(entityId), property, default, value));
         entity.Properties.Add(new Property(property, value));
         return true;
     }
@@ -119,8 +128,10 @@ public class Database
         }
         return false;
     }
-    public bool RunAction(Action effect)
+    public bool RunAction(Action action)
     {
+        if (History != null)
+            CurrentChangeset = new Changeset(action.Name);
         _ctx.Values.Clear();
         // int argCount = 0;
         // for (var index = 0; index < effect.Effects.Count; index++)
@@ -133,15 +144,19 @@ public class Database
         //     }
         // }
 
-        for (var index = 0; index < effect.Effects.Count; index++)
+        for (var index = 0; index < action.Effects.Count; index++)
         {
-            var e = effect.Effects[index];
+            var e = action.Effects[index];
             if (e is AssignPick { VariableIndex: -1 })
                 throw new System.NotImplementedException("Arg index -1 on p " + index);
 
             if (!e.MakeTrue(_ctx))
+            {
+                History?.Changesets?.Add(CurrentChangeset);
                 return false;
+            }
         }
+        History?.Changesets?.Add(CurrentChangeset);
         return true;
         // if (_ctx.Query(effect.If, out var v))
         // {
@@ -150,6 +165,7 @@ public class Database
         // }
         // return false;
     }
+    private static ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
     public void PrintDb()
     {
         // Console.WriteLine("[DB]");
@@ -158,12 +174,15 @@ public class Database
         {
             any = true;
             string name = e.TryGetProperty(PropertyType.Name, out var nameprop) ? (nameprop.Value ?? "") : "";
+            Console.ForegroundColor = Colors[e.GetProperty(PropertyType.Type).IntValue % Colors.Length];
             Console.WriteLine($"e{e.Id} {name}");
+            Console.ResetColor();
             if (e.Properties != null)
                 foreach (var property in e.Properties)
                 {
                     if (property.Type != PropertyType.Name)
-                        Console.WriteLine($"  {FormatProperty(property)}");
+                        Console.WriteLine($"  {property.Type}: {StoryPrinter.Print(property.Value, property.Type)}");
+                        // Console.WriteLine($"  {FormatProperty(property)}");
                 }
         }
         if (!any)

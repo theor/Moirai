@@ -1,4 +1,6 @@
-﻿public class SetProperty : IEffect
+﻿using Pcg.Core;
+
+public class SetProperty : IEffect
 {
     public readonly PropertyPath PropertySet;
     public readonly ComputedValue Parameter;

@@ -1,4 +1,6 @@
-﻿class CreateEntity : IEffect
+﻿using Pcg.Core;
+
+class CreateEntity : IEffect
 {
     public readonly int VariableIndex;
     public EntityType Type;
@@ -12,6 +14,7 @@
         // if (!ctx.Database.EntityExists(ctx.EntityId))
         var entity = ctx.Database.AllocateEntity(Type);
         ctx.SetArgument(VariableIndex, entity);
-        return NameEntity.MakeTrue(ctx);
+        var makeTrue = NameEntity.MakeTrue(ctx);
+        return makeTrue;
     }
 }

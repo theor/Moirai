@@ -86,7 +86,7 @@ public static class StoryParser
         {
             ComputedValue pp;
             if (value.NULL() != null)
-                pp = new ComputedValue((PropertyValue)0);
+                pp = new ComputedValue((PropertyValue)EntityId.Null);
             else if (value.@string() != null)
             {
                 if (type == PropertyType.Type)

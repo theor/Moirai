@@ -1,12 +1,16 @@
-﻿internal class Program
+﻿using Pcg.Core;
+
+internal class Program
 {
     public static void Main(string[] args)
     {
         string line;
         string path = "w.sg";
         var db = new Database() { Effects = StoryParser.Parse(File.ReadAllText(path), out var errors) };
+        db.History = new();
         Console.WriteLine(StoryPrinter.Print(db.Effects));
         int prevAction = -1;
+        int historyCount = 0;
         while (true)
         {
             Console.WriteLine("-----------------");
@@ -20,7 +24,18 @@
             if (line == "qq")
                 break;
 
-            if (line == "" && prevAction >= 0)
+            if (line == "p")
+            {
+                db.PrintDb();
+            }
+            if (line == "h")
+            {
+                foreach (var cs in db.History.Changesets)
+                {
+                    PrintChangeset(cs);
+                }
+            }
+            else if (line == "" && prevAction >= 0)
             {
                 db.RunAction(db.Effects[prevAction]);
                 db.PrintDb();
@@ -30,6 +45,11 @@
                 prevAction = i;
                 db.RunAction(db.Effects[i]);
                 db.PrintDb();
+            }
+            while (historyCount < db.History.Changesets.Count)
+            {
+                var cs = db.History.Changesets[historyCount++];
+                PrintChangeset(cs);
             }
 
         }
@@ -67,6 +87,15 @@
 
 
     }
+    private static void PrintChangeset(Changeset cs)
+    {
+
+        Console.WriteLine(cs.ActionName);
+        foreach (var change in cs.Changes)
+        {
+            Console.WriteLine("  " + change);
+        }
+    }
     private static void Sample()
     {
 
@@ -76,7 +105,7 @@
             {
                 new Rule("Persons have liveliness", new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Person),
                     new HasProperty(PropertyType.Alive)),
-                new Rule("Items have owners", new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Item),
+                new Rule("Items have owners", new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Item),
                     new HasProperty(PropertyType.Owner)),
             },
             Effects =
@@ -89,8 +118,9 @@
                     new CreateEntity(0, EntityType.Item),
                     new SetProperty(new PropertyPath(0, PropertyType.Owner), 0)),
                 new Action("Someone dies",
-                    new AssignPick(0, 
-                    new And(new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person), new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true))),
+                    new AssignPick(0,
+                        new And(new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Person),
+                            new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Alive, true))),
                     new SetProperty(new PropertyPath(0, PropertyType.Alive), false)),
                 // new Action("Set item owner",
                 //     new And(new PropertyOperator(PropertyOperator.Operator.Equals, Properties.TypeItem), new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Owner, default)),
@@ -99,37 +129,39 @@
                 //     ))),
                 new Action("Set item owner",
                     new AssignPick(0,
-                        new And(new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person), new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true))
+                        new And(new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Person),
+                            new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Alive, true))
                     ),
                     new AssignPick(1,
-                        new And(new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Item),
-                            new And(new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Owner, 0),
-                                new PropertyOperator( PropertyOperator.Operator.NotEquals, PropertyType.Owner, new ComputedValue(new PropertyPath(1)))))
+                        new And(new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Item),
+                            new And(new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Owner, 0),
+                                new PropertyOperator(PropertyOperator.Operator.NotEquals, PropertyType.Owner,
+                                    new ComputedValue(new PropertyPath(1)))))
                     ),
-                    new SetProperty(new PropertyPath(1, PropertyType.Owner),new ComputedValue(new PropertyPath(0)))),
+                    new SetProperty(new PropertyPath(1, PropertyType.Owner), new ComputedValue(new PropertyPath(0)))),
                 new Action("Two people marry",
                     new AssignPick(0, new And(
-                        new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person),
-                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
-                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Partner, 0))),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Person),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Alive, true),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Partner, 0))),
                     new AssignPick(1, new And(
-                        new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person),
-                        new PropertyOperator( PropertyOperator.Operator.NotEquals, PropertyType.Id, new ComputedValue(0)),
-                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
-                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Partner, 0))) ,
+                        new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Person),
+                        new PropertyOperator(PropertyOperator.Operator.NotEquals, PropertyType.Id, new ComputedValue(0)),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Alive, true),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Partner, 0))),
                     new SetProperty(new PropertyPath(0, PropertyType.Partner), new ComputedValue(1)),
                     new SetProperty(new PropertyPath(1, PropertyType.Partner), new ComputedValue(0))
                 ),
                 new Action("Two people separate",
                     new AssignPick(0, new And(
-                        new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person),
-                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
-                        new PropertyOperator( PropertyOperator.Operator.NotEquals, PropertyType.Partner, 0))),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Person),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Alive, true),
+                        new PropertyOperator(PropertyOperator.Operator.NotEquals, PropertyType.Partner, 0))),
                     new AssignPick(1, new And(
-                        new PropertyOperator(PropertyOperator.Operator.Equals,EntityType.Person),
-                        new PropertyOperator( PropertyOperator.Operator.NotEquals, PropertyType.Id, new ComputedValue(0)),
-                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Alive, true),
-                        new PropertyOperator(PropertyOperator.Operator.Equals,PropertyType.Partner, new ComputedValue(0)))),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, EntityType.Person),
+                        new PropertyOperator(PropertyOperator.Operator.NotEquals, PropertyType.Id, new ComputedValue(0)),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Alive, true),
+                        new PropertyOperator(PropertyOperator.Operator.Equals, PropertyType.Partner, new ComputedValue(0)))),
                     new SetProperty(new PropertyPath(0, PropertyType.Partner), 0),
                     new SetProperty(new PropertyPath(1, PropertyType.Partner), 0)
                 ),
@@ -154,11 +186,14 @@
 }
 
 // TODO:
-// parsing:
-    // DONE $i = pick(type=item, owner != null)
-    // DONE $p = pick(type=person, id != $i.owner) <- $i.owner doesn't work
-// pick must be random
-// add factions ?
+// clean variant value
+// format history
+// DONE keep diff during action run
+// DONE parsing:
+// DONE $i = pick(type=item, owner != null)
+// DONE $p = pick(type=person, id != $i.owner) <- $i.owner doesn't work
+// DONE pick must be random
+// wip add factions ?
 
 // item.owner: x -> y gifted, stolen or inherited
 // owner dies -> owned items have no owners
