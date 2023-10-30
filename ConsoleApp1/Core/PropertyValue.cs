@@ -3,11 +3,13 @@
 public struct EntityId
 {
     public static readonly EntityId Null = default;
+    public readonly bool IsNull => Id == 0;
     public readonly long Id;
     public EntityId(long id)
     {
         Id = id;
     }
+
     public override string ToString()
     {
         return $"#{Id}";
@@ -21,6 +23,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
 
     public enum ValueType
     {
+        None,
         String,
         EntityId,
         Number,

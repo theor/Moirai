@@ -37,9 +37,9 @@ public struct AssignPick : IEffect
     }
     public bool MakeTrue(PredicateContext ctx)
     {
-        ctx.PickRandom(Predicate, out var val);
+        bool res = ctx.PickRandom(Predicate, out var val);
         ctx.SetArgument(VariableIndex, val);
-        return true;
+        return res;
     }
 }
 

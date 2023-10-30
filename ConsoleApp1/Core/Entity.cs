@@ -1,6 +1,6 @@
 ﻿public struct Entity
 {
-    public long Id;
+    public EntityId Id;
     public List<Property>? Properties;
     public Entity(params Property[] properties) : this()
     {

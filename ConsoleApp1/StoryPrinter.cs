@@ -33,7 +33,8 @@ public static class StoryPrinter
         }
         return sb.ToString();
     }
-    private static string Print(PropertyPath path) => path.Property.HasValue ? $"${path.VariableIndex}.{path.Property}" : $"${path.VariableIndex}";
+    private static string Print(PropertyPath path) =>
+        path.Property.HasValue ? $"${path.VariableIndex}.{path.Property}" : $"${path.VariableIndex}";
     public static string Print(ComputedValue parameter, PropertyType? typeHint = null)
     {
         switch (parameter.Type)
@@ -57,13 +58,15 @@ public static class StoryPrinter
 
         switch (value.Type)
         {
-
+            case PropertyValue.ValueType.None:
+                return "null";
             case PropertyValue.ValueType.String:
                 return $"\"{value.Value}\"";
             case PropertyValue.ValueType.EntityId:
                 if (value.IntValue == 0)
                     return "null";
-                return "#"+value.IntValue;
+
+                return "#" + value.IntValue;
             case PropertyValue.ValueType.Number:
                 return value.IntValue.ToString();
             case PropertyValue.ValueType.Bool:

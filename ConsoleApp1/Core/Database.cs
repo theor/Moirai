@@ -17,20 +17,20 @@ public class Database
     }
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
-    public long AllocateEntity(EntityType entityType)
+    public EntityId AllocateEntity(EntityType entityType)
     {
         Entity e = new();
         e.Properties = new() { new Property(PropertyType.Type, (int)entityType) };
-        e.Id = (long)_entities.Count;
+        e.Id = new EntityId((long)_entities.Count);
         _entities.Add(e);
-        CurrentChangeset.Changes?.Add(Change.Create(new EntityId(e.Id), entityType));
+        CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType));
 
         return e.Id;
     }
     public void AddEntity(ref Entity e)
     {
-        Debug.Assert(e.Id == 0);
-        e.Id = (long)_entities.Count;
+        Debug.Assert(e.Id.IsNull);
+        e.Id = new EntityId((long)_entities.Count);
         _entities.Add(e);
     }
     // private bool CheckEntity(in Entity entity)
@@ -152,7 +152,11 @@ public class Database
 
             if (!e.MakeTrue(_ctx))
             {
-                History?.Changesets?.Add(CurrentChangeset);
+                if (CurrentChangeset.Changes.Count != 0)
+                {
+                    Console.Error.WriteLine("Action failed but left changes:");
+                    History?.Changesets?.Add(CurrentChangeset);
+                }
                 return false;
             }
         }

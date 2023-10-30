@@ -89,8 +89,9 @@ internal class Program
     }
     private static void PrintChangeset(Changeset cs)
     {
-
+        Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine(cs.ActionName);
+        Console.ResetColor();
         foreach (var change in cs.Changes)
         {
             Console.WriteLine("  " + change);

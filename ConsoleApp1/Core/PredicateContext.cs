@@ -13,7 +13,7 @@ public class PredicateContext
     }
     public long EntityId => Values[^1].IntValue;
 
-    public bool Query(IPredicate? predicate, out PropertyValue value)
+    public bool Query(IPredicate? predicate, out EntityId value)
     {
         if (predicate == null)
         {
@@ -35,9 +35,9 @@ public class PredicateContext
         value = default;
         return false;
     }
-    private List<long> _pool = new();
+    private List<EntityId> _pool = new();
 
-    public bool PickRandom(IPredicate predicate, out PropertyValue value)
+    public bool PickRandom(IPredicate predicate, out EntityId value)
     {
         FindAll(predicate, ref _pool);
         if (_pool.Count == 0)
@@ -48,7 +48,7 @@ public class PredicateContext
         value = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
         return true;
     }
-    public bool FindAll( IPredicate? predicate,ref List<long> results)
+    public bool FindAll( IPredicate? predicate,ref List<EntityId> results)
     {
         results.Clear();
         if (predicate == null)
