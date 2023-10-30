@@ -1,5 +1,6 @@
 ﻿- [ ] time passing
 - [ ] links
+- [ ] probabilities, curves ?
 - [x] clean variant value
 - [x] format history
 - [x] keep diff during action run
