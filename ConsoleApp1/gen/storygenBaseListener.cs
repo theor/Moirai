@@ -179,6 +179,18 @@ public partial class storygenBaseListener : IstorygenListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitPath([NotNull] storygenParser.PathContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="storygenParser.number"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterNumber([NotNull] storygenParser.NumberContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="storygenParser.number"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitNumber([NotNull] storygenParser.NumberContext context) { }
 
 	/// <inheritdoc/>
 	/// <remarks>The default implementation does nothing.</remarks>

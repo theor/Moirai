@@ -25,16 +25,16 @@ public static class StoryParser
 
     public static List<Action> Parse(string s, out List<Error> errors)
     {
+        var visitor = new Visitor();
+        errors = visitor.Errors;
         var lexer = new storygenLexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
         var tokens = new CommonTokenStream(lexer);
         var parser = new storygenParser(tokens);
-        errors = new();
         var listener = new Listener(errors);
         lexer.AddErrorListener(listener);
         parser.AddErrorListener(listener);
         var r = parser.r();
-        var visitor = new Visitor();
-        errors.AddRange(r.Accept(visitor));
+        r.Accept(visitor);
         return visitor.Actions;
     }
 
@@ -57,22 +57,14 @@ public static class StoryParser
         public override string ToString() => $"{Line}{Col}: {Message}";
     }
 
-    class Visitor : storygenBaseVisitor<List<Error>>
+    class Visitor : storygenBaseVisitor<object?>
     {
         public List<Action> Actions = new();
         private List<string> _variables = new();
-        private List<PropertyValue> _values = new();
-        private List<IPredicate> _predicates = new();
-        protected override List<Error> DefaultResult => new();
-        protected override List<Error> AggregateResult(List<Error> aggregate, List<Error>? nextResult)
-        {
-            if (nextResult == null)
-                return aggregate;
+        public List<Error> Errors = new();
+        protected override object? DefaultResult => null;
 
-            aggregate.AddRange(nextResult);
-            return aggregate;
-        }
-        public override List<Error> VisitAction(storygenParser.ActionContext context)
+        public override object? VisitAction(storygenParser.ActionContext context)
         {
             string actionId = context.ACTION_ID().GetText().Substring(1);
             //Console.WriteLine("@ " + actionId);
@@ -80,9 +72,8 @@ public static class StoryParser
             _variables.Clear();
             return base.VisitAction(context);
         }
-        public override List<Error> VisitSet(storygenParser.SetContext context)
+        public override object? VisitSet(storygenParser.SetContext context)
         {
-            _values.Clear();
             //Console.WriteLine($"  Set {context.path().GetText()} = {context.value().GetText()}");
             var left = ParsePath(context.path());
             var right = ParseComputedValue(context.value(), left.Property);
@@ -116,57 +107,53 @@ public static class StoryParser
             }
             else if (value.@bool() != null)
                 pp = (ComputedValue)(PropertyValue)(value.@bool().GetText() == "true");
+            else if (value.number() != null)
+                pp = (ComputedValue)(PropertyValue)(int.Parse(value.number().GetText()));
             else
                 throw new System.NotImplementedException(value.GetText());
 
             return pp;
         }
-        // public override List<Error> VisitCreate(storygenParser.CreateContext context)
+        // public override object? VisitCreate(storygenParser.CreateContext context)
         // {
         //     var type = context.@string().GetText().Trim('"');
         //     //Console.WriteLine("  Create " + type);
         //     Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
         //     return base.VisitCreate(context);
         // }
-        public override List<Error> VisitAssign(storygenParser.AssignContext context)
+        public override object? VisitAssign(storygenParser.AssignContext context)
         {
-            _predicates.Clear();
             var variable = context.VAR_ID().GetText();
             if (_variables.IndexOf(variable) != -1)
-                return new List<Error>() { new Error(context.Start.Column, context.Start.Line, " Duplicate variable " + variable) };
+                return AddError(context.Start, " Duplicate variable " + variable);
 
             _variables.Add(variable);
+
+            IEffect callEffect = ParseCall(context.call(), _variables.Count - 1);
+            
+            Actions.Last().Effects.Add(callEffect);
             //Console.WriteLine("  Assign " + context.VAR_ID());
-            var visitAssign = base.VisitAssign(context);
-            Actions.Last().Effects.Add(new Assign(
-                _variables.Count - 1,
-                _predicates.Count == 1 ? _predicates[0] : new And(_predicates)));
-            return visitAssign;
+            return null;
         }
-        public override List<Error> VisitCall(storygenParser.CallContext context)
+        private IEffect ParseCall(storygenParser.CallContext context, int variableIndex)
         {
             var funcName = context.ID().GetText();
-            //Console.WriteLine("    Call " + funcName);
-            if (funcName == "create")
+            switch (funcName)
             {
-                var type = context.expr(0).GetText().Trim('"');
-                //     //Console.WriteLine("  Create " + type);
-                Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
-                return null;
+                case "pick":
+                    var exprs = context.expr();
+                    return new AssignPick(
+                        variableIndex,
+                        exprs.Length == 1 ? ParseExpr(exprs[0]) : new And(exprs.Select(ParseExpr).ToList()));
+                case "create":
+                    var type = context.expr(0).GetText().Trim('"');
+                    return new CreateEntity(variableIndex, Enum.Parse<EntityType>(type, true));
             }
-            if (funcName != "pick")
-                return new() { new Error(context.Start, "call unknown: " + funcName) };
-            return base.VisitCall(context);
+           
+            throw new NotImplementedException($"Unknown call '{funcName}'");
         }
-        public override List<Error> VisitExpr(storygenParser.ExprContext context)
+        private IPredicate? ParseExpr(storygenParser.ExprContext context)
         {
-            _values.Clear();
-            //Console.WriteLine("    VisitExpr " + context.GetText());
-            // Actions.Last().Effects.
-            // if(_values.Count != 1)
-            // throw new System.NotImplementedException($"Value count: {_values.Count} != 1");
-
-            IPredicate predicate = null;
             string? op = context.op().GetText();
             // left, alive
             var left = context.value(0);
@@ -176,17 +163,31 @@ public static class StoryParser
             // right, true or $x -  not alive or $x.alive
             ComputedValue rightValue = ParseComputedValue(context.value(1), leftValue.Path.Property);
             if (op == "=")
-                predicate = new PropertyEquals(leftValue.Path.Property.Value, rightValue);
-            else if (op == "!=")
-                predicate = new PropertyNotEquals(leftValue.Path.Property.Value, rightValue);
-            else
-                return new List<Error> { new Error(context.Start, "Unknown Expr op: " + op) };
+                return new PropertyEquals(leftValue.Path.Property.Value, rightValue);
+            if (op == "!=")
+                return new PropertyNotEquals(leftValue.Path.Property.Value, rightValue);
 
-            _predicates.Add(predicate);
+            AddError(context.Start, "Unknown Expr op: " + op);
+
+            return default;
+        }
+        private object? AddError(IToken loc, string msg)
+        {
+            Errors.Add(new Error(loc, msg));
             return null;
         }
+        public override object? VisitCall(storygenParser.CallContext context)
+        {
+            
+            Actions.Last().Effects.Add(ParseCall(context, _variables.Count));
+            return null;
+        }
+        public override object? VisitExpr(storygenParser.ExprContext context)
+        {
+            throw new System.NotImplementedException();
+        }
 
-        public override List<Error> VisitPath(storygenParser.PathContext context)
+        public override object? VisitPath(storygenParser.PathContext context)
         {
             throw new System.NotImplementedException();
         }

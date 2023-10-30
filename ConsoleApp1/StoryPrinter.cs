@@ -13,11 +13,11 @@ public static class StoryPrinter
                 switch (effect)
                 {
                     case CreateEntity createEntity:
-                        sb.AppendLine("  create " + createEntity.Type);
+                        sb.AppendLine($"  ${createEntity.VariableIndex} = create {createEntity.Type.ToString().ToLowerInvariant()}");
                         break;
                     // case NameEntity nameEntity:
-                    case Assign predicateParameter:
-                        sb.AppendLine($"  ${predicateParameter.VariableIndex} = pick({Print(predicateParameter.Predicate)})");
+                    case AssignPick predicateParameter:
+                        sb.AppendLine($"  ${predicateParameter.VariableIndex} = pick {Print(predicateParameter.Predicate)}");
                         break;
                     // case Sequence sequence:
                     case SetProperty setProperty:

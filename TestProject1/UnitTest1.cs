@@ -7,6 +7,20 @@ public class Tests
     {
     }
 
+    public static List<Action> Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)
+    {
+        Console.WriteLine(s);
+        var actions = StoryParser.Parse(s, out errors);
+        var printed = StoryPrinter.Print(actions);
+        Console.WriteLine(printed);
+        Assert.AreEqual(errorCount, errors.Count, string.Join(", ", errors));
+
+        var reparsed = StoryParser.Parse(printed, out var errors2);
+        Assert.AreEqual(errorCount, errors2.Count, string.Join(", ", errors2));
+        Console.WriteLine(StoryPrinter.Print(reparsed));
+        return actions;
+    }
+
     [Test]
     public void Test1()
     {
@@ -15,11 +29,9 @@ public class Tests
     create person
     set alive = true
 ";
-        Console.WriteLine(s);
-        var actions = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(StoryPrinter.Print(actions));
- 
-        Assert.AreEqual(0, errors.Count, string.Join(", ", errors));
+        
+        var actions = Run(s, out var errors);
+        
         Assert.AreEqual(1, actions.Count);
         var action = actions[0];
         Assert.AreEqual("born_char", action.Name);
@@ -41,10 +53,7 @@ public class Tests
     $p = pick type = ""person"", alive = true
     set $p.alive = false
 ";
-        Console.WriteLine(s);
-        var actions = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(StoryPrinter.Print(actions));
-        Assert.AreEqual(0, errors.Count);
+        var actions = Run(s, out var errors);
         
         Assert.AreEqual(1, actions.Count);
         var action = actions[0];
@@ -71,12 +80,12 @@ public class Tests
         Assert.AreEqual(2, action.Effects.Count);
         var e1 = action.Effects[0];
         var e2 = action.Effects[1];
-        Assert.IsInstanceOf<Assign>(e1);
+        Assert.IsInstanceOf<AssignPick>(e1);
         
-        Assert.IsInstanceOf<Assign>(e2);
+        Assert.IsInstanceOf<AssignPick>(e2);
         
-        var pe1 = (Assign)e1;
-        var pe2 = (Assign)e2;
+        var pe1 = (AssignPick)e1;
+        var pe2 = (AssignPick)e2;
 
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
@@ -107,12 +116,12 @@ public class Tests
         Assert.AreEqual(3, action.Effects.Count);
         var e1 = action.Effects[0];
         var e2 = action.Effects[1];
-        Assert.IsInstanceOf<Assign>(e1);
+        Assert.IsInstanceOf<AssignPick>(e1);
         
-        Assert.IsInstanceOf<Assign>(e2);
+        Assert.IsInstanceOf<AssignPick>(e2);
         
-        var pe1 = (Assign)e1;
-        var pe2 = (Assign)e2;
+        var pe1 = (AssignPick)e1;
+        var pe2 = (AssignPick)e2;
 
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
@@ -141,12 +150,12 @@ public class Tests
         Assert.AreEqual(4, action.Effects.Count);
         var e1 = action.Effects[0];
         var e2 = action.Effects[1];
-        Assert.IsInstanceOf<Assign>(e1);
+        Assert.IsInstanceOf<AssignPick>(e1);
         
-        Assert.IsInstanceOf<Assign>(e2);
+        Assert.IsInstanceOf<AssignPick>(e2);
         
-        var pe1 = (Assign)e1;
-        var pe2 = (Assign)e2;
+        var pe1 = (AssignPick)e1;
+        var pe2 = (AssignPick)e2;
 
         // Assert.AreEqual(ComputedValue.PredicateParameterType.Predicate, pe1.Type);
         // Assert.AreEqual(ComputedValue.PredicateParameterType.Predicate, pe2.Type);

@@ -24,11 +24,11 @@
     public static explicit operator ComputedValue(PropertyValue value) => new ComputedValue(value);
 
 }
-public struct Assign : IEffect
+public struct AssignPick : IEffect
 {
     public readonly int VariableIndex;
     public readonly IPredicate Predicate;
-    public Assign(int variableIndex, IPredicate value)
+    public AssignPick(int variableIndex, IPredicate value)
     {
         VariableIndex = variableIndex;
         Predicate = value;

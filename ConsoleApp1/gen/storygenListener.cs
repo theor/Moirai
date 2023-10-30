@@ -150,4 +150,14 @@ public interface IstorygenListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitPath([NotNull] storygenParser.PathContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="storygenParser.number"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterNumber([NotNull] storygenParser.NumberContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="storygenParser.number"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitNumber([NotNull] storygenParser.NumberContext context);
 }

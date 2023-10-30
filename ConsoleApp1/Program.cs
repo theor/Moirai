@@ -82,14 +82,14 @@
             Effects =
             {
                 new Action("Create person",
-                    new CreateEntity(EntityType.Person),
+                    new CreateEntity(0, EntityType.Person),
                     new SetProperty(new PropertyPath(0, PropertyType.Alive), true)
                 ),
                 new Action("Create item",
-                    new CreateEntity(EntityType.Item),
+                    new CreateEntity(0, EntityType.Item),
                     new SetProperty(new PropertyPath(0, PropertyType.Owner), 0)),
                 new Action("Someone dies",
-                    new Assign(0, 
+                    new AssignPick(0, 
                     new And(new PropertyEquals(EntityType.Person), new PropertyEquals(PropertyType.Alive, true))),
                     new SetProperty(new PropertyPath(0, PropertyType.Alive), false)),
                 // new Action("Set item owner",
@@ -98,21 +98,21 @@
                 //         new And(new PropertyEquals( Properties.TypePerson), new PropertyEquals(PropertyType.Alive, true))
                 //     ))),
                 new Action("Set item owner",
-                    new Assign(0,
+                    new AssignPick(0,
                         new And(new PropertyEquals(EntityType.Person), new PropertyEquals(PropertyType.Alive, true))
                     ),
-                    new Assign(1,
+                    new AssignPick(1,
                         new And(new PropertyEquals(EntityType.Item),
                             new And(new PropertyEquals(PropertyType.Owner, 0),
                                 new PropertyNotEquals(PropertyType.Owner, new ComputedValue(new PropertyPath(1)))))
                     ),
                     new SetProperty(new PropertyPath(1, PropertyType.Owner),new ComputedValue(new PropertyPath(0)))),
                 new Action("Two people marry",
-                    new Assign(0, new And(
+                    new AssignPick(0, new And(
                         new PropertyEquals(EntityType.Person),
                         new PropertyEquals(PropertyType.Alive, true),
                         new PropertyEquals(PropertyType.Partner, 0))),
-                    new Assign(1, new And(
+                    new AssignPick(1, new And(
                         new PropertyEquals(EntityType.Person),
                         new PropertyNotEquals(PropertyType.Id, new ComputedValue(0)),
                         new PropertyEquals(PropertyType.Alive, true),
@@ -121,11 +121,11 @@
                     new SetProperty(new PropertyPath(1, PropertyType.Partner), new ComputedValue(0))
                 ),
                 new Action("Two people separate",
-                    new Assign(0, new And(
+                    new AssignPick(0, new And(
                         new PropertyEquals(EntityType.Person),
                         new PropertyEquals(PropertyType.Alive, true),
                         new PropertyNotEquals(PropertyType.Partner, 0))),
-                    new Assign(1, new And(
+                    new AssignPick(1, new And(
                         new PropertyEquals(EntityType.Person),
                         new PropertyNotEquals(PropertyType.Id, new ComputedValue(0)),
                         new PropertyEquals(PropertyType.Alive, true),

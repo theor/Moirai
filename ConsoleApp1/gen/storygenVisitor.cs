@@ -103,4 +103,10 @@ public interface IstorygenVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitPath([NotNull] storygenParser.PathContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="storygenParser.number"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitNumber([NotNull] storygenParser.NumberContext context);
 }

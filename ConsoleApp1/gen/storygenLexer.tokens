@@ -13,6 +13,7 @@ ID=12
 SPACE=13
 LINE_BREAK=14
 COMMENT=15
+NUMBER=16
 'set'=1
 '='=2
 'true'=3

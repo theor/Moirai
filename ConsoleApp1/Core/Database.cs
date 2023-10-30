@@ -136,7 +136,7 @@ public class Database
         for (var index = 0; index < effect.Effects.Count; index++)
         {
             var e = effect.Effects[index];
-            if (e is Assign { VariableIndex: -1 })
+            if (e is AssignPick { VariableIndex: -1 })
                 throw new System.NotImplementedException("Arg index -1 on p " + index);
 
             if (!e.MakeTrue(_ctx))
