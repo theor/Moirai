@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/rpg-map/ConsoleApp1/ConsoleApp1/storygen.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/StoryGen/ConsoleApp1/storygen.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -73,12 +73,6 @@ public interface IstorygenVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitBool([NotNull] storygenParser.BoolContext context);
-	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.create"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitCreate([NotNull] storygenParser.CreateContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="storygenParser.assign"/>.
 	/// </summary>

@@ -2,16 +2,16 @@
     create "person"
     set alive = true
 @char_dies
-    $p = pick(type = "person", alive = true)
+    $p = pick type = "person", alive = true
     set $p.alive = false
 @wedding
-    $x = pick(type = "person", alive = true, partner = null)
-    $y = pick(type = "person", alive = true, partner = null, id != $x)
+    $x = pick type = "person", alive = true, partner = null
+    $y = pick type = "person", alive = true, partner = null, id != $x
     set $x.partner = $y
     set $y.partner = $x
 @divorce
-    $x = pick(type = "person", alive = true, partner != null)
-    $y = pick(type = "person", alive = true, partner != null, id != $x)
+    $x = pick type = "person", alive = true, partner != null
+    $y = pick type = "person", alive = true, partner != null, id != $x
     set $x.partner = null
     set $y.partner = null
     
@@ -20,11 +20,21 @@
     create "item"
     set owner = null
 @item_acquired
-    $p = pick(type="person", alive = true)
-    $i = pick(type="item", owner = null)
+    $p = pick type="person", alive = true
+    $i = pick type="item", owner = null
     set $i.owner = $p
 @item_sold
-    $i = pick(type="item", owner != null)
-    $p = pick(type="person", id != $i.owner)
+    $i = pick type="item", owner != null
+    $p = pick type="person", id != $i.owner
     set $i.owner = $p
     
+@create_faction
+    $p = pick type="person", faction = null
+    $f = create "faction"
+    set $f.founder = $p
+    set $p.faction = $f
+
+@char_joins_faction
+    $p = pick type="person", faction = null
+    $f = pick type="faction"
+    set $p.faction = $f

@@ -19,7 +19,7 @@ public class Tests
         var actions = StoryParser.Parse(s, out var errors);
         Console.WriteLine(StoryPrinter.Print(actions));
  
-        Assert.AreEqual(0, errors.Count);
+        Assert.AreEqual(0, errors.Count, string.Join(", ", errors));
         Assert.AreEqual(1, actions.Count);
         var action = actions[0];
         Assert.AreEqual("born_char", action.Name);
@@ -38,7 +38,7 @@ public class Tests
     {
         var s = @"
 @char_dies
-    $p = pick(type = ""person"", alive = true)
+    $p = pick type = ""person"", alive = true
     set $p.alive = false
 ";
         Console.WriteLine(s);
@@ -56,13 +56,13 @@ public class Tests
     {
         var s = @"
 @char_dies
-    $x = pick(alive = true)
-    $y = pick(id != $x)
+    $x = pick alive = true
+    $y = pick id != $x
 ";
         Console.WriteLine(s);
         var actions = StoryParser.Parse(s, out var errors);
         Console.WriteLine(StoryPrinter.Print(actions));
-        Console.WriteLine(string.Join("\n", errors.Select(e => ToString())));
+        Console.WriteLine(string.Join("\n", errors.Select(e => e.ToString())));
         Assert.AreEqual(0, errors.Count);
         
         Assert.AreEqual(1, actions.Count);
@@ -175,8 +175,8 @@ public class Tests
     {
         var s = @"
 @char_dies
-    $p = pick(type = ""person"", alive = true)
-    $p = pick(type = ""person"", alive = true)
+    $p = pick type = ""person"", alive = true
+    $p = pick type = ""person"", alive = true
     set $p.alive = false
 ";
         Console.WriteLine(s);
@@ -184,6 +184,24 @@ public class Tests
         Console.WriteLine(StoryPrinter.Print(actions));
         Console.WriteLine(string.Join("\n", errors));
         Assert.AreEqual(1, errors.Count);
+       
+    }
+    [Test]
+    public void AssignCreate()
+    {
+        var s = @"
+@create_faction
+    $p = pick type=""person"", faction = null
+    $f = create ""faction""
+    set $f.owner = $p
+    set $p.faction = $f
+";
+        Console.WriteLine(s);
+        var actions = StoryParser.Parse(s, out var errors);
+        Console.WriteLine(StoryPrinter.Print(actions));
+        Console.WriteLine(string.Join("\n", errors));
+        Assert.AreEqual(0, errors.Count);
+        Assert.AreEqual(4, actions[0].Effects.Count);
        
     }
 }

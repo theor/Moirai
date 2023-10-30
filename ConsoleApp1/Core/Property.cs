@@ -16,5 +16,6 @@ public enum PropertyType
     Alive,
     Owner,
     Partner,
-    Name
+    Name,
+    Faction,
 }

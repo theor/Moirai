@@ -3,17 +3,38 @@ using Antlr4.Runtime.Tree;
 
 public static class StoryParser
 {
+    class Listener: IAntlrErrorListener<int>,IAntlrErrorListener<IToken>
+    {
+        private readonly List<Error> _errors;
+        public Listener(List<Error> errors)
+        {
+            _errors = errors;
+
+        }
+        public void SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol, int line, int charPositionInLine, string msg,
+            RecognitionException e)
+        {
+            _errors.Add(new Error(line, charPositionInLine, "Lexer:" + msg));
+        }
+        public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine, string msg,
+            RecognitionException e)
+        {
+            _errors.Add(new Error(line, charPositionInLine,"Parser:" +  msg));
+        }
+    }
+
     public static List<Action> Parse(string s, out List<Error> errors)
     {
         var lexer = new storygenLexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
         var tokens = new CommonTokenStream(lexer);
         var parser = new storygenParser(tokens);
-
-        lexer.AddErrorListener(ConsoleErrorListener<int>.Instance);
-        parser.AddErrorListener(ConsoleErrorListener<IToken>.Instance);
+        errors = new();
+        var listener = new Listener(errors);
+        lexer.AddErrorListener(listener);
+        parser.AddErrorListener(listener);
         var r = parser.r();
         var visitor = new Visitor();
-        errors = r.Accept(visitor);
+        errors.AddRange(r.Accept(visitor));
         return visitor.Actions;
     }
 
@@ -100,13 +121,13 @@ public static class StoryParser
 
             return pp;
         }
-        public override List<Error> VisitCreate(storygenParser.CreateContext context)
-        {
-            var type = context.@string().GetText().Trim('"');
-            //Console.WriteLine("  Create " + type);
-            Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
-            return base.VisitCreate(context);
-        }
+        // public override List<Error> VisitCreate(storygenParser.CreateContext context)
+        // {
+        //     var type = context.@string().GetText().Trim('"');
+        //     //Console.WriteLine("  Create " + type);
+        //     Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
+        //     return base.VisitCreate(context);
+        // }
         public override List<Error> VisitAssign(storygenParser.AssignContext context)
         {
             _predicates.Clear();
@@ -126,6 +147,13 @@ public static class StoryParser
         {
             var funcName = context.ID().GetText();
             //Console.WriteLine("    Call " + funcName);
+            if (funcName == "create")
+            {
+                var type = context.expr(0).GetText().Trim('"');
+                //     //Console.WriteLine("  Create " + type);
+                Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
+                return null;
+            }
             if (funcName != "pick")
                 return new() { new Error(context.Start, "call unknown: " + funcName) };
             return base.VisitCall(context);
@@ -141,14 +169,16 @@ public static class StoryParser
             IPredicate predicate = null;
             string? op = context.op().GetText();
             // left, alive
-            ITerminalNode? id = context.ID();
-            PropertyType propertyType = ParsePropertyType(id);
+            var left = context.value(0);
+            ComputedValue leftValue = ParseComputedValue(left, null);
+            if(leftValue.Type != ComputedValue.ComputedValueType.Path)
+                throw new System.NotImplementedException();
             // right, true or $x -  not alive or $x.alive
-            ComputedValue value = ParseComputedValue(context.value(), propertyType);
+            ComputedValue rightValue = ParseComputedValue(context.value(1), leftValue.Path.Property);
             if (op == "=")
-                predicate = new PropertyEquals(propertyType, value);
+                predicate = new PropertyEquals(leftValue.Path.Property.Value, rightValue);
             else if (op == "!=")
-                predicate = new PropertyNotEquals(propertyType, value);
+                predicate = new PropertyNotEquals(leftValue.Path.Property.Value, rightValue);
             else
                 return new List<Error> { new Error(context.Start, "Unknown Expr op: " + op) };
 

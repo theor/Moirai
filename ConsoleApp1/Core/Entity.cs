@@ -43,5 +43,6 @@
 public enum EntityType
 {
     Person = 1,
-    Item = 2,
+    Item,
+    Faction,
 }

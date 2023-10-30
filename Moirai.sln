@@ -4,6 +4,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject1", "TestProject1\TestProject1.csproj", "{864D4C4B-D557-4B6A-9913-3D2890C95591}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "vscode-languageserver\Server\Server.csproj", "{02A55A17-F766-47C0-9A1C-A2EA463BACF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{864D4C4B-D557-4B6A-9913-3D2890C95591}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{864D4C4B-D557-4B6A-9913-3D2890C95591}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{864D4C4B-D557-4B6A-9913-3D2890C95591}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02A55A17-F766-47C0-9A1C-A2EA463BACF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02A55A17-F766-47C0-9A1C-A2EA463BACF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02A55A17-F766-47C0-9A1C-A2EA463BACF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02A55A17-F766-47C0-9A1C-A2EA463BACF5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

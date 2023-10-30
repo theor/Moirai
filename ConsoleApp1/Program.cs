@@ -155,8 +155,8 @@
 
 // TODO:
 // parsing:
-    // $i = pick(type=item, owner != null)
-    // $p = pick(type=person, id != $i.owner) <- $i.owner doesn't work
+    // DONE $i = pick(type=item, owner != null)
+    // DONE $p = pick(type=person, id != $i.owner) <- $i.owner doesn't work
 // pick must be random
 // add factions ?
 
