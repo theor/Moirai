@@ -26,20 +26,41 @@ public struct ComputedValue
     public static explicit operator ComputedValue(PropertyValue value) => new ComputedValue(value);
 
 }
+
+public enum CallType
+{
+    None,
+    Pick,
+    Each,
+}
 public struct AssignPick : IEffect
 {
     public readonly int VariableIndex;
     public readonly IPredicate Predicate;
-    public AssignPick(int variableIndex, IPredicate value)
+    public readonly CallType CallType;
+    public AssignPick(int variableIndex, IPredicate value, CallType callType)
     {
         VariableIndex = variableIndex;
         Predicate = value;
+        CallType = callType;
     }
     public bool MakeTrue(PredicateContext ctx)
     {
-        bool res = ctx.PickRandom(Predicate, out var val);
-        ctx.SetArgument(VariableIndex, val);
-        return res;
+        switch (CallType)
+        {
+
+            case CallType.Pick:
+                bool res = ctx.PickRandom(Predicate, out var val);
+                ctx.SetArgument(VariableIndex, val);
+                return res;
+            case CallType.Each:
+                throw new System.NotImplementedException();
+                List<EntityId> results = new();
+                ctx.FindAll(Predicate, ref results);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(CallType.ToString());
+        }
     }
 }
 

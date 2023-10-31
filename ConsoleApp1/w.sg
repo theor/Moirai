@@ -6,11 +6,11 @@ prop parent = entity
 enum type = person, item, faction
 
 event inherit {
-    $p = when type = "person", alive = false
-    $c = each type = "person", alive = true, $c.parent = $p
-        $i = each type = "item", owner = $p
+    when type = "person", alive = false
+    $c = each type = "person", alive = true, $c.parent = id
+        $i = each type = "item", owner = id
             set $i.owner = $c
-    format "{$c.name} inherits the {$i.name} from {$p.name}"
+    format "{$c.name} inherits the {$i.name} from {name}"
 }
 
 rule char_born {

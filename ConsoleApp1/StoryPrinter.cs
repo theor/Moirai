@@ -13,7 +13,12 @@ public static class StoryPrinter
         }
         foreach (var action in actions)
         {
-            sb.AppendLine($"rule {action.Name} {{");
+            sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
+            foreach (var when in action.Whens)
+            {
+                sb.AppendLine($"  when {Print(when, properties)}");
+
+            }
             foreach (var effect in action.Effects)
             {
                 switch (effect)

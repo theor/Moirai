@@ -4,10 +4,11 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: (COMMENT | LINE_BREAK)* (action|prop_definition|enum_definition)+ ;
+r: (COMMENT | LINE_BREAK)* (action|event|prop_definition|enum_definition)+ ;
 
-action: (RULE|EVENT) ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
-
+action: RULE ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
+event: EVENT ID SCOPE_OPEN LINE_BREAK when+ effect+ SCOPE_CLOSE LINE_BREAK*;
+when: WHEN expr (COMMA expr)* SPACE* LINE_BREAK+;
 effect: (set | assign | call) SPACE* LINE_BREAK+;
 
 set: SET  path EQ value;

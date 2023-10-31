@@ -56,6 +56,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
         Type = ValueType.Bool,
     };
     public bool BoolValue => IntValue != 0;
+    public EntityId Id => new EntityId(IntValue);
 
     public bool Equals(PropertyValue other)
     {

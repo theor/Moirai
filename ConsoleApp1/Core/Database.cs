@@ -46,6 +46,7 @@ public class Database
     private List<Entity> _entities = new() { default };
     internal List<Rule> Rules = new();
     public List<Action> Effects = new();
+    public readonly List<Action> Events;
 
     public History? History;
     public Changeset CurrentChangeset;
@@ -180,8 +181,7 @@ public class Database
     }
     public bool RunAction(Action action)
     {
-        if (History != null)
-            CurrentChangeset = new Changeset(action.Name);
+        CurrentChangeset = new Changeset(action.Name);
         _ctx.Values.Clear();
         // int argCount = 0;
         // for (var index = 0; index < effect.Effects.Count; index++)
@@ -210,6 +210,17 @@ public class Database
                 return false;
             }
         }
+        HashSet<EntityId> changedEntities = new();
+        
+        foreach (var change in CurrentChangeset.Changes)
+        {
+            changedEntities.Add(change.EntityId);
+            if (change.PrevValue.Type == PropertyValue.ValueType.EntityId && !change.PrevValue.Id.IsNull)
+                changedEntities.Add(change.PrevValue.Id);
+            if (change.NewValue.Type == PropertyValue.ValueType.EntityId && !change.NewValue.Id.IsNull)
+                changedEntities.Add(change.NewValue.Id);
+        }
+        RunEvents(changedEntities);
         CurrentChangeset.Description = CreateDescription(action);
         History?.Changesets?.Add(CurrentChangeset);
         return true;
@@ -220,7 +231,24 @@ public class Database
         // }
         // return false;
     }
-    
+    private void RunEvents(HashSet<EntityId> changedEntities)
+    {
+        foreach (var entity in changedEntities)
+        {
+            // TODO BUG
+            // _ctx.SetArgument(0, entity);
+            foreach (var @event in Events)
+            {
+                if(@event.Whens.All(p => p.IsTrue(_ctx)))
+                    for (var i = 0; i < @event.Effects.Count; i++)
+                    {
+                        @event.Effects[i].MakeTrue(_ctx);
+                    }
+            }            
+        }
+
+    }
+
     public string? CreateDescription(Action action)
     {
         if ((action.Formats?.Count ?? 0) == 0) return null;
@@ -238,7 +266,8 @@ public class Database
     {
         _ctx = new PredicateContext(this);
         Properties = properties;
-        Effects = actions;
+        Effects = actions.Where(a => !a.IsEvent).ToList();
+        Events = actions.Where(a => a.IsEvent).ToList();
     }
     public void PrintDb()
     {

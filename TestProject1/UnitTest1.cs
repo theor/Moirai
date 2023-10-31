@@ -17,7 +17,7 @@ public class Tests
         if (errorCount == 0)
         {
             var reparsed = StoryParser.Parse(printed, out var errors2);
-            Assert.AreEqual(errorCount, errors2.Count, string.Join(", ", errors2));
+            Assert.AreEqual(errorCount, errors2.Count, "During reparse: " + string.Join(", ", errors2));
             Console.WriteLine(StoryPrinter.Print(reparsed.Item1, reparsed.Item2));
         }
         return (actions, properties);
@@ -68,6 +68,38 @@ rule char_dies {
         var action = actions[0];
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
+    }
+    [Test]
+    public void Event()
+    {
+        var s = @"
+prop alive = bool
+prop test = bool
+rule born {
+    create ""person""
+    set alive = true
+}
+
+rule die {
+    pick type = ""person"", alive = true
+    set alive = false
+}
+
+event on_death {
+    when alive = false
+
+    set test = true
+}";
+        var (actions, p) = Run(s, out _, 0);
+        Assert.AreEqual(1, actions.Count(a => a.IsEvent));
+
+        var db = new Database(p, actions);
+        db.RunAction(actions[0]);
+        db.RunAction(actions[1]);
+        db.PrintDb();
+        Entity e = db.Entities.Single();
+        PropertyId propTest = db.GetProperty("test");
+        Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
     }
     [Test]
     public void Test3()

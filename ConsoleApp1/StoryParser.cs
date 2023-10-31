@@ -74,7 +74,7 @@ public static class StoryParser
             Col = loc.Column;
             Message = message;
         }
-        public override string ToString() => $"{Line}{Col}: {Message}";
+        public override string ToString() => $"{Line}:{Col}: {Message}";
     }
 
     internal class Visitor : MoiraiBaseVisitor<object?>, IVisitor
@@ -99,9 +99,38 @@ public static class StoryParser
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
-            Actions.Add(new Action(actionId));
+            Actions.Add(new Action(actionId,false));
             _variables.Clear();
             return base.VisitAction(context);
+        }
+        public override object? VisitEvent(Moirai.EventContext context)
+        {
+            string actionId = context.ID().GetText();
+            //Console.WriteLine("@ " + actionId);
+            Actions.Add(new Action(actionId,true));
+            _variables.Clear();
+            foreach (var whenContext in context.when())
+            {
+                Actions.Last().Whens.Add(ParseWhen(whenContext));
+            }
+            foreach (var effectContext in context.effect())
+            {
+                effectContext.Accept(this);
+            }
+            return null;
+        }
+        private IPredicate ParseWhen(Moirai.WhenContext context)
+        {
+            var exprs = context.expr();
+            var predicate = exprs.Length == 1
+                ? ParseExpr(exprs[0])!
+                : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList());
+            return predicate;
+        }
+        public override object? VisitWhen(Moirai.WhenContext context)
+        {
+            throw new System.NotImplementedException();
+          
         }
         public override object? VisitSet(Moirai.SetContext context)
         {
@@ -173,14 +202,27 @@ public static class StoryParser
             var funcName = context.ID().GetText();
             switch (funcName)
             {
-                // TODO separate when each pick
+
                 case "each":
-                case "when":
-                case "pick":
+                {
+                    
                     var exprs = context.expr();
                     return new AssignPick(
                         variableIndex,
-                        exprs.Length == 1 ? ParseExpr(exprs[0]) : new And(exprs.Select(ParseExpr).ToList()));
+                        exprs.Length == 1
+                            ? ParseExpr(exprs[0])!
+                            : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList()),
+                        CallType.Pick);
+                        break;
+                }
+                case "pick":
+                {
+                    var exprs = context.expr();
+                    return new AssignPick(
+                        variableIndex,
+                        exprs.Length == 1 ? ParseExpr(exprs[0])! : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList()),
+                        CallType.Pick);
+                }
                 case "create":
                     var type = context.expr(0).GetText().TrimQuotes();
                     return new CreateEntity(variableIndex, Enum.Parse<EntityType>(type, true));
@@ -276,10 +318,13 @@ public static class StoryParser
             var varId = context.VAR_ID();
             if (varId != null)
             {
-                varIndex = _variables.IndexOf(varId.GetText());
-                if (varIndex == -1)
-                    throw new System.NotImplementedException("Unknown var " + varId.GetText());
+                if (!int.TryParse(varId.GetText().Substring(1), out varIndex))
+                {
 
+                    varIndex = _variables.IndexOf(varId.GetText());
+                    if (varIndex == -1)
+                        throw new System.NotImplementedException("Unknown var " + varId.GetText());
+                }
             }
             if (context.ID().Length == 0)
                 return new PropertyPath(varIndex);

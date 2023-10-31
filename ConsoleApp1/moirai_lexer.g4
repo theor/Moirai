@@ -14,6 +14,7 @@ RULE: 'rule';
 EVENT: 'event';
 PROP: 'prop';
 ENUM: 'enum';
+WHEN: 'when';
 SET: 'set';
 COMMA: ',';
 

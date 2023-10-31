@@ -60,6 +60,30 @@ public partial class MoiraiBaseListener : IMoiraiListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitAction([NotNull] Moirai.ActionContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.event"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterEvent([NotNull] Moirai.EventContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.event"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitEvent([NotNull] Moirai.EventContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.when"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterWhen([NotNull] Moirai.WhenContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.when"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitWhen([NotNull] Moirai.WhenContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.effect"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

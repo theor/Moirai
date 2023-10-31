@@ -44,6 +44,18 @@ public interface IMoiraiVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitAction([NotNull] Moirai.ActionContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="Moirai.event"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitEvent([NotNull] Moirai.EventContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="Moirai.when"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitWhen([NotNull] Moirai.WhenContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="Moirai.effect"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

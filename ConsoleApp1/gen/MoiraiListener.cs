@@ -51,6 +51,26 @@ public interface IMoiraiListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitAction([NotNull] Moirai.ActionContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.event"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterEvent([NotNull] Moirai.EventContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.event"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitEvent([NotNull] Moirai.EventContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.when"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterWhen([NotNull] Moirai.WhenContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.when"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitWhen([NotNull] Moirai.WhenContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.effect"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
