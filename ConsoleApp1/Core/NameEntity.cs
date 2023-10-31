@@ -2,15 +2,9 @@
 
 static class NameEntity
 {
-    public static bool AssignName(PredicateContext ctx, EntityId entityId)
+    public static string MakeName(PredicateContext ctx, EntityType t)
     {
-        if (!ctx.Database.TryGetEntity(entityId.Id, out var e))
-            return false;
-
-        var t = (EntityType)e.GetProperty(Database.PropType).IntValue;
-
-        string name = GenerateName(ctx, t, in e);
-        return ctx.Database.SetProperty(ctx.EntityId, Database.PropName, name);
+        return GenerateName(ctx, t);
     }
 
     private static readonly string[] Items =
@@ -40,7 +34,7 @@ static class NameEntity
         // ReSharper restore StringLiteralTypo
     };
 
-    private static string GenerateName(PredicateContext predicateContext, EntityType t, in Entity entity)
+    private static string GenerateName(PredicateContext predicateContext, EntityType t)
     {
         var n = Names.RandomIn(predicateContext.Rnd);
         switch (t)

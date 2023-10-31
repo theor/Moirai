@@ -27,9 +27,9 @@ class CreateEntity : IEffect
     public bool MakeTrue(PredicateContext ctx)
     {
         // if (!ctx.Database.EntityExists(ctx.EntityId))
-        var entity = ctx.Database.AllocateEntity(Type);
+        string name = NameEntity.MakeName(ctx, Type);
+        var entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
-        var makeTrue = NameEntity.AssignName(ctx, entity);
-        return makeTrue;
+        return true;
     }
 }

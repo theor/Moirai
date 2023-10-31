@@ -11,6 +11,7 @@ COMMENT
 SCOPE_OPEN: '{';
 SCOPE_CLOSE: '}';
 RULE: 'rule';
+EVENT: 'event';
 PROP: 'prop';
 ENUM: 'enum';
 SET: 'set';

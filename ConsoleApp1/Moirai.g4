@@ -6,7 +6,7 @@ options {
 }
 r: (COMMENT | LINE_BREAK)* (action|prop_definition|enum_definition)+ ;
 
-action: RULE ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
+action: (RULE|EVENT) ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
 
 effect: (set | assign | call) SPACE* LINE_BREAK+;
 

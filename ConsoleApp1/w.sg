@@ -1,9 +1,17 @@
-﻿prop alive = bool
+prop alive = bool
 prop owner = entity
 prop partner = entity
 prop faction = entity
+prop parent = entity
 enum type = person, item, faction
 
+event inherit {
+    $p = when type = "person", alive = false
+    $c = each type = "person", alive = true, $c.parent = $p
+        $i = each type = "item", owner = $p
+            set $i.owner = $c
+    format "{$c.name} inherits the {$i.name} from {$p.name}"
+}
 
 rule char_born {
     $0 = create "person"
@@ -12,6 +20,11 @@ rule char_born {
 }
 rule char_dies {
     $p = pick type = "person", alive = true
+    set $p.alive = false 
+    format "{$p.name} dies"
+}
+rule parent_dies {
+    $p = pick type = "person", alive = true, parent = null
     set $p.alive = false 
     format "{$p.name} dies"
 }
@@ -33,6 +46,7 @@ rule couple_has_child {
     $x = pick type = "person", alive = true, partner != null
     $y = pick type = "person", alive = true, partner = $x, id != $x
     $c = create "person"
+    set $c.parent = $x
     set $c.alive = true
     format "{$x.name} and {$y.name} have a child, {$c.name}"
 }

@@ -57,19 +57,23 @@ public class Database
     }
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
-    public int DeclareProperty(string name)
-    {
-        Properties.Add(name);
-        return Properties.Count - 1;
-    }
+    // public int DeclareProperty(string name)
+    // {
+    //     Properties.Add(name);
+    //     return Properties.Count - 1;
+    // }
 
-    public EntityId AllocateEntity(EntityType entityType)
+    public EntityId AllocateEntity(EntityType entityType, string? name = null)
     {
         Entity e = new();
-        e.Properties = new() { new Property(PropType, (int)entityType) };
+
+        e.Properties = new();
+        e.Properties.Add(new Property(PropType, (int)entityType));
+        if(name != null)
+            e.Properties.Add(new Property(PropName, name));
         e.Id = new EntityId((long)_entities.Count);
         _entities.Add(e);
-        CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType));
+        CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
 
         return e.Id;
     }
@@ -251,7 +255,7 @@ public class Database
                 foreach (var property in e.Properties)
                 {
                     if (property.Type != Database.PropType)
-                        Console.WriteLine($"  {property.Type}: {StoryPrinter.Print(property.Value, property.Type)}");
+                        Console.WriteLine($"  {Properties[(int)property.Type.Id]}: {StoryPrinter.Print(property.Value, property.Type)}");
                         // Console.WriteLine($"  {FormatProperty(property)}");
                 }
         }

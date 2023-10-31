@@ -43,9 +43,9 @@ public struct Change
     {
         return new Change(ChangeType.Set, entityId, propertyType, prevValue, newValue);
     }
-    public static Change Create(EntityId entityId, EntityType type)
+    public static Change Create(EntityId entityId, EntityType type, string? name = null)
     {
-        return new Change(ChangeType.Create, entityId, Database.PropId, default, (int)type);
+        return new Change(ChangeType.Create, entityId, Database.PropId, name!, (int)type);
     }
 
     public override string ToString()
@@ -54,7 +54,7 @@ public struct Change
         {
 
             case ChangeType.Create:
-                return $"CREATE {EntityId}: {(EntityType)NewValue.IntValue}";
+                return $"CREATE {PrevValue.Value} {(EntityType)NewValue.IntValue} {EntityId}";
             case ChangeType.Set:
                 return $"SET {EntityId}.{Property}: {StoryPrinter.Print(PrevValue, Property)} -> {StoryPrinter.Print(NewValue, Property)}";
             default:

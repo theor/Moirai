@@ -173,6 +173,9 @@ public static class StoryParser
             var funcName = context.ID().GetText();
             switch (funcName)
             {
+                // TODO separate when each pick
+                case "each":
+                case "when":
                 case "pick":
                     var exprs = context.expr();
                     return new AssignPick(
