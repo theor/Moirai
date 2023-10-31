@@ -1,8 +1,10 @@
-﻿static class NameEntity
+﻿using Pcg;
+
+static class NameEntity
 {
-    public static bool MakeTrue(PredicateContext ctx)
+    public static bool AssignName(PredicateContext ctx, EntityId entityId)
     {
-        if (!ctx.Database.TryGetEntity(ctx.EntityId, out var e))
+        if (!ctx.Database.TryGetEntity(entityId.Id, out var e))
             return false;
 
         var t = (EntityType)e.GetProperty(PropertyType.Type).IntValue;
@@ -14,8 +16,8 @@
     private static readonly string[] Items =
     {
         "Ring", "Sword", "Spear", "Breastplate", "Greatsword", "Pendant",
-        
     };
+
     private static readonly string[] Names =
     {
         // ReSharper disable StringLiteralTypo
@@ -40,18 +42,20 @@
 
     private static string GenerateName(PredicateContext predicateContext, EntityType t, in Entity entity)
     {
-        var n = Names[predicateContext.Rnd.GenerateNext((uint)Names.Length)];
+        var n = Names.RandomIn(predicateContext.Rnd);
         switch (t)
         {
-        
+
             case EntityType.Person:
                 return n;
             case EntityType.Item:
-                return "Ring of " + n;
+                return Items.RandomIn(predicateContext.Rnd) + " of " + n;
             case EntityType.Faction:
                 return "Faction of " + n;
             default:
                 throw new ArgumentOutOfRangeException(nameof(t), t, null);
         }
     }
+
+    static T RandomIn<T>(this T[] array, Pcg32 rnd) => array[rnd.GenerateNext((uint)array.Length)];
 }

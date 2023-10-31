@@ -29,7 +29,7 @@ class CreateEntity : IEffect
         // if (!ctx.Database.EntityExists(ctx.EntityId))
         var entity = ctx.Database.AllocateEntity(Type);
         ctx.SetArgument(VariableIndex, entity);
-        var makeTrue = NameEntity.MakeTrue(ctx);
+        var makeTrue = NameEntity.AssignName(ctx, entity);
         return makeTrue;
     }
 }

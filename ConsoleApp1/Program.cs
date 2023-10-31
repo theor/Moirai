@@ -58,7 +58,7 @@ internal class Program
                     db.RunAction(db.Effects[prevAction]);
                 db.PrintDb();
             }
-            if (int.TryParse(line, out var i) && i >= 0 && i < db.Effects.Count)
+            else if (int.TryParse(line, out var i) && i >= 0 && i < db.Effects.Count)
             {
                 prevAction = i;
                 db.RunAction(db.Effects[i]);

@@ -40,7 +40,13 @@ public static class StoryParser
         r.Accept(visitor);
         return visitor.Actions;
     }
-    private static void SetupParser(string s, out List<Error> errors, out Moirai parser, Visitor visitor)
+
+    public interface IVisitor
+    {
+        List<Error> Errors { get; }
+    }
+
+    public static void SetupParser(string s, out List<Error> errors, out Moirai parser, IVisitor visitor)
     {
 
         errors = visitor.Errors;
@@ -71,11 +77,12 @@ public static class StoryParser
         public override string ToString() => $"{Line}{Col}: {Message}";
     }
 
-    internal class Visitor : MoiraiBaseVisitor<object?>
+    internal class Visitor : MoiraiBaseVisitor<object?>, IVisitor
     {
         public List<Action> Actions = new();
         private List<string> _variables = new();
-        public List<Error> Errors = new();
+        private List<Error> _errors = new();
+        public List<Error> Errors => _errors;
         protected override object? DefaultResult => null;
 
         public override object? VisitAction(Moirai.ActionContext context)
@@ -182,7 +189,7 @@ public static class StoryParser
                             throw new System.NotImplementedException($"Missing curly brace in string: {str}, opening brace at {i}");
 
                         var pathStr = str.Substring(i + 1, j - i - 1);
-                        var path = StoryParser.ParsePath(this, pathStr, out Errors);
+                        var path = StoryParser.ParsePath(this, pathStr, out _errors);
                         paths.Add(path);
                         // Console.WriteLine($"'{pathStr}'");
                         if (i > prev)

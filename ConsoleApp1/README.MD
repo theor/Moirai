@@ -1,6 +1,6 @@
 ﻿- [ ] time passing
 - [ ] links
-- [ ] probabilities, curves ?
+- [ ] probabilities, curves ? assign proba per entity to impact history ?
 - [ ] tags ?
 - [x] clean variant value
 - [x] format history
