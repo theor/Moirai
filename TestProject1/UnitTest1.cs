@@ -27,9 +27,10 @@ public class Tests
     public void Test1()
     {
         var s = @"
-@born_char
+rule born_char {
     create person
     set alive = true
+}
 ";
         
         var actions = Run(s, out var errors);
@@ -51,10 +52,10 @@ public class Tests
     public void Test2()
     {
         var s = @"
-@char_dies
+rule char_dies {
     $p = pick type = ""person"", alive = true
     set $p.alive = false
-";
+}";
         var actions = Run(s, out var errors);
         
         Assert.AreEqual(1, actions.Count);
@@ -66,10 +67,10 @@ public class Tests
     public void Test3()
     {
         var s = @"
-@char_dies
+rule char_dies {
     $x = pick alive = true
     $y = pick id != $x
-";
+}";
        
         var actions = Run(s, out var errors);
         
@@ -184,11 +185,11 @@ public class Tests
     public void DuplicateVarError()
     {
         var s = @"
-@char_dies
+rule char_dies {
     $p = pick type = ""person"", alive = true
     $p = pick type = ""person"", alive = true
     set $p.alive = false
-";
+}";
        
         var actions = Run(s, out var errors, 1);
        
@@ -197,12 +198,12 @@ public class Tests
     public void AssignCreate()
     {
         var s = @"
-@create_faction
+rule create_faction {
     $p = pick type=""person"", faction = null
     $f = create ""faction""
     set $f.owner = $p
     set $p.faction = $f
-";
+}";
         var actions = Run(s, out var errors);
         Assert.AreEqual(4, actions[0].Effects.Count);
        
@@ -211,13 +212,13 @@ public class Tests
     public void Format()
     {
         var s = @"
-@create_faction
+rule create_faction {
     $f = create ""faction""
     $g = create ""faction""
     $p = create ""person""
     set $f.owner = $p
     format ""{$p.name} creates the {$f.name} to counter the {$g.name}""
-";
+}";
         var actions = Run(s, out var errors);
         Assert.AreEqual(4, actions[0].Effects.Count);
         Database db = new Database { Effects = actions, History = new()};

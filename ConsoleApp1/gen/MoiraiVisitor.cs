@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/StoryGen/ConsoleApp1/storygen.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/StoryGen/ConsoleApp1/Moirai.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -25,88 +25,100 @@ using IToken = Antlr4.Runtime.IToken;
 
 /// <summary>
 /// This interface defines a complete generic visitor for a parse tree produced
-/// by <see cref="storygenParser"/>.
+/// by <see cref="Moirai"/>.
 /// </summary>
 /// <typeparam name="Result">The return type of the visit operation.</typeparam>
 [System.CodeDom.Compiler.GeneratedCode("ANTLR", "4.13.1")]
 [System.CLSCompliant(false)]
-public interface IstorygenVisitor<Result> : IParseTreeVisitor<Result> {
+public interface IMoiraiVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.r"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.r"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitR([NotNull] storygenParser.RContext context);
+	Result VisitR([NotNull] Moirai.RContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.action"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.action"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitAction([NotNull] storygenParser.ActionContext context);
+	Result VisitAction([NotNull] Moirai.ActionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.effect"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.effect"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitEffect([NotNull] storygenParser.EffectContext context);
+	Result VisitEffect([NotNull] Moirai.EffectContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.set"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.set"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitSet([NotNull] storygenParser.SetContext context);
+	Result VisitSet([NotNull] Moirai.SetContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.value"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.assign"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitValue([NotNull] storygenParser.ValueContext context);
+	Result VisitAssign([NotNull] Moirai.AssignContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.string"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.call"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitString([NotNull] storygenParser.StringContext context);
+	Result VisitCall([NotNull] Moirai.CallContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.bool"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.value"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitBool([NotNull] storygenParser.BoolContext context);
+	Result VisitValue([NotNull] Moirai.ValueContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.assign"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitAssign([NotNull] storygenParser.AssignContext context);
+	Result VisitExpr([NotNull] Moirai.ExprContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.call"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.op"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitCall([NotNull] storygenParser.CallContext context);
+	Result VisitOp([NotNull] Moirai.OpContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.expr"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.prop_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitExpr([NotNull] storygenParser.ExprContext context);
+	Result VisitProp_definition([NotNull] Moirai.Prop_definitionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.op"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.enum_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitOp([NotNull] storygenParser.OpContext context);
+	Result VisitEnum_definition([NotNull] Moirai.Enum_definitionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.path"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.string"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitPath([NotNull] storygenParser.PathContext context);
+	Result VisitString([NotNull] Moirai.StringContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="storygenParser.number"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.bool"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitNumber([NotNull] storygenParser.NumberContext context);
+	Result VisitBool([NotNull] Moirai.BoolContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="Moirai.path"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitPath([NotNull] Moirai.PathContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="Moirai.number"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitNumber([NotNull] Moirai.NumberContext context);
 }

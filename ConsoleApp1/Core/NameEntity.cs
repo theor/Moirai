@@ -11,6 +11,11 @@
         return ctx.Database.SetProperty(ctx.EntityId, PropertyType.Name, name);
     }
 
+    private static readonly string[] Items =
+    {
+        "Ring", "Sword", "Spear", "Breastplate", "Greatsword", "Pendant",
+        
+    };
     private static readonly string[] Names =
     {
         // ReSharper disable StringLiteralTypo

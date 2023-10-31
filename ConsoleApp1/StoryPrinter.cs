@@ -8,7 +8,7 @@ public static class StoryPrinter
         StringBuilder sb = new();
         foreach (var action in actions)
         {
-            sb.AppendLine("@" + action.Name);
+            sb.AppendLine($"rule {action.Name} {{");
             foreach (var effect in action.Effects)
             {
                 switch (effect)
@@ -29,7 +29,7 @@ public static class StoryPrinter
                         throw new ArgumentOutOfRangeException(nameof(effect));
                 }
             }
-            sb.AppendLine();
+            sb.AppendLine("}");
 
         }
         return sb.ToString();

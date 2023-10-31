@@ -40,13 +40,13 @@ public static class StoryParser
         r.Accept(visitor);
         return visitor.Actions;
     }
-    private static void SetupParser(string s, out List<Error> errors, out storygenParser parser, Visitor visitor)
+    private static void SetupParser(string s, out List<Error> errors, out Moirai parser, Visitor visitor)
     {
 
         errors = visitor.Errors;
-        var lexer = new storygenLexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
+        var lexer = new moirai_lexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
         var tokens = new CommonTokenStream(lexer);
-        parser = new storygenParser(tokens);
+        parser = new Moirai(tokens);
         var listener = new Listener(errors);
         lexer.AddErrorListener(listener);
         parser.AddErrorListener(listener);
@@ -71,22 +71,22 @@ public static class StoryParser
         public override string ToString() => $"{Line}{Col}: {Message}";
     }
 
-    internal class Visitor : storygenBaseVisitor<object?>
+    internal class Visitor : MoiraiBaseVisitor<object?>
     {
         public List<Action> Actions = new();
         private List<string> _variables = new();
         public List<Error> Errors = new();
         protected override object? DefaultResult => null;
 
-        public override object? VisitAction(storygenParser.ActionContext context)
+        public override object? VisitAction(Moirai.ActionContext context)
         {
-            string actionId = context.ACTION_ID().GetText().Substring(1);
+            string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
             Actions.Add(new Action(actionId));
             _variables.Clear();
             return base.VisitAction(context);
         }
-        public override object? VisitSet(storygenParser.SetContext context)
+        public override object? VisitSet(Moirai.SetContext context)
         {
             //Console.WriteLine($"  Set {context.path().GetText()} = {context.value().GetText()}");
             var left = ParsePath(context.path());
@@ -94,7 +94,7 @@ public static class StoryParser
             Actions.Last().Effects.Add(new SetProperty(left, right));
             return null;
         }
-        private ComputedValue ParseComputedValue(storygenParser.ValueContext value, PropertyType? type)
+        private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyType? type)
         {
             ComputedValue pp;
             if (value.NULL() != null)
@@ -128,14 +128,14 @@ public static class StoryParser
 
             return pp;
         }
-        // public override object? VisitCreate(storygenParser.CreateContext context)
+        // public override object? VisitCreate(CreateContext context)
         // {
         //     var type = context.@string().GetText().Trim('"');
         //     //Console.WriteLine("  Create " + type);
         //     Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
         //     return base.VisitCreate(context);
         // }
-        public override object? VisitAssign(storygenParser.AssignContext context)
+        public override object? VisitAssign(Moirai.AssignContext context)
         {
             var variable = context.VAR_ID().GetText();
             if (_variables.IndexOf(variable) != -1)
@@ -151,7 +151,7 @@ public static class StoryParser
             //Console.WriteLine("  Assign " + context.VAR_ID());
             return null;
         }
-        private IEffect ParseCall(storygenParser.CallContext context, int variableIndex)
+        private IEffect ParseCall(Moirai.CallContext context, int variableIndex)
         {
             var funcName = context.ID().GetText();
             switch (funcName)
@@ -199,7 +199,7 @@ public static class StoryParser
 
             throw new NotImplementedException($"Unknown call '{funcName}'");
         }
-        private IPredicate? ParseExpr(storygenParser.ExprContext context)
+        private IPredicate? ParseExpr(Moirai.ExprContext context)
         {
             string? op = context.op().GetText();
             // left, alive
@@ -229,7 +229,7 @@ public static class StoryParser
             Errors.Add(new Error(loc, msg));
             return null;
         }
-        public override object? VisitCall(storygenParser.CallContext context)
+        public override object? VisitCall(Moirai.CallContext context)
         {
 
             var effect = ParseCall(context, _variables.Count);
@@ -239,19 +239,19 @@ public static class StoryParser
                 Actions.Last().Effects.Add(effect);
             return null;
         }
-        public override object? VisitExpr(storygenParser.ExprContext context)
+        public override object? VisitExpr(Moirai.ExprContext context)
         {
             throw new System.NotImplementedException();
         }
 
-        public override object? VisitPath(storygenParser.PathContext context)
+        public override object? VisitPath(Moirai.PathContext context)
         {
             throw new System.NotImplementedException();
         }
 
         private static PropertyType ParsePropertyType(ITerminalNode id) => Enum.Parse<PropertyType>(id.GetText(), true);
 
-        public PropertyPath ParsePath(storygenParser.PathContext context)
+        public PropertyPath ParsePath(Moirai.PathContext context)
         {
             int varIndex = 0;
             var varId = context.VAR_ID();
@@ -277,5 +277,5 @@ public static class StoryParser
 internal static class ParsingExtensions
 {
     public static string TrimQuotes(this string s) => s.Trim('"', '\'');
-    public static string GetString(this storygenParser.StringContext context) => context.STRING().GetText().TrimQuotes();
+    public static string GetString(this Moirai.StringContext context) => context.STRING().GetText().TrimQuotes();
 }

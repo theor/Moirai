@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/StoryGen/ConsoleApp1/storygen.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/StoryGen/ConsoleApp1/Moirai.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -27,170 +27,194 @@ using IToken = Antlr4.Runtime.IToken;
 using ParserRuleContext = Antlr4.Runtime.ParserRuleContext;
 
 /// <summary>
-/// This class provides an empty implementation of <see cref="IstorygenListener"/>,
+/// This class provides an empty implementation of <see cref="IMoiraiListener"/>,
 /// which can be extended to create a listener which only needs to handle a subset
 /// of the available methods.
 /// </summary>
 [System.CodeDom.Compiler.GeneratedCode("ANTLR", "4.13.1")]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.CLSCompliant(false)]
-public partial class storygenBaseListener : IstorygenListener {
+public partial class MoiraiBaseListener : IMoiraiListener {
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.r"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.r"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterR([NotNull] storygenParser.RContext context) { }
+	public virtual void EnterR([NotNull] Moirai.RContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.r"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.r"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitR([NotNull] storygenParser.RContext context) { }
+	public virtual void ExitR([NotNull] Moirai.RContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.action"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.action"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterAction([NotNull] storygenParser.ActionContext context) { }
+	public virtual void EnterAction([NotNull] Moirai.ActionContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.action"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.action"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitAction([NotNull] storygenParser.ActionContext context) { }
+	public virtual void ExitAction([NotNull] Moirai.ActionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.effect"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.effect"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterEffect([NotNull] storygenParser.EffectContext context) { }
+	public virtual void EnterEffect([NotNull] Moirai.EffectContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.effect"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.effect"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitEffect([NotNull] storygenParser.EffectContext context) { }
+	public virtual void ExitEffect([NotNull] Moirai.EffectContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.set"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.set"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterSet([NotNull] storygenParser.SetContext context) { }
+	public virtual void EnterSet([NotNull] Moirai.SetContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.set"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.set"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitSet([NotNull] storygenParser.SetContext context) { }
+	public virtual void ExitSet([NotNull] Moirai.SetContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.value"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.assign"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterValue([NotNull] storygenParser.ValueContext context) { }
+	public virtual void EnterAssign([NotNull] Moirai.AssignContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.value"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.assign"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitValue([NotNull] storygenParser.ValueContext context) { }
+	public virtual void ExitAssign([NotNull] Moirai.AssignContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.string"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.call"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterString([NotNull] storygenParser.StringContext context) { }
+	public virtual void EnterCall([NotNull] Moirai.CallContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.string"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.call"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitString([NotNull] storygenParser.StringContext context) { }
+	public virtual void ExitCall([NotNull] Moirai.CallContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.bool"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.value"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterBool([NotNull] storygenParser.BoolContext context) { }
+	public virtual void EnterValue([NotNull] Moirai.ValueContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.bool"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.value"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitBool([NotNull] storygenParser.BoolContext context) { }
+	public virtual void ExitValue([NotNull] Moirai.ValueContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.assign"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.expr"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterAssign([NotNull] storygenParser.AssignContext context) { }
+	public virtual void EnterExpr([NotNull] Moirai.ExprContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.assign"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.expr"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitAssign([NotNull] storygenParser.AssignContext context) { }
+	public virtual void ExitExpr([NotNull] Moirai.ExprContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.call"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.op"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterCall([NotNull] storygenParser.CallContext context) { }
+	public virtual void EnterOp([NotNull] Moirai.OpContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.call"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.op"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitCall([NotNull] storygenParser.CallContext context) { }
+	public virtual void ExitOp([NotNull] Moirai.OpContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.expr"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.prop_definition"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterExpr([NotNull] storygenParser.ExprContext context) { }
+	public virtual void EnterProp_definition([NotNull] Moirai.Prop_definitionContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.expr"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.prop_definition"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitExpr([NotNull] storygenParser.ExprContext context) { }
+	public virtual void ExitProp_definition([NotNull] Moirai.Prop_definitionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.op"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.enum_definition"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterOp([NotNull] storygenParser.OpContext context) { }
+	public virtual void EnterEnum_definition([NotNull] Moirai.Enum_definitionContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.op"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.enum_definition"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitOp([NotNull] storygenParser.OpContext context) { }
+	public virtual void ExitEnum_definition([NotNull] Moirai.Enum_definitionContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.path"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.string"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterPath([NotNull] storygenParser.PathContext context) { }
+	public virtual void EnterString([NotNull] Moirai.StringContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.path"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.string"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitPath([NotNull] storygenParser.PathContext context) { }
+	public virtual void ExitString([NotNull] Moirai.StringContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="storygenParser.number"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.bool"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterNumber([NotNull] storygenParser.NumberContext context) { }
+	public virtual void EnterBool([NotNull] Moirai.BoolContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="storygenParser.number"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.bool"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitNumber([NotNull] storygenParser.NumberContext context) { }
+	public virtual void ExitBool([NotNull] Moirai.BoolContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.path"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterPath([NotNull] Moirai.PathContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.path"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitPath([NotNull] Moirai.PathContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.number"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterNumber([NotNull] Moirai.NumberContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.number"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitNumber([NotNull] Moirai.NumberContext context) { }
 
 	/// <inheritdoc/>
 	/// <remarks>The default implementation does nothing.</remarks>
