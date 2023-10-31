@@ -94,10 +94,10 @@ public class PredicateContext
                 var varValue = this.Argument(computedValue.Path.VariableIndex);
                 if (!Database.TryGetEntity(varValue.IntValue, out var e))
                     return default;
-                if (computedValue.Path.Property == null)
+                if (computedValue.Path.Property == PropertyId.Null)
                     return varValue;
 
-                return e.GetProperty(computedValue.Path.Property.Value);
+                return e.GetProperty(computedValue.Path.Property);
             default:
                 throw new ArgumentOutOfRangeException();
         }

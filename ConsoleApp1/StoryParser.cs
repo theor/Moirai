@@ -32,13 +32,13 @@ public static class StoryParser
         return visitor.ParsePath(r);
         
     }
-    public static List<Action> Parse(string s, out List<Error> errors)
+    public static (List<Action>, List<string>) Parse(string s, out List<Error> errors)
     {
         var visitor = new Visitor();
         SetupParser(s, out errors, out var parser, visitor);
         var r = parser.r();
         r.Accept(visitor);
-        return visitor.Actions;
+        return (visitor.Actions, visitor.Properties);
     }
 
     public interface IVisitor
@@ -84,6 +84,16 @@ public static class StoryParser
         private List<Error> _errors = new();
         public List<Error> Errors => _errors;
         protected override object? DefaultResult => null;
+        public List<string> Properties = Database.DefaultProperties();
+
+        public override object? VisitProp_definition(Moirai.Prop_definitionContext context)
+        {
+            var propName = context.ID(0).GetText();
+            if (Properties.IndexOf(propName) != -1)
+                return AddError(context.Start, $"Multiple definitions of the property '{propName}'");
+            Properties.Add(propName);
+            return null;
+        }
 
         public override object? VisitAction(Moirai.ActionContext context)
         {
@@ -101,14 +111,14 @@ public static class StoryParser
             Actions.Last().Effects.Add(new SetProperty(left, right));
             return null;
         }
-        private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyType? type)
+        private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyId type)
         {
             ComputedValue pp;
             if (value.NULL() != null)
                 pp = new ComputedValue((PropertyValue)EntityId.Null);
             else if (value.@string() != null)
             {
-                if (type == PropertyType.Type)
+                if (type == Database.PropType)
                 {
                     if (Enum.TryParse<EntityType>(value.@string().GetString(), true, out var entityType))
                     {
@@ -211,7 +221,7 @@ public static class StoryParser
             string? op = context.op().GetText();
             // left, alive
             var left = context.value(0);
-            ComputedValue leftValue = ParseComputedValue(left, null);
+            ComputedValue leftValue = ParseComputedValue(left, PropertyId.Null);
             if (leftValue.Type != ComputedValue.ComputedValueType.Path)
                 throw new System.NotImplementedException();
 
@@ -229,7 +239,7 @@ public static class StoryParser
                     break;
                 default: return (IPredicate?)AddError(context.Start, "Unknown Expr op: " + op);
             }
-            return new PropertyOperator(pop, leftValue.Path.Property.Value, rightValue);
+            return new PropertyOperator(pop, leftValue.Path.Property, rightValue);
         }
         private object? AddError(IToken loc, string msg)
         {
@@ -256,7 +266,6 @@ public static class StoryParser
             throw new System.NotImplementedException();
         }
 
-        private static PropertyType ParsePropertyType(ITerminalNode id) => Enum.Parse<PropertyType>(id.GetText(), true);
 
         public PropertyPath ParsePath(Moirai.PathContext context)
         {
@@ -275,8 +284,16 @@ public static class StoryParser
             if (context.ID().Length > 1)
                 throw new Exception("expected two parts, got " + context.ID().Length);
 
-            PropertyType type = Enum.Parse<PropertyType>(context.ID(0).GetText(), true);
-            return new PropertyPath(varIndex, type);
+            var propertyName = context.ID(0).GetText();
+            var indexOf = Properties.IndexOf(propertyName.ToLowerInvariant());
+            if (indexOf == -1)
+            {
+                AddError(context.ID(0).Symbol, $"Unknown property '{propertyName}'");
+                return default;
+            }
+            PropertyId pid = new PropertyId((uint)indexOf);
+
+            return new PropertyPath(varIndex, pid);
         }
     }
 }

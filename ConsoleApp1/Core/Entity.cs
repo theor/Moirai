@@ -7,9 +7,9 @@
         Properties ??= new();
         Properties.AddRange(properties);
     }
-    public bool TryGetProperty(PropertyType property, out PropertyValue value)
+    public bool TryGetProperty(PropertyId property, out PropertyValue value)
     {
-        if (property == PropertyType.Id)
+        if (property == Database.PropId)
         {
             value = Id;
             return true;
@@ -30,9 +30,9 @@
         value = default;
         return false;
     }
-    public PropertyValue GetProperty(PropertyType property)
+    public PropertyValue GetProperty(PropertyId property)
     {
-        if (property == PropertyType.Id)
+        if (property == Database.PropId)
             return Id;
         if (Properties != null)
             return Properties.FirstOrDefault(p => p.Type == property).Value;

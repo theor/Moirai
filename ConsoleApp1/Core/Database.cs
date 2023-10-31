@@ -2,8 +2,47 @@
 using Pcg;
 using Pcg.Core;
 
+public readonly struct PropertyId : IEquatable<PropertyId>
+{
+    public bool Equals(PropertyId other)
+    {
+        return Id == other.Id;
+    }
+    public override bool Equals(object? obj)
+    {
+        return obj is PropertyId other && Equals(other);
+    }
+    public override int GetHashCode()
+    {
+        return (int)Id;
+    }
+    public static bool operator ==(PropertyId left, PropertyId right)
+    {
+        return left.Equals(right);
+    }
+    public static bool operator !=(PropertyId left, PropertyId right)
+    {
+        return !left.Equals(right);
+    }
+    public static readonly PropertyId Null = new PropertyId();
+    public bool IsValid => Id != 0;
+    public readonly uint Id;
+    public PropertyId(uint id)
+    {
+        Id = id;
+    }
+}
 public class Database
 {
+    public static readonly PropertyId PropId = new PropertyId(1);
+    public static readonly PropertyId PropType = new PropertyId(2);
+    public static readonly PropertyId PropName = new PropertyId(3);
+    public List<string> Properties = DefaultProperties();
+    public static List<string> DefaultProperties()
+    {
+
+        return new() { default!, "id", "type", "name" };
+    }
     private List<Entity> _entities = new() { default };
     internal List<Rule> Rules = new();
     public List<Action> Effects = new();
@@ -12,16 +51,22 @@ public class Database
     public Changeset CurrentChangeset;
 
     private PredicateContext _ctx;
-    public Database()
+    private Database()
     {
         _ctx = new PredicateContext(this);
     }
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
+    public int DeclareProperty(string name)
+    {
+        Properties.Add(name);
+        return Properties.Count - 1;
+    }
+
     public EntityId AllocateEntity(EntityType entityType)
     {
         Entity e = new();
-        e.Properties = new() { new Property(PropertyType.Type, (int)entityType) };
+        e.Properties = new() { new Property(PropType, (int)entityType) };
         e.Id = new EntityId((long)_entities.Count);
         _entities.Add(e);
         CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType));
@@ -88,12 +133,12 @@ public class Database
     // {
     //     return SetProperty(entityId.IntValue, property, value);
     // }
-    public bool SetProperty(long entityId, PropertyType property, PropertyValue value = default)
+    public bool SetProperty(long entityId, PropertyId property, PropertyValue value = default)
     {
         if (!TryGetEntity(entityId, out var entity))
             return false;
 
-        if (property == PropertyType.Id)
+        if (property == PropId)
             throw new NotImplementedException();
 
         if (entity.Properties == null)
@@ -185,6 +230,12 @@ public class Database
         return String.Format(formatAction.FormatString, propertyValues);
     }
     private static ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
+    public Database(List<string> properties, List<Action> actions)
+    {
+        _ctx = new PredicateContext(this);
+        Properties = properties;
+        Effects = actions;
+    }
     public void PrintDb()
     {
         // Console.WriteLine("[DB]");
@@ -192,14 +243,14 @@ public class Database
         foreach (var e in Entities)
         {
             any = true;
-            string name = e.TryGetProperty(PropertyType.Name, out var nameprop) ? (nameprop.Value ?? "") : "";
-            Console.ForegroundColor = Colors[e.GetProperty(PropertyType.Type).IntValue % Colors.Length];
+            string name = e.TryGetProperty(Database.PropType, out var nameprop) ? (nameprop.Value ?? "") : "";
+            Console.ForegroundColor = Colors[e.GetProperty(Database.PropType).IntValue % Colors.Length];
             Console.WriteLine($"e{e.Id} {name}");
             Console.ResetColor();
             if (e.Properties != null)
                 foreach (var property in e.Properties)
                 {
-                    if (property.Type != PropertyType.Name)
+                    if (property.Type != Database.PropType)
                         Console.WriteLine($"  {property.Type}: {StoryPrinter.Print(property.Value, property.Type)}");
                         // Console.WriteLine($"  {FormatProperty(property)}");
                 }
@@ -208,25 +259,14 @@ public class Database
             Console.WriteLine("<Empty>");
         Console.WriteLine();
     }
-    private string FormatProperty(Property property)
+    public PropertyId GetProperty(string name)
     {
-        switch (property.Type)
+        for (var index = 1; index < Properties.Count; index++)
         {
-
-            case PropertyType.Type:
-                return "Type: " + (EntityType)property.Value.IntValue;
-            case PropertyType.Alive:
-                return property.Value.BoolValue ? "Alive" : "Dead";
-            case PropertyType.Owner:
-                return $"Owner: {property.Value.IntValue}";
-            case PropertyType.Partner:
-                return $"Partner: {property.Value.IntValue}";
-            case PropertyType.Name:
-                return $"Name: {property.Value.Value}";
-            case PropertyType.Faction:
-                return $"Faction: {(TryGetEntity(property.Value.IntValue, out var f) ? f.GetProperty(PropertyType.Name).Value : "")}";
-            default:
-                throw new ArgumentOutOfRangeException();
+            var property = Properties[index];
+            if (string.Equals(property, name, StringComparison.InvariantCultureIgnoreCase))
+                return new PropertyId((uint)index);
         }
+        return PropertyId.Null;
     }
 }

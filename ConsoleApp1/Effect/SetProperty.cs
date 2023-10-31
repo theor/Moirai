@@ -18,16 +18,16 @@ public class SetProperty : IEffect
    
     public bool MakeTrue(PredicateContext ctx)
     {
-        return ctx.Database.SetProperty(ctx.Argument(PropertySet.VariableIndex).IntValue, PropertySet.Property.Value, ctx.GetValue(Parameter));
+        return ctx.Database.SetProperty(ctx.Argument(PropertySet.VariableIndex).IntValue, PropertySet.Property, ctx.GetValue(Parameter));
     }
 }
 
 public struct PropertyPath
 {
-    public PropertyPath(int variableIndex, PropertyType? property = null)
+    public PropertyPath(int variableIndex, PropertyId? property = null)
     {
         VariableIndex = variableIndex;
-        Property = property;
+        Property = property ?? PropertyId.Null;
     }
     // public enum PathSegmentType
     // {
@@ -35,5 +35,5 @@ public struct PropertyPath
     // }
 
     public int VariableIndex;
-    public PropertyType? Property;
+    public PropertyId Property;
 }

@@ -3,9 +3,14 @@ using Pcg.Core;
 
 public static class StoryPrinter
 {
-    public static string Print(List<Action> actions)
+    public static string Print(List<Action> actions, List<string> properties)
     {
         StringBuilder sb = new();
+        foreach (string property in properties.Skip(Database.DefaultProperties().Count))
+        {
+            // TODO types
+            sb.AppendLine($"prop {property} = bool");
+        }
         foreach (var action in actions)
         {
             sb.AppendLine($"rule {action.Name} {{");
@@ -18,12 +23,12 @@ public static class StoryPrinter
                         break;
                     // case NameEntity nameEntity:
                     case AssignPick predicateParameter:
-                        sb.AppendLine($"  ${predicateParameter.VariableIndex} = pick {Print(predicateParameter.Predicate)}");
+                        sb.AppendLine($"  ${predicateParameter.VariableIndex} = pick {Print(predicateParameter.Predicate, properties)}");
                         break;
                     // case Sequence sequence:
                     case SetProperty setProperty:
                         sb.AppendLine(
-                            $"  set {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
+                            $"  set {Print(setProperty.PropertySet, properties)} = {Print(setProperty.Parameter, properties)}");
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(effect));
@@ -34,9 +39,16 @@ public static class StoryPrinter
         }
         return sb.ToString();
     }
-    private static string Print(PropertyPath path) =>
-        path.Property.HasValue ? $"${path.VariableIndex}.{path.Property}" : $"${path.VariableIndex}";
-    public static string Print(ComputedValue parameter, PropertyType? typeHint = null)
+    private static string GetPropertyName(PropertyId p, List<string> properties)
+    {
+        if (p.IsValid && p.Id < properties.Count)
+            return properties[(int)p.Id];
+
+        return "<??>";
+    }
+    private static string Print(PropertyPath path, List<string> properties) =>
+        path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property, properties)}" : $"${path.VariableIndex}";
+    public static string Print(ComputedValue parameter, List<string> properties, PropertyId typeHint = default)
     {
         switch (parameter.Type)
         {
@@ -44,17 +56,17 @@ public static class StoryPrinter
             case ComputedValue.ComputedValueType.Value:
                 return Print(parameter.Value, typeHint);
             case ComputedValue.ComputedValueType.Path:
-                return Print(parameter.Path);
+                return Print(parameter.Path, properties);
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
-    public static string Print(PropertyValue value, PropertyType? typeHint = null)
+    public static string Print(PropertyValue value, PropertyId typeHint = default)
     {
         var s = value.Value;
         if (s != null)
             return s;
-        if (typeHint == PropertyType.Type)
+        if (typeHint == Database.PropType)
             return $"\"{((EntityType)value.IntValue).ToString().ToLowerInvariant()}\"";
 
         switch (value.Type)
@@ -77,12 +89,12 @@ public static class StoryPrinter
         }
         return value.IntValue.ToString();
     }
-    public static string Print(IPredicate predicate)
+    public static string Print(IPredicate predicate, List<string> properties)
     {
         switch (predicate)
         {
             case And and:
-                return string.Join(", ", and.Predicates.Select(Print));
+                return string.Join(", ", and.Predicates.Select(predicate1 => Print(predicate1, properties)));
             // case EntityExists entityExists:
             // break;
             // case HasProperty hasProperty:
@@ -95,7 +107,7 @@ public static class StoryPrinter
                     PropertyOperator.Operator.NotEquals => "!=",
                     _ => throw new ArgumentOutOfRangeException()
                 };
-                return $"{propertyEquals.Property} {op} {Print(propertyEquals.Value, propertyEquals.Property)}";
+                return $"{GetPropertyName(propertyEquals.Property, properties)} {op} {Print(propertyEquals.Value, properties, propertyEquals.Property)}";
             // case True @true:
             // break;
             default:

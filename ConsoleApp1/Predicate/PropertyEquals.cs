@@ -6,22 +6,22 @@
         NotEquals,
     }
     public readonly Operator Op;
-    public readonly PropertyType Property;
+    public readonly PropertyId Property;
     public readonly ComputedValue Value;
 
     public PropertyOperator(Operator op, EntityType type)
     {
         Op = op;
-        Property = PropertyType.Type;
+        Property = Database.PropType;
         Value = (ComputedValue)(PropertyValue)(int)type;
     }
-    public PropertyOperator(Operator op, PropertyType property, PropertyValue value)
+    public PropertyOperator(Operator op, PropertyId property, PropertyValue value)
     {
         Op = op;
         Property = property;
         Value = (ComputedValue)value;
     }
-    public PropertyOperator(Operator op, PropertyType property, ComputedValue value)
+    public PropertyOperator(Operator op, PropertyId property, ComputedValue value)
     {
         Op = op;
         Property = property;

@@ -1,5 +1,7 @@
 ﻿- [ ] time passing
 - [ ] links
+- [ ] format: prev value ? set $i.owner = $p; format "from prev($i.owner.name) to $p.name" ?
+  - $prev = $i.owner; $i.owner = $p; format "$prev $p"?
 - [ ] probabilities, curves ? assign proba per entity to impact history ?
 - [ ] tags ?
 - [x] clean variant value

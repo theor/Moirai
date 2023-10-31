@@ -1,4 +1,11 @@
-﻿rule char_born {
+﻿prop alive = bool
+prop owner = entity
+prop partner = entity
+prop faction = entity
+enum type = person, item, faction
+
+
+rule char_born {
     $0 = create "person"
     set $0.alive = true
     format "{$0.name} is born"
@@ -65,5 +72,3 @@ $p = pick type="person", faction = null
     set $p.faction = $f
     format "{$p.name} joins the {$f.name}"
 }
-prop alive = bool
-enum type = person, item, faction

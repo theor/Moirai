@@ -7,10 +7,10 @@ static class NameEntity
         if (!ctx.Database.TryGetEntity(entityId.Id, out var e))
             return false;
 
-        var t = (EntityType)e.GetProperty(PropertyType.Type).IntValue;
+        var t = (EntityType)e.GetProperty(Database.PropType).IntValue;
 
         string name = GenerateName(ctx, t, in e);
-        return ctx.Database.SetProperty(ctx.EntityId, PropertyType.Name, name);
+        return ctx.Database.SetProperty(ctx.EntityId, Database.PropName, name);
     }
 
     private static readonly string[] Items =

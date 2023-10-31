@@ -1,21 +1,21 @@
 ﻿public struct Property
 {
-    public PropertyType Type;
+    public PropertyId Type;
     public PropertyValue Value;
-    public Property(PropertyType type, PropertyValue value)
+    public Property(PropertyId type, PropertyValue value)
     {
         Type = type;
         Value = value;
     }
 }
-
-public enum PropertyType
-{
-    Id,
-    Type,
-    Alive,
-    Owner,
-    Partner,
-    Name,
-    Faction,
-}
+//
+// public enum PropertyType
+// {
+//     Id,
+//     Type,
+//     // Alive,
+//     // Owner,
+//     // Partner,
+//     Name,
+//     // Faction,
+// }

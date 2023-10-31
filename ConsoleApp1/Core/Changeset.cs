@@ -28,10 +28,10 @@ public struct Change
 
     public readonly ChangeType Type;
     public readonly EntityId EntityId;
-    public readonly PropertyType Property;
+    public readonly PropertyId Property;
     public readonly PropertyValue PrevValue;
     public readonly PropertyValue NewValue;
-    private Change(ChangeType type, EntityId entityId, PropertyType property, PropertyValue prevValue, PropertyValue newValue)
+    private Change(ChangeType type, EntityId entityId, PropertyId property, PropertyValue prevValue, PropertyValue newValue)
     {
         Type = type;
         EntityId = entityId;
@@ -39,13 +39,13 @@ public struct Change
         NewValue = newValue;
         Property = property;
     }
-    public static Change Set(EntityId entityId, PropertyType propertyType, PropertyValue prevValue, PropertyValue newValue)
+    public static Change Set(EntityId entityId, PropertyId propertyType, PropertyValue prevValue, PropertyValue newValue)
     {
         return new Change(ChangeType.Set, entityId, propertyType, prevValue, newValue);
     }
     public static Change Create(EntityId entityId, EntityType type)
     {
-        return new Change(ChangeType.Create, entityId, PropertyType.Id, default, (int)type);
+        return new Change(ChangeType.Create, entityId, Database.PropId, default, (int)type);
     }
 
     public override string ToString()
