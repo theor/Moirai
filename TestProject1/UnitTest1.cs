@@ -207,4 +207,23 @@ public class Tests
         Assert.AreEqual(4, actions[0].Effects.Count);
        
     }
+    [Test]
+    public void Format()
+    {
+        var s = @"
+@create_faction
+    $f = create ""faction""
+    $g = create ""faction""
+    $p = create ""person""
+    set $f.owner = $p
+    format ""{$p.name} creates the {$f.name} to counter the {$g.name}""
+";
+        var actions = Run(s, out var errors);
+        Assert.AreEqual(4, actions[0].Effects.Count);
+        Database db = new Database { Effects = actions, History = new()};
+        db.RunAction(actions[0]);
+        StoryPrinter.PrintChangeset(db.History.Changesets[0], false);
+        Console.WriteLine(db.History.Changesets[0].Description);
+        Assert.AreEqual("River creates the Faction of Cerelia to counter the Faction of Hecate", db.History.Changesets[0].Description);
+    }
 }

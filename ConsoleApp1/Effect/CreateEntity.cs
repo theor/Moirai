@@ -1,5 +1,20 @@
 ﻿using Pcg.Core;
 
+public class FormatAction : IEffect
+{
+    public readonly string FormatString;
+    public PropertyPath[] Arguments;
+    public FormatAction(string formatString, PropertyPath[] arguments)
+    {
+        FormatString = formatString;
+        Arguments = arguments;
+    }
+    public bool MakeTrue(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+}
+
 class CreateEntity : IEffect
 {
     public readonly int VariableIndex;

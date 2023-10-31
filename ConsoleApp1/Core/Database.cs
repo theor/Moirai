@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Pcg;
 using Pcg.Core;
 
 public class Database
@@ -160,6 +161,7 @@ public class Database
                 return false;
             }
         }
+        CurrentChangeset.Description = CreateDescription(action);
         History?.Changesets?.Add(CurrentChangeset);
         return true;
         // if (_ctx.Query(effect.If, out var v))
@@ -168,6 +170,19 @@ public class Database
         //     return effect.Then.MakeTrue(_ctx);
         // }
         // return false;
+    }
+    
+    public string? CreateDescription(Action action)
+    {
+        if ((action.Formats?.Count ?? 0) == 0) return null;
+
+        var f = action.Formats![0];
+        return FormatDescription(f);
+    }
+    private string? FormatDescription(FormatAction formatAction)
+    {
+        var propertyValues = formatAction.Arguments.Select(path => StoryPrinter.Print(_ctx.GetValue(new ComputedValue(path)), path.Property)).Cast<object?>().ToArray();
+        return String.Format(formatAction.FormatString, propertyValues);
     }
     private static ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
     public void PrintDb()

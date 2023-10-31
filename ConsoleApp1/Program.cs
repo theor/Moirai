@@ -1,4 +1,5 @@
-﻿using Pcg.Core;
+﻿using Pcg;
+using Pcg.Core;
 
 internal class Program
 {
@@ -11,6 +12,8 @@ internal class Program
         Console.WriteLine(StoryPrinter.Print(db.Effects));
         int prevAction = -1;
         int historyCount = 0;
+        Pcg32 rnd = new(32, 57);
+
         while (true)
         {
             Console.WriteLine("-----------------");
@@ -28,16 +31,31 @@ internal class Program
             {
                 db.PrintDb();
             }
-            if (line == "h")
+            else if (line == "r")
+            {
+                prevAction = -1;
+                RunRandomAction(db, rnd);
+            }
+            else if (line == "h")
             {
                 foreach (var cs in db.History.Changesets)
                 {
-                    PrintChangeset(cs);
+                    StoryPrinter.PrintChangeset(cs);
                 }
             }
-            else if (line == "" && prevAction >= 0)
+            else if (line == "f")
             {
-                db.RunAction(db.Effects[prevAction]);
+                foreach (var cs in db.History.Changesets)
+                {
+                    Console.WriteLine(cs.Description);
+                }
+            }
+            else if (line == "")
+            {
+                if (prevAction == -1)
+                    RunRandomAction(db, rnd);
+                else
+                    db.RunAction(db.Effects[prevAction]);
                 db.PrintDb();
             }
             if (int.TryParse(line, out var i) && i >= 0 && i < db.Effects.Count)
@@ -49,7 +67,7 @@ internal class Program
             while (historyCount < db.History.Changesets.Count)
             {
                 var cs = db.History.Changesets[historyCount++];
-                PrintChangeset(cs);
+                StoryPrinter.PrintChangeset(cs);
             }
 
         }
@@ -87,15 +105,15 @@ internal class Program
 
 
     }
-    private static void PrintChangeset(Changeset cs)
+    private static void RunRandomAction(Database db, Pcg32 rnd)
     {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine(cs.ActionName);
-        Console.ResetColor();
-        foreach (var change in cs.Changes)
+
+        Action a;
+        do
         {
-            Console.WriteLine("  " + change);
-        }
+            a = db.Effects[(int)rnd.GenerateNext((uint)db.Effects.Count)];
+            Console.WriteLine("try " + a.Name);
+        } while (!db.RunAction(a));
     }
     private static void Sample()
     {

@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Pcg.Core;
 
 public static class StoryPrinter
 {
@@ -101,5 +102,23 @@ public static class StoryPrinter
                 throw new ArgumentOutOfRangeException(nameof(predicate));
 
         }
+    }
+    public static void PrintChangeset(Changeset cs, bool oneLine = true)
+    {
+        void write(string s)
+        {
+            if (oneLine) Console.Write(s);
+            else Console.WriteLine(s);
+        }
+
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        write(cs.ActionName);
+        Console.ResetColor();
+        foreach (var change in cs.Changes)
+        {
+            write("  " + change);
+        }
+        if (oneLine)
+            Console.WriteLine();
     }
 }

@@ -4,6 +4,7 @@ public class History
 {
     public readonly List<Changeset> Changesets = new();
 }
+
 public struct Changeset
 {
     public readonly string ActionName;
@@ -11,8 +12,10 @@ public struct Changeset
     {
         Changes = new List<Change>();
         ActionName = actionName;
+        Description = null;
     }
     public readonly List<Change> Changes;
+    public string? Description;
 }
 
 public struct Change
@@ -51,9 +54,9 @@ public struct Change
         {
 
             case ChangeType.Create:
-                return $"Create {EntityId}: {(EntityType)NewValue.IntValue}";
+                return $"CREATE {EntityId}: {(EntityType)NewValue.IntValue}";
             case ChangeType.Set:
-                return $"Set {EntityId}.{Property}: {StoryPrinter.Print(PrevValue, Property)} -> {StoryPrinter.Print(NewValue, Property)}";
+                return $"SET {EntityId}.{Property}: {StoryPrinter.Print(PrevValue, Property)} -> {StoryPrinter.Print(NewValue, Property)}";
             default:
                 throw new ArgumentOutOfRangeException();
         }

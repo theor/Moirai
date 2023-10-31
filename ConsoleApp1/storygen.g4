@@ -5,7 +5,7 @@ effect: (set | assign | call) SPACE* LINE_BREAK+ SPACE*;
 set: 'set'  path '=' value;
 value: string | path | bool | number | NULL;
 string: STRING ;
-STRING : '"' (~[\\"])* '"';
+STRING : ('"' (~[\\"])* '"') | ('\''(~[\\'])*  '\'');
 bool: 'true' | 'false';
 assign: VAR_ID '=' call;
 call : ID  ((expr (',' expr)* ));

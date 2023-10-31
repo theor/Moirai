@@ -14,6 +14,8 @@
     public Action(string name, params IEffect[] effects)
     {
         Name = name;
+        Formats = new List<FormatAction>();
         Effects = effects.ToList();
     }
+    public readonly List<FormatAction> Formats;
 }

@@ -1,40 +1,61 @@
-﻿@char_born
-    create "person"
-    set alive = true
+@char_born
+    $0 = create "person"
+    set $0.alive = true
+    format "{$0.name} is born"
 @char_dies
     $p = pick type = "person", alive = true
     set $p.alive = false
+    format "{$p.name} dies"
+    
 @wedding
     $x = pick type = "person", alive = true, partner = null
     $y = pick type = "person", alive = true, partner = null, id != $x
     set $x.partner = $y
     set $y.partner = $x
+    format "{$x.name} and {$y.name} get married"
 @divorce
     $x = pick type = "person", alive = true, partner != null
     $y = pick type = "person", alive = true, partner != null, id != $x
     set $x.partner = null
     set $y.partner = null
+    format "{$x.name} and {$y.name} separate"
+@couple_has_child
+    $x = pick type = "person", alive = true, partner != null
+    $y = pick type = "person", alive = true, partner = $x, id != $x
+    $c = create "person"
+    set $c.alive = true
+    format "{$x.name} and {$y.name} have a child, {$c.name}"
     
 
 @make_item
-    create "item"
-    set owner = null
-@item_acquired
+    $p = pick type="person", alive = true
+    $i = create "item"
+    set $i.owner = $p
+    format "{$p.name} creates the {$i.name}"
+@item_lost
+    $i = pick type="item", owner != null
+    set $i.owner = null
+    format "The {$i.name} is lost"
+@item_found
     $p = pick type="person", alive = true
     $i = pick type="item", owner = null
     set $i.owner = $p
+    format "{$p.name} obtains the {$i.name}"
 @item_sold
     $i = pick type="item", owner != null
     $p = pick type="person", id != $i.owner
     set $i.owner = $p
+    format "{$p.name} acquires the {$i.name}"
     
 @create_faction
     $p = pick type="person", faction = null
     $f = create "faction"
     set $f.owner = $p
     set $p.faction = $f
+    format "{$p.name} creates the {$f.name}"
 
 @char_joins_faction
     $p = pick type="person", faction = null
     $f = pick type="faction"
     set $p.faction = $f
+    format "{$p.name} joins the {$f.name}"

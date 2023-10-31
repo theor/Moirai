@@ -25,19 +25,31 @@ public static class StoryParser
         }
     }
 
+    internal static PropertyPath ParsePath(Visitor visitor, string s, out List<Error> errors)
+    {
+        SetupParser(s, out errors, out var parser, visitor);
+        var r = parser.path();
+        return visitor.ParsePath(r);
+        
+    }
     public static List<Action> Parse(string s, out List<Error> errors)
     {
         var visitor = new Visitor();
-        errors = visitor.Errors;
-        var lexer = new storygenLexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
-        var tokens = new CommonTokenStream(lexer);
-        var parser = new storygenParser(tokens);
-        var listener = new Listener(errors);
-        lexer.AddErrorListener(listener);
-        parser.AddErrorListener(listener);
+        SetupParser(s, out errors, out var parser, visitor);
         var r = parser.r();
         r.Accept(visitor);
         return visitor.Actions;
+    }
+    private static void SetupParser(string s, out List<Error> errors, out storygenParser parser, Visitor visitor)
+    {
+
+        errors = visitor.Errors;
+        var lexer = new storygenLexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
+        var tokens = new CommonTokenStream(lexer);
+        parser = new storygenParser(tokens);
+        var listener = new Listener(errors);
+        lexer.AddErrorListener(listener);
+        parser.AddErrorListener(listener);
     }
 
     public struct Error
@@ -59,7 +71,7 @@ public static class StoryParser
         public override string ToString() => $"{Line}{Col}: {Message}";
     }
 
-    class Visitor : storygenBaseVisitor<object?>
+    internal class Visitor : storygenBaseVisitor<object?>
     {
         public List<Action> Actions = new();
         private List<string> _variables = new();
@@ -91,7 +103,7 @@ public static class StoryParser
             {
                 if (type == PropertyType.Type)
                 {
-                    if (Enum.TryParse<EntityType>(value.@string().STRING().GetText().Trim('"'), true, out var entityType))
+                    if (Enum.TryParse<EntityType>(value.@string().GetString(), true, out var entityType))
                     {
                         pp = new ComputedValue((int)entityType);
                     }
@@ -132,6 +144,8 @@ public static class StoryParser
             _variables.Add(variable);
 
             IEffect callEffect = ParseCall(context.call(), _variables.Count - 1);
+            if (callEffect is FormatAction)
+                throw new System.NotImplementedException("format call return value cannot be assigned");
 
             Actions.Last().Effects.Add(callEffect);
             //Console.WriteLine("  Assign " + context.VAR_ID());
@@ -148,8 +162,39 @@ public static class StoryParser
                         variableIndex,
                         exprs.Length == 1 ? ParseExpr(exprs[0]) : new And(exprs.Select(ParseExpr).ToList()));
                 case "create":
-                    var type = context.expr(0).GetText().Trim('"');
+                    var type = context.expr(0).GetText().TrimQuotes();
                     return new CreateEntity(variableIndex, Enum.Parse<EntityType>(type, true));
+                case "format":
+                    var str = context.expr(0).value(0).@string().GetString();
+                    List<PropertyPath> paths = new();
+                    string result = "";
+                    int i = -1;
+                    var prev = i + 1;
+
+                    while (i < str.Length)
+                    {
+                        i = str.IndexOf('{', i+1);
+                        if(i == -1)
+                            break;
+
+                        int j = str.IndexOf('}', i + 1);
+                        if(j == -1)
+                            throw new System.NotImplementedException($"Missing curly brace in string: {str}, opening brace at {i}");
+
+                        var pathStr = str.Substring(i + 1, j - i - 1);
+                        var path = StoryParser.ParsePath(this, pathStr, out Errors);
+                        paths.Add(path);
+                        // Console.WriteLine($"'{pathStr}'");
+                        if (i > prev)
+                            result += str.Substring(prev, i - prev);
+                        result += $"{{{paths.Count-1}}}";
+                        i = j + 1;
+                        prev = i;
+                    }
+                    if (prev < str.Length)
+                        result += (str.Substring(prev));
+                    // Console.WriteLine($"res:'{result}'");
+                    return new FormatAction(result, paths.ToArray());
             }
 
             throw new NotImplementedException($"Unknown call '{funcName}'");
@@ -187,7 +232,11 @@ public static class StoryParser
         public override object? VisitCall(storygenParser.CallContext context)
         {
 
-            Actions.Last().Effects.Add(ParseCall(context, _variables.Count));
+            var effect = ParseCall(context, _variables.Count);
+            if (effect is FormatAction format)
+                Actions.Last().Formats.Add(format);
+            else
+                Actions.Last().Effects.Add(effect);
             return null;
         }
         public override object? VisitExpr(storygenParser.ExprContext context)
@@ -202,7 +251,7 @@ public static class StoryParser
 
         private static PropertyType ParsePropertyType(ITerminalNode id) => Enum.Parse<PropertyType>(id.GetText(), true);
 
-        PropertyPath ParsePath(storygenParser.PathContext context)
+        public PropertyPath ParsePath(storygenParser.PathContext context)
         {
             int varIndex = 0;
             var varId = context.VAR_ID();
@@ -223,4 +272,10 @@ public static class StoryParser
             return new PropertyPath(varIndex, type);
         }
     }
+}
+
+internal static class ParsingExtensions
+{
+    public static string TrimQuotes(this string s) => s.Trim('"', '\'');
+    public static string GetString(this storygenParser.StringContext context) => context.STRING().GetText().TrimQuotes();
 }
