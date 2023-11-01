@@ -8,6 +8,7 @@ COMMENT
   :  '#' ~( '\r' | '\n' )* LINE_BREAK -> skip
   ;
 
+COLON: ':';
 SCOPE_OPEN: '{';
 SCOPE_CLOSE: '}';
 RULE: 'rule';

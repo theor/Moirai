@@ -59,7 +59,7 @@ rule born_char {
         var s = @"
 prop alive = bool
 rule char_dies {
-    $p = pick type = ""person"", alive = true
+    pick $p: type = ""person"", alive = true
     set $p.alive = false
 }";
         var (actions, props) = Run(s, out var errors);
@@ -107,8 +107,8 @@ event on_death {
         var s = @"
 prop alive = bool
 rule char_dies {
-    $x = pick alive = true
-    $y = pick id != $x
+    pick $x: alive = true
+    pick $y: id != $x
 }";
        
         var (actions, props) = Run(s, out var errors);
@@ -241,8 +241,8 @@ rule char_dies {
 prop faction = entity
 prop owner = entity
 rule create_faction {
-    $p = pick type=""person"", faction = null
-    $f = create ""faction""
+    pick $p: type=""person"", faction = null
+    create $f: ""faction""
     set $f.owner = $p
     set $p.faction = $f
 }";
@@ -256,9 +256,9 @@ rule create_faction {
         var s = @"
 prop owner = entity
 rule create_faction {
-    $f = create ""faction""
-    $g = create ""faction""
-    $p = create ""person""
+    create $f: ""faction""
+    create $g: ""faction""
+    create $p: ""person""
     set $f.owner = $p
     format ""{$p.name} creates the {$f.name} to counter the {$g.name}""
 }";

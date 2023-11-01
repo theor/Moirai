@@ -108,18 +108,6 @@ public partial class MoiraiBaseListener : IMoiraiListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitSet([NotNull] Moirai.SetContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="Moirai.assign"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void EnterAssign([NotNull] Moirai.AssignContext context) { }
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="Moirai.assign"/>.
-	/// <para>The default implementation does nothing.</para>
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	public virtual void ExitAssign([NotNull] Moirai.AssignContext context) { }
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.call"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

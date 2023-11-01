@@ -1,14 +1,16 @@
 ﻿- [ ] time passing
 - [ ] links
-- [ ] format: prev value ? set $i.owner = $p; format "from prev($i.owner.name) to $p.name" ?
-  - $prev = $i.owner; $i.owner = $p; format "$prev $p"?
+- [ ] format: prev value ? `set $i.owner = $p;`
+  - `format "from prev($i.owner.name) to $p.name" ?` 
+  - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?` 
 - [ ] probabilities, curves ? assign proba per entity to impact history ?
 - [ ] tags ?
 - [x] clean variant value
 - [x] format history
 - [x] keep diff during action run
-- [x] parsing:
-  - [x] $i = pick(type=item, owner != null)
-  - [x] $p = pick(type=person, id != $i.owner) <- $i.owner doesn't work
+- [ ] parsing:
+  - [ ] `pick $i: type=item, owner != null` ?
+  - [x] `$i = pick(type=item, owner != null)`
+  - [x] `$p = pick(type=person, id != $i.owner) <- $i.owner doesn't work`
 - [x] pick must be random
 - [x] wip add factions ?

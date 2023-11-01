@@ -16,7 +16,7 @@ public static class StoryPrinter
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
             foreach (var when in action.Whens)
             {
-                sb.AppendLine($"  ${when.VariableIndex} = when {Print(when.Predicate, properties)}");
+                sb.AppendLine($"  when ${when.VariableIndex}: {Print(when.Predicate, properties)}");
 
             }
             foreach (var effect in action.Effects)
@@ -24,11 +24,11 @@ public static class StoryPrinter
                 switch (effect)
                 {
                     case CreateEntity createEntity:
-                        sb.AppendLine($"  ${createEntity.VariableIndex} = create {createEntity.Type.ToString().ToLowerInvariant()}");
+                        sb.AppendLine($"  create ${createEntity.VariableIndex}: {createEntity.Type.ToString().ToLowerInvariant()}");
                         break;
                     // case NameEntity nameEntity:
                     case AssignPick predicateParameter:
-                        sb.AppendLine($"  ${predicateParameter.VariableIndex} = pick {Print(predicateParameter.Predicate, properties)}");
+                        sb.AppendLine($"  pick ${predicateParameter.VariableIndex}: {Print(predicateParameter.Predicate, properties)}");
                         break;
                     // case Sequence sequence:
                     case SetProperty setProperty:

@@ -6,10 +6,10 @@ public class PredicateContext
     public List<PropertyValue> Values = new();
     public Pcg32 Rnd;
 
-    public PredicateContext(Database database)
+    public PredicateContext(Database database, ulong seed)
     {
         Database = database;
-        Rnd = new Pcg32(43, 42);
+        Rnd = new Pcg32(seed, 42);
     }
     public long EntityId => Values[^1].IntValue;
 

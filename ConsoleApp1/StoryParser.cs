@@ -188,20 +188,20 @@ public static class StoryParser
         //     Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
         //     return base.VisitCreate(context);
         // }
-        public override object? VisitAssign(Moirai.AssignContext context)
-        {
-            var variable = context.VAR_ID().GetText();
-            if (!DeclareVar(variable, context.Start, out var varIndex))
-                return null;
-
-            IEffect callEffect = ParseCall(context.call(), varIndex);
-            if (callEffect is FormatAction)
-                throw new System.NotImplementedException("format call return value cannot be assigned");
-
-            Actions.Last().Effects.Add(callEffect);
-            //Console.WriteLine("  Assign " + context.VAR_ID());
-            return null;
-        }
+        // public override object? VisitAssign(Moirai.AssignContext context)
+        // {
+        //     var variable = context.VAR_ID().GetText();
+        //     if (!DeclareVar(variable, context.Start, out var varIndex))
+        //         return null;
+        //
+        //     IEffect callEffect = ParseCall(context.call(), varIndex);
+        //     if (callEffect is FormatAction)
+        //         throw new System.NotImplementedException("format call return value cannot be assigned");
+        //
+        //     Actions.Last().Effects.Add(callEffect);
+        //     //Console.WriteLine("  Assign " + context.VAR_ID());
+        //     return null;
+        // }
         private bool DeclareVar(string variable, IToken contextStart, out int varIndex)
         {
 
@@ -216,8 +216,14 @@ public static class StoryParser
             varIndex = _variables.Count - 1;
             return true;
         }
-        private IEffect ParseCall(Moirai.CallContext context, int variableIndex)
+        private IEffect ParseCall(Moirai.CallContext context)
         {
+            int variableIndex = _variables.Count;
+            if (context.VAR_ID() != null)
+            {
+                if (!DeclareVar(context.VAR_ID().GetText(), context.Start, out variableIndex))
+                    return null;
+            }
             var funcName = context.ID().GetText();
             switch (funcName)
             {
@@ -312,8 +318,7 @@ public static class StoryParser
         }
         public override object? VisitCall(Moirai.CallContext context)
         {
-
-            var effect = ParseCall(context, _variables.Count);
+            var effect = ParseCall(context);
             if (effect is FormatAction format)
                 Actions.Last().Formats.Add(format);
             else

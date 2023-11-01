@@ -6,83 +6,83 @@ prop parent = entity
 enum type = person, item, faction
 
 event inherit {
-    $p = when type = "person", alive = false
-    $c = each type = "person", alive = true, $c.parent = $p
-        $i = each type = "item", owner = $p
+    when $p: type = "person", alive = false
+    each $c: type = "person", alive = true, $c.parent = $p
+        each $i: type = "item", owner = $p
             set $i.owner = $c
     format "{$c.name} inherits the {$i.name} from {$p.name}"
 }
 
 rule char_born {
-    $0 = create "person"
+    create $0: "person"
     set $0.alive = true
     format "{$0.name} is born"
 }
 rule char_dies {
-    $p = pick type = "person", alive = true
+    pick $p: type = "person", alive = true
     set $p.alive = false 
     format "{$p.name} dies"
 }
 rule parent_dies {
-    $p = pick type = "person", alive = true, parent = null
+    pick $p: type = "person", alive = true, parent = null
     set $p.alive = false 
     format "{$p.name} dies"
 }
 rule wedding {
-    $x = pick type = "person", alive = true, partner = null
-    $y = pick type = "person", alive = true, partner = null, id != $x
+    pick $x: type = "person", alive = true, partner = null
+    pick $y: type = "person", alive = true, partner = null, id != $x
     set $x.partner = $y
     set $y.partner = $x
     format "{$x.name} and {$y.name} get married"
 }
 rule divorce {
-    $x = pick type = "person", alive = true, partner != null
-    $y = pick type = "person", alive = true, partner != null, id != $x
+    pick $x: type = "person", alive = true, partner != null
+    pick $y: type = "person", alive = true, partner != null, id != $x
     set $x.partner = null
     set $y.partner = null
     format "{$x.name} and {$y.name} separate"
 }
 rule couple_has_child {
-    $x = pick type = "person", alive = true, partner != null
-    $y = pick type = "person", alive = true, partner = $x, id != $x
-    $c = create "person"
+    pick $x: type = "person", alive = true, partner != null
+    pick $y: type = "person", alive = true, partner = $x, id != $x
+    create $c: "person"
     set $c.parent = $x
     set $c.alive = true
     format "{$x.name} and {$y.name} have a child, {$c.name}"
 }
 rule make_item {
-    $p = pick type="person", alive = true
-    $i = create "item"
+    pick $p: type="person", alive = true
+    create $i: "item"
     set $i.owner = $p
     format "{$p.name} creates the {$i.name}"
 }
 rule item_lost {
-    $i = pick type="item", owner != null
+    pick $i: type="item", owner != null
     set $i.owner = null
     format "The {$i.name} is lost"
 }
 rule item_found {
-    $p = pick type="person", alive = true
-    $i = pick type="item", owner = null
+    pick $p: type="person", alive = true
+    pick $i: type="item", owner = null
     set $i.owner = $p
     format "{$p.name} obtains the {$i.name}"
 }
 rule item_sold {
-    $i = pick type="item", owner != null
-    $p = pick type="person", id != $i.owner
+    pick $i: type="item", owner != null
+    pick $p: type="person", id != $i.owner
     set $i.owner = $p
     format "{$p.name} acquires the {$i.name}"
 }
 rule create_faction {
-    $p = pick type="person", alive=true, faction = null
-    $f = create "faction"
+    pick $p: type="person", alive=true, faction = null
+    create $f: "faction"
     set $f.owner = $p
     set $p.faction = $f
     format "{$p.name} creates the {$f.name}"
 }
 rule char_joins_faction {
-$p = pick type="person", faction = null
-    $f = pick type="faction"
+pick $p: type="person", faction = null
+    pick $f: type="faction"
     set $p.faction = $f
     format "{$p.name} joins the {$f.name}"
 }

@@ -52,10 +52,7 @@ public class Database
     public Changeset CurrentChangeset;
 
     private PredicateContext _ctx;
-    private Database()
-    {
-        _ctx = new PredicateContext(this);
-    }
+  
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
     // public int DeclareProperty(string name)
@@ -268,9 +265,9 @@ public class Database
         return String.Format(formatAction.FormatString, propertyValues);
     }
     private static ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
-    public Database(List<string> properties, List<Action> actions)
+    public Database(List<string> properties, List<Action> actions, ulong seed = 42)
     {
-        _ctx = new PredicateContext(this);
+        _ctx = new PredicateContext(this, seed);
         Properties = properties;
         Effects = actions.Where(a => !a.IsEvent).ToList();
         Events = actions.Where(a => a.IsEvent).ToList();
