@@ -113,6 +113,12 @@ public static class StoryParser
             _database.Properties.Add(propName);
             return null;
         }
+        public override object? VisitEnum_definition(Moirai.Enum_definitionContext context)
+        {
+            EnumDefinition en = new(context.ID(0).GetText(), context.ID().Skip(1).Select(v => v.GetText()).ToList());
+            _database.Enums.Add(en);
+            return null;
+        }
 
         public override object? VisitAction(Moirai.ActionContext context)
         {

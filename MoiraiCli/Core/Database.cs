@@ -33,6 +33,16 @@ public readonly struct PropertyId : IEquatable<PropertyId>
     }
 }
 
+public readonly struct EnumDefinition
+{
+    public readonly string Name;
+    public readonly List<string> Values;
+    public EnumDefinition(string name, List<string> values)
+    {
+        Name = name;
+        Values = values;
+    }
+}
 public readonly struct EntityType
 {
     public readonly string Name;
@@ -58,6 +68,7 @@ public class Database
     internal List<Rule> Rules = new();
     public List<Action> Actions = new();
     public List<EntityType> Types = new(){default};
+    public List<EnumDefinition> Enums = new(){default};
     public readonly List<Action> Events;
 
     public History? History;

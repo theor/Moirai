@@ -16,6 +16,11 @@ public class StoryPrinter
             sb.AppendLine($"entity {type.Name} {{ }}");
 
         }
+        foreach (EnumDefinition en in _database.Enums.Skip(1))
+        {
+            sb.AppendLine($"enum {en.Name} = {string.Join(", ", en.Values)}");
+
+        }
         foreach (string property in _database.Properties.Skip(Database.DefaultProperties().Count))
         {
             // TODO types

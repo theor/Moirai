@@ -3,12 +3,15 @@ entity item {}
 entity faction {}
 entity link {}
 
+enum Job = Smith, Farmer, Noble
+
 prop alive = bool
 prop owner = ref
 prop partner = ref
 prop faction = ref
 prop parent = ref
 prop child = ref
+prop job = Job
 
 event inherit {
     when $p: type = "person", alive = false
