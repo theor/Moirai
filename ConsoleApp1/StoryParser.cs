@@ -30,7 +30,7 @@ public static class StoryParser
         SetupParser(s, out errors, out var parser, visitor);
         var r = parser.path();
         return visitor.ParsePath(r);
-        
+
     }
     public static (List<Action>, List<string>) Parse(string s, out List<Error> errors)
     {
@@ -91,6 +91,7 @@ public static class StoryParser
             var propName = context.ID(0).GetText();
             if (Properties.IndexOf(propName) != -1)
                 return AddError(context.Start, $"Multiple definitions of the property '{propName}'");
+
             Properties.Add(propName);
             return null;
         }
@@ -99,25 +100,46 @@ public static class StoryParser
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
-            Actions.Add(new Action(actionId,false));
             _variables.Clear();
-            return base.VisitAction(context);
+            var action = new Action(actionId, false);
+            foreach (Moirai.EffectContext effectContext in context.effect())
+            {
+                var effect = ParseEffect(effectContext);
+                if (effect is FormatAction formatAction)
+                    action.Formats.Add(formatAction);
+                else
+                    action.Effects.Add(effect);
+            }
+            Actions.Add(action);
+            return null;
         }
         public override object? VisitEvent(Moirai.EventContext context)
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
-            Actions.Add(new Action(actionId,true));
+            var action = new Action(actionId, true);
             _variables.Clear();
             foreach (var whenContext in context.when())
             {
-                Actions.Last().Whens.Add(ParseWhen(whenContext));
+                action.Whens.Add(ParseWhen(whenContext));
             }
+            Actions.Add(action);
             foreach (var effectContext in context.effect())
             {
-                effectContext.Accept(this);
+                var effect = ParseEffect(effectContext);
+                if (effect is FormatAction formatAction)
+                    action.Formats.Add(formatAction);
+                else
+                    action.Effects.Add(effect);
             }
             return null;
+        }
+        private IEffect ParseEffect(Moirai.EffectContext effectContext)
+        {
+            if (effectContext.call() != null)
+                return ParseCall(effectContext.call());
+
+            return ParseSet(effectContext.set());
         }
         private AssignPick ParseWhen(Moirai.WhenContext context)
         {
@@ -126,7 +148,7 @@ public static class StoryParser
                 ? ParseExpr(exprs[0])!
                 : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList());
             var variableIndex = 0;
-            if(context.VAR_ID() != null)
+            if (context.VAR_ID() != null)
             {
                 if (!DeclareVar(context.VAR_ID().GetText(), context.VAR_ID().Symbol, out variableIndex))
                 {
@@ -137,15 +159,20 @@ public static class StoryParser
         public override object? VisitWhen(Moirai.WhenContext context)
         {
             throw new System.NotImplementedException();
-          
+
         }
         public override object? VisitSet(Moirai.SetContext context)
         {
+            throw new System.NotImplementedException();
             //Console.WriteLine($"  Set {context.path().GetText()} = {context.value().GetText()}");
+
+            return null;
+        }
+        private SetProperty ParseSet(Moirai.SetContext context)
+        {
             var left = ParsePath(context.path());
             var right = ParseComputedValue(context.value(), left.Property);
-            Actions.Last().Effects.Add(new SetProperty(left, right));
-            return null;
+            return new SetProperty(left, right);
         }
         private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyId type)
         {
@@ -181,27 +208,6 @@ public static class StoryParser
 
             return pp;
         }
-        // public override object? VisitCreate(CreateContext context)
-        // {
-        //     var type = context.@string().GetText().Trim('"');
-        //     //Console.WriteLine("  Create " + type);
-        //     Actions.Last().Effects.Add(new CreateEntity(Enum.Parse<EntityType>(type, true)));
-        //     return base.VisitCreate(context);
-        // }
-        // public override object? VisitAssign(Moirai.AssignContext context)
-        // {
-        //     var variable = context.VAR_ID().GetText();
-        //     if (!DeclareVar(variable, context.Start, out var varIndex))
-        //         return null;
-        //
-        //     IEffect callEffect = ParseCall(context.call(), varIndex);
-        //     if (callEffect is FormatAction)
-        //         throw new System.NotImplementedException("format call return value cannot be assigned");
-        //
-        //     Actions.Last().Effects.Add(callEffect);
-        //     //Console.WriteLine("  Assign " + context.VAR_ID());
-        //     return null;
-        // }
         private bool DeclareVar(string variable, IToken contextStart, out int varIndex)
         {
 
@@ -232,21 +238,24 @@ public static class StoryParser
                 {
                     if (context.scope() == null)
                         AddError(context.Start, "Missing scope in foreach");
-                    context.scope().effect().Select(parseef)
+                    var scopeEffects = context.scope().effect().Select(ParseEffect).ToArray();
                     var exprs = context.expr();
                     return new AssignPick(
                         variableIndex,
                         exprs.Length == 1
                             ? ParseExpr(exprs[0])!
                             : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList()),
-                        CallType.Each);
+                        CallType.Each,
+                        scopeEffects);
                 }
                 case "pick":
                 {
                     var exprs = context.expr();
                     return new AssignPick(
                         variableIndex,
-                        exprs.Length == 1 ? ParseExpr(exprs[0])! : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList()),
+                        exprs.Length == 1
+                            ? ParseExpr(exprs[0])!
+                            : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList()),
                         CallType.Pick);
                 }
                 case "create":
@@ -261,12 +270,12 @@ public static class StoryParser
 
                     while (i < str.Length)
                     {
-                        i = str.IndexOf('{', i+1);
-                        if(i == -1)
+                        i = str.IndexOf('{', i + 1);
+                        if (i == -1)
                             break;
 
                         int j = str.IndexOf('}', i + 1);
-                        if(j == -1)
+                        if (j == -1)
                             throw new System.NotImplementedException($"Missing curly brace in string: {str}, opening brace at {i}");
 
                         var pathStr = str.Substring(i + 1, j - i - 1);
@@ -275,7 +284,7 @@ public static class StoryParser
                         // Console.WriteLine($"'{pathStr}'");
                         if (i > prev)
                             result += str.Substring(prev, i - prev);
-                        result += $"{{{paths.Count-1}}}";
+                        result += $"{{{paths.Count - 1}}}";
                         i = j + 1;
                         prev = i;
                     }
@@ -319,6 +328,8 @@ public static class StoryParser
         }
         public override object? VisitCall(Moirai.CallContext context)
         {
+            throw new System.NotImplementedException();
+
             var effect = ParseCall(context);
             if (effect is FormatAction format)
                 Actions.Last().Formats.Add(format);

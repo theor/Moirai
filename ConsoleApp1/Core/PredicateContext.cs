@@ -53,7 +53,7 @@ public class PredicateContext
         results.Clear();
         if (predicate == null)
         {
-            return true;
+            return false;
         }
         var iterationIdx = Values.Count;
         foreach (var entity in Database.Entities)
@@ -66,7 +66,7 @@ public class PredicateContext
             PopArgument();
         }
         
-        return false;
+        return true;
     }
     public int PopArgument()
     {

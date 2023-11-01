@@ -21,28 +21,45 @@ public static class StoryPrinter
             }
             foreach (var effect in action.Effects)
             {
-                switch (effect)
-                {
-                    case CreateEntity createEntity:
-                        sb.AppendLine($"  create ${createEntity.VariableIndex}: {createEntity.Type.ToString().ToLowerInvariant()}");
-                        break;
-                    // case NameEntity nameEntity:
-                    case AssignPick predicateParameter:
-                        sb.AppendLine($"  pick ${predicateParameter.VariableIndex}: {Print(predicateParameter.Predicate, properties)}");
-                        break;
-                    // case Sequence sequence:
-                    case SetProperty setProperty:
-                        sb.AppendLine(
-                            $"  set {Print(setProperty.PropertySet, properties)} = {Print(setProperty.Parameter, properties)}");
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(effect));
-                }
+                PrintEffect(properties, effect, sb, 1);
             }
             sb.AppendLine("}");
 
         }
         return sb.ToString();
+    }
+    private static void PrintEffect(List<string> properties, IEffect effect, StringBuilder sb, int indent)
+    {
+        string indentStr = new string(' ', indent * 2);
+        switch (effect)
+        {
+            case CreateEntity createEntity:
+                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {createEntity.Type.ToString().ToLowerInvariant()}");
+                break;
+            // case NameEntity nameEntity:
+            case AssignPick predicateParameter:
+                sb.Append(
+                    $"{indentStr}{predicateParameter.CallType.ToString().ToLowerInvariant()} ${predicateParameter.VariableIndex}: {Print(predicateParameter.Predicate, properties)}");
+                if (predicateParameter.ScopeEffects != null)
+                {
+                    sb.AppendLine($"{indentStr}{{");
+                    foreach (var nestedEffect in predicateParameter.ScopeEffects)
+                    {
+                        PrintEffect(properties, nestedEffect, sb, indent + 1);
+                    }
+                    sb.AppendLine($"{indentStr}}}");
+                }
+                else
+                    sb.AppendLine();
+                break;
+            // case Sequence sequence:
+            case SetProperty setProperty:
+                sb.AppendLine(
+                    $"{indentStr}set {Print(setProperty.PropertySet, properties)} = {Print(setProperty.Parameter, properties)}");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(effect));
+        }
     }
     private static string GetPropertyName(PropertyId p, List<string> properties)
     {

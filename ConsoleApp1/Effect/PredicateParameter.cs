@@ -39,26 +39,42 @@ public struct AssignPick : IEffect
     public readonly int VariableIndex;
     public readonly IPredicate Predicate;
     public readonly CallType CallType;
-    public AssignPick(int variableIndex, IPredicate value, CallType callType)
+    public readonly IEffect[]? ScopeEffects;
+    private List<EntityId>? _pool;
+    public AssignPick(int variableIndex, IPredicate value, CallType callType, IEffect[]? scopeEffects = null)
     {
         VariableIndex = variableIndex;
         Predicate = value;
         CallType = callType;
+        ScopeEffects = scopeEffects;
+        _pool = null;
     }
+    
     public bool MakeTrue(PredicateContext ctx)
     {
         switch (CallType)
         {
 
             case CallType.Pick:
+            {
                 bool res = ctx.PickRandom(Predicate, out var val);
                 ctx.SetArgument(VariableIndex, val);
                 return res;
+            }
             case CallType.Each:
-                throw new System.NotImplementedException();
-                List<EntityId> results = new();
-                ctx.FindAll(Predicate, ref results);
-                break;
+            {
+                _pool ??= new();
+                if (ScopeEffects != null)
+                {
+                    if(ctx.FindAll(Predicate, ref _pool))
+                        foreach (var entityId in _pool)
+                        {
+                            ctx.SetArgument(VariableIndex, entityId);
+                            if(!ScopeEffects.All(e => e.MakeTrue(ctx))) continue;
+                        }
+                }
+                return true;
+            }
             default:
                 throw new ArgumentOutOfRangeException(CallType.ToString());
         }

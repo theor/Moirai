@@ -23,6 +23,8 @@ internal class Program
             "make_item",
             "make_item",
             "couple_has_child",
+            "p",
+            "f",
             "parent_dies",
             
         });
@@ -30,14 +32,18 @@ internal class Program
 
         while (true)
         {
-            Console.WriteLine("-----------------");
-            for (var index = 0; index < db.Effects.Count; index++)
+            bool fromQueue = replay.TryDequeue(out line);
+            if (!fromQueue)
             {
-                var action = db.Effects[index];
-                Console.WriteLine($"  {index:00} {action.Name}");
+                Console.Write("> ");
+                line = Console.ReadLine() ?? "";
+                Console.WriteLine("-----------------");
+                for (var index = 0; index < db.Effects.Count; index++)
+                {
+                    var action = db.Effects[index];
+                    Console.WriteLine($"  {index:00} {action.Name}");
+                }
             }
-            Console.Write("> ");
-            line = replay.TryDequeue(out var l) ? l : Console.ReadLine() ?? "";
             if (line == "qq")
                 break;
 

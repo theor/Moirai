@@ -12,12 +12,14 @@ public class Tests
         Console.WriteLine(s);
         var (actions, properties) = StoryParser.Parse(s, out errors);
         var printed = StoryPrinter.Print(actions, properties);
+        Console.WriteLine("### REPRINT");
         Console.WriteLine(printed);
         Assert.AreEqual(errorCount, errors.Count, string.Join(", ", errors));
         if (errorCount == 0)
         {
             var reparsed = StoryParser.Parse(printed, out var errors2);
             Assert.AreEqual(errorCount, errors2.Count, "During reparse: " + string.Join(", ", errors2));
+            Console.WriteLine("### REPRINT 2");
             Console.WriteLine(StoryPrinter.Print(reparsed.Item1, reparsed.Item2));
         }
         return (actions, properties);
@@ -68,6 +70,34 @@ rule char_dies {
         var action = actions[0];
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
+    }
+    [Test]
+    public void Each()
+    {
+        var s = @"
+prop test = bool
+rule foreach {
+    each $x: type = ""person"" {
+        set $x.test = true
+    }
+}";
+        var (actions, properties) =Run(s, out var errors);
+        var db = new Database(properties, actions);
+        var propId = db.GetProperty("test");
+        db.AllocateEntity(EntityType.Person, "A");
+        db.AllocateEntity(EntityType.Person, "B");
+        db.PrintDb();
+        foreach (var entity in db.Entities)
+        {
+            Assert.IsFalse(entity.TryGetProperty(propId, out var val));
+        }
+        db.RunAction(actions[0]);
+        db.PrintDb();
+        foreach (var entity in db.Entities)
+        {
+            Assert.IsTrue(entity.TryGetProperty(propId, out var val));
+            Assert.AreEqual(true, val.BoolValue);
+        }
     }
     [Test]
     public void Event()
