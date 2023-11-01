@@ -3,6 +3,30 @@ using Antlr4.Runtime.Tree;
 
 public static class StoryParser
 {
+    public interface IVisitor
+    {
+        List<Error> Errors { get; }
+    }
+
+    public struct Error
+    {
+        public int Line, Col;
+        public string Message;
+        public Error(int line, int col, string message)
+        {
+            Line = line;
+            Col = col;
+            Message = message;
+        }
+        public Error(IToken loc, string message)
+        {
+            Line = loc.Line;
+            Col = loc.Column;
+            Message = message;
+        }
+        public override string ToString() => $"{Line}:{Col}: {Message}";
+    }
+
     class Listener : IAntlrErrorListener<int>, IAntlrErrorListener<IToken>
     {
         private readonly List<Error> _errors;
@@ -32,6 +56,7 @@ public static class StoryParser
         return visitor.ParsePath(r);
 
     }
+
     public static Database Parse(string s, out List<Error> errors)
     {
         var db = new Database();
@@ -40,11 +65,6 @@ public static class StoryParser
         var r = parser.r();
         r.Accept(visitor);
         return db;
-    }
-
-    public interface IVisitor
-    {
-        List<Error> Errors { get; }
     }
 
     public static void SetupParser(string s, out List<Error> errors, out Moirai parser, IVisitor visitor)
@@ -59,29 +79,8 @@ public static class StoryParser
         parser.AddErrorListener(listener);
     }
 
-    public struct Error
-    {
-        public int Line, Col;
-        public string Message;
-        public Error(int line, int col, string message)
-        {
-            Line = line;
-            Col = col;
-            Message = message;
-        }
-        public Error(IToken loc, string message)
-        {
-            Line = loc.Line;
-            Col = loc.Column;
-            Message = message;
-        }
-        public override string ToString() => $"{Line}:{Col}: {Message}";
-    }
-
     internal class Visitor : MoiraiBaseVisitor<object?>, IVisitor
     {
-        public List<Action> Actions = new();
-        public List<EntityType> Types = new(){default};
         private List<string> _variables = new();
         private List<Error> _errors = new();
         public List<Error> Errors => _errors;
@@ -90,6 +89,19 @@ public static class StoryParser
         public Visitor(Database database)
         {
             _database = database;
+        }
+
+        public override object? VisitType_definition(Moirai.Type_definitionContext context)
+        {
+            var typeName = context.ID().GetText();
+            DeclareEntityType(typeName);
+            return null;
+        }
+        public uint DeclareEntityType(string typeName)
+        {
+            var id = (uint)_database.Types.Count;
+            _database.Types.Add(new EntityType(typeName, id));
+            return id;
         }
 
         public override object? VisitProp_definition(Moirai.Prop_definitionContext context)
@@ -113,7 +125,7 @@ public static class StoryParser
                 var effect = ParseEffect(effectContext);
                 action.Effects.Add(effect);
             }
-            Actions.Add(action);
+            _database.Actions.Add(action);
             return null;
         }
         public override object? VisitEvent(Moirai.EventContext context)
@@ -126,7 +138,7 @@ public static class StoryParser
             {
                 action.Whens.Add(ParseWhen(whenContext));
             }
-            Actions.Add(action);
+            _database.Events.Add(action);
             foreach (var effectContext in context.effect())
             {
                 var effect = ParseEffect(effectContext);

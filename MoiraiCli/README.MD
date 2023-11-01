@@ -1,8 +1,9 @@
 ﻿TODO
-- [ ] fix single parent
 - [ ] parse prop type and use it in printer, maybe in operators ?
 - [ ] parse enums `enum job { farmer, smith }`, `set job = random(job)`
-- [ ] parse types ? either an enum or `type person { alive, age, job }
+- [x] parse types ? either an enum or `type person { alive, age, job }
+  - [ ] parse types props init `type person { alive = true }`
+
 FEATURES
 - [ ] time passing
 - [ ] links
@@ -11,6 +12,7 @@ FEATURES
   - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?` 
 - [ ] probabilities, curves ? assign proba per entity to impact history ?
 - [ ] tags ?
+- [ ] arrays ? are links good enough ?
 - [x] clean variant value
 - [x] format history
 - [x] keep diff during action run
@@ -20,3 +22,4 @@ FEATURES
   - [x] `$p = pick(type=person, id != $i.owner) <- $i.owner doesn't work`
 - [x] pick must be random
 - [x] wip add factions ?
+- [x] fix single parent

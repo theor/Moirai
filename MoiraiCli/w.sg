@@ -1,14 +1,14 @@
+entity person {}
+entity item {}
+entity faction {}
+entity link {}
+
 prop alive = bool
 prop owner = ref
 prop partner = ref
 prop faction = ref
 prop parent = ref
 prop child = ref
-
-type person {}
-type item {}
-type faction {}
-type link {}
 
 event inherit {
     when $p: type = "person", alive = false

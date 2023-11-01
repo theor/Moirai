@@ -48,15 +48,15 @@ public class Database
     public static readonly PropertyId PropId = new PropertyId(1);
     public static readonly PropertyId PropType = new PropertyId(2);
     public static readonly PropertyId PropName = new PropertyId(3);
-    public List<string> Properties = DefaultProperties();
     public static List<string> DefaultProperties()
     {
 
         return new() { default!, "id", "type", "name" };
     }
+    public List<string> Properties = DefaultProperties();
     private List<Entity> _entities = new() { default };
     internal List<Rule> Rules = new();
-    public List<Action> Effects = new();
+    public List<Action> Actions = new();
     public List<EntityType> Types = new(){default};
     public readonly List<Action> Events;
 
@@ -179,7 +179,7 @@ public class Database
     public bool RunAction(string actionName)
     {
         Console.WriteLine($"[{actionName}]");
-        foreach (var a in this.Effects)
+        foreach (var a in this.Actions)
         {
             if (a.Name == actionName)
             {
@@ -282,8 +282,7 @@ public class Database
     public Database(ulong seed = 42)
     {
         _ctx = new PredicateContext(this, seed);
-        Properties = new();
-        Effects = new();
+        Actions = new();
         Events = new();
         Printer = new StoryPrinter(this);
     }

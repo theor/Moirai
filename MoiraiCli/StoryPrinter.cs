@@ -11,12 +11,17 @@ public class StoryPrinter
     public string Print()
     {
         StringBuilder sb = new();
+        foreach (EntityType type in _database.Types.Skip(1))
+        {
+            sb.AppendLine($"entity {type.Name} {{ }}");
+
+        }
         foreach (string property in _database.Properties.Skip(Database.DefaultProperties().Count))
         {
             // TODO types
             sb.AppendLine($"prop {property} = bool");
         }
-        foreach (var action in _database.Effects)
+        foreach (var action in _database.Actions)
         {
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
             foreach (var when in action.Whens)
@@ -39,7 +44,7 @@ public class StoryPrinter
         switch (effect)
         {
             case CreateEntity createEntity:
-                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {createEntity.Type.ToString().ToLowerInvariant()}");
+                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {_database.GetEntityTypeName(createEntity.Type)}");
                 break;
             // case NameEntity nameEntity:
             case AssignPick predicateParameter:

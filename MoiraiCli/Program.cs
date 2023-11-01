@@ -43,9 +43,9 @@ internal class Program
                 Console.Write("> ");
                 line = Console.ReadLine() ?? "";
                 Console.WriteLine("-----------------");
-                for (var index = 0; index < db.Effects.Count; index++)
+                for (var index = 0; index < db.Actions.Count; index++)
                 {
-                    var action = db.Effects[index];
+                    var action = db.Actions[index];
                     Console.WriteLine($"  {index:00} {action.Name}");
                 }
             }
@@ -81,18 +81,18 @@ internal class Program
                 if (prevAction == -1)
                     RunRandomAction(db, rnd);
                 else
-                    db.RunAction(db.Effects[prevAction]);
+                    db.RunAction(db.Actions[prevAction]);
                 // db.PrintDb();
             }
-            else if (int.TryParse(line, out var i) && i >= 0 && i < db.Effects.Count)
+            else if (int.TryParse(line, out var i) && i >= 0 && i < db.Actions.Count)
             {
                 prevAction = i;
-                db.RunAction(db.Effects[i]);
+                db.RunAction(db.Actions[i]);
                 // db.PrintDb();
             }
             else
             {
-                foreach (var a in db.Effects)
+                foreach (var a in db.Actions)
                 {
                     if (a.Name == line)
                     {
@@ -115,7 +115,7 @@ internal class Program
         Action a;
         do
         {
-            a = db.Effects[(int)rnd.GenerateNext((uint)db.Effects.Count)];
+            a = db.Actions[(int)rnd.GenerateNext((uint)db.Actions.Count)];
             Console.WriteLine("try " + a.Name);
         } while (!db.RunAction(a));
     }
