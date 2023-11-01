@@ -247,7 +247,7 @@ rule char_dies {
     [Test]
     public void ParseWholeFile()
     {
-        var path = Path.GetFullPath("../../../../ConsoleApp1/w.sg");
+        var path = Path.GetFullPath("../../../../MoiraiCli/w.sg");
         Console.WriteLine(path);
         Assert.IsTrue(File.Exists(path));
         var (actions, props) = StoryParser.Parse(File.ReadAllText(path), out var errors);

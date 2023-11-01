@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{154CC6D3-A57E-481F-9704-95A85EDA6119}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoiraiCli", "MoiraiCli\MoiraiCli.csproj", "{154CC6D3-A57E-481F-9704-95A85EDA6119}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestProject1", "TestProject1\TestProject1.csproj", "{864D4C4B-D557-4B6A-9913-3D2890C95591}"
 EndProject
