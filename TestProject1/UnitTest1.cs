@@ -7,11 +7,12 @@ public class Tests
     {
     }
 
-    public static (List<Action> actions, List<string> properties) Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)
+    public static Database Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)
     {
         Console.WriteLine(s);
-        var (actions, properties) = StoryParser.Parse(s, out errors);
-        var printed = StoryPrinter.Print(actions, properties);
+        var db = StoryParser.Parse(s, out errors);
+        
+        var printed = db.Printer.Print();
         Console.WriteLine("### REPRINT");
         Console.WriteLine(printed);
         Assert.AreEqual(errorCount, errors.Count, string.Join(", ", errors));
@@ -20,9 +21,9 @@ public class Tests
             var reparsed = StoryParser.Parse(printed, out var errors2);
             Assert.AreEqual(errorCount, errors2.Count, "During reparse: " + string.Join(", ", errors2));
             Console.WriteLine("### REPRINT 2");
-            Console.WriteLine(StoryPrinter.Print(reparsed.Item1, reparsed.Item2));
+            Console.WriteLine(db.Printer.Print());
         }
-        return (actions, properties);
+        return db;
     }
 
     [Test]
@@ -36,17 +37,16 @@ rule born_char {
 }
 ";
         
-        var (actions, properties) = Run(s, out var errors);
+        var db = Run(s, out var errors);
         
-        Assert.AreEqual(1, actions.Count);
-        var action = actions[0];
+        Assert.AreEqual(1, db.Effects.Count);
+        var action = db.Effects[0];
         Assert.AreEqual("born_char", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
         
         Assert.IsInstanceOf<SetProperty>(action.Effects[1]);
         
 
-        Database db = new Database(properties, actions);
         PropertyId propId = db.GetProperty("Alive");
         Assert.IsTrue(propId.IsValid);
         // TODO reactivate
@@ -64,10 +64,10 @@ rule char_dies {
     pick $p: type = ""person"", alive = true
     set $p.alive = false
 }";
-        var (actions, props) = Run(s, out var errors);
+        var db = Run(s, out var errors);
         
-        Assert.AreEqual(1, actions.Count);
-        var action = actions[0];
+        Assert.AreEqual(1, db.Effects.Count);
+        var action = db.Effects[0];
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
     }
@@ -82,17 +82,18 @@ rule foreach {
         format ""{$x.name} {$x.test}""
     }
 }";
-        var (actions, properties) =Run(s, out var errors);
-        var db = new Database(properties, actions){History = new()};
+        var db  =Run(s, out var errors);
+        db.History = new();
         var propId = db.GetProperty("test");
-        db.AllocateEntity(EntityType.Person, "A");
-        db.AllocateEntity(EntityType.Person, "B");
+        var typePerson = db.GetEntityType("person");
+        db.AllocateEntity(typePerson, "A");
+        db.AllocateEntity(typePerson, "B");
         db.PrintDb();
         foreach (var entity in db.Entities)
         {
             Assert.IsFalse(entity.TryGetProperty(propId, out var val));
         }
-        db.RunAction(actions[0]);
+        db.RunAction(db.Effects[0]);
         db.PrintDb();
         foreach (var entity in db.Entities)
         {
@@ -101,7 +102,7 @@ rule foreach {
         }
         foreach (var changeset in db.History.Changesets)
         {
-            StoryPrinter.PrintChangeset(changeset, db);
+            db.Printer.PrintChangeset(changeset);
             Console.WriteLine(changeset.Description);
             
         }
@@ -127,12 +128,11 @@ event on_death {
 
     set test = true
 }";
-        var (actions, p) = Run(s, out _, 0);
-        Assert.AreEqual(1, actions.Count(a => a.IsEvent));
+        var db  = Run(s, out _, 0);
+        Assert.AreEqual(1, db.Effects.Count(a => a.IsEvent));
 
-        var db = new Database(p, actions);
-        db.RunAction(actions[0]);
-        db.RunAction(actions[1]);
+        db.RunAction(db.Effects[0]);
+        db.RunAction(db.Effects[1]);
         db.PrintDb();
         Entity e = db.Entities.Single();
         PropertyId propTest = db.GetProperty("test");
@@ -148,10 +148,10 @@ rule char_dies {
     pick $y: id != $x
 }";
        
-        var (actions, props) = Run(s, out var errors);
+        var db = Run(s, out var errors);
         
-        Assert.AreEqual(1, actions.Count);
-        var action = actions[0];
+        Assert.AreEqual(1, db.Effects.Count);
+        var action = db.Effects[0];
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
         var e1 = action.Effects[0];
@@ -181,13 +181,13 @@ rule char_dies {
     $z = pick(id != $y)
 ";
         Console.WriteLine(s);
-        var (actions, props) = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(StoryPrinter.Print(actions, props));
+        var db = StoryParser.Parse(s, out var errors);
+        Console.WriteLine(db.Printer.Print());
         Console.WriteLine(string.Join("\n", errors.Select(e => ToString())));
         Assert.AreEqual(0, errors.Count);
         
-        Assert.AreEqual(1, actions.Count);
-        var action = actions[0];
+        Assert.AreEqual(1, db.Effects.Count);
+        var action = db.Effects[0];
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(3, action.Effects.Count);
         var e1 = action.Effects[0];
@@ -215,13 +215,13 @@ rule char_dies {
     set $y.partner = $x
 ";
         Console.WriteLine(s);
-        var (actions, props) = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(StoryPrinter.Print(actions, props));
+        var db = StoryParser.Parse(s, out var errors);
+        Console.WriteLine(db.Printer.Print());
         Console.WriteLine(string.Join("\n", errors.Select(e => ToString())));
         Assert.AreEqual(0, errors.Count);
         
-        Assert.AreEqual(1, actions.Count);
-        var action = actions[0];
+        Assert.AreEqual(1, db.Effects.Count);
+        var action = db.Effects[0];
         Assert.AreEqual("wedding", action.Name);
         Assert.AreEqual(4, action.Effects.Count);
         var e1 = action.Effects[0];
@@ -250,9 +250,9 @@ rule char_dies {
         var path = Path.GetFullPath("../../../../MoiraiCli/w.sg");
         Console.WriteLine(path);
         Assert.IsTrue(File.Exists(path));
-        var (actions, props) = StoryParser.Parse(File.ReadAllText(path), out var errors);
+        var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
         Console.WriteLine("------------------");
-        Console.WriteLine(StoryPrinter.Print(actions, props));
+        Console.WriteLine(db.Printer.Print());
         Assert.AreEqual(0, errors.Count, string.Join(", ", errors));
  
     }
@@ -268,13 +268,15 @@ rule char_dies {
     set $p.alive = false
 }";
        
-        var (actions, props) = Run(s, out var errors, 1);
+        var db = Run(s, out var errors, 1);
        
     }
     [Test]
     public void AssignCreate()
     {
         var s = @"
+type person {}
+type faction {}
 prop faction = ref
 prop owner = ref
 rule create_faction {
@@ -283,8 +285,8 @@ rule create_faction {
     set $f.owner = $p
     set $p.faction = $f
 }";
-        var (actions, props) = Run(s, out var errors);
-        Assert.AreEqual(4, actions[0].Effects.Count);
+        var db = Run(s, out var errors);
+        Assert.AreEqual(4, db.Effects[0].Effects.Count);
        
     }
     [Test]
@@ -299,11 +301,11 @@ rule create_faction {
     set $f.owner = $p
     format ""{$p.name} creates the {$f.name} to counter the {$g.name}""
 }";
-        var (actions, props) = Run(s, out var errors);
-        Assert.AreEqual(5, actions[0].Effects.Count);
-        Database db = new Database(props, actions) { History = new()};
-        db.RunAction(actions[0]);
-        StoryPrinter.PrintChangeset(db.History.Changesets[0], db, false);
+        var db = Run(s, out var errors);
+        Assert.AreEqual(5, db.Effects[0].Effects.Count);
+        db.History = new();
+        db.RunAction(db.Effects[0]);
+        db.Printer.PrintChangeset(db.History.Changesets[0], false);
         Console.WriteLine(db.History.Changesets[0].Description);
         Assert.AreEqual("River creates the Faction of Cerelia to counter the Faction of Hecate", db.History.Changesets[0].Description);
     }

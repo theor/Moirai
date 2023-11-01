@@ -19,8 +19,8 @@ public class FormatAction : IEffect
 class CreateEntity : IEffect
 {
     public readonly int VariableIndex;
-    public EntityType Type;
-    public CreateEntity(int variableIndex, EntityType type)
+    public uint Type;
+    public CreateEntity(int variableIndex, uint type)
     {
         VariableIndex = variableIndex;
         Type = type;

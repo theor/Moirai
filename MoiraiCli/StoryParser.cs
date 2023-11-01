@@ -32,13 +32,14 @@ public static class StoryParser
         return visitor.ParsePath(r);
 
     }
-    public static (List<Action>, List<string>) Parse(string s, out List<Error> errors)
+    public static Database Parse(string s, out List<Error> errors)
     {
-        var visitor = new Visitor();
+        var db = new Database();
+        var visitor = new Visitor(db);
         SetupParser(s, out errors, out var parser, visitor);
         var r = parser.r();
         r.Accept(visitor);
-        return (visitor.Actions, visitor.Properties);
+        return db;
     }
 
     public interface IVisitor
@@ -80,19 +81,24 @@ public static class StoryParser
     internal class Visitor : MoiraiBaseVisitor<object?>, IVisitor
     {
         public List<Action> Actions = new();
+        public List<EntityType> Types = new(){default};
         private List<string> _variables = new();
         private List<Error> _errors = new();
         public List<Error> Errors => _errors;
         protected override object? DefaultResult => null;
-        public List<string> Properties = Database.DefaultProperties();
+        private readonly Database _database;
+        public Visitor(Database database)
+        {
+            _database = database;
+        }
 
         public override object? VisitProp_definition(Moirai.Prop_definitionContext context)
         {
             var propName = context.ID(0).GetText();
-            if (Properties.IndexOf(propName) != -1)
+            if (_database.Properties.IndexOf(propName) != -1)
                 return AddError(context.Start, $"Multiple definitions of the property '{propName}'");
 
-            Properties.Add(propName);
+            _database.Properties.Add(propName);
             return null;
         }
 
@@ -177,11 +183,11 @@ public static class StoryParser
             {
                 if (type == Database.PropType)
                 {
-                    if (Enum.TryParse<EntityType>(value.@string().GetString(), true, out var entityType))
-                    {
-                        pp = new ComputedValue((int)entityType);
-                    }
-                    else throw new System.NotImplementedException("unknown type " + value.@string().GetText());
+                    var typeId = _database.GetEntityType(value.@string().GetString());
+                    
+                    if (typeId == 0)
+                        throw new System.NotImplementedException("unknown type " + value.@string().GetText());
+                    pp = new ComputedValue(typeId);
                 }
                 else
                     pp = new ComputedValue(value.@string().STRING().GetText());
@@ -254,7 +260,10 @@ public static class StoryParser
                 }
                 case "create":
                     var type = context.expr(0).GetText().TrimQuotes();
-                    return new CreateEntity(variableIndex, Enum.Parse<EntityType>(type, true));
+                    var typeId = _database.GetEntityType(type);
+                    if (typeId == 0)
+                        throw new Exception($"Unknown entity type '{type}'");
+                    return new CreateEntity(variableIndex, typeId);
                 case "format":
                     var str = context.expr(0).value(0).@string().GetString();
                     List<PropertyPath> paths = new();
@@ -356,7 +365,7 @@ public static class StoryParser
                 throw new Exception("expected two parts, got " + context.ID().Length);
 
             var propertyName = context.ID(0).GetText();
-            var indexOf = Properties.IndexOf(propertyName.ToLowerInvariant());
+            var indexOf = _database.Properties.IndexOf(propertyName.ToLowerInvariant());
             if (indexOf == -1)
             {
                 AddError(context.ID(0).Symbol, $"Unknown property '{propertyName}'");

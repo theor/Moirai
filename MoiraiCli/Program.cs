@@ -7,10 +7,10 @@ internal class Program
     {
         string line;
         string path = "w.sg";
-        var (actions, props) = StoryParser.Parse(File.ReadAllText(path), out var errors);
-        var db = new Database(props, actions, 44);
+        var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
+        db.SetSeed(44);
         db.History = new();
-        Console.WriteLine(StoryPrinter.Print(db.Effects, props));
+        Console.WriteLine(db.Printer.Print());
         int prevAction = -1;
         int historyCount = 0;
         Pcg32 rnd = new(32, 57);
@@ -65,7 +65,7 @@ internal class Program
             {
                 foreach (var cs in db.History.Changesets)
                 {
-                    StoryPrinter.PrintChangeset(cs, db);
+                    db.Printer.PrintChangeset(cs);
                 }
             }
             else if (line == "f")
@@ -92,7 +92,7 @@ internal class Program
             }
             else
             {
-                foreach (var a in actions)
+                foreach (var a in db.Effects)
                 {
                     if (a.Name == line)
                     {
@@ -104,7 +104,7 @@ internal class Program
             while (historyCount < db.History.Changesets.Count)
             {
                 var cs = db.History.Changesets[historyCount++];
-                StoryPrinter.PrintChangeset(cs, db, false);
+                db.Printer.PrintChangeset(cs, false);
             }
 
         }

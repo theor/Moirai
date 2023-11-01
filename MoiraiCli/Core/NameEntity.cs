@@ -2,7 +2,7 @@
 
 static class NameEntity
 {
-    public static string MakeName(PredicateContext ctx, EntityType t)
+    public static string MakeName(PredicateContext ctx, uint t)
     {
         return GenerateName(ctx, t);
     }
@@ -34,21 +34,23 @@ static class NameEntity
         // ReSharper restore StringLiteralTypo
     };
 
-    private static string GenerateName(PredicateContext predicateContext, EntityType t)
+    private static string GenerateName(PredicateContext predicateContext, uint t)
     {
         var n = Names.RandomIn(predicateContext.Rnd);
-        switch (t)
-        {
-
-            case EntityType.Person:
-                return n;
-            case EntityType.Item:
-                return Items.RandomIn(predicateContext.Rnd) + " of " + n;
-            case EntityType.Faction:
-                return "Faction of " + n;
-            default:
-                return t.ToString();
-        }
+        return n;
+        // TODO entitytype
+        // switch (t)
+        // {
+        //
+        //     case EntityType.Person:
+        //         return n;
+        //     case EntityType.Item:
+        //         return Items.RandomIn(predicateContext.Rnd) + " of " + n;
+        //     case EntityType.Faction:
+        //         return "Faction of " + n;
+        //     default:
+        //         return t.ToString();
+        // }
     }
 
     static T RandomIn<T>(this T[] array, Pcg32 rnd) => array[rnd.GenerateNext((uint)array.Length)];

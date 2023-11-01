@@ -40,10 +40,3 @@
         return default;
     }
 }
-public enum EntityType
-{
-    Person = 1,
-    Item,
-    Faction,
-    Link,
-}

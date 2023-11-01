@@ -43,7 +43,7 @@ public struct Change
     {
         return new Change(ChangeType.Set, entityId, propertyType, prevValue, newValue);
     }
-    public static Change Create(EntityId entityId, EntityType type, string? name = null)
+    public static Change Create(EntityId entityId, uint type, string? name = null)
     {
         return new Change(ChangeType.Create, entityId, Database.PropId, name!, (int)type);
     }
@@ -54,9 +54,9 @@ public struct Change
         {
 
             case ChangeType.Create:
-                return $"CREATE {PrevValue.Value} {(EntityType)NewValue.IntValue} {EntityId}";
+                return $"CREATE {PrevValue.Value} {db.GetEntityTypeName((uint)NewValue.IntValue)} {EntityId}";
             case ChangeType.Set:
-                return $"SET {EntityId}.{db.GetPropertyName(Property)}: {StoryPrinter.Print(PrevValue, Property)} -> {StoryPrinter.Print(NewValue, Property)}";
+                return $"SET {EntityId}.{db.GetPropertyName(Property)}: {db.Printer.Print(PrevValue, Property)} -> {db.Printer.Print(NewValue, Property)}";
             default:
                 throw new ArgumentOutOfRangeException();
         }

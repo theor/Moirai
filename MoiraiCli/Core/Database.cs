@@ -32,6 +32,17 @@ public readonly struct PropertyId : IEquatable<PropertyId>
         Id = id;
     }
 }
+
+public readonly struct EntityType
+{
+    public readonly string Name;
+    public readonly uint Id;
+    public EntityType(string name, uint id)
+    {
+        Name = name;
+        Id = id;
+    }
+}
 public class Database
 {
     public static readonly PropertyId PropId = new PropertyId(1);
@@ -46,6 +57,7 @@ public class Database
     private List<Entity> _entities = new() { default };
     internal List<Rule> Rules = new();
     public List<Action> Effects = new();
+    public List<EntityType> Types = new(){default};
     public readonly List<Action> Events;
 
     public History? History;
@@ -61,7 +73,7 @@ public class Database
     //     return Properties.Count - 1;
     // }
 
-    public EntityId AllocateEntity(EntityType entityType, string? name = null)
+    public EntityId AllocateEntity(uint entityType, string? name = null)
     {
         Entity e = new();
 
@@ -261,20 +273,24 @@ public class Database
     }
     private string? FormatDescription(FormatAction formatAction)
     {
-        var propertyValues = formatAction.Arguments.Select(path => StoryPrinter.Print(_ctx.GetValue(new ComputedValue(path)), path.Property)).Cast<object?>().ToArray();
+        var printer = new StoryPrinter(this);
+        var propertyValues = formatAction.Arguments.Select(path => printer.Print(_ctx.GetValue(new ComputedValue(path)), path.Property)).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
     }
     private static ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
-    public Database(List<string> properties, List<Action> actions, ulong seed = 42)
+    public StoryPrinter Printer;
+    public Database(ulong seed = 42)
     {
         _ctx = new PredicateContext(this, seed);
-        Properties = properties;
-        Effects = actions.Where(a => !a.IsEvent).ToList();
-        Events = actions.Where(a => a.IsEvent).ToList();
+        Properties = new();
+        Effects = new();
+        Events = new();
+        Printer = new StoryPrinter(this);
     }
     public void PrintDb()
     {
         // Console.WriteLine("[DB]");
+        var printer = new StoryPrinter(this);
         bool any = false;
         foreach (var e in Entities)
         {
@@ -287,7 +303,7 @@ public class Database
                 foreach (var property in e.Properties)
                 {
                     if (property.Type != Database.PropType)
-                        Console.WriteLine($"  {Properties[(int)property.Type.Id]}: {StoryPrinter.Print(property.Value, property.Type)}");
+                        Console.WriteLine($"  {Properties[(int)property.Type.Id]}: {printer.Print(property.Value, property.Type)}");
                         // Console.WriteLine($"  {FormatProperty(property)}");
                 }
         }
@@ -309,4 +325,22 @@ public class Database
     {
         return Properties[(int)prop.Id];
     }
+    public uint GetEntityType(string typeName)
+    {
+        for (uint i = 1; i < Types.Count; i++)
+        {
+            if(Types[(int)i].Name == typeName)
+                return i;
+        }
+        return 0;
+    }
+    public string GetEntityTypeName(uint typeId)
+    {
+        return Types[(int)typeId].Name;
+    }
+    public void SetSeed(ulong seed)
+    {
+        _ctx.Rnd = new Pcg32(seed, seed);
+    }
 }
+

@@ -9,12 +9,7 @@
     public readonly PropertyId Property;
     public readonly ComputedValue Value;
 
-    public PropertyOperator(Operator op, EntityType type)
-    {
-        Op = op;
-        Property = Database.PropType;
-        Value = (ComputedValue)(PropertyValue)(int)type;
-    }
+  
     public PropertyOperator(Operator op, PropertyId property, PropertyValue value)
     {
         Op = op;

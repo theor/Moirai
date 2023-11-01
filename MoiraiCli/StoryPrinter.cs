@@ -1,34 +1,39 @@
 ﻿using System.Text;
 using Pcg.Core;
 
-public static class StoryPrinter
+public class StoryPrinter
 {
-    public static string Print(List<Action> actions, List<string> properties)
+    private readonly Database _database;
+    public StoryPrinter(Database database)
+    {
+        _database = database;
+    }
+    public string Print()
     {
         StringBuilder sb = new();
-        foreach (string property in properties.Skip(Database.DefaultProperties().Count))
+        foreach (string property in _database.Properties.Skip(Database.DefaultProperties().Count))
         {
             // TODO types
             sb.AppendLine($"prop {property} = bool");
         }
-        foreach (var action in actions)
+        foreach (var action in _database.Effects)
         {
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
             foreach (var when in action.Whens)
             {
-                sb.AppendLine($"  when ${when.VariableIndex}: {Print(when.Predicate, properties)}");
+                sb.AppendLine($"  when ${when.VariableIndex}: {Print(when.Predicate)}");
 
             }
             foreach (var effect in action.Effects)
             {
-                PrintEffect(properties, effect, sb, 1);
+                PrintEffect(effect, sb, 1);
             }
             sb.AppendLine("}");
 
         }
         return sb.ToString();
     }
-    private static void PrintEffect(List<string> properties, IEffect effect, StringBuilder sb, int indent)
+    private void PrintEffect(IEffect effect, StringBuilder sb, int indent)
     {
         string indentStr = new string(' ', indent * 2);
         switch (effect)
@@ -39,13 +44,13 @@ public static class StoryPrinter
             // case NameEntity nameEntity:
             case AssignPick predicateParameter:
                 sb.Append(
-                    $"{indentStr}{predicateParameter.CallType.ToString().ToLowerInvariant()} ${predicateParameter.VariableIndex}: {Print(predicateParameter.Predicate, properties)}");
+                    $"{indentStr}{predicateParameter.CallType.ToString().ToLowerInvariant()} ${predicateParameter.VariableIndex}: {Print(predicateParameter.Predicate)}");
                 if (predicateParameter.ScopeEffects != null)
                 {
                     sb.AppendLine($"{indentStr}{{");
                     foreach (var nestedEffect in predicateParameter.ScopeEffects)
                     {
-                        PrintEffect(properties, nestedEffect, sb, indent + 1);
+                        PrintEffect(nestedEffect, sb, indent + 1);
                     }
                     sb.AppendLine($"{indentStr}}}");
                 }
@@ -55,25 +60,25 @@ public static class StoryPrinter
             // case Sequence sequence:
             case SetProperty setProperty:
                 sb.AppendLine(
-                    $"{indentStr}set {Print(setProperty.PropertySet, properties)} = {Print(setProperty.Parameter, properties)}");
+                    $"{indentStr}set {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
                 break;
             case FormatAction formatAction:
-                sb.AppendLine($"{indentStr}format \"{string.Format(formatAction.FormatString, formatAction.Arguments.Select(a => (object)($"{{{Print(a, properties)}}}")).ToArray())}\"");
+                sb.AppendLine($"{indentStr}format \"{string.Format(formatAction.FormatString, formatAction.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}\"");
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(effect));
         }
     }
-    private static string GetPropertyName(PropertyId p, List<string> properties)
+    private string GetPropertyName(PropertyId p)
     {
-        if (p.IsValid && p.Id < properties.Count)
-            return properties[(int)p.Id];
+        if (p.IsValid && p.Id < _database.Properties.Count)
+            return _database.Properties[(int)p.Id];
 
         return "<??>";
     }
-    private static string Print(PropertyPath path, List<string> properties) =>
-        path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property, properties)}" : $"${path.VariableIndex}";
-    public static string Print(ComputedValue parameter, List<string> properties, PropertyId typeHint = default)
+    private string Print(PropertyPath path) =>
+        path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
+    public string Print(ComputedValue parameter, PropertyId typeHint = default)
     {
         switch (parameter.Type)
         {
@@ -81,18 +86,18 @@ public static class StoryPrinter
             case ComputedValue.ComputedValueType.Value:
                 return Print(parameter.Value, typeHint);
             case ComputedValue.ComputedValueType.Path:
-                return Print(parameter.Path, properties);
+                return Print(parameter.Path);
             default:
                 throw new ArgumentOutOfRangeException();
         }
     }
-    public static string Print(PropertyValue value, PropertyId typeHint = default)
+    public string Print(PropertyValue value, PropertyId typeHint = default)
     {
         var s = value.Value;
         if (s != null)
             return s;
         if (typeHint == Database.PropType)
-            return $"\"{((EntityType)value.IntValue).ToString().ToLowerInvariant()}\"";
+            return $"\"{_database.GetEntityTypeName((uint)value.IntValue)}\"";
 
         switch (value.Type)
         {
@@ -114,12 +119,12 @@ public static class StoryPrinter
         }
         return value.IntValue.ToString();
     }
-    public static string Print(IPredicate predicate, List<string> properties)
+    public string Print(IPredicate predicate)
     {
         switch (predicate)
         {
             case And and:
-                return string.Join(", ", and.Predicates.Select(predicate1 => Print(predicate1, properties)));
+                return string.Join(", ", and.Predicates.Select(Print));
             // case EntityExists entityExists:
             // break;
             // case HasProperty hasProperty:
@@ -132,7 +137,7 @@ public static class StoryPrinter
                     PropertyOperator.Operator.NotEquals => "!=",
                     _ => throw new ArgumentOutOfRangeException()
                 };
-                return $"{GetPropertyName(propertyEquals.Property, properties)} {op} {Print(propertyEquals.Value, properties, propertyEquals.Property)}";
+                return $"{GetPropertyName(propertyEquals.Property)} {op} {Print(propertyEquals.Value, propertyEquals.Property)}";
             // case True @true:
             // break;
             default:
@@ -140,7 +145,7 @@ public static class StoryPrinter
 
         }
     }
-    public static void PrintChangeset(Changeset cs, Database db, bool oneLine = true)
+    public void PrintChangeset(Changeset cs, bool oneLine = true)
     {
         void write(string s)
         {
@@ -153,7 +158,7 @@ public static class StoryPrinter
         Console.ResetColor();
         foreach (var change in cs.Changes)
         {
-            write("  " + change.ToString(db));
+            write("  " + change.ToString(_database));
         }
         if (oneLine)
             Console.WriteLine();
