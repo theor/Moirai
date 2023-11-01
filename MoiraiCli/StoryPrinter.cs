@@ -55,6 +55,7 @@ public class StoryPrinter
             case PropertyValue.ValueBaseType.Bool:
                 return propertyType.BaseType.ToString().ToLowerInvariant();
             case PropertyValue.ValueBaseType.Enum:
+                return _database.Enums[propertyType.Index].Name;
             case PropertyValue.ValueBaseType.EntityType:
             default:
                 throw new ArgumentOutOfRangeException();

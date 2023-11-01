@@ -122,12 +122,16 @@ public static class StoryParser
                 case "ref": return PropertyValue.TypeRef;
                 case "number": return PropertyValue.TypeNumber;
                 case "string": return PropertyValue.TypeString;
-                default: AddError(id.Symbol, $"Unknown type '{id.GetText()}'"); return default;
+                default:
+                    if (_database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
+                        return PropertyValue.TypeEnum(enumDefinition.Index);
+                    AddError(id.Symbol, $"Unknown type '{id.GetText()}'");
+                    return default;
             }
         }
         public override object? VisitEnum_definition(Moirai.Enum_definitionContext context)
         {
-            EnumDefinition en = new(context.ID(0).GetText(), context.ID().Skip(1).Select(v => v.GetText()).ToList());
+            EnumDefinition en = new((ushort)_database.Enums.Count, context.ID(0).GetText(), context.ID().Skip(1).Select(v => v.GetText()).ToList());
             _database.Enums.Add(en);
             return null;
         }

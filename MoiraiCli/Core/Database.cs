@@ -37,10 +37,12 @@ public readonly struct EnumDefinition
 {
     public readonly string Name;
     public readonly List<string> Values;
-    public EnumDefinition(string name, List<string> values)
+    public readonly ushort Index;
+    public EnumDefinition(ushort index, string name, List<string> values)
     {
         Name = name;
         Values = values;
+        Index = index;
     }
 }
 public readonly struct EntityType
@@ -364,6 +366,19 @@ public class Database
     public void SetSeed(ulong seed)
     {
         _ctx.Rnd = new Pcg32(seed, seed);
+    }
+    public bool GetEnumDefinition(string name, out EnumDefinition enumDefinition)
+    {
+        foreach (var definition in Enums)
+        {
+            if (definition.Name == name)
+            {
+                enumDefinition = definition;
+                return true;
+            }
+        }
+        enumDefinition = default;
+        return false;
     }
 }
 

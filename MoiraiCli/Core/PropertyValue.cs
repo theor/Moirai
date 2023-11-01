@@ -26,7 +26,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
     public static readonly ValueType TypeNumber = new ValueType(ValueBaseType.Number, 0);
     public static readonly ValueType TypeBool = new ValueType(ValueBaseType.Bool, 0);
     public static readonly ValueType TypeEntityType = new ValueType(ValueBaseType.EntityType, 0);
-    public static ValueType TypeEnum(ushort index) => new ValueType(ValueBaseType.String, index);
+    public static ValueType TypeEnum(ushort index) => new ValueType(ValueBaseType.Enum, index);
 
     public readonly struct ValueType : IEquatable<ValueType>
     {
