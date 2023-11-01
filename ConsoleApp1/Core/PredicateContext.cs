@@ -108,4 +108,8 @@ public class PredicateContext
                 throw new ArgumentOutOfRangeException();
         }
     }
+    public void Format(FormatAction formatAction)
+    {
+        Database.AppendDescription(formatAction);
+    }
 }

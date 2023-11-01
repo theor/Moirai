@@ -105,10 +105,7 @@ public static class StoryParser
             foreach (Moirai.EffectContext effectContext in context.effect())
             {
                 var effect = ParseEffect(effectContext);
-                if (effect is FormatAction formatAction)
-                    action.Formats.Add(formatAction);
-                else
-                    action.Effects.Add(effect);
+                action.Effects.Add(effect);
             }
             Actions.Add(action);
             return null;
@@ -127,10 +124,7 @@ public static class StoryParser
             foreach (var effectContext in context.effect())
             {
                 var effect = ParseEffect(effectContext);
-                if (effect is FormatAction formatAction)
-                    action.Formats.Add(formatAction);
-                else
-                    action.Effects.Add(effect);
+                action.Effects.Add(effect);
             }
             return null;
         }
@@ -329,13 +323,6 @@ public static class StoryParser
         public override object? VisitCall(Moirai.CallContext context)
         {
             throw new System.NotImplementedException();
-
-            var effect = ParseCall(context);
-            if (effect is FormatAction format)
-                Actions.Last().Formats.Add(format);
-            else
-                Actions.Last().Effects.Add(effect);
-            return null;
         }
         public override object? VisitExpr(Moirai.ExprContext context)
         {

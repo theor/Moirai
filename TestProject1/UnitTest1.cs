@@ -79,10 +79,11 @@ prop test = bool
 rule foreach {
     each $x: type = ""person"" {
         set $x.test = true
+        format ""{$x.name} {$x.test}""
     }
 }";
         var (actions, properties) =Run(s, out var errors);
-        var db = new Database(properties, actions);
+        var db = new Database(properties, actions){History = new()};
         var propId = db.GetProperty("test");
         db.AllocateEntity(EntityType.Person, "A");
         db.AllocateEntity(EntityType.Person, "B");
@@ -97,6 +98,12 @@ rule foreach {
         {
             Assert.IsTrue(entity.TryGetProperty(propId, out var val));
             Assert.AreEqual(true, val.BoolValue);
+        }
+        foreach (var changeset in db.History.Changesets)
+        {
+            StoryPrinter.PrintChangeset(changeset, db);
+            Console.WriteLine(changeset.Description);
+            
         }
     }
     [Test]
@@ -293,7 +300,7 @@ rule create_faction {
     format ""{$p.name} creates the {$f.name} to counter the {$g.name}""
 }";
         var (actions, props) = Run(s, out var errors);
-        Assert.AreEqual(4, actions[0].Effects.Count);
+        Assert.AreEqual(5, actions[0].Effects.Count);
         Database db = new Database(props, actions) { History = new()};
         db.RunAction(actions[0]);
         StoryPrinter.PrintChangeset(db.History.Changesets[0], db, false);

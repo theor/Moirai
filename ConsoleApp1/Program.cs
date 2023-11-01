@@ -8,7 +8,7 @@ internal class Program
         string line;
         string path = "w.sg";
         var (actions, props) = StoryParser.Parse(File.ReadAllText(path), out var errors);
-        var db = new Database(props, actions);
+        var db = new Database(props, actions, 43);
         db.History = new();
         Console.WriteLine(StoryPrinter.Print(db.Effects, props));
         int prevAction = -1;
@@ -25,6 +25,7 @@ internal class Program
             "couple_has_child",
             "p",
             "f",
+            "parent_dies",
             "parent_dies",
             
         });
@@ -67,7 +68,8 @@ internal class Program
             {
                 foreach (var cs in db.History.Changesets)
                 {
-                    Console.WriteLine(cs.Description);
+                    if(!string.IsNullOrEmpty(cs.Description))
+                        Console.WriteLine(cs.Description);
                 }
             }
             else if (line == "")

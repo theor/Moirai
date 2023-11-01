@@ -217,7 +217,6 @@ public class Database
             if (change.NewValue.Type == PropertyValue.ValueType.EntityId && !change.NewValue.Id.IsNull)
                 changedEntities.Add(change.NewValue.Id);
         }
-        CurrentChangeset.Description = CreateDescription(action);
         History?.Changesets?.Add(CurrentChangeset);
         RunEvents(changedEntities);
 
@@ -244,20 +243,21 @@ public class Database
                     
                         if(!@event.Effects.All(e => e.MakeTrue(_ctx)))
                             continue;
-                    CurrentChangeset.Description = CreateDescription(@event);
                     History?.Changesets?.Add(CurrentChangeset);
                 }
             }
         }
 
     }
-
-    public string? CreateDescription(Action action)
+    public void AppendDescription(FormatAction formatAction)
     {
-        if ((action.Formats?.Count ?? 0) == 0) return null;
-
-        var f = action.Formats![0];
-        return FormatDescription(f);
+        string? desc = FormatDescription(formatAction);
+        if (!String.IsNullOrEmpty(desc))
+        {
+            if(!String.IsNullOrEmpty(CurrentChangeset.Description))
+                CurrentChangeset.Description += "\n";
+            CurrentChangeset.Description += desc;
+        }
     }
     private string? FormatDescription(FormatAction formatAction)
     {

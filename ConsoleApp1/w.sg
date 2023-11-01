@@ -10,9 +10,9 @@ event inherit {
     each $c: type = "person", alive = true, $c.parent = $p {
         each $i: type = "item", owner = $p {
             set $i.owner = $c
+            format "{$c.name} inherits the {$i.name} from {$p.name}"
         }
     }
-    format "{$c.name} inherits the {$i.name} from {$p.name}"
 }
 
 rule char_born {

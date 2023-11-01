@@ -57,6 +57,9 @@ public static class StoryPrinter
                 sb.AppendLine(
                     $"{indentStr}set {Print(setProperty.PropertySet, properties)} = {Print(setProperty.Parameter, properties)}");
                 break;
+            case FormatAction formatAction:
+                sb.AppendLine($"{indentStr}format \"{string.Format(formatAction.FormatString, formatAction.Arguments.Select(a => (object)($"{{{Print(a, properties)}}}")).ToArray())}\"");
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(effect));
         }

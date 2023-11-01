@@ -11,7 +11,8 @@ public class FormatAction : IEffect
     }
     public bool MakeTrue(PredicateContext ctx)
     {
-        throw new NotImplementedException();
+        ctx.Format(this);
+        return true;
     }
 }
 

@@ -5,7 +5,6 @@
 
     public readonly List<IEffect> Effects;
     public readonly List<AssignPick> Whens;
-    public readonly List<FormatAction> Formats;
     // public Action(string name, IPredicate? @if, IEffect then)
     // {
     //     Name = name;
@@ -19,7 +18,6 @@
     {
         IsEvent = isEvent;
         Name = name;
-        Formats = new List<FormatAction>();
         Effects = new();
         Whens = new();
     }
