@@ -1,10 +1,14 @@
 prop alive = bool
-prop owner = entity
-prop partner = entity
-prop faction = entity
-prop parent = entity
-prop child = entity
-enum type = person, item, faction
+prop owner = ref
+prop partner = ref
+prop faction = ref
+prop parent = ref
+prop child = ref
+
+type person {}
+type item {}
+type faction {}
+type link {}
 
 event inherit {
     when $p: type = "person", alive = false
@@ -53,13 +57,12 @@ rule couple_has_child {
     pick $x: type = "person", alive = true, partner != null
     pick $y: type = "person", alive = true, partner = $x, id != $x
     create $c: "person"
-    set $c.alive = true
+        set $c.alive = true
     create $l1: "link"
-    set $l1.parent = $x
-    set $l1.child = $c
+        set $l1.parent = $x
+        set $l1.child = $c
     create $l2: "link"
-    set $l2.parent = $y
-    set $l2.child = $c
+    
     format "{$x.name} and {$y.name} have a child, {$c.name}"
 }
 rule make_item {

@@ -168,6 +168,18 @@ public partial class MoiraiBaseListener : IMoiraiListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitOp([NotNull] Moirai.OpContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.type_definition"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterType_definition([NotNull] Moirai.Type_definitionContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.type_definition"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitType_definition([NotNull] Moirai.Type_definitionContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.prop_definition"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

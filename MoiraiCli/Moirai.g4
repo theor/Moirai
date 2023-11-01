@@ -4,7 +4,7 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: (COMMENT | LINE_BREAK)* (action|event|prop_definition|enum_definition)+ ;
+r: (COMMENT | LINE_BREAK)* (action|event|prop_definition|enum_definition|type_definition)+ ;
 
 action: RULE ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
 event: EVENT ID SCOPE_OPEN LINE_BREAK when+ effect+ SCOPE_CLOSE LINE_BREAK*;
@@ -17,6 +17,8 @@ scope: SCOPE_OPEN LINE_BREAK* effect* SCOPE_CLOSE LINE_BREAK*;
 value: string | path | bool | number | NULL;
 expr : value (op value)? ;
 op : EQ | NEQ ;
+
+type_definition: ENTITY ID SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 
 prop_definition: PROP ID EQ ID LINE_BREAK+ ;
 

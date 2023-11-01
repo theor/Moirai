@@ -12,6 +12,7 @@ COLON: ':';
 SCOPE_OPEN: '{';
 SCOPE_CLOSE: '}';
 RULE: 'rule';
+ENTITY: 'entity';
 EVENT: 'event';
 PROP: 'prop';
 ENUM: 'enum';

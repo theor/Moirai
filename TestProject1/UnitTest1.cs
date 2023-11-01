@@ -275,8 +275,8 @@ rule char_dies {
     public void AssignCreate()
     {
         var s = @"
-prop faction = entity
-prop owner = entity
+prop faction = ref
+prop owner = ref
 rule create_faction {
     pick $p: type=""person"", faction = null
     create $f: ""faction""
@@ -291,7 +291,7 @@ rule create_faction {
     public void Format()
     {
         var s = @"
-prop owner = entity
+prop owner = ref
 rule create_faction {
     create $f: ""faction""
     create $g: ""faction""
