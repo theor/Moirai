@@ -230,15 +230,16 @@ public static class StoryParser
 
                 case "each":
                 {
-                    
+                    if (context.scope() == null)
+                        AddError(context.Start, "Missing scope in foreach");
+                    context.scope().effect().Select(parseef)
                     var exprs = context.expr();
                     return new AssignPick(
                         variableIndex,
                         exprs.Length == 1
                             ? ParseExpr(exprs[0])!
                             : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList()),
-                        CallType.Pick);
-                        break;
+                        CallType.Each);
                 }
                 case "pick":
                 {

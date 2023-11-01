@@ -7,9 +7,11 @@ enum type = person, item, faction
 
 event inherit {
     when $p: type = "person", alive = false
-    each $c: type = "person", alive = true, $c.parent = $p
-        each $i: type = "item", owner = $p
+    each $c: type = "person", alive = true, $c.parent = $p {
+        each $i: type = "item", owner = $p {
             set $i.owner = $c
+        }
+    }
     format "{$c.name} inherits the {$i.name} from {$p.name}"
 }
 

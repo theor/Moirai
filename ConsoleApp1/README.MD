@@ -1,4 +1,10 @@
-﻿- [ ] time passing
+﻿TODO
+- [ ] fix single parent
+- [ ] parse prop type and use it in printer, maybe in ops ?
+- [ ] parse enums `enum job { farmer, smith }`, `set job = random(job)`
+- [ ] parse types ? either an enum or `type person { alive, age, job }
+FEATURES
+- [ ] time passing
 - [ ] links
 - [ ] format: prev value ? `set $i.owner = $p;`
   - `format "from prev($i.owner.name) to $p.name" ?` 
@@ -8,8 +14,8 @@
 - [x] clean variant value
 - [x] format history
 - [x] keep diff during action run
-- [ ] parsing:
-  - [ ] `pick $i: type=item, owner != null` ?
+- [x] parsing:
+  - [x] `pick $i: type=item, owner != null` ?
   - [x] `$i = pick(type=item, owner != null)`
   - [x] `$p = pick(type=person, id != $i.owner) <- $i.owner doesn't work`
 - [x] pick must be random

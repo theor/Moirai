@@ -9,11 +9,11 @@ r: (COMMENT | LINE_BREAK)* (action|event|prop_definition|enum_definition)+ ;
 action: RULE ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
 event: EVENT ID SCOPE_OPEN LINE_BREAK when+ effect+ SCOPE_CLOSE LINE_BREAK*;
 when: WHEN (VAR_ID COLON)? expr (COMMA expr)* SPACE* LINE_BREAK+;
-effect: (set | call) SPACE* LINE_BREAK+;
+effect: (set |  call) SPACE* LINE_BREAK+;
 
 set: SET  path EQ value;
-call : ID (VAR_ID COLON)?  ((expr (COMMA expr)* ));
-
+call : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
+scope: SCOPE_OPEN LINE_BREAK* effect* SCOPE_CLOSE LINE_BREAK*;
 value: string | path | bool | number | NULL;
 expr : value (op value)? ;
 op : EQ | NEQ ;
