@@ -118,11 +118,11 @@ public static class StoryParser
         {
             switch (id.GetText())
             {
-                case "bool": return PropertyValue.ValueType.Bool;
-                case "ref": return PropertyValue.ValueType.Ref;
-                case "number": return PropertyValue.ValueType.Number;
-                case "string": return PropertyValue.ValueType.String;
-                default: AddError(id.Symbol, $"Unknown type '{id.GetText()}'"); return PropertyValue.ValueType.None;
+                case "bool": return PropertyValue.TypeBool;
+                case "ref": return PropertyValue.TypeRef;
+                case "number": return PropertyValue.TypeNumber;
+                case "string": return PropertyValue.TypeString;
+                default: AddError(id.Symbol, $"Unknown type '{id.GetText()}'"); return default;
             }
         }
         public override object? VisitEnum_definition(Moirai.Enum_definitionContext context)

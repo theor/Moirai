@@ -43,9 +43,22 @@ public class StoryPrinter
         }
         return sb.ToString();
     }
-    private string Print(ValueType propertyType)
+    private string Print(PropertyValue.ValueType propertyType)
     {
-        return propertyType.ToString().ToLowerInvariant();
+        switch (propertyType.BaseType)
+        {
+
+            case PropertyValue.ValueBaseType.None:
+            case PropertyValue.ValueBaseType.String:
+            case PropertyValue.ValueBaseType.Ref:
+            case PropertyValue.ValueBaseType.Number:
+            case PropertyValue.ValueBaseType.Bool:
+                return propertyType.BaseType.ToString().ToLowerInvariant();
+            case PropertyValue.ValueBaseType.Enum:
+            case PropertyValue.ValueBaseType.EntityType:
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
     }
     private void PrintEffect(IEffect effect, StringBuilder sb, int indent)
     {
@@ -113,20 +126,20 @@ public class StoryPrinter
         if (typeHint == Database.PropType)
             return $"\"{_database.GetEntityTypeName((uint)value.IntValue)}\"";
 
-        switch (value.Type)
+        switch (value.Type.BaseType)
         {
-            case PropertyValue.ValueType.None:
+            case PropertyValue.ValueBaseType.None:
                 return "null";
-            case PropertyValue.ValueType.String:
+            case PropertyValue.ValueBaseType.String:
                 return $"\"{value.Value}\"";
-            case PropertyValue.ValueType.Ref:
+            case PropertyValue.ValueBaseType.Ref:
                 if (value.IntValue == 0)
                     return "null";
 
                 return "#" + value.IntValue;
-            case PropertyValue.ValueType.Number:
+            case PropertyValue.ValueBaseType.Number:
                 return value.IntValue.ToString();
-            case PropertyValue.ValueType.Bool:
+            case PropertyValue.ValueBaseType.Bool:
                 return value.BoolValue ? "true" : "false";
             default:
                 throw new ArgumentOutOfRangeException();

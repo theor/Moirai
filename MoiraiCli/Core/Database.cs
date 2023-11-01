@@ -72,9 +72,9 @@ public class Database
     public static List<PropertyDefinition> DefaultProperties()
     {
 
-        return new() { default!, new("id", 1, PropertyValue.ValueType.Ref),
-            new("type", 2, PropertyValue.ValueType.None),
-            new PropertyDefinition("name", 3, PropertyValue.ValueType.String), };
+        return new() { default!, new("id", 1, PropertyValue.TypeRef),
+            new("type", 2, PropertyValue.TypeEntityType),
+            new PropertyDefinition("name", 3, PropertyValue.TypeString), };
     }
     public List<PropertyDefinition> Properties = DefaultProperties();
     private List<Entity> _entities = new() { default };
@@ -248,9 +248,9 @@ public class Database
         foreach (var change in CurrentChangeset.Changes)
         {
             changedEntities.Add(change.EntityId);
-            if (change.PrevValue.Type == PropertyValue.ValueType.Ref && !change.PrevValue.Id.IsNull)
+            if (change.PrevValue.Type == PropertyValue.TypeRef && !change.PrevValue.Id.IsNull)
                 changedEntities.Add(change.PrevValue.Id);
-            if (change.NewValue.Type == PropertyValue.ValueType.Ref && !change.NewValue.Id.IsNull)
+            if (change.NewValue.Type == PropertyValue.TypeRef && !change.NewValue.Id.IsNull)
                 changedEntities.Add(change.NewValue.Id);
         }
         History?.Changesets?.Add(CurrentChangeset);
@@ -326,7 +326,7 @@ public class Database
                 foreach (var property in e.Properties)
                 {
                     if (property.Type != Database.PropType)
-                        Console.WriteLine($"  {Properties[(int)property.Type.Id]}: {printer.Print(property.Value, property.Type)}");
+                        Console.WriteLine($"  {Properties[(int)property.Type.Id].Name}: {printer.Print(property.Value, property.Type)}");
                         // Console.WriteLine($"  {FormatProperty(property)}");
                 }
         }
