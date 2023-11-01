@@ -8,7 +8,7 @@ internal class Program
         string line;
         string path = "w.sg";
         var (actions, props) = StoryParser.Parse(File.ReadAllText(path), out var errors);
-        var db = new Database(props, actions, 43);
+        var db = new Database(props, actions, 44);
         db.History = new();
         Console.WriteLine(StoryPrinter.Print(db.Effects, props));
         int prevAction = -1;
@@ -22,11 +22,15 @@ internal class Program
             "wedding",
             "make_item",
             "make_item",
+            "make_item",
+            "make_item",
+            "make_item",
             "couple_has_child",
-            "p",
-            "f",
-            "parent_dies",
-            "parent_dies",
+            "couple_has_child",
+            "couple_has_child",
+            // "parent_dies",
+            // "p",
+            // "f",
             
         });
            

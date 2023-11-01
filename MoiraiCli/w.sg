@@ -3,15 +3,16 @@ prop owner = entity
 prop partner = entity
 prop faction = entity
 prop parent = entity
+prop child = entity
 enum type = person, item, faction
 
 event inherit {
     when $p: type = "person", alive = false
-    each $c: type = "person", alive = true, $c.parent = $p {
-        each $i: type = "item", owner = $p {
+    each $i: type = "item", owner = $p {
+        pick $l: type = "link", $l.parent = $p 
+        pick $c: type = "person", alive = true, id = $l.child
             set $i.owner = $c
             format "{$c.name} inherits the {$i.name} from {$p.name}"
-        }
     }
 }
 
@@ -26,9 +27,13 @@ rule char_dies {
     format "{$p.name} dies"
 }
 rule parent_dies {
-    pick $p: type = "person", alive = true, parent = null
-    set $p.alive = false 
-    format "{$p.name} dies"
+    each $l: type = "link" {
+        pick $p: id = $l.parent, alive = true
+        pick $c: id = $l.child
+        set $p.alive = false 
+        format "{$p.name}, parent of {$c.name}, dies"
+
+    }
 }
 rule wedding {
     pick $x: type = "person", alive = true, partner = null
@@ -48,8 +53,13 @@ rule couple_has_child {
     pick $x: type = "person", alive = true, partner != null
     pick $y: type = "person", alive = true, partner = $x, id != $x
     create $c: "person"
-    set $c.parent = $x
     set $c.alive = true
+    create $l1: "link"
+    set $l1.parent = $x
+    set $l1.child = $c
+    create $l2: "link"
+    set $l2.parent = $y
+    set $l2.child = $c
     format "{$x.name} and {$y.name} have a child, {$c.name}"
 }
 rule make_item {

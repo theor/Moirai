@@ -1,6 +1,6 @@
 ﻿TODO
 - [ ] fix single parent
-- [ ] parse prop type and use it in printer, maybe in ops ?
+- [ ] parse prop type and use it in printer, maybe in operators ?
 - [ ] parse enums `enum job { farmer, smith }`, `set job = random(job)`
 - [ ] parse types ? either an enum or `type person { alive, age, job }
 FEATURES

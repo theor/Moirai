@@ -47,7 +47,7 @@ static class NameEntity
             case EntityType.Faction:
                 return "Faction of " + n;
             default:
-                throw new ArgumentOutOfRangeException(nameof(t), t, null);
+                return t.ToString();
         }
     }
 
