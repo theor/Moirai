@@ -107,11 +107,23 @@ public static class StoryParser
         public override object? VisitProp_definition(Moirai.Prop_definitionContext context)
         {
             var propName = context.ID(0).GetText();
-            if (_database.Properties.IndexOf(propName) != -1)
+            if (_database.GetProperty(propName).Id != 0)
                 return AddError(context.Start, $"Multiple definitions of the property '{propName}'");
 
-            _database.Properties.Add(propName);
+            PropertyValue.ValueType type = ParseType(context.ID(1));
+            _database.Properties.Add(new PropertyDefinition(propName, (uint)_database.Properties.Count, type));
             return null;
+        }
+        private PropertyValue.ValueType ParseType(ITerminalNode id)
+        {
+            switch (id.GetText())
+            {
+                case "bool": return PropertyValue.ValueType.Bool;
+                case "ref": return PropertyValue.ValueType.Ref;
+                case "number": return PropertyValue.ValueType.Number;
+                case "string": return PropertyValue.ValueType.String;
+                default: AddError(id.Symbol, $"Unknown type '{id.GetText()}'"); return PropertyValue.ValueType.None;
+            }
         }
         public override object? VisitEnum_definition(Moirai.Enum_definitionContext context)
         {
@@ -383,15 +395,13 @@ public static class StoryParser
                 throw new Exception("expected two parts, got " + context.ID().Length);
 
             var propertyName = context.ID(0).GetText();
-            var indexOf = _database.Properties.IndexOf(propertyName.ToLowerInvariant());
-            if (indexOf == -1)
+            var indexOf = _database.GetProperty(propertyName.ToLowerInvariant());
+            if (!indexOf.IsValid)
             {
                 AddError(context.ID(0).Symbol, $"Unknown property '{propertyName}'");
                 return default;
             }
-            PropertyId pid = new PropertyId((uint)indexOf);
-
-            return new PropertyPath(varIndex, pid);
+            return new PropertyPath(varIndex, indexOf);
         }
     }
 }

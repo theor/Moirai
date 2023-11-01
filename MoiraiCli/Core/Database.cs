@@ -53,17 +53,30 @@ public readonly struct EntityType
         Id = id;
     }
 }
+public readonly struct PropertyDefinition {
+public readonly string Name;
+public readonly uint Id;
+public readonly PropertyValue.ValueType Type;
+public PropertyDefinition(string name, uint id, PropertyValue.ValueType type)
+{
+    Name = name;
+    Id = id;
+    Type = type;
+}
+}
 public class Database
 {
     public static readonly PropertyId PropId = new PropertyId(1);
     public static readonly PropertyId PropType = new PropertyId(2);
     public static readonly PropertyId PropName = new PropertyId(3);
-    public static List<string> DefaultProperties()
+    public static List<PropertyDefinition> DefaultProperties()
     {
 
-        return new() { default!, "id", "type", "name" };
+        return new() { default!, new("id", 1, PropertyValue.ValueType.Ref),
+            new("type", 2, PropertyValue.ValueType.None),
+            new PropertyDefinition("name", 3, PropertyValue.ValueType.String), };
     }
-    public List<string> Properties = DefaultProperties();
+    public List<PropertyDefinition> Properties = DefaultProperties();
     private List<Entity> _entities = new() { default };
     internal List<Rule> Rules = new();
     public List<Action> Actions = new();
@@ -235,9 +248,9 @@ public class Database
         foreach (var change in CurrentChangeset.Changes)
         {
             changedEntities.Add(change.EntityId);
-            if (change.PrevValue.Type == PropertyValue.ValueType.EntityId && !change.PrevValue.Id.IsNull)
+            if (change.PrevValue.Type == PropertyValue.ValueType.Ref && !change.PrevValue.Id.IsNull)
                 changedEntities.Add(change.PrevValue.Id);
-            if (change.NewValue.Type == PropertyValue.ValueType.EntityId && !change.NewValue.Id.IsNull)
+            if (change.NewValue.Type == PropertyValue.ValueType.Ref && !change.NewValue.Id.IsNull)
                 changedEntities.Add(change.NewValue.Id);
         }
         History?.Changesets?.Add(CurrentChangeset);
@@ -326,14 +339,14 @@ public class Database
         for (var index = 1; index < Properties.Count; index++)
         {
             var property = Properties[index];
-            if (string.Equals(property, name, StringComparison.InvariantCultureIgnoreCase))
+            if (string.Equals(property.Name, name, StringComparison.InvariantCultureIgnoreCase))
                 return new PropertyId((uint)index);
         }
         return PropertyId.Null;
     }
     public string GetPropertyName(PropertyId prop)
     {
-        return Properties[(int)prop.Id];
+        return Properties[(int)prop.Id].Name;
     }
     public uint GetEntityType(string typeName)
     {

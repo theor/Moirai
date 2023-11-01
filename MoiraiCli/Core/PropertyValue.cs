@@ -25,7 +25,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
     {
         None,
         String,
-        EntityId,
+        Ref,
         Number,
         Bool,
     }
@@ -41,7 +41,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
     {
         Value = null,
         IntValue = i.Id,
-        Type = ValueType.EntityId,
+        Type = ValueType.Ref,
     };
     public static implicit operator PropertyValue(long i) => new PropertyValue
     {

@@ -21,10 +21,10 @@ public class StoryPrinter
             sb.AppendLine($"enum {en.Name} = {string.Join(", ", en.Values)}");
 
         }
-        foreach (string property in _database.Properties.Skip(Database.DefaultProperties().Count))
+        foreach (var property in _database.Properties.Skip(Database.DefaultProperties().Count))
         {
             // TODO types
-            sb.AppendLine($"prop {property} = bool");
+            sb.AppendLine($"prop {property.Name} = {Print(property.Type)}");
         }
         foreach (var action in _database.Actions)
         {
@@ -42,6 +42,10 @@ public class StoryPrinter
 
         }
         return sb.ToString();
+    }
+    private string Print(ValueType propertyType)
+    {
+        return propertyType.ToString().ToLowerInvariant();
     }
     private void PrintEffect(IEffect effect, StringBuilder sb, int indent)
     {
@@ -82,7 +86,7 @@ public class StoryPrinter
     private string GetPropertyName(PropertyId p)
     {
         if (p.IsValid && p.Id < _database.Properties.Count)
-            return _database.Properties[(int)p.Id];
+            return _database.Properties[(int)p.Id].Name;
 
         return "<??>";
     }
@@ -115,7 +119,7 @@ public class StoryPrinter
                 return "null";
             case PropertyValue.ValueType.String:
                 return $"\"{value.Value}\"";
-            case PropertyValue.ValueType.EntityId:
+            case PropertyValue.ValueType.Ref:
                 if (value.IntValue == 0)
                     return "null";
 
