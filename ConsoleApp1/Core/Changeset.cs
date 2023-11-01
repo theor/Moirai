@@ -48,7 +48,7 @@ public struct Change
         return new Change(ChangeType.Create, entityId, Database.PropId, name!, (int)type);
     }
 
-    public override string ToString()
+    public string ToString(Database db)
     {
         switch (Type)
         {
@@ -56,7 +56,7 @@ public struct Change
             case ChangeType.Create:
                 return $"CREATE {PrevValue.Value} {(EntityType)NewValue.IntValue} {EntityId}";
             case ChangeType.Set:
-                return $"SET {EntityId}.{Property}: {StoryPrinter.Print(PrevValue, Property)} -> {StoryPrinter.Print(NewValue, Property)}";
+                return $"SET {EntityId}.{db.GetPropertyName(Property)}: {StoryPrinter.Print(PrevValue, Property)} -> {StoryPrinter.Print(NewValue, Property)}";
             default:
                 throw new ArgumentOutOfRangeException();
         }

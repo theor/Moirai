@@ -266,7 +266,7 @@ rule create_faction {
         Assert.AreEqual(4, actions[0].Effects.Count);
         Database db = new Database(props, actions) { History = new()};
         db.RunAction(actions[0]);
-        StoryPrinter.PrintChangeset(db.History.Changesets[0], false);
+        StoryPrinter.PrintChangeset(db.History.Changesets[0], db, false);
         Console.WriteLine(db.History.Changesets[0].Description);
         Assert.AreEqual("River creates the Faction of Cerelia to counter the Faction of Hecate", db.History.Changesets[0].Description);
     }

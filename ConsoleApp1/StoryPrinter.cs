@@ -16,7 +16,7 @@ public static class StoryPrinter
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
             foreach (var when in action.Whens)
             {
-                sb.AppendLine($"  when {Print(when, properties)}");
+                sb.AppendLine($"  ${when.VariableIndex} = when {Print(when.Predicate, properties)}");
 
             }
             foreach (var effect in action.Effects)
@@ -120,7 +120,7 @@ public static class StoryPrinter
 
         }
     }
-    public static void PrintChangeset(Changeset cs, bool oneLine = true)
+    public static void PrintChangeset(Changeset cs, Database db, bool oneLine = true)
     {
         void write(string s)
         {
@@ -133,7 +133,7 @@ public static class StoryPrinter
         Console.ResetColor();
         foreach (var change in cs.Changes)
         {
-            write("  " + change);
+            write("  " + change.ToString(db));
         }
         if (oneLine)
             Console.WriteLine();

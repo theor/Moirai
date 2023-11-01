@@ -9,7 +9,7 @@ public class PredicateContext
     public PredicateContext(Database database)
     {
         Database = database;
-        Rnd = new Pcg32(42, 42);
+        Rnd = new Pcg32(43, 42);
     }
     public long EntityId => Values[^1].IntValue;
 
@@ -68,7 +68,11 @@ public class PredicateContext
         
         return false;
     }
-    public void PopArgument() => Values.RemoveAt(Values.Count - 1);
+    public int PopArgument()
+    {
+        Values.RemoveAt(Values.Count - 1);
+        return Values.Count;
+    }
     public PropertyValue Argument(int idx)
     {
         return Values[idx];
@@ -79,9 +83,11 @@ public class PredicateContext
             Values.Add(default);
         Values[argumentIndex] = value;
     }
-    public void PushArgument(long entity)
+    public int PushArgument(EntityId entity)
     {
+        int count = Values.Count;
         Values.Add(entity);
+        return count;
     }
     public PropertyValue GetValue(ComputedValue computedValue)
     {

@@ -15,6 +15,19 @@ internal class Program
         int historyCount = 0;
         Pcg32 rnd = new(32, 57);
 
+        Queue<string> replay = new(new[]
+        {
+            "char_born",
+            "char_born",
+            "wedding",
+            "make_item",
+            "make_item",
+            "couple_has_child",
+            "parent_dies",
+            
+        });
+           
+
         while (true)
         {
             Console.WriteLine("-----------------");
@@ -24,7 +37,7 @@ internal class Program
                 Console.WriteLine($"  {index:00} {action.Name}");
             }
             Console.Write("> ");
-            line = Console.ReadLine() ?? "";
+            line = replay.TryDequeue(out var l) ? l : Console.ReadLine() ?? "";
             if (line == "qq")
                 break;
 
@@ -41,7 +54,7 @@ internal class Program
             {
                 foreach (var cs in db.History.Changesets)
                 {
-                    StoryPrinter.PrintChangeset(cs);
+                    StoryPrinter.PrintChangeset(cs, db);
                 }
             }
             else if (line == "f")
@@ -57,18 +70,29 @@ internal class Program
                     RunRandomAction(db, rnd);
                 else
                     db.RunAction(db.Effects[prevAction]);
-                db.PrintDb();
+                // db.PrintDb();
             }
             else if (int.TryParse(line, out var i) && i >= 0 && i < db.Effects.Count)
             {
                 prevAction = i;
                 db.RunAction(db.Effects[i]);
-                db.PrintDb();
+                // db.PrintDb();
+            }
+            else
+            {
+                foreach (var a in actions)
+                {
+                    if (a.Name == line)
+                    {
+                        db.RunAction(a);
+                        break;
+                    }
+                }
             }
             while (historyCount < db.History.Changesets.Count)
             {
                 var cs = db.History.Changesets[historyCount++];
-                StoryPrinter.PrintChangeset(cs);
+                StoryPrinter.PrintChangeset(cs, db, false);
             }
 
         }

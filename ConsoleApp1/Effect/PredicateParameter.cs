@@ -32,6 +32,7 @@ public enum CallType
     None,
     Pick,
     Each,
+    When
 }
 public struct AssignPick : IEffect
 {

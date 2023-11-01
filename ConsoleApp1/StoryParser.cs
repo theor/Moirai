@@ -119,13 +119,20 @@ public static class StoryParser
             }
             return null;
         }
-        private IPredicate ParseWhen(Moirai.WhenContext context)
+        private AssignPick ParseWhen(Moirai.WhenContext context)
         {
             var exprs = context.expr();
             var predicate = exprs.Length == 1
                 ? ParseExpr(exprs[0])!
                 : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList());
-            return predicate;
+            var variableIndex = 0;
+            if(context.VAR_ID() != null)
+            {
+                if (!DeclareVar(context.VAR_ID().GetText(), context.VAR_ID().Symbol, out variableIndex))
+                {
+                }
+            }
+            return new AssignPick(variableIndex, predicate, CallType.When);
         }
         public override object? VisitWhen(Moirai.WhenContext context)
         {
@@ -184,18 +191,30 @@ public static class StoryParser
         public override object? VisitAssign(Moirai.AssignContext context)
         {
             var variable = context.VAR_ID().GetText();
-            if (_variables.IndexOf(variable) != -1)
-                return AddError(context.Start, " Duplicate variable " + variable);
+            if (!DeclareVar(variable, context.Start, out var varIndex))
+                return null;
 
-            _variables.Add(variable);
-
-            IEffect callEffect = ParseCall(context.call(), _variables.Count - 1);
+            IEffect callEffect = ParseCall(context.call(), varIndex);
             if (callEffect is FormatAction)
                 throw new System.NotImplementedException("format call return value cannot be assigned");
 
             Actions.Last().Effects.Add(callEffect);
             //Console.WriteLine("  Assign " + context.VAR_ID());
             return null;
+        }
+        private bool DeclareVar(string variable, IToken contextStart, out int varIndex)
+        {
+
+            if (_variables.IndexOf(variable) != -1)
+            {
+                AddError(contextStart, " Duplicate variable " + variable);
+                varIndex = 0;
+                return false;
+            }
+
+            _variables.Add(variable);
+            varIndex = _variables.Count - 1;
+            return true;
         }
         private IEffect ParseCall(Moirai.CallContext context, int variableIndex)
         {

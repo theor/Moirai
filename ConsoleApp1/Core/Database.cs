@@ -220,9 +220,10 @@ public class Database
             if (change.NewValue.Type == PropertyValue.ValueType.EntityId && !change.NewValue.Id.IsNull)
                 changedEntities.Add(change.NewValue.Id);
         }
-        RunEvents(changedEntities);
         CurrentChangeset.Description = CreateDescription(action);
         History?.Changesets?.Add(CurrentChangeset);
+        RunEvents(changedEntities);
+
         return true;
         // if (_ctx.Query(effect.If, out var v))
         // {
@@ -235,16 +236,21 @@ public class Database
     {
         foreach (var entity in changedEntities)
         {
+            while (_ctx.PopArgument() > 0){}
             // TODO BUG
-            // _ctx.SetArgument(0, entity);
+            _ctx.PushArgument(entity);
             foreach (var @event in Events)
             {
-                if(@event.Whens.All(p => p.IsTrue(_ctx)))
-                    for (var i = 0; i < @event.Effects.Count; i++)
-                    {
-                        @event.Effects[i].MakeTrue(_ctx);
-                    }
-            }            
+                if(@event.Whens.All(p => p.Predicate.IsTrue(_ctx)))
+                {
+                    CurrentChangeset = new(@event.Name);
+                    
+                        if(!@event.Effects.All(e => e.MakeTrue(_ctx)))
+                            continue;
+                    CurrentChangeset.Description = CreateDescription(@event);
+                    History?.Changesets?.Add(CurrentChangeset);
+                }
+            }
         }
 
     }
@@ -301,5 +307,9 @@ public class Database
                 return new PropertyId((uint)index);
         }
         return PropertyId.Null;
+    }
+    public string GetPropertyName(PropertyId prop)
+    {
+        return Properties[(int)prop.Id];
     }
 }

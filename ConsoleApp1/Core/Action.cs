@@ -4,7 +4,7 @@
     public readonly bool IsEvent;
 
     public readonly List<IEffect> Effects;
-    public readonly List<IPredicate> Whens;
+    public readonly List<AssignPick> Whens;
     public readonly List<FormatAction> Formats;
     // public Action(string name, IPredicate? @if, IEffect then)
     // {
