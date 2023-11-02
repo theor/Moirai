@@ -38,11 +38,25 @@ public readonly struct EnumDefinition
     public readonly string Name;
     public readonly List<string> Values;
     public readonly ushort Index;
+    public PropertyValue.ValueType ValueType => PropertyValue.TypeEnum(Index);
     public EnumDefinition(ushort index, string name, List<string> values)
     {
         Name = name;
         Values = values;
         Index = index;
+    }
+    public bool GetValueFromName(string valueName, out PropertyValue propertyValue)
+    {
+        for (int i = 0; i < Values.Count; i++)
+        {
+            if (Values[i] == valueName)
+            {
+                propertyValue = new PropertyValue { IntValue = i, Type = ValueType };
+                return true;
+            }
+        }
+        propertyValue = default;
+        return false;
     }
 }
 public readonly struct EntityType
@@ -379,6 +393,16 @@ public class Database
         }
         enumDefinition = default;
         return false;
+    }
+    public bool GetPropertyType(PropertyId type, out PropertyValue.ValueType valueType)
+    {
+        if (!type.IsValid || type.Id >= Properties.Count)
+        {
+            valueType = default;
+            return false;
+        }
+        valueType = Properties[(int)type.Id].Type;
+        return true;
     }
 }
 

@@ -129,6 +129,9 @@ public class StoryPrinter
 
         switch (value.Type.BaseType)
         {
+            case PropertyValue.ValueBaseType.Enum:
+                var e = _database.Enums[value.Type.Index];
+                return $"\"{e.Values[(int)value.IntValue]}\"";
             case PropertyValue.ValueBaseType.None:
                 return "null";
             case PropertyValue.ValueBaseType.String:

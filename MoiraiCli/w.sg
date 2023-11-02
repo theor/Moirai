@@ -33,7 +33,7 @@ rule char_dies {
     set $p.alive = false 
     format "{$p.name} dies"
 }
-rule parent_dies {
+rule _parent_dies {
     each $l: type = "link" {
         pick $p: id = $l.parent, alive = true
         pick $c: id = $l.child

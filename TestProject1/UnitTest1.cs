@@ -276,6 +276,54 @@ rule char_dies {
        
     }
     [Test]
+    public void Prop_Enum()
+    {
+        string s = @"
+entity person {}
+enum Job = None, Farmer, Smith
+prop job = Job
+
+rule create {
+    create ""person""
+    set job = ""Farmer""
+}
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.PrintDb();
+        var e = db.Entities.Single();
+        PropertyId jobProp = db.GetProperty("job");
+        var value = e.GetProperty(jobProp);
+        Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
+        Assert.AreEqual(enumDefinition.ValueType, value.Type);
+        Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
+        Assert.AreEqual(1, value.IntValue);
+    }
+    [Test]
+    public void AssignRandomEnum()
+    {
+        string s = @"
+entity person {}
+enum Job = None, Farmer, Smith
+prop job = Job
+
+rule create {
+    create ""person""
+    set job = random Job
+}
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.PrintDb();
+        var e = db.Entities.Single();
+        PropertyId jobProp = db.GetProperty("job");
+        var value = e.GetProperty(jobProp);
+        Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
+        Assert.AreEqual(enumDefinition.ValueType, value.Type);
+        Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
+        Assert.AreEqual(1, value.IntValue);
+    }
+    [Test]
     public void AssignCreate()
     {
         var s = @"

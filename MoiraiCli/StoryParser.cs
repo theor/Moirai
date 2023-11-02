@@ -210,37 +210,53 @@ public static class StoryParser
         }
         private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyId type)
         {
-            ComputedValue pp;
-            if (value.NULL() != null)
-                pp = new ComputedValue((PropertyValue)EntityId.Null);
-            else if (value.@string() != null)
+            if(!_database.GetPropertyType(type, out PropertyValue.ValueType valueType))
             {
-                if (type == Database.PropType)
-                {
-                    var typeId = _database.GetEntityType(value.@string().GetString());
-                    
-                    if (typeId == 0)
-                        throw new System.NotImplementedException("unknown type " + value.@string().GetText());
-                    pp = new ComputedValue(typeId);
-                }
-                else
-                    pp = new ComputedValue(value.@string().STRING().GetText());
+                AddError(value.Start, "Property has no type");
+                return default;
             }
-            else if (value.path() != null)
+            
+            // TODO use proper EntityType type
+            if (type == Database.PropType)
+            {
+                var typeId = _database.GetEntityType(value.@string().GetString());
+                    
+                if (typeId == 0)
+                    throw new System.NotImplementedException("unknown type " + value.@string().GetText());
+                return new ComputedValue(typeId);
+            }
+            if (value.path() != null)
             {
                 PropertyPath path = ParsePath(value.path());
-                pp = new ComputedValue(path);
-
-
+                return new ComputedValue(path);
             }
-            else if (value.@bool() != null)
-                pp = (ComputedValue)(PropertyValue)(value.@bool().GetText() == "true");
-            else if (value.number() != null)
-                pp = (ComputedValue)(PropertyValue)(int.Parse(value.number().GetText()));
-            else
-                throw new System.NotImplementedException(value.GetText());
+            switch (valueType.BaseType)
+            {
+                case PropertyValue.ValueBaseType.String:
+                    return new ComputedValue(value.@string().STRING().GetText());
+                case PropertyValue.ValueBaseType.Ref:
+                    if (value.NULL() != null)
+                        return new ComputedValue((PropertyValue)EntityId.Null);
+                    throw new System.NotImplementedException("Literal ref not supported");
+                case PropertyValue.ValueBaseType.Number:
+                    return (ComputedValue)(PropertyValue)int.Parse(value.number().GetText());
+                case PropertyValue.ValueBaseType.Bool:
+                    return (ComputedValue)(PropertyValue)(value.@bool().GetText() == "true");
+                case PropertyValue.ValueBaseType.Enum:
+                    if (value.@string() != null)
+                    {
+                        if(!_database.Enums[valueType.Index].GetValueFromName(value.@string().GetString(), out PropertyValue v))
+                            throw new System.NotImplementedException($"Unknown enum value '{value.@string().GetString()}' in enum {_database.Enums[valueType.Index].Name}");
 
-            return pp;
+                        return new ComputedValue(v);
+                    }
+                    throw new System.NotImplementedException();
+                case PropertyValue.ValueBaseType.EntityType:
+                    throw new System.NotImplementedException();
+                case PropertyValue.ValueBaseType.None:
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
         private bool DeclareVar(string variable, IToken contextStart, out int varIndex)
         {
@@ -338,12 +354,10 @@ public static class StoryParser
             string? op = context.op().GetText();
             // left, alive
             var left = context.value(0);
-            ComputedValue leftValue = ParseComputedValue(left, PropertyId.Null);
-            if (leftValue.Type != ComputedValue.ComputedValueType.Path)
-                throw new System.NotImplementedException();
+            var leftPath = ParsePath(left.path());
 
             // right, true or $x -  not alive or $x.alive
-            ComputedValue rightValue = ParseComputedValue(context.value(1), leftValue.Path.Property);
+            ComputedValue rightValue = ParseComputedValue(context.value(1), leftPath.Property);
 
             PropertyOperator.Operator pop;
             switch (op)
@@ -356,7 +370,7 @@ public static class StoryParser
                     break;
                 default: return (IPredicate?)AddError(context.Start, "Unknown Expr op: " + op);
             }
-            return new PropertyOperator(pop, leftValue.Path.Property, rightValue);
+            return new PropertyOperator(pop, leftPath.Property, rightValue);
         }
         private object? AddError(IToken loc, string msg)
         {

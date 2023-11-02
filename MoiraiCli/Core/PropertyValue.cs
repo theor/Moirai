@@ -61,6 +61,11 @@ public struct PropertyValue : IEquatable<PropertyValue>
         {
             return !left.Equals(right);
         }
+
+        public override string ToString()
+        {
+            return $"{BaseType}:{Index}";
+        }
     }
     public enum ValueBaseType : byte
     {
