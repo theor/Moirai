@@ -26,7 +26,7 @@ public class StoryPrinter
             // TODO types
             sb.AppendLine($"prop {property.Name} = {Print(property.Type)}");
         }
-        foreach (var action in _database.Actions)
+        foreach (var action in _database.Actions.Concat(_database.Events))
         {
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
             foreach (var when in action.Whens)
@@ -151,6 +151,8 @@ public class StoryPrinter
                 return Print(path);
             case RandomCall rnd:
                 return "random " + _database.Enums[rnd.EnumID].Name;
+            case YearsPassed y:
+                return "(passed_years " + y.Years + ")";
            
             case And and:
                 return string.Join(", ", and.Predicates.Select(Print));

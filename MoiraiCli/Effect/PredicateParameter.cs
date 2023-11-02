@@ -32,6 +32,19 @@ public struct PropertyPath : IValue
         return e.GetProperty(Property);
     }
 }
+public struct YearsPassed : IValue
+{
+    public readonly int Years;
+    public YearsPassed(int years)
+    {
+        Years = years;
+
+    }
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+}
 public struct RandomCall : IValue
 {
     public readonly ushort EnumID;

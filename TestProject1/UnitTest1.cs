@@ -21,7 +21,9 @@ public class Tests
             var reparsed = StoryParser.Parse(printed, out var errors2);
             Assert.AreEqual(errorCount, errors2.Count, "During reparse: " + string.Join(", ", errors2));
             Console.WriteLine("### REPRINT 2");
-            Console.WriteLine(reparsed.Printer.Print());
+            var print2 = reparsed.Printer.Print();
+            Console.WriteLine(print2);
+            Assert.AreEqual(printed, print2);
         }
         return db;
     }
@@ -172,6 +174,37 @@ event on_death {
         PropertyId propTest = db.GetProperty("test");
         Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
     }
+    
+    [Test]
+    public void Event2()
+    {
+        var s = @"
+entity Person {}
+entity Item {}
+entity Link {}
+prop alive = bool
+prop child = ref
+prop parent = ref
+prop owner = ref
+
+event inherit {
+    when $p: type = Person, alive = false
+    each $i: type = Item, owner = $p {
+        pick $l: type = Link, $l.parent = $p 
+        pick $c: type = Person, alive = true, id = $l.child
+            set $i.owner = $c
+            format ""{$c.name} inherits the {$i.name} from {$p.name}""
+    }
+}";
+        var db  = Run(s, out _, 0);
+        Assert.AreEqual(1, db.Events.Count);
+
+        // db.RunAction(db.Events[0]);
+        db.PrintDb();
+        // Entity e = db.Entities.Single();
+        // PropertyId propTest = db.GetProperty("test");
+        // Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
+    }
     [Test]
     public void Test3()
     {
@@ -286,8 +319,11 @@ rule char_dies {
         Assert.IsTrue(File.Exists(path));
         var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
         Console.WriteLine("------------------");
-        Console.WriteLine(db.Printer.Print());
+        var format = db.Printer.Print();
+        Console.WriteLine(format);
         Assert.AreEqual(0, errors.Count, string.Join(", ", errors));
+        var db2 = StoryParser.Parse(format, out var errors2);
+        Assert.AreEqual(0, errors2.Count, string.Join(", ", errors2));
  
     }
     
@@ -437,7 +473,7 @@ rule born {
 }
 
 event grow {
-    when passed_years 20 = true
+    when (passed_years 20) = true
     each $p: type=Person, alive = true, age = 'Child' {
         set age = 'Young'
     }
@@ -445,6 +481,26 @@ event grow {
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
+        db.PrintDb();
+    }
+
+    [Test]
+    public void Time2()
+    {
+        var s = @"
+entity Person {}
+enum Age { Child, Young, Adult, Old }
+prop age = Age
+
+event grow {
+    when true
+    each $p: type=Person, age = 'Child' {
+        set age = 'Young'
+    }
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        db.RunAction(db.Events[0]);
         db.PrintDb();
     }
 }
