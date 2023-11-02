@@ -19,7 +19,9 @@ public static class StoryParser
         UnknownPropertyType,
         UnknownEnumValue,
         DuplicateVariableDefinition,
-        MissingEachScope
+        MissingEachScope,
+        UnknownEnum,
+        TypeNameMustStartWithUpperCase
     }
     public struct Error
     {
@@ -109,7 +111,9 @@ public static class StoryParser
 
         public override object? VisitType_definition(Moirai.Type_definitionContext context)
         {
-            var typeName = context.ID().GetText();
+            if (context.TYPE_ID() == null)
+                return AddError(ErrorCode.TypeNameMustStartWithUpperCase, context.Start, context.GetText());
+            var typeName = context.TYPE_ID().GetText();
             DeclareEntityType(typeName);
             return null;
         }
@@ -126,7 +130,7 @@ public static class StoryParser
             if (_database.GetProperty(propName).Id != 0)
                 return AddError(ErrorCode.DuplicatePropertyDefinition,  context.Start, propName);
 
-            PropertyValue.ValueType type = ParseType(context.ID(1));
+            PropertyValue.ValueType type = ParseType(context.ID(1) ?? context.TYPE_ID());
             _database.Properties.Add(new PropertyDefinition(propName, (uint)_database.Properties.Count, type));
             return null;
         }
@@ -147,7 +151,7 @@ public static class StoryParser
         }
         public override object? VisitEnum_definition(Moirai.Enum_definitionContext context)
         {
-            EnumDefinition en = new((ushort)_database.Enums.Count, context.ID(0).GetText(), context.ID().Skip(1).Select(v => v.GetText()).ToList());
+            EnumDefinition en = new((ushort)_database.Enums.Count, context.TYPE_ID(0).GetText(), context.TYPE_ID().Skip(1).Select(v => v.GetText()).ToList());
             _database.Enums.Add(en);
             return null;
         }
@@ -184,10 +188,10 @@ public static class StoryParser
             }
             return null;
         }
-        private IEffect ParseEffect(Moirai.EffectContext effectContext)
+        private IInstruction ParseEffect(Moirai.EffectContext effectContext)
         {
-            if (effectContext.call() != null)
-                return ParseCall(effectContext.call());
+            if (effectContext.call_assign() != null)
+                return ParseCall(effectContext.call_assign());
 
             return ParseSet(effectContext.set());
         }
@@ -196,7 +200,7 @@ public static class StoryParser
             var exprs = context.expr();
             var predicate = exprs.Length == 1
                 ? ParseExpr(exprs[0])!
-                : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList());
+                : new And(exprs.Select(x => ParseExpr(x)).Where(e => e != null).Cast<IValue>().ToList());
             var variableIndex = 0;
             if (context.VAR_ID() != null)
             {
@@ -214,80 +218,129 @@ public static class StoryParser
         public override object? VisitSet(Moirai.SetContext context)
         {
             throw new System.NotImplementedException();
-            //Console.WriteLine($"  Set {context.path().GetText()} = {context.value().GetText()}");
 
             return null;
         }
         private SetProperty ParseSet(Moirai.SetContext context)
         {
             var left = ParsePath(context.path());
-            var right = ParseComputedValue(context.value(), left.Property);
+            var right = ParseExpr(context.expr());//, left.Property);
             return new SetProperty(left, right);
         }
-        private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyId type)
+        private IValue ParseValue(Moirai.ValueContext value)
         {
-            if(!type.IsValid || !_database.GetPropertyType(type, out PropertyValue.ValueType valueType))
+            if (value.TYPE_ID() != null)
             {
-                throw new Exception("Property has no type");
+                var type = _database.GetEntityType(value.TYPE_ID().GetText());
+                if(!type.Id.IsValid)
+                    AddError(ErrorCode.UnknownPropertyType, value.Start, value.TYPE_ID().GetText());
+                return new Literal(type.Id);
             }
-            
-            // TODO use proper EntityType type
-            if (type == Database.PropType)
+            if (value.call() != null)
             {
-                var typeId = _database.GetEntityType(value.@string().GetString());
-                    
-                if (typeId == 0)
-                   AddError( ErrorCode.UnknownPropertyType,  value.Start, value.@string().GetText());
-                return new ComputedValue(typeId);
-            }
-            // TODO only call in value
-            if (value.call()?.ID()?.GetText() == "random")
-            {
-                if(valueType.BaseType == PropertyValue.ValueBaseType.Enum)
+                var call = value.call();
+                if (call.ID()?.GetText() == "random")
                 {
-                    var enumDef = _database.Enums[valueType.Index];
-                    return new ComputedValue(enumDef);
+                        if (!_database.GetEnumDefinition(call.expr(0).GetText(), out var enumDef))
+                            return (AddError(ErrorCode.UnknownEnum, call.expr(0).Start, call.expr(0).GetText()) as IValue)!;
+                        return new RandomCall(enumDef.Index);
                 }
                 AddError(ErrorCode.UnknownCall, value.Start, "Random only supported for enums");
-                return default;
-                // switch (valueType.BaseType)
-                // {
-                //     case PropertyValue.ValueBaseType.Enum
-                // }
+                return default!;
             }
             if (value.path() != null)
             {
                 PropertyPath path = ParsePath(value.path());
-                return new ComputedValue(path);
+                return path;
             }
-            switch (valueType.BaseType)
-            {
-                case PropertyValue.ValueBaseType.String:
-                    return new ComputedValue(value.@string().STRING().GetText());
-                case PropertyValue.ValueBaseType.Ref:
-                    if (value.NULL() != null)
-                        return new ComputedValue((PropertyValue)EntityId.Null);
-                    throw new System.NotImplementedException("Literal ref not supported");
-                case PropertyValue.ValueBaseType.Number:
-                    return (ComputedValue)(PropertyValue)int.Parse(value.number().GetText());
-                case PropertyValue.ValueBaseType.Bool:
-                    return (ComputedValue)(PropertyValue)(value.@bool().GetText() == "true");
-                case PropertyValue.ValueBaseType.Enum:
-                    if (value.@string() != null)
-                    {
-                        if(!_database.Enums[valueType.Index].GetValueFromName(value.@string().GetString(), out PropertyValue v))
-                            AddError(ErrorCode.UnknownEnumValue,  value.Start, $"'{value.@string().GetString()}' in enum {_database.Enums[valueType.Index].Name}");
+            
+            if(value.@string() != null)
+                return new Literal(value.@string().STRING().GetText());
+            if (value.NULL() != null)
+                return new Literal(EntityId.Null);
+            if(value.number() != null)
+                return new Literal(int.Parse(value.number().GetText()));
+            if(value.@bool() != null)
+                return new Literal(value.@bool().TRUE() != null);
 
-                        return new ComputedValue(v);
-                    }
-                    throw new System.NotImplementedException();
-                case PropertyValue.ValueBaseType.EntityType:
-                    throw new System.NotImplementedException();
-                case PropertyValue.ValueBaseType.None:
-                default:
-                    throw new ArgumentOutOfRangeException();
+            if (value.enum_value() != null)
+            {
+                var enumType = value.enum_value().TYPE_ID(0);
+                if (!_database.GetEnumDefinition(enumType.GetText(), out var enumDef))
+                    return (AddError(ErrorCode.UnknownEnum, enumType.Symbol, enumType.GetText()) as IValue)!;
+
+                var enumValue = value.enum_value().TYPE_ID(1);
+                if (!enumDef.GetValueFromName(enumValue.GetText(), out var val))
+                    return (AddError(ErrorCode.UnknownEnumValue, enumValue.Symbol, enumValue.GetText() + " in enum " + enumDef.Name) as IValue)!;
+
+                return new Literal(val);
             }
+            throw new ArgumentOutOfRangeException();
         }
+        // private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyId type)
+        // {
+        //     if(!type.IsValid || !_database.GetPropertyType(type, out PropertyValue.ValueType valueType))
+        //     {
+        //         throw new Exception("Property has no type");
+        //     }
+        //     
+        //     // TODO use proper EntityType type
+        //     if (type == Database.PropType)
+        //     {
+        //         var typeId = _database.GetEntityType(value.@string().GetString());
+        //             
+        //         if (typeId == 0)
+        //            AddError( ErrorCode.UnknownPropertyType,  value.Start, value.@string().GetText());
+        //         return new ComputedValue(typeId);
+        //     }
+        //     // TODO only call in value
+        //     if (value.call()?.ID()?.GetText() == "random")
+        //     {
+        //         if(valueType.BaseType == PropertyValue.ValueBaseType.Enum)
+        //         {
+        //             var enumDef = _database.Enums[valueType.Index];
+        //             return new ComputedValue(enumDef);
+        //         }
+        //         AddError(ErrorCode.UnknownCall, value.Start, "Random only supported for enums");
+        //         return default;
+        //         // switch (valueType.BaseType)
+        //         // {
+        //         //     case PropertyValue.ValueBaseType.Enum
+        //         // }
+        //     }
+        //     if (value.path() != null)
+        //     {
+        //         PropertyPath path = ParsePath(value.path());
+        //         return new ComputedValue(path);
+        //     }
+        //     switch (valueType.BaseType)
+        //     {
+        //         case PropertyValue.ValueBaseType.String:
+        //             return new ComputedValue(value.@string().STRING().GetText());
+        //         case PropertyValue.ValueBaseType.Ref:
+        //             if (value.NULL() != null)
+        //                 return new ComputedValue((PropertyValue)EntityId.Null);
+        //             throw new System.NotImplementedException("Literal ref not supported");
+        //         case PropertyValue.ValueBaseType.Number:
+        //             return (ComputedValue)(PropertyValue)int.Parse(value.number().GetText());
+        //         case PropertyValue.ValueBaseType.Bool:
+        //             return (ComputedValue)(PropertyValue)(value.@bool().GetText() == "true");
+        //         case PropertyValue.ValueBaseType.Enum:
+        //             if (value.@string() != null)
+        //             {
+        //                 if(!_database.Enums[valueType.Index].GetValueFromName(value.@string().GetString(), out PropertyValue v))
+        //                     AddError(ErrorCode.UnknownEnumValue,  value.Start, $"'{value.@string().GetString()}' in enum {_database.Enums[valueType.Index].Name}");
+        //
+        //                 return new ComputedValue(v);
+        //             }
+        //             throw new System.NotImplementedException();
+        //         case PropertyValue.ValueBaseType.EntityType:
+        //             throw new System.NotImplementedException();
+        //         case PropertyValue.ValueBaseType.None:
+        //         default:
+        //             throw new ArgumentOutOfRangeException();
+        //     }
+        // }
         private bool DeclareVar(string variable, IToken contextStart, out int varIndex)
         {
 
@@ -302,7 +355,7 @@ public static class StoryParser
             varIndex = _variables.Count - 1;
             return true;
         }
-        private IEffect ParseCall(Moirai.CallContext context)
+        private IInstruction ParseCall(Moirai.Call_assignContext context)
         {
             int variableIndex = _variables.Count;
             if (context.VAR_ID() != null)
@@ -324,7 +377,7 @@ public static class StoryParser
                         variableIndex,
                         exprs.Length == 1
                             ? ParseExpr(exprs[0])!
-                            : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList()),
+                            : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
                         CallType.Each,
                         scopeEffects);
                 }
@@ -335,15 +388,15 @@ public static class StoryParser
                         variableIndex,
                         exprs.Length == 1
                             ? ParseExpr(exprs[0])!
-                            : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IPredicate>().ToList()),
+                            : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
                         CallType.Pick);
                 }
                 case "create":
                     var type = context.expr(0).GetText().TrimQuotes();
                     var typeId = _database.GetEntityType(type);
-                    if (typeId == 0)
+                    if (typeId.Id == EntityTypeId.Null)
                         throw new Exception($"Unknown entity type '{type}'");
-                    return new CreateEntity(variableIndex, typeId);
+                    return new CreateEntity(variableIndex, typeId.Id);
                 case "format":
                     var str = context.expr(0).value(0).@string().GetString();
                     List<PropertyPath> paths = new();
@@ -377,30 +430,36 @@ public static class StoryParser
                     return new FormatAction(result, paths.ToArray());
             }
 
-            return (AddError(ErrorCode.UnknownCall, context.Start, funcName) as IEffect)!;
+            return (AddError(ErrorCode.UnknownCall, context.Start, funcName) as IInstruction)!;
         }
-        private IPredicate? ParseExpr(Moirai.ExprContext context)
+        private IValue? ParseExpr(Moirai.ExprContext context)
         {
+            if (context.op() == null)
+            {
+                return ParseValue(context.value(0));
+                // ComputedValue v = ParseValue(context.value(0), PropertyValue.TypeBool);
+
+            }
             string? op = context.op().GetText();
             // left, alive
             var left = context.value(0);
             var leftPath = ParsePath(left.path());
 
             // right, true or $x -  not alive or $x.alive
-            ComputedValue rightValue = ParseComputedValue(context.value(1), leftPath.Property);
+            IValue rightValue = ParseValue(context.value(1));
 
-            PropertyOperator.Operator pop;
+            BinaryOperator.Operator pop;
             switch (op)
             {
                 case "=":
-                    pop = PropertyOperator.Operator.Equals;
+                    pop = BinaryOperator.Operator.Equals;
                     break;
                 case "!=":
-                    pop = PropertyOperator.Operator.NotEquals;
+                    pop = BinaryOperator.Operator.NotEquals;
                     break;
-                default: return (IPredicate?)AddError(ErrorCode.UnknownExpressionOperator,  context.Start, op);
+                default: return (IValue?)AddError(ErrorCode.UnknownExpressionOperator,  context.Start, op);
             }
-            return new PropertyOperator(pop, leftPath.Property, rightValue);
+            return new BinaryOperator(pop, leftPath, rightValue);
         }
         private object? AddError(ErrorCode code, IToken loc, string msg)
         {

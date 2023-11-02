@@ -1,13 +1,17 @@
-﻿public class And : IPredicate
+﻿public class And : IValue
 {
-    public List<IPredicate> Predicates = new();
-    public And(params IPredicate[] predicates)
+    public List<IValue> Predicates = new();
+    public And(params IValue[] predicates)
     {
         Predicates.AddRange(predicates);
     }
-    public And(List<IPredicate> predicates)
+    public And(List<IValue> predicates)
     {
         Predicates.AddRange(predicates);
+    }
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
     }
     public bool IsTrue(PredicateContext ctx)
     {

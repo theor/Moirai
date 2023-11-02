@@ -1,6 +1,6 @@
 ﻿using Pcg.Core;
 
-public class FormatAction : IEffect
+public class FormatAction : IInstruction
 {
     public readonly string FormatString;
     public PropertyPath[] Arguments;
@@ -9,23 +9,23 @@ public class FormatAction : IEffect
         FormatString = formatString;
         Arguments = arguments;
     }
-    public bool MakeTrue(PredicateContext ctx)
+    public bool Execute(PredicateContext ctx)
     {
         ctx.Format(this);
         return true;
     }
 }
 
-class CreateEntity : IEffect
+class CreateEntity : IInstruction
 {
     public readonly int VariableIndex;
-    public uint Type;
-    public CreateEntity(int variableIndex, uint type)
+    public EntityTypeId Type;
+    public CreateEntity(int variableIndex, EntityTypeId type)
     {
         VariableIndex = variableIndex;
         Type = type;
     }
-    public bool MakeTrue(PredicateContext ctx)
+    public bool Execute(PredicateContext ctx)
     {
         // if (!ctx.Database.EntityExists(ctx.EntityId))
         string name = NameEntity.MakeName(ctx, Type);

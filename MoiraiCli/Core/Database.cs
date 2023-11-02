@@ -67,12 +67,28 @@ public readonly struct EnumDefinition
 public readonly struct EntityType
 {
     public readonly string Name;
-    public readonly uint Id;
+    public readonly EntityTypeId Id;
     public EntityType(string name, uint id)
     {
         Name = name;
+        Id = new EntityTypeId(id);
+    }
+}
+public readonly struct EntityTypeId : IEquatable<EntityTypeId>
+{
+    public readonly uint Id;
+    public static readonly EntityTypeId Null = new EntityTypeId(0);
+    public EntityTypeId( uint id)
+    {
         Id = id;
     }
+    public bool IsValid => Id != 0;
+
+    public bool Equals(EntityTypeId other) => Id == other.Id;
+    public override bool Equals(object? obj) => obj is EntityTypeId other && Equals(other);
+    public override int GetHashCode() => (int)Id;
+    public static bool operator ==(EntityTypeId left, EntityTypeId right) => left.Equals(right);
+    public static bool operator !=(EntityTypeId left, EntityTypeId right) => !left.Equals(right);
 }
 public readonly struct PropertyDefinition {
 public readonly string Name;
@@ -118,12 +134,12 @@ public class Database
     //     return Properties.Count - 1;
     // }
 
-    public EntityId AllocateEntity(uint entityType, string? name = null)
+    public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
     {
         Entity e = new();
 
         e.Properties = new();
-        e.Properties.Add(new Property(PropType, (int)entityType));
+        e.Properties.Add(new Property(PropType, entityType));
         if(name != null)
             e.Properties.Add(new Property(PropName, name));
         e.Id = new EntityId((long)_entities.Count);
@@ -254,7 +270,7 @@ public class Database
             if (e is AssignPick { VariableIndex: -1 })
                 throw new System.NotImplementedException("Arg index -1 on p " + index);
 
-            if (!e.MakeTrue(_ctx))
+            if (!e.Execute(_ctx))
             {
                 if (CurrentChangeset.Changes.Count != 0)
                 {
@@ -294,11 +310,11 @@ public class Database
             _ctx.PushArgument(entity);
             foreach (var @event in Events)
             {
-                if(@event.Whens.All(p => p.Predicate.IsTrue(_ctx)))
+                if(@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                 {
                     CurrentChangeset = new(@event.Name);
                     
-                        if(!@event.Effects.All(e => e.MakeTrue(_ctx)))
+                        if(!@event.Effects.All(e => e.Execute(_ctx)))
                             continue;
                     History?.Changesets?.Add(CurrentChangeset);
                 }
@@ -319,7 +335,7 @@ public class Database
     private string? FormatDescription(FormatAction formatAction)
     {
         var printer = new StoryPrinter(this);
-        var propertyValues = formatAction.Arguments.Select(path => printer.Print(_ctx.GetValue(new ComputedValue(path)), path.Property)).Cast<object?>().ToArray();
+        var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(_ctx))).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
     }
     private static ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
@@ -369,18 +385,18 @@ public class Database
     {
         return Properties[(int)prop.Id].Name;
     }
-    public uint GetEntityType(string typeName)
+    public EntityType GetEntityType(string typeName)
     {
         for (uint i = 1; i < Types.Count; i++)
         {
             if(Types[(int)i].Name == typeName)
-                return i;
+                return Types[(int)i];
         }
-        return 0;
+        return default;
     }
-    public string GetEntityTypeName(uint typeId)
+    public string GetEntityTypeName(EntityTypeId typeId)
     {
-        return Types[(int)typeId].Name;
+        return Types[(int)typeId.Id].Name;
     }
     public void SetSeed(ulong seed)
     {

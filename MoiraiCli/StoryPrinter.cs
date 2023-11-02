@@ -18,7 +18,7 @@ public class StoryPrinter
         }
         foreach (EnumDefinition en in _database.Enums.Skip(1))
         {
-            sb.AppendLine($"enum {en.Name} = {string.Join(", ", en.Values)}");
+            sb.AppendLine($"enum {en.Name} {{ {string.Join(", ", en.Values)} }}");
 
         }
         foreach (var property in _database.Properties.Skip(Database.DefaultProperties().Count))
@@ -31,7 +31,7 @@ public class StoryPrinter
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
             foreach (var when in action.Whens)
             {
-                sb.AppendLine($"  when ${when.VariableIndex}: {Print(when.Predicate)}");
+                sb.AppendLine($"  when ${when.VariableIndex}: {Print(when.Value)}");
 
             }
             foreach (var effect in action.Effects)
@@ -61,10 +61,10 @@ public class StoryPrinter
                 throw new ArgumentOutOfRangeException();
         }
     }
-    private void PrintEffect(IEffect effect, StringBuilder sb, int indent)
+    private void PrintEffect(IInstruction instruction, StringBuilder sb, int indent)
     {
         string indentStr = new string(' ', indent * 2);
-        switch (effect)
+        switch (instruction)
         {
             case CreateEntity createEntity:
                 sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {_database.GetEntityTypeName(createEntity.Type)}");
@@ -72,7 +72,7 @@ public class StoryPrinter
             // case NameEntity nameEntity:
             case AssignPick predicateParameter:
                 sb.Append(
-                    $"{indentStr}{predicateParameter.CallType.ToString().ToLowerInvariant()} ${predicateParameter.VariableIndex}: {Print(predicateParameter.Predicate)}");
+                    $"{indentStr}{predicateParameter.CallType.ToString().ToLowerInvariant()} ${predicateParameter.VariableIndex}: {Print(predicateParameter.Value)}");
                 if (predicateParameter.ScopeEffects != null)
                 {
                     sb.AppendLine($"{indentStr}{{");
@@ -94,7 +94,7 @@ public class StoryPrinter
                 sb.AppendLine($"{indentStr}format \"{string.Format(formatAction.FormatString, formatAction.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}\"");
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(effect));
+                throw new ArgumentOutOfRangeException(nameof(instruction));
         }
     }
     private string GetPropertyName(PropertyId p)
@@ -106,34 +106,20 @@ public class StoryPrinter
     }
     private string Print(PropertyPath path) =>
         path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
-    public string Print(ComputedValue parameter, PropertyId typeHint = default)
-    {
-        switch (parameter.Type)
-        {
-
-            case ComputedValue.ComputedValueType.Value:
-                return Print(parameter.Value, typeHint);
-            case ComputedValue.ComputedValueType.Path:
-                return Print(parameter.Path);
-            case ComputedValue.ComputedValueType.Random:
-                return "random " + _database.Enums[parameter.Random.EnumID].Name;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
+   
     public string Print(PropertyValue value, PropertyId typeHint = default)
     {
         var s = value.Value;
         if (s != null)
             return s;
         if (typeHint == Database.PropType)
-            return $"\"{_database.GetEntityTypeName((uint)value.IntValue)}\"";
+            return $"\"{_database.GetEntityTypeName(value.TypeId)}\"";
 
         switch (value.Type.BaseType)
         {
             case PropertyValue.ValueBaseType.Enum:
                 var e = _database.Enums[value.Type.Index];
-                return $"\"{e.Values[(int)value.IntValue]}\"";
+                return $"{e.Name}.{e.Values[(int)value.IntValue]}";
             case PropertyValue.ValueBaseType.None:
                 return "null";
             case PropertyValue.ValueBaseType.String:
@@ -147,37 +133,45 @@ public class StoryPrinter
                 return value.IntValue.ToString();
             case PropertyValue.ValueBaseType.Bool:
                 return value.BoolValue ? "true" : "false";
+            case PropertyValue.ValueBaseType.EntityType:
+                return _database.GetEntityTypeName(value.TypeId);
             default:
                 throw new ArgumentOutOfRangeException();
         }
         return value.IntValue.ToString();
     }
-    public string Print(IPredicate predicate)
+    
+    public string Print(IValue value)
     {
-        switch (predicate)
+        switch (value)
         {
+            case Literal literal:
+                return Print(literal.Value);
+            case PropertyPath path:
+                return Print(path);
+            case RandomCall rnd:
+                return "random " + _database.Enums[rnd.EnumID].Name;
+           
             case And and:
                 return string.Join(", ", and.Predicates.Select(Print));
-            // case EntityExists entityExists:
-            // break;
-            // case HasProperty hasProperty:
-            // break;
-            case PropertyOperator propertyEquals:
+            
+            case BinaryOperator propertyEquals:
                 string op = propertyEquals.Op switch
                 {
 
-                    PropertyOperator.Operator.Equals => "=",
-                    PropertyOperator.Operator.NotEquals => "!=",
+                    BinaryOperator.Operator.Equals => "=",
+                    BinaryOperator.Operator.NotEquals => "!=",
                     _ => throw new ArgumentOutOfRangeException()
                 };
-                return $"{GetPropertyName(propertyEquals.Property)} {op} {Print(propertyEquals.Value, propertyEquals.Property)}";
+                return $"{Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)}";
             // case True @true:
             // break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(predicate));
+                throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
 
         }
     }
+
     public void PrintChangeset(Changeset cs, bool oneLine = true)
     {
         void write(string s)

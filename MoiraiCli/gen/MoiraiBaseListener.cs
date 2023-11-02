@@ -108,6 +108,18 @@ public partial class MoiraiBaseListener : IMoiraiListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitSet([NotNull] Moirai.SetContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.call_assign"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterCall_assign([NotNull] Moirai.Call_assignContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.call_assign"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitCall_assign([NotNull] Moirai.Call_assignContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.call"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -239,6 +251,18 @@ public partial class MoiraiBaseListener : IMoiraiListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitPath([NotNull] Moirai.PathContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="Moirai.enum_value"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterEnum_value([NotNull] Moirai.Enum_valueContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="Moirai.enum_value"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitEnum_value([NotNull] Moirai.Enum_valueContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.number"/>.
 	/// <para>The default implementation does nothing.</para>

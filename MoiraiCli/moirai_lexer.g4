@@ -11,6 +11,8 @@ COMMENT
 COLON: ':';
 SCOPE_OPEN: '{';
 SCOPE_CLOSE: '}';
+PAREN_OPEN: '(';
+PAREN_CLOSE: ')';
 RULE: 'rule';
 ENTITY: 'entity';
 EVENT: 'event';
@@ -27,12 +29,17 @@ NEQ: '!=' ;
 EQ: '=';
 
 VAR_ID: '$' (ALPHA|DIGIT)(ALPHA|DIGIT|'_')*;
-ACTION_ID: '@' [a-z][a-z_]*;
 PROP_ID: '%' [a-z][a-z_]*;
 
-ID : (ALPHA|'_')+ ;
+AT : '@' ;
+TYPE_ID : ALPHA_UPPER (ALPHA|'_')* ;
+ID : ALPHA_LOWER (ALPHA|'_')* ;
 NUMBER: DIGIT+ ;
 fragment
 DIGIT   :   ('0'..'9');
 fragment
 ALPHA   :   ('a'..'z'|'A'..'Z');
+fragment
+ALPHA_UPPER   :   ('A'..'Z');
+fragment
+ALPHA_LOWER   :   ('a'..'z');

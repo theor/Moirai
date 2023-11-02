@@ -68,6 +68,12 @@ public interface IMoiraiVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitSet([NotNull] Moirai.SetContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="Moirai.call_assign"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitCall_assign([NotNull] Moirai.Call_assignContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="Moirai.call"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -133,6 +139,12 @@ public interface IMoiraiVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitPath([NotNull] Moirai.PathContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="Moirai.enum_value"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitEnum_value([NotNull] Moirai.Enum_valueContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="Moirai.number"/>.
 	/// </summary>

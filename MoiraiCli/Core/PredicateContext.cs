@@ -13,7 +13,7 @@ public class PredicateContext
     }
     public long EntityId => Values[^1].IntValue;
 
-    public bool Query(IPredicate? predicate, out EntityId value)
+    public bool Query(IValue? predicate, out EntityId value)
     {
         if (predicate == null)
         {
@@ -37,18 +37,18 @@ public class PredicateContext
     }
     private List<EntityId> _pool = new();
 
-    public bool PickRandom(IPredicate predicate, out EntityId value)
+    public bool PickRandom(IValue value, out EntityId id)
     {
-        FindAll(predicate, ref _pool);
+        FindAll(value, ref _pool);
         if (_pool.Count == 0)
         {
-            value = default;
+            id = default;
             return false;
         }
-        value = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
+        id = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
         return true;
     }
-    public bool FindAll( IPredicate? predicate,ref List<EntityId> results)
+    public bool FindAll( IValue? predicate,ref List<EntityId> results)
     {
         results.Clear();
         if (predicate == null)
@@ -89,27 +89,7 @@ public class PredicateContext
         Values.Add(entity);
         return count;
     }
-    public PropertyValue GetValue(ComputedValue computedValue)
-    {
-        switch (computedValue.Type)
-        {
-            case ComputedValue.ComputedValueType.Random:
-                var def = Database.Enums[computedValue.Random.EnumID];
-                return def.GetRandomValue(Rnd);
-            case ComputedValue.ComputedValueType.Value:
-                return computedValue.Value;
-            case ComputedValue.ComputedValueType.Path:
-                var varValue = this.Argument(computedValue.Path.VariableIndex);
-                if (!Database.TryGetEntity(varValue.IntValue, out var e))
-                    return default;
-                if (computedValue.Path.Property == PropertyId.Null)
-                    return varValue;
-
-                return e.GetProperty(computedValue.Path.Property);
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
+    
     public void Format(FormatAction formatAction)
     {
         Database.AppendDescription(formatAction);

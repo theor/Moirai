@@ -1,9 +1,9 @@
 ﻿struct Rule
 {
     public string Name;
-    public IPredicate If;
-    public IPredicate Then;
-    public Rule(string name, IPredicate @if, IPredicate then)
+    public IValue If;
+    public IValue Then;
+    public Rule(string name, IValue @if, IValue then)
     {
         Name = name;
         If = @if;

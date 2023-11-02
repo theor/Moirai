@@ -91,6 +91,12 @@ public struct PropertyValue : IEquatable<PropertyValue>
         IntValue = i.Id,
         Type = TypeRef,
     };
+    public static implicit operator PropertyValue(EntityTypeId i) => new PropertyValue
+    {
+        Value = null,
+        IntValue = i.Id,
+        Type = TypeEntityType,
+    };
     public static implicit operator PropertyValue(long i) => new PropertyValue
     {
         Value = null,
@@ -105,6 +111,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
     };
     public bool BoolValue => IntValue != 0;
     public EntityId Id => new EntityId(IntValue);
+    public EntityTypeId TypeId => new EntityTypeId((uint)IntValue);
 
     public bool Equals(PropertyValue other)
     {

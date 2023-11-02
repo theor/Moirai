@@ -3,7 +3,7 @@
     public readonly string Name;
     public readonly bool IsEvent;
 
-    public readonly List<IEffect> Effects;
+    public readonly List<IInstruction> Effects;
     public readonly List<AssignPick> Whens;
     // public Action(string name, IPredicate? @if, IEffect then)
     // {

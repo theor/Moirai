@@ -2,7 +2,7 @@
 
 static class NameEntity
 {
-    public static string MakeName(PredicateContext ctx, uint t)
+    public static string MakeName(PredicateContext ctx, EntityTypeId t)
     {
         return GenerateName(ctx, t);
     }
@@ -34,7 +34,7 @@ static class NameEntity
         // ReSharper restore StringLiteralTypo
     };
 
-    private static string GenerateName(PredicateContext predicateContext, uint t)
+    private static string GenerateName(PredicateContext predicateContext, EntityTypeId t)
     {
         var n = Names.RandomIn(predicateContext.Rnd);
         return n;

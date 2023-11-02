@@ -30,10 +30,10 @@ public class Tests
     public void Test1()
     {
         var s = @"
-entity person {}
+entity Person {}
 prop alive = bool
 rule born_char {
-    create person
+    create Person
     set alive = true
 }
 ";
@@ -56,14 +56,44 @@ rule born_char {
         db.PrintDb();
         Assert.AreEqual(1, db.Entities.Count());
     }
+    
+    [Test]
+    public void TypeQuery()
+    {
+        var s = @"
+entity Person {}
+prop alive = bool
+rule r {
+    pick type = Person
+    set alive = true
+}
+";
+        
+        var db = Run(s, out var errors);
+
+        EntityTypeId typePerson = db.GetEntityType("Person").Id;
+        db.AllocateEntity(typePerson, "A");
+        Assert.AreEqual(1, db.Actions.Count);
+        var action = db.Actions[0];
+
+        PropertyId propId = db.GetProperty("alive");
+        Assert.IsTrue(propId.IsValid);
+        // TODO reactivate
+        // Assert.AreEqual(propId, ((SetProperty)action.Effects[1]).PropertySet.Property);
+        db.RunAction(action.Name);
+        db.PrintDb();
+        Assert.AreEqual(1, db.Entities.Count());
+        Assert.AreEqual(true, db.Entities.Single().GetProperty(propId).BoolValue);
+    }
+    
     [Test]
     public void Test2()
     {
         var s = @"
-entity person {}
+entity Person {}
 prop alive = bool
 rule char_dies {
-    pick $p: type = ""person"", alive = true
+    pick $p: type = Person, alive = true
     set $p.alive = false
 }";
         var db = Run(s, out var errors);
@@ -77,20 +107,20 @@ rule char_dies {
     public void Each()
     {
         var s = @"
-entity person {}
+entity Person {}
 prop test = bool
 rule foreach {
-    each $x: type = ""person"" {
+    each $x: type=Person {
         set $x.test = true
-        format ""{$x.name} {$x.test}""
+        format '{$x.name} {$x.test}'
     }
 }";
         var db  =Run(s, out var errors);
         db.History = new();
         var propId = db.GetProperty("test");
-        var typePerson = db.GetEntityType("person");
-        db.AllocateEntity(typePerson, "A");
-        db.AllocateEntity(typePerson, "B");
+        var typePerson = db.GetEntityType("Person");
+        db.AllocateEntity(typePerson.Id, "A");
+        db.AllocateEntity(typePerson.Id, "B");
         db.PrintDb();
         foreach (var entity in db.Entities)
         {
@@ -114,16 +144,16 @@ rule foreach {
     public void Event()
     {
         var s = @"
-entity person {}
+entity Person {}
 prop alive = bool
 prop test = bool
 rule born {
-    create ""person""
+    create Person
     set alive = true
 }
 
 rule die {
-    pick type = ""person"", alive = true
+    pick type=Person, alive = true
     set alive = false
 }
 
@@ -170,10 +200,10 @@ rule char_dies {
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
         
-        Assert.NotNull(pe1.Predicate);
-        Assert.IsInstanceOf<PropertyOperator>(pe1.Predicate);
-        Assert.NotNull(pe2.Predicate);
-        Assert.IsInstanceOf<PropertyOperator>(pe2.Predicate);
+        Assert.NotNull(pe1.Value);
+        Assert.IsInstanceOf<BinaryOperator>(pe1.Value);
+        Assert.NotNull(pe2.Value);
+        Assert.IsInstanceOf<BinaryOperator>(pe2.Value);
 
     }[Test]
     public void TestPredicateRightIsVar()
@@ -213,8 +243,8 @@ rule char_dies {
     {
         var s = @"
 @wedding
-    $x = pick(type = ""person"", alive = true, partner = null)
-    $y = pick(type = ""person"", alive = true, partner = null, id != $x)
+    $x = pick(type=Person, alive = true, partner = null)
+    $y = pick(type=Person, alive = true, partner = null, id != $x)
     set $x.partner = $y
     set $y.partner = $x
 ";
@@ -240,10 +270,10 @@ rule char_dies {
         // Assert.AreEqual(ComputedValue.PredicateParameterType.Predicate, pe1.Type);
         // Assert.AreEqual(ComputedValue.PredicateParameterType.Predicate, pe2.Type);
         
-        Assert.NotNull(pe1.Predicate);
-        Assert.IsInstanceOf<And>(pe1.Predicate);
-        Assert.NotNull(pe2.Predicate);
-        Assert.IsInstanceOf<And>(pe2.Predicate);
+        Assert.NotNull(pe1.Value);
+        Assert.IsInstanceOf<And>(pe1.Value);
+        Assert.NotNull(pe2.Value);
+        Assert.IsInstanceOf<And>(pe2.Value);
 
     }
 
@@ -267,8 +297,8 @@ rule char_dies {
         var s = @"
 prop alive = bool
 rule char_dies {
-    $p = pick type = ""person"", alive = true
-    $p = pick type = ""person"", alive = true
+    $p = pick type=Person, alive = true
+    $p = pick type=Person, alive = true
     set $p.alive = false
 }";
        
@@ -279,13 +309,13 @@ rule char_dies {
     public void Prop_Enum()
     {
         string s = @"
-entity person {}
-enum Job = None, Farmer, Smith
+entity Person {}
+enum Job { None, Farmer, Smith }
 prop job = Job
 
 rule create {
-    create ""person""
-    set job = ""Farmer""
+    create Person
+    set job = Job.Farmer
 }
 ";
         var db = Run(s, out var errors);
@@ -304,13 +334,13 @@ rule create {
     public void Prop_WrongEnum()
     {
         string s = @"
-entity person {}
-enum Job = None, Farmer, Smith
+entity Person {}
+enum Job { None, Farmer, Smith }
 prop job = Job
 
 rule create {
-    create ""person""
-    set job = ""asd""
+    create Person
+    set job = Asd
 }
 ";
         var db = Run(s, out var errors, 1);
@@ -325,12 +355,12 @@ rule create {
     public void AssignRandomEnum()
     {
         string s = @"
-entity person {}
-enum Job = Farmer, Smith, Mayor
+entity Person {}
+enum Job { Farmer, Smith, Mayor }
 prop job = Job
 
 rule create {
-    create ""person""
+    create Person
     set job = random Job
 }
 ";
@@ -355,13 +385,13 @@ rule create {
     public void AssignCreate()
     {
         var s = @"
-entity person {}
-entity faction {}
+entity Person {}
+entity Faction {}
 prop faction = ref
 prop owner = ref
 rule create_faction {
-    pick $p: type=""person"", faction = null
-    create $f: ""faction""
+    pick $p: type=Person, faction = null
+    create $f: Faction
     set $f.owner = $p
     set $p.faction = $f
 }";
@@ -373,15 +403,15 @@ rule create_faction {
     public void Format()
     {
         var s = @"
-entity person {}
-entity faction {}
+entity Person {}
+entity Faction {}
 prop owner = ref
 rule create_faction {
-    create $f: ""faction""
-    create $g: ""faction""
-    create $p: ""person""
+    create $f: Faction
+    create $g: Faction
+    create $p: Person
     set $f.owner = $p
-    format ""{$p.name} creates the {$f.name} to counter the {$g.name}""
+    format '{$p.name} creates the {$f.name} to counter the {$g.name}'
 }";
         var db = Run(s, out var errors);
         Assert.AreEqual(5, db.Actions[0].Effects.Count);
@@ -390,5 +420,31 @@ rule create_faction {
         db.Printer.PrintChangeset(db.History.Changesets[0], false);
         Console.WriteLine(db.History.Changesets[0].Description);
         Assert.AreEqual("River creates the Faction of Cerelia to counter the Faction of Hecate", db.History.Changesets[0].Description);
+    }
+
+    [Test]
+    public void Time()
+    {
+        var s = @"
+entity Person {}
+enum Age { Child, Young, Adult, Old }
+prop alive = bool
+prop age = Age
+rule born {
+    create $p: Person
+    set $p.age = 'Child'
+    format 'The {$p.age} {$p.name} is born'
+}
+
+event grow {
+    when passed_years 20 = true
+    each $p: type=Person, alive = true, age = 'Child' {
+        set age = 'Young'
+    }
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        db.RunAction(db.Actions[0]);
+        db.PrintDb();
     }
 }

@@ -1,44 +1,51 @@
 ﻿using Pcg.Core;
 
-public struct ComputedValue
+public struct Literal : IValue
 {
-    public struct RandomCall
-    {
-        public readonly ushort EnumID;
-        public RandomCall(ushort enumId)
-        {
-            EnumID = enumId;
-        }
-    }
-    public enum ComputedValueType
-    {
-        Value,
-        Path,
-        Random,
-    }
-
-    public readonly ComputedValueType Type;
     public readonly PropertyValue Value;
-    public readonly PropertyPath Path;
-    public readonly RandomCall Random;
-    public ComputedValue(EnumDefinition enumDefinition) : this()
+    public Literal(PropertyValue value)
     {
-        Type = ComputedValueType.Random;
-        Random = new RandomCall(enumDefinition.Index);
-    }
-    public ComputedValue(PropertyValue value) : this()
-    {
-        Type = ComputedValueType.Value;
         Value = value;
     }
-    public ComputedValue(PropertyPath path) : this()
-    {
-        Type = ComputedValueType.Path;
-        Path = path;
-    }
-    public static explicit operator ComputedValue(PropertyValue value) => new ComputedValue(value);
-
+    public PropertyValue Compute(PredicateContext ctx) => Value;
 }
+
+
+public struct PropertyPath : IValue
+{
+    public PropertyPath(int variableIndex, PropertyId? property = null)
+    {
+        VariableIndex = variableIndex;
+        Property = property ?? PropertyId.Null;
+    }
+
+    public readonly int VariableIndex;
+    public readonly PropertyId Property;
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        var varValue = ctx.Argument(VariableIndex);
+        if (!ctx.Database.TryGetEntity(varValue.IntValue, out var e))
+            return default;
+        if (Property == PropertyId.Null)
+            return varValue;
+
+        return e.GetProperty(Property);
+    }
+}
+public struct RandomCall : IValue
+{
+    public readonly ushort EnumID;
+    public RandomCall(ushort enumId)
+    {
+        EnumID = enumId;
+    }
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        var def = ctx.Database.Enums[EnumID];
+        return def.GetRandomValue(ctx.Rnd);
+    }
+}
+
 
 public enum CallType
 {
@@ -47,30 +54,30 @@ public enum CallType
     Each,
     When
 }
-public struct AssignPick : IEffect
+public struct AssignPick : IInstruction
 {
     public readonly int VariableIndex;
-    public readonly IPredicate Predicate;
+    public readonly IValue Value;
     public readonly CallType CallType;
-    public readonly IEffect[]? ScopeEffects;
+    public readonly IInstruction[]? ScopeEffects;
     private List<EntityId>? _pool;
-    public AssignPick(int variableIndex, IPredicate value, CallType callType, IEffect[]? scopeEffects = null)
+    public AssignPick(int variableIndex, IValue value, CallType callType, IInstruction[]? scopeEffects = null)
     {
         VariableIndex = variableIndex;
-        Predicate = value;
+        Value = value;
         CallType = callType;
         ScopeEffects = scopeEffects;
         _pool = null;
     }
     
-    public bool MakeTrue(PredicateContext ctx)
+    public bool Execute(PredicateContext ctx)
     {
         switch (CallType)
         {
 
             case CallType.Pick:
             {
-                bool res = ctx.PickRandom(Predicate, out var val);
+                bool res = ctx.PickRandom(Value, out var val);
                 ctx.SetArgument(VariableIndex, val);
                 return res;
             }
@@ -79,11 +86,11 @@ public struct AssignPick : IEffect
                 _pool ??= new();
                 if (ScopeEffects != null)
                 {
-                    if(ctx.FindAll(Predicate, ref _pool))
+                    if(ctx.FindAll(Value, ref _pool))
                         foreach (var entityId in _pool)
                         {
                             ctx.SetArgument(VariableIndex, entityId);
-                            if(!ScopeEffects.All(e => e.MakeTrue(ctx))) continue;
+                            if(!ScopeEffects.All(e => e.Execute(ctx))) continue;
                         }
                 }
                 return true;

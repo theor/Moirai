@@ -1,9 +1,9 @@
-entity person {}
-entity item {}
-entity faction {}
-entity link {}
+entity Person {}
+entity Item {}
+entity Faction {}
+entity Link {}
 
-enum Job = Smith, Farmer, Noble
+enum Job { Smith, Farmer, Noble }
 
 prop alive = bool
 prop owner = ref
@@ -14,28 +14,28 @@ prop child = ref
 prop job = Job
 
 event inherit {
-    when $p: type = "person", alive = false
-    each $i: type = "item", owner = $p {
-        pick $l: type = "link", $l.parent = $p 
-        pick $c: type = "person", alive = true, id = $l.child
+    when $p: type = Person, alive = false
+    each $i: type = Item, owner = $p {
+        pick $l: type = Link, $l.parent = $p 
+        pick $c: type = Person, alive = true, id = $l.child
             set $i.owner = $c
             format "{$c.name} inherits the {$i.name} from {$p.name}"
     }
 }
 
 rule char_born {
-    create $0: "person"
+    create $0: Person
     set $0.alive = true
     set $0.job = random Job
     format "{$0.name} is born"
 }
 rule char_dies {
-    pick $p: type = "person", alive = true
+    pick $p: type = Person, alive = true
     set $p.alive = false 
     format "{$p.name} dies"
 }
-rule _parent_dies {
-    each $l: type = "link" {
+rule @parent_dies {
+    each $l: type = Link {
         pick $p: id = $l.parent, alive = true
         pick $c: id = $l.child
         set $p.alive = false 
@@ -44,65 +44,65 @@ rule _parent_dies {
     }
 }
 rule wedding {
-    pick $x: type = "person", alive = true, partner = null
-    pick $y: type = "person", alive = true, partner = null, id != $x
+    pick $x: type = Person, alive = true, partner = null
+    pick $y: type = Person, alive = true, partner = null, id != $x
     set $x.partner = $y
     set $y.partner = $x
     format "{$x.name} and {$y.name} get married"
 }
 rule divorce {
-    pick $x: type = "person", alive = true, partner != null
-    pick $y: type = "person", alive = true, partner != null, id != $x
+    pick $x: type = Person, alive = true, partner != null
+    pick $y: type = Person, alive = true, partner != null, id != $x
     set $x.partner = null
     set $y.partner = null
     format "{$x.name} and {$y.name} separate"
 }
 rule couple_has_child {
-    pick $x: type = "person", alive = true, partner != null
-    pick $y: type = "person", alive = true, partner = $x, id != $x
-    create $c: "person"
+    pick $x: type = Person, alive = true, partner != null
+    pick $y: type = Person, alive = true, partner = $x, id != $x
+    create $c: Person
         set $c.alive = true
         set $c.job = random Job
-    create $l1: "link"
+    create $l1: Link
         set $l1.parent = $x
         set $l1.child = $c
-    create $l2: "link"
+    create $l2: Link
     
     format "{$x.name} and {$y.name} have a child, {$c.name}"
 }
 rule make_item {
-    pick $p: type="person", alive = true
-    create $i: "item"
+    pick $p: type=Person, alive = true
+    create $i: Item
     set $i.owner = $p
     format "{$p.name} creates the {$i.name}"
 }
 rule item_lost {
-    pick $i: type="item", owner != null
+    pick $i: type=Item, owner != null
     set $i.owner = null
     format "The {$i.name} is lost"
 }
 rule item_found {
-    pick $p: type="person", alive = true
-    pick $i: type="item", owner = null
+    pick $p: type=Person, alive = true
+    pick $i: type=Item, owner = null
     set $i.owner = $p
     format "{$p.name} obtains the {$i.name}"
 }
 rule item_sold {
-    pick $i: type="item", owner != null
-    pick $p: type="person", id != $i.owner
+    pick $i: type=Item, owner != null
+    pick $p: type=Person, id != $i.owner
     set $i.owner = $p
     format "{$p.name} acquires the {$i.name}"
 }
 rule create_faction {
-    pick $p: type="person", alive=true, faction = null
-    create $f: "faction"
+    pick $p: type=Person, alive=true, faction = null
+    create $f: Faction
     set $f.owner = $p
     set $p.faction = $f
     format "{$p.name} creates the {$f.name}"
 }
 rule char_joins_faction {
-pick $p: type="person", faction = null
-    pick $f: type="faction"
+pick $p: type=Person, faction = null
+    pick $f: type=Faction
     set $p.faction = $f
     format "{$p.name} joins the {$f.name}"
 }

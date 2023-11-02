@@ -1,4 +1,4 @@
-﻿public class PropertyOperator : IPredicate
+﻿public class BinaryOperator : IValue
 {
     public enum Operator
     {
@@ -6,29 +6,29 @@
         NotEquals,
     }
     public readonly Operator Op;
-    public readonly PropertyId Property;
-    public readonly ComputedValue Value;
+    public readonly IValue Left;
+    public readonly IValue Right;
 
   
-    public PropertyOperator(Operator op, PropertyId property, PropertyValue value)
+    public BinaryOperator(Operator op, IValue left, PropertyValue value)
     {
         Op = op;
-        Property = property;
-        Value = (ComputedValue)value;
+        Left = left;
+        Right = new Literal(value);
     }
-    public PropertyOperator(Operator op, PropertyId property, ComputedValue value)
+    public BinaryOperator(Operator op, IValue left, IValue right)
     {
         Op = op;
-        Property = property;
-        Value = value;
+        Left = left;
+        Right = right;
     }
-    public bool IsTrue(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         if (!ctx.Database.TryGetEntity(ctx.EntityId, out Entity entity))
             return false;
 
-        var left = entity.GetProperty(Property);
-        var right = ctx.GetValue(Value);
+        var left = Left.Compute(ctx);
+        var right = Right.Compute(ctx);
         switch (Op)
         {
             case Operator.Equals:

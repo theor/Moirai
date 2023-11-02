@@ -1,11 +1,11 @@
 ﻿using Pcg.Core;
 
-public class SetProperty : IEffect
+public class SetProperty : IInstruction
 {
     public readonly PropertyPath PropertySet;
-    public readonly ComputedValue Parameter;
+    public readonly IValue Parameter;
 
-    public SetProperty(PropertyPath property, ComputedValue parameter)
+    public SetProperty(PropertyPath property, IValue parameter)
     {
         PropertySet = property;
         Parameter = parameter;
@@ -13,27 +13,11 @@ public class SetProperty : IEffect
     public SetProperty(PropertyPath property, PropertyValue parameter)
     {
         PropertySet = property;
-        Parameter = (ComputedValue)parameter;
+        Parameter = new Literal(parameter);
     }
    
-    public bool MakeTrue(PredicateContext ctx)
+    public bool Execute(PredicateContext ctx)
     {
-        return ctx.Database.SetProperty(ctx.Argument(PropertySet.VariableIndex).IntValue, PropertySet.Property, ctx.GetValue(Parameter));
+        return ctx.Database.SetProperty(ctx.Argument(PropertySet.VariableIndex).IntValue, PropertySet.Property, Parameter.Compute(ctx));
     }
-}
-
-public struct PropertyPath
-{
-    public PropertyPath(int variableIndex, PropertyId? property = null)
-    {
-        VariableIndex = variableIndex;
-        Property = property ?? PropertyId.Null;
-    }
-    // public enum PathSegmentType
-    // {
-    //     Variable, Property,
-    // }
-
-    public int VariableIndex;
-    public PropertyId Property;
 }
