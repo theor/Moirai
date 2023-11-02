@@ -8,23 +8,39 @@ public static class StoryParser
         List<Error> Errors { get; }
     }
 
+    public enum ErrorCode
+    {
+        Lexer,
+        Parser,
+        UnknownCall,
+        UnknownExpressionOperator,
+        UnknownProperty,
+        DuplicatePropertyDefinition,
+        UnknownPropertyType,
+        UnknownEnumValue,
+        DuplicateVariableDefinition,
+        MissingEachScope
+    }
     public struct Error
     {
+        public readonly ErrorCode Code;
         public int Line, Col;
         public string Message;
-        public Error(int line, int col, string message)
+        public Error(ErrorCode code, int line, int col, string message)
         {
+            Code = code;
             Line = line;
             Col = col;
             Message = message;
         }
-        public Error(IToken loc, string message)
+        public Error(ErrorCode code, IToken loc, string message)
         {
+            Code = code;
             Line = loc.Line;
             Col = loc.Column;
             Message = message;
         }
-        public override string ToString() => $"{Line}:{Col}: {Message}";
+        public override string ToString() => $"M{(int)Code}: {Code} {Line}:{Col}: {Message}";
     }
 
     class Listener : IAntlrErrorListener<int>, IAntlrErrorListener<IToken>
@@ -39,13 +55,13 @@ public static class StoryParser
             string msg,
             RecognitionException e)
         {
-            _errors.Add(new Error(line, charPositionInLine, "Lexer:" + msg));
+            _errors.Add(new Error(ErrorCode.Lexer, line, charPositionInLine, "Lexer:" + msg));
         }
         public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line, int charPositionInLine,
             string msg,
             RecognitionException e)
         {
-            _errors.Add(new Error(line, charPositionInLine, "Parser:" + msg));
+            _errors.Add(new Error(ErrorCode.Parser, line, charPositionInLine, "Parser:" + msg));
         }
     }
 
@@ -108,7 +124,7 @@ public static class StoryParser
         {
             var propName = context.ID(0).GetText();
             if (_database.GetProperty(propName).Id != 0)
-                return AddError(context.Start, $"Multiple definitions of the property '{propName}'");
+                return AddError(ErrorCode.DuplicatePropertyDefinition,  context.Start, propName);
 
             PropertyValue.ValueType type = ParseType(context.ID(1));
             _database.Properties.Add(new PropertyDefinition(propName, (uint)_database.Properties.Count, type));
@@ -125,7 +141,7 @@ public static class StoryParser
                 default:
                     if (_database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
                         return PropertyValue.TypeEnum(enumDefinition.Index);
-                    AddError(id.Symbol, $"Unknown type '{id.GetText()}'");
+                    AddError(ErrorCode.UnknownPropertyType,  id.Symbol, id.GetText());
                     return default;
             }
         }
@@ -210,10 +226,9 @@ public static class StoryParser
         }
         private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyId type)
         {
-            if(!_database.GetPropertyType(type, out PropertyValue.ValueType valueType))
+            if(!type.IsValid || !_database.GetPropertyType(type, out PropertyValue.ValueType valueType))
             {
-                AddError(value.Start, "Property has no type");
-                return default;
+                throw new Exception("Property has no type");
             }
             
             // TODO use proper EntityType type
@@ -222,7 +237,7 @@ public static class StoryParser
                 var typeId = _database.GetEntityType(value.@string().GetString());
                     
                 if (typeId == 0)
-                    throw new System.NotImplementedException("unknown type " + value.@string().GetText());
+                   AddError( ErrorCode.UnknownPropertyType,  value.Start, value.@string().GetText());
                 return new ComputedValue(typeId);
             }
             if (value.path() != null)
@@ -246,7 +261,7 @@ public static class StoryParser
                     if (value.@string() != null)
                     {
                         if(!_database.Enums[valueType.Index].GetValueFromName(value.@string().GetString(), out PropertyValue v))
-                            throw new System.NotImplementedException($"Unknown enum value '{value.@string().GetString()}' in enum {_database.Enums[valueType.Index].Name}");
+                            AddError(ErrorCode.UnknownEnumValue,  value.Start, $"'{value.@string().GetString()}' in enum {_database.Enums[valueType.Index].Name}");
 
                         return new ComputedValue(v);
                     }
@@ -263,7 +278,7 @@ public static class StoryParser
 
             if (_variables.IndexOf(variable) != -1)
             {
-                AddError(contextStart, " Duplicate variable " + variable);
+                AddError(ErrorCode.DuplicateVariableDefinition,  contextStart, " Duplicate variable " + variable);
                 varIndex = 0;
                 return false;
             }
@@ -287,7 +302,7 @@ public static class StoryParser
                 case "each":
                 {
                     if (context.scope() == null)
-                        AddError(context.Start, "Missing scope in foreach");
+                        AddError(ErrorCode.MissingEachScope, context.Start, "Missing scope in foreach");
                     var scopeEffects = context.scope().effect().Select(ParseEffect).ToArray();
                     var exprs = context.expr();
                     return new AssignPick(
@@ -347,7 +362,7 @@ public static class StoryParser
                     return new FormatAction(result, paths.ToArray());
             }
 
-            throw new NotImplementedException($"Unknown call '{funcName}'");
+            return (AddError(ErrorCode.UnknownCall, context.Start, funcName) as IEffect)!;
         }
         private IPredicate? ParseExpr(Moirai.ExprContext context)
         {
@@ -368,13 +383,13 @@ public static class StoryParser
                 case "!=":
                     pop = PropertyOperator.Operator.NotEquals;
                     break;
-                default: return (IPredicate?)AddError(context.Start, "Unknown Expr op: " + op);
+                default: return (IPredicate?)AddError(ErrorCode.UnknownExpressionOperator,  context.Start, op);
             }
             return new PropertyOperator(pop, leftPath.Property, rightValue);
         }
-        private object? AddError(IToken loc, string msg)
+        private object? AddError(ErrorCode code, IToken loc, string msg)
         {
-            Errors.Add(new Error(loc, msg));
+            Errors.Add(new Error(code, loc, msg));
             return null;
         }
         public override object? VisitCall(Moirai.CallContext context)
@@ -416,7 +431,7 @@ public static class StoryParser
             var indexOf = _database.GetProperty(propertyName.ToLowerInvariant());
             if (!indexOf.IsValid)
             {
-                AddError(context.ID(0).Symbol, $"Unknown property '{propertyName}'");
+                AddError(ErrorCode.UnknownProperty,  context.ID(0).Symbol, propertyName);
                 return default;
             }
             return new PropertyPath(varIndex, indexOf);

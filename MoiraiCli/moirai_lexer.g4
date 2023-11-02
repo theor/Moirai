@@ -30,7 +30,7 @@ VAR_ID: '$' (ALPHA|DIGIT)(ALPHA|DIGIT|'_')*;
 ACTION_ID: '@' [a-z][a-z_]*;
 PROP_ID: '%' [a-z][a-z_]*;
 
-ID : ALPHA (ALPHA|'_')* ;
+ID : (ALPHA|'_')+ ;
 NUMBER: DIGIT+ ;
 fragment
 DIGIT   :   ('0'..'9');
