@@ -26,6 +26,7 @@ event inherit {
 rule char_born {
     create $0: "person"
     set $0.alive = true
+    set $0.job = random Job
     format "{$0.name} is born"
 }
 rule char_dies {
@@ -61,6 +62,7 @@ rule couple_has_child {
     pick $y: type = "person", alive = true, partner = $x, id != $x
     create $c: "person"
         set $c.alive = true
+        set $c.job = random Job
     create $l1: "link"
         set $l1.parent = $x
         set $l1.child = $c

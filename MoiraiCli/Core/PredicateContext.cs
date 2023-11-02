@@ -93,7 +93,9 @@ public class PredicateContext
     {
         switch (computedValue.Type)
         {
-
+            case ComputedValue.ComputedValueType.Random:
+                var def = Database.Enums[computedValue.Random.EnumID];
+                return def.GetRandomValue(Rnd);
             case ComputedValue.ComputedValueType.Value:
                 return computedValue.Value;
             case ComputedValue.ComputedValueType.Path:

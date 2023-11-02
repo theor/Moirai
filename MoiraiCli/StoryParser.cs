@@ -240,6 +240,21 @@ public static class StoryParser
                    AddError( ErrorCode.UnknownPropertyType,  value.Start, value.@string().GetText());
                 return new ComputedValue(typeId);
             }
+            // TODO only call in value
+            if (value.call()?.ID()?.GetText() == "random")
+            {
+                if(valueType.BaseType == PropertyValue.ValueBaseType.Enum)
+                {
+                    var enumDef = _database.Enums[valueType.Index];
+                    return new ComputedValue(enumDef);
+                }
+                AddError(ErrorCode.UnknownCall, value.Start, "Random only supported for enums");
+                return default;
+                // switch (valueType.BaseType)
+                // {
+                //     case PropertyValue.ValueBaseType.Enum
+                // }
+            }
             if (value.path() != null)
             {
                 PropertyPath path = ParsePath(value.path());

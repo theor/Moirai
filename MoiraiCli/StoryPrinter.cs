@@ -115,6 +115,8 @@ public class StoryPrinter
                 return Print(parameter.Value, typeHint);
             case ComputedValue.ComputedValueType.Path:
                 return Print(parameter.Path);
+            case ComputedValue.ComputedValueType.Random:
+                return "random " + _database.Enums[parameter.Random.EnumID].Name;
             default:
                 throw new ArgumentOutOfRangeException();
         }

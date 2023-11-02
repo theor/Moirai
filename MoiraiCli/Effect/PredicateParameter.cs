@@ -2,25 +2,38 @@
 
 public struct ComputedValue
 {
+    public struct RandomCall
+    {
+        public readonly ushort EnumID;
+        public RandomCall(ushort enumId)
+        {
+            EnumID = enumId;
+        }
+    }
     public enum ComputedValueType
     {
         Value,
         Path,
+        Random,
     }
 
     public readonly ComputedValueType Type;
     public readonly PropertyValue Value;
     public readonly PropertyPath Path;
-    public ComputedValue(PropertyValue value)
+    public readonly RandomCall Random;
+    public ComputedValue(EnumDefinition enumDefinition) : this()
+    {
+        Type = ComputedValueType.Random;
+        Random = new RandomCall(enumDefinition.Index);
+    }
+    public ComputedValue(PropertyValue value) : this()
     {
         Type = ComputedValueType.Value;
         Value = value;
-        Path = default;
     }
-    public ComputedValue(PropertyPath path)
+    public ComputedValue(PropertyPath path) : this()
     {
         Type = ComputedValueType.Path;
-        Value = default;
         Path = path;
     }
     public static explicit operator ComputedValue(PropertyValue value) => new ComputedValue(value);

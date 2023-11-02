@@ -58,6 +58,11 @@ public readonly struct EnumDefinition
         propertyValue = default;
         return false;
     }
+    public PropertyValue GetRandomValue(Pcg32 rnd)
+    {
+        var i = rnd.GenerateNext((uint)Values.Count);
+        return new PropertyValue { IntValue = i, Type = ValueType };
+    }
 }
 public readonly struct EntityType
 {

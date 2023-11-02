@@ -54,4 +54,5 @@ static class NameEntity
     }
 
     static T RandomIn<T>(this T[] array, Pcg32 rnd) => array[rnd.GenerateNext((uint)array.Length)];
+    public static T RandomIn<T>(this List<T> array, Pcg32 rnd) => array[(int)rnd.GenerateNext((uint)array.Count)];
 }

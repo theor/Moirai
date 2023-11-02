@@ -326,24 +326,30 @@ rule create {
     {
         string s = @"
 entity person {}
-enum Job = None, Farmer, Smith
+enum Job = Farmer, Smith, Mayor
 prop job = Job
 
 rule create {
     create ""person""
-    set job = random
+    set job = random Job
 }
 ";
         var db = Run(s, out var errors);
-        db.RunAction("create");
+        db.SetSeed(4);
+        int count = 1;
+        for (int i = 0; i < count; i++)
+        {
+            db.RunAction("create");
+
+        }
         db.PrintDb();
-        var e = db.Entities.Single();
+        var e = db.Entities.First();
         PropertyId jobProp = db.GetProperty("job");
         var value = e.GetProperty(jobProp);
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
         Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
-        Assert.AreEqual(1, value.IntValue);
+        Assert.AreEqual(2, value.IntValue);
     }
     [Test]
     public void AssignCreate()

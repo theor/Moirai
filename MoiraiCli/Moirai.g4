@@ -14,7 +14,7 @@ effect: (set |  call) SPACE* LINE_BREAK+;
 set: SET  path EQ value;
 call : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
 scope: SCOPE_OPEN LINE_BREAK* effect* SCOPE_CLOSE LINE_BREAK*;
-value: string | path | bool | number | NULL;
+value: call | string | path | bool | number | NULL;
 expr : value (op value)? ;
 op : EQ | NEQ ;
 
