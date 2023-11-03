@@ -141,16 +141,6 @@ public interface IMoiraiListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitExpr([NotNull] Moirai.ExprContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="Moirai.op"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void EnterOp([NotNull] Moirai.OpContext context);
-	/// <summary>
-	/// Exit a parse tree produced by <see cref="Moirai.op"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	void ExitOp([NotNull] Moirai.OpContext context);
-	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.type_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

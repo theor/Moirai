@@ -94,7 +94,18 @@ public class StoryPrinter
                 sb.AppendLine($"{indentStr}format \"{string.Format(formatAction.FormatString, formatAction.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}\"");
                 break;
             case AssertInstr assert:
-                sb.AppendLine("assert " + Print(assert.Value));
+                switch (assert.Mode)
+                {
+
+                    case AssertInstr.AssertMode.True:
+                        sb.AppendLine($"{indentStr}assert " + Print(assert.Value));
+                        break;
+                    case AssertInstr.AssertMode.Eq:
+                        sb.AppendLine($"{indentStr}assert_eq {Print(assert.Value)}, {Print(assert.Right!)}");
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(instruction), instruction?.ToString());

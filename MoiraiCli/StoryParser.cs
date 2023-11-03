@@ -464,7 +464,7 @@ public static class StoryParser
             }
             if (context.paren_expr != null)
                 return ParseExpr(context.paren_expr);
-            string op = context.op().GetText();
+            string op = context.op.Text;
             // left, alive
             IValue leftPath = ParseExpr(context.left)!;
 

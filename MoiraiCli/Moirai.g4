@@ -16,8 +16,13 @@ call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
 call : ID ((expr (COMMA expr)* )) scope?;
 scope: SCOPE_OPEN LINE_BREAK* effect* SCOPE_CLOSE LINE_BREAK*;
 value: call | string | enum_value | TYPE_ID | path | bool | number | NULL;
-expr : left=expr op right=expr | (PAREN_OPEN paren_expr=expr PAREN_CLOSE) | value ;
-op : EQ | NEQ | GE | LE | GT | LT | ADD | SUB | MUL | DIV;
+expr
+    : left=expr op=(EQ | NEQ | GE | LE | GT | LT) right=expr
+    | left=expr op=(MUL | DIV) right=expr
+    | left=expr op=(ADD | SUB) right=expr
+    | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
+    | value
+    ;
 
 type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 
