@@ -15,7 +15,6 @@ internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
         var content = await File.ReadAllTextAsync(DocumentUri.GetFileSystemPath(request), cancellationToken).ConfigureAwait(false);
         var lines = content.Split('\n');
         var symbols = new List<SymbolInformationOrDocumentSymbol>();
-        int index;
         for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
             var line = lines[lineIndex];
@@ -41,33 +40,6 @@ internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
                     }
                 );
             }
-            // else if ((index = line.IndexOf('"')) != -1)
-            // {
-            //     int closingIndex = line.IndexOf('"', index + 1);
-            //     if (closingIndex != -1)
-            //     {
-            //         symbols.Add(
-            //             new DocumentSymbol {
-            //                 // Detail = ,
-            //                 // Deprecated = true,
-            //                 Kind = SymbolKind.String,
-            //                 // Tags = new[] { SymbolTag.Deprecated },
-            //                 Range = new Range(
-            //                     new Position(lineIndex, index),
-            //                     new Position(lineIndex, closingIndex)
-            //                 ),
-            //                 SelectionRange =
-            //                     new Range(
-            //                         new Position(lineIndex, index),
-            //                         new Position(lineIndex, closingIndex)
-            //                     ),
-            //                 Name = line
-            //             }
-            //         );
-            //     }
-            // }
-           
-               
         }
 
         // await Task.Delay(2000, cancellationToken);

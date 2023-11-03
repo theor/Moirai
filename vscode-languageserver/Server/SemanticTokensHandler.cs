@@ -154,8 +154,6 @@ public class SemanticTokensHandler : SemanticTokensHandlerBase
     )
     {
         _logger.LogCritical("Tokenize");
-        // using var typesEnumerator = RotateEnum(SemanticTokenType.Defaults).GetEnumerator();
-        // using var modifiersEnumerator = RotateEnum(SemanticTokenModifier.Defaults).GetEnumerator();
         // you would normally get this from a common source that is managed by current open editor, current active editor, etc.
         var content = await File.ReadAllTextAsync(DocumentUri.GetFileSystemPath(identifier), cancellationToken).ConfigureAwait(false);
         await Task.Yield();
@@ -165,44 +163,7 @@ public class SemanticTokensHandler : SemanticTokensHandlerBase
         var r = parser.r();
         r.Accept(visitor);
         _logger.LogCritical("Errors " + _moiraiCache.Errors.Count);
-        // foreach (var error in errors)
-        // {
-        //     // builder.Push(error.Line, error.Col, 1, Seman);
-        // }
-
-        // foreach (var (line, text) in content.Split('\n').Select((text, line) => (line, text)))
-        // {
-        //     int index = -1;
-        //     if ((index = text.IndexOf("@")) != -1)
-        //         builder.Push(line, index, text.Length - index - 1, SemanticTokenType.Class, SemanticTokenModifier.Definition);
-        //
-        //     else
-        //     {
-        //         index = -1;
-        //         while ((index = text.IndexOf('"', index+1)) != -1)
-        //         {
-        //             int closingIndex = text.IndexOf('"', index + 1);
-        //             if (closingIndex != -1)
-        //             {
-        //                 builder.Push(new Range(
-        //                     new Position(line, index),
-        //                     new Position(line, closingIndex + 1)
-        //                 ), SemanticTokenType.String, SemanticTokenModifier.DefaultLibrary);
-        //             }
-        //         }
-        //         index = -1;
-        //         while ((index = text.IndexOf('$', index + 1)) != -1)
-        //         {
-        //             int end = index + 1;
-        //             while (end < text.Length && Char.IsLetterOrDigit(text[end])) end++;
-        //             builder.Push(new Range(
-        //                 new Position(line, index),
-        //                 new Position(line, end)
-        //             ), SemanticTokenType.Variable, SemanticTokenModifier.DefaultLibrary);
-        //         }
-        //     }
-        //    
-        // }
+      
     }
 
     protected override Task<SemanticTokensDocument>

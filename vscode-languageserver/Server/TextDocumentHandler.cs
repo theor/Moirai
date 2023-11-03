@@ -36,55 +36,26 @@ internal class TextDocumentHandler : TextDocumentSyncHandlerBase
 
     public TextDocumentSyncKind Change { get; } = TextDocumentSyncKind.Full;
 
-    public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
+    public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
     {
         _logger.LogCritical("DidChangeTextDocumentParams " + string.Join(", ", notification.ContentChanges.AsEnumerable().Select(c => c.Text)));
-        _moiraiCache.OnChange(notification);
-        _logger.LogDebug("Debug");
-        _logger.LogTrace("Trace");
-        _logger.LogInformation("Hello world!");
-        AddDiagnostics(notification.TextDocument.Uri);
+        await _moiraiCache.OnChange(notification);
+        _moiraiCache.PublishDiagnostics(_facade.TextDocument);
 
-        return Unit.Task;
+        return Unit.Value;
     }
 
     public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken token)
     {
         await Task.Yield();
         _logger.LogCritical("DidOpenTextDocumentParams");
-        _moiraiCache.OnOpen(notification);
-        await _configuration.GetScopedConfiguration(notification.TextDocument.Uri, token).ConfigureAwait(false);
+        await _moiraiCache.OnOpen(notification);
+        // await _configuration.GetScopedConfiguration(notification.TextDocument.Uri, token).ConfigureAwait(false);
 
-
-        AddDiagnostics(notification.TextDocument.Uri);
+        _moiraiCache.PublishDiagnostics(_facade.TextDocument);
 
 
         return Unit.Value;
-    }
-    private int _version;
-    private void AddDiagnostics(DocumentUri textDocumentUri)
-    {
-
-        var diagnostics = ImmutableArray<Diagnostic>.Empty.ToBuilder();
-        if (_moiraiCache.Errors != null)
-            foreach (var error in _moiraiCache.Errors)
-            {
-                diagnostics.Add(new Diagnostic()
-                {
-                    Code = "ErrorCode_001",
-                    Severity = DiagnosticSeverity.Error,
-                    Message = error.Message,
-                    Range = new Range(error.Line - 1, error.Col, error.Line - 1, error.Col + 1),
-                    Source = "Moirai",
-
-                });
-            }
-
-        _facade.TextDocument.PublishDiagnostics(new PublishDiagnosticsParams()
-        {
-            Diagnostics = new Container<Diagnostic>(diagnostics.ToArray()),
-            Uri = textDocumentUri, Version = ++_version,
-        });
     }
 
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken token)
