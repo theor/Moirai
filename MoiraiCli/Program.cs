@@ -17,8 +17,11 @@ internal class Program
 
         Queue<string> replay = new(new[]
         {
+            "create_time",
             "char_born",
             "char_born",
+            "pass_15_years",
+            "pass_15_years",
             "wedding",
             "make_item",
             "make_item",
@@ -28,6 +31,10 @@ internal class Program
             "couple_has_child",
             "couple_has_child",
             "couple_has_child",
+            "pass_15_years",
+            "pass_15_years",
+            "pass_15_years",
+            "pass_15_years",
             // "parent_dies",
             // "p",
             // "f",

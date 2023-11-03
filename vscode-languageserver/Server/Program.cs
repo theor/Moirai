@@ -13,6 +13,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using Serilog.Events;
+using ILogger = Serilog.ILogger;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 internal class Program
@@ -139,7 +140,6 @@ internal class Program
 
 public class MoiraiCache {
     private readonly ILogger<MoiraiCache> _logger;
-    public List<StoryParser.Error>? Errors;
     private MoiraiDocument _current;
 
     public MoiraiCache(ILogger<MoiraiCache> logger)
@@ -150,19 +150,19 @@ public class MoiraiCache {
     public async Task OnOpen(DidOpenTextDocumentParams notification)
     {
         _current = new MoiraiDocument(notification.TextDocument.Uri, notification.TextDocument);
-        await _current.Process();
+        await _current.Process(_logger);
     }
     public async Task OnChange(DidChangeTextDocumentParams notification)
     {
         _current.Apply(notification.ContentChanges, notification.TextDocument.Version);
-        await _current.Process();
+        await _current.Process(_logger);
     }
     public void PublishDiagnostics(ITextDocumentLanguageServer facadeTextDocument)
     {
 
         var diagnostics = ImmutableArray<Diagnostic>.Empty.ToBuilder();
-        if (Errors != null)
-            foreach (var error in Errors)
+        if (_current.Errors != null)
+            foreach (var error in _current.Errors)
             {
                 diagnostics.Add(new Diagnostic()
                 {
@@ -181,13 +181,32 @@ public class MoiraiCache {
             Uri = _current.DocumentUri, Version = _current.Version,
         });
     }
+    public string GetContent(DocumentUri textDocumentUri)
+    {
+        if (textDocumentUri != _current.DocumentUri)
+        {
+            _logger.LogCritical("GetContent: NOT SAME URI");
+        }
+        return _current.Content;
+    }
+    public void GetSymbols(DocumentUri uri, SemanticTokensBuilder builder)
+    {
+        foreach (var symbol in _current.Symbols)
+        {
+            builder.Push(symbol.range, symbol.type, symbol.modifiers);
+          
+        }
+    }
 }
 
 internal class MoiraiDocument
 {
     public readonly DocumentUri DocumentUri;
     private string _content;
+    public string Content => _content;
     public int Version;
+    public List<(Range range, SemanticTokenType type, string[] modifiers)> Symbols { get; set; }
+    public List<StoryParser.Error> Errors;
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
     {
         DocumentUri = documentUri;
@@ -202,9 +221,18 @@ internal class MoiraiDocument
         var change = changes.Last();
         _content = change.Text;
     }
-    public async Task Process()
+    public async Task Process(Microsoft.Extensions.Logging.ILogger logger)
     {
-        throw new NotImplementedException();
+        var visitor = new TokenVisitor( logger);
+        StoryParser.SetupParser(Content, out var parser, visitor);
+        var r = parser.r();
+        r.Accept(visitor);
+        Errors = visitor.Errors;
+        Symbols = visitor.Symbols;
+        var db = new Database();
+        var astVisitor = new StoryParser.AstVisitor(db);
+        r.Accept(astVisitor);
+        Errors.AddRange(astVisitor.Errors);
     }
 }
 

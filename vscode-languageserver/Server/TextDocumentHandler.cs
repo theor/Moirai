@@ -38,7 +38,7 @@ internal class TextDocumentHandler : TextDocumentSyncHandlerBase
 
     public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken token)
     {
-        _logger.LogCritical("DidChangeTextDocumentParams " + string.Join(", ", notification.ContentChanges.AsEnumerable().Select(c => c.Text)));
+        _logger.LogCritical("DidChangeTextDocumentParams ");
         await _moiraiCache.OnChange(notification);
         _moiraiCache.PublishDiagnostics(_facade.TextDocument);
 

@@ -1,10 +1,9 @@
 parser grammar Moirai;
 options {
-
   tokenVocab=moirai_lexer;
 
 }
-r: (COMMENT | LINE_BREAK)* (action|event|prop_definition|enum_definition|type_definition)+ ;
+r: (COMMENT | LINE_BREAK)* (action|event|prop_definition|enum_definition|type_definition)+ EOF;
 
 action: RULE AT? ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
 event: EVENT ID SCOPE_OPEN LINE_BREAK when+ effect+ SCOPE_CLOSE LINE_BREAK*;

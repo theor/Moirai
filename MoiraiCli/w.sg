@@ -1,40 +1,78 @@
+entity Time {}
 entity Person {}
 entity Item {}
 entity Faction {}
 entity Link {}
 
-enum Job { Smith, Farmer, Noble }
+prop year = number
 
+enum Job { Smith, Farmer, Noble }
+enum Age { Child, Young, Adult, Old }
+
+prop age = Age
 prop alive = bool
-prop owner = ref
+prop birthdate = number
 prop partner = ref
 prop faction = ref
+prop job = Job
+
 prop parent = ref
 prop child = ref
-prop job = Job
+
+prop owner = ref
+
+
+rule create_time {
+    create Time, 'time'
+    set year = 1000
+}
 
 event inherit {
     when $p: type = Person, alive = false
     each $i: type = Item, owner = $p {
-        pick $l: type = Link, $l.parent = $p 
-        pick $c: type = Person, alive = true, id = $l.child
+        each $l: type = Link, $l.parent = $p  {
+            pick $c: type = Person, alive = true, id = $l.child
             set $i.owner = $c
             format "{$c.name} inherits the {$i.name} from {$p.name}"
+        }
     }
 }
 
 rule char_born {
-    create $0: Person
-    set $0.alive = true
-    set $0.job = random Job
-    format "{$0.name} is born"
+    pick $t: type=Time
+    create $p: Person
+    set $p.alive = true
+    set $p.age = Age.Child
+    set $p.birthdate = $t.year
+    format "{$p.name} is born in {$t.year}"
 }
 rule char_dies {
     pick $p: type = Person, alive = true
     set $p.alive = false 
     format "{$p.name} dies"
 }
-rule @parent_dies {
+
+rule pass_15_years {
+    pick $t: type=Time
+    set $t.year = $t.year + 15
+    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= $t.year{
+        set $p.age = Age.Young
+        set $p.job = random Job
+        format "{$p.name} becomes a {$p.job}"
+    }
+    each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= $t.year{
+        set $p.age = Age.Adult
+    }
+    each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= $t.year{
+        set $p.age = Age.Old
+    }
+    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
+        set $p.alive = false
+        format "{$p.name} dies of old age in {$t.year}"
+    }
+}
+
+rule _parent_dies {
     each $l: type = Link {
         pick $p: id = $l.parent, alive = true
         pick $c: id = $l.child
@@ -44,8 +82,8 @@ rule @parent_dies {
     }
 }
 rule wedding {
-    pick $x: type = Person, alive = true, partner = null
-    pick $y: type = Person, alive = true, partner = null, id != $x
+    pick $x: type = Person, alive = true, partner = null, age > Age.Child
+    pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x
     set $x.partner = $y
     set $y.partner = $x
     format "{$x.name} and {$y.name} get married"
@@ -58,17 +96,21 @@ rule divorce {
     format "{$x.name} and {$y.name} separate"
 }
 rule couple_has_child {
+    pick $t: type=Time
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner = $x, id != $x
     create $c: Person
         set $c.alive = true
-        set $c.job = random Job
+        set $c.age = Age.Child
+        set $c.birthdate = $t.year
     create $l1: Link
         set $l1.parent = $x
         set $l1.child = $c
     create $l2: Link
+        set $l2.parent = $y
+        set $l2.child = $c
     
-    format "{$x.name} and {$y.name} have a child, {$c.name}"
+    format "{$x.name} and {$y.name} have a child, {$c.name}, in the year {$t.year}"
 }
 rule make_item {
     pick $p: type=Person, alive = true

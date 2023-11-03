@@ -21,7 +21,8 @@ public static class StoryParser
         DuplicateVariableDefinition,
         MissingEachScope,
         UnknownEnum,
-        TypeNameMustStartWithUpperCase
+        TypeNameMustStartWithUpperCase,
+        VariableNotDeclared
     }
     public struct Error
     {
@@ -67,44 +68,45 @@ public static class StoryParser
         }
     }
 
-    internal static PropertyPath ParsePath(Visitor visitor, string s, out List<Error> errors)
+    internal static PropertyPath ParsePath(AstVisitor visitor, string s, out List<Error> errors)
     {
-        SetupParser(s, out errors, out var parser, visitor);
+        SetupParser(s, out var parser, visitor);
         var r = parser.path();
-        return visitor.ParsePath(r);
+        var propertyPath = visitor.ParsePath(r);
+        errors = visitor.Errors;
+        return propertyPath;
 
     }
 
     public static Database Parse(string s, out List<Error> errors)
     {
         var db = new Database();
-        var visitor = new Visitor(db);
-        SetupParser(s, out errors, out var parser, visitor);
+        var visitor = new AstVisitor(db);
+        SetupParser(s, out var parser, visitor);
         var r = parser.r();
         r.Accept(visitor);
+        errors = visitor.Errors;
         return db;
     }
 
-    public static void SetupParser(string s, out List<Error> errors, out Moirai parser, IVisitor visitor)
+    public static void SetupParser(string s, out Moirai parser, IVisitor visitor)
     {
-
-        errors = visitor.Errors;
         var lexer = new moirai_lexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
         var tokens = new CommonTokenStream(lexer);
         parser = new Moirai(tokens);
-        var listener = new Listener(errors);
+        var listener = new Listener(visitor.Errors);
         lexer.AddErrorListener(listener);
         parser.AddErrorListener(listener);
     }
 
-    internal class Visitor : MoiraiBaseVisitor<object?>, IVisitor
+    public class AstVisitor : MoiraiBaseVisitor<object?>, IVisitor
     {
         private List<string> _variables = new();
         private List<Error> _errors = new();
         public List<Error> Errors => _errors;
         protected override object? DefaultResult => null;
         private readonly Database _database;
-        public Visitor(Database database)
+        public AstVisitor(Database database)
         {
             _database = database;
         }
@@ -539,7 +541,10 @@ public static class StoryParser
 
                     variableIndex = _variables.IndexOf(varId.GetText());
                     if (variableIndex == -1)
-                        throw new System.NotImplementedException("Unknown var " + varId.GetText());
+                    {
+                        AddError(ErrorCode.VariableNotDeclared, varId.Symbol,  varId.GetText());
+                        return new PropertyPath();
+                    }
                 }
             }
             if (context.ID().Length == 0)
