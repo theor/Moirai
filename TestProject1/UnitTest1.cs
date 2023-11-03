@@ -503,4 +503,61 @@ event grow {
         db.RunAction(db.Events[0]);
         db.PrintDb();
     }
+
+    void AssertInstruction(System.Action a)
+    {
+        try
+        {
+            a();
+        }
+        catch (InvalidOperationException e)
+        {
+            Console.WriteLine(e.Message);
+            return;
+        }
+        Assert.Fail("Should have thrown");
+    }
+    void NoAssertInstruction(System.Action a)
+    {
+        a();
+    }
+    [Test]
+    public void TestAssertFalse()
+    {
+        var s = @"
+rule r {
+    assert false
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        
+        AssertInstruction(() => db.RunAction(db.Actions[0]));
+        db.PrintDb();
+    }
+    [Test]
+    public void TestAssertEq()
+    {
+        var s = @"
+rule r {
+    assert 1 = 2
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        
+        AssertInstruction(() => db.RunAction(db.Actions[0]));
+        db.PrintDb();
+    }
+    [Test]
+    public void TestAssertTrue()
+    {
+        var s = @"
+rule r {
+    assert true
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        
+        NoAssertInstruction(() => db.RunAction(db.Actions[0]));
+        db.PrintDb();
+    }
 }

@@ -93,6 +93,9 @@ public class StoryPrinter
             case FormatAction formatAction:
                 sb.AppendLine($"{indentStr}format \"{string.Format(formatAction.FormatString, formatAction.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}\"");
                 break;
+            case AssertInstr assert:
+                sb.AppendLine("assert " + Print(assert.Value));
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(instruction));
         }

@@ -45,6 +45,21 @@ public struct YearsPassed : IValue
         throw new NotImplementedException();
     }
 }
+public struct AssertInstr : IInstruction
+{
+    public readonly IValue Value;
+    public readonly string Message;
+    public AssertInstr(IValue value, string message)
+    {
+        Value = value;
+        Message = message;
+    }
+    public bool Execute(PredicateContext ctx)
+    {
+        ctx.Assert(Value.Compute(ctx).BoolValue, Message);
+        return true;
+    }
+}
 public struct RandomCall : IValue
 {
     public readonly ushort EnumID;

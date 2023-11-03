@@ -1071,8 +1071,8 @@ public partial class Moirai : Parser {
 
 	public partial class ValueContext : ParserRuleContext {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PAREN_OPEN() { return GetToken(Moirai.PAREN_OPEN, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ValueContext value() {
-			return GetRuleContext<ValueContext>(0);
+		[System.Diagnostics.DebuggerNonUserCode] public ExprContext expr() {
+			return GetRuleContext<ExprContext>(0);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PAREN_CLOSE() { return GetToken(Moirai.PAREN_CLOSE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public CallContext call() {
@@ -1133,7 +1133,7 @@ public partial class Moirai : Parser {
 				State = 187;
 				Match(PAREN_OPEN);
 				State = 188;
-				value();
+				expr();
 				State = 189;
 				Match(PAREN_CLOSE);
 				}
@@ -1991,7 +1991,7 @@ public partial class Moirai : Parser {
 		0,176,179,1,0,0,0,177,175,1,0,0,0,177,178,1,0,0,0,178,180,1,0,0,0,179,
 		177,1,0,0,0,180,184,5,8,0,0,181,183,5,4,0,0,182,181,1,0,0,0,183,186,1,
 		0,0,0,184,182,1,0,0,0,184,185,1,0,0,0,185,17,1,0,0,0,186,184,1,0,0,0,187,
-		188,5,9,0,0,188,189,3,18,9,0,189,190,5,10,0,0,190,200,1,0,0,0,191,200,
+		188,5,9,0,0,188,189,3,20,10,0,189,190,5,10,0,0,190,200,1,0,0,0,191,200,
 		3,14,7,0,192,200,3,30,15,0,193,200,3,36,18,0,194,200,5,27,0,0,195,200,
 		3,34,17,0,196,200,3,32,16,0,197,200,3,38,19,0,198,200,5,2,0,0,199,187,
 		1,0,0,0,199,191,1,0,0,0,199,192,1,0,0,0,199,193,1,0,0,0,199,194,1,0,0,

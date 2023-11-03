@@ -24,9 +24,6 @@
     }
     public PropertyValue Compute(PredicateContext ctx)
     {
-        if (!ctx.Database.TryGetEntity(ctx.EntityId, out Entity entity))
-            return false;
-
         var left = Left.Compute(ctx);
         var right = Right.Compute(ctx);
         switch (Op)

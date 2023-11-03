@@ -15,7 +15,7 @@ set: SET  path EQ expr;
 call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
 call : ID ((expr (COMMA expr)* )) scope?;
 scope: SCOPE_OPEN LINE_BREAK* effect* SCOPE_CLOSE LINE_BREAK*;
-value: (PAREN_OPEN value PAREN_CLOSE) | call | string | enum_value | TYPE_ID | path | bool | number | NULL;
+value: (PAREN_OPEN expr PAREN_CLOSE) | call | string | enum_value | TYPE_ID | path | bool | number | NULL;
 expr : value (op value)? ;
 op : EQ | NEQ ;
 

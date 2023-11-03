@@ -94,4 +94,9 @@ public class PredicateContext
     {
         Database.AppendDescription(formatAction);
     }
+    public void Assert(bool boolValue, string msg)
+    {
+        if (!boolValue)
+            throw new InvalidOperationException("assert failed: " + msg);
+    }
 }

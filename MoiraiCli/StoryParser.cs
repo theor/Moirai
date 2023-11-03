@@ -229,8 +229,8 @@ public static class StoryParser
         }
         private IValue ParseValue(Moirai.ValueContext value)
         {
-            if (value.value() != null)
-                return ParseValue(value.value());
+            if (value.expr() != null)
+                return ParseExpr(value.expr());
             if (value.TYPE_ID() != null)
             {
                 var type = _database.GetEntityType(value.TYPE_ID().GetText());
@@ -241,19 +241,25 @@ public static class StoryParser
             if (value.call() != null)
             {
                 var call = value.call();
-                if (call.ID()?.GetText() == "random")
+                var funcName = call.ID()?.GetText();
+                switch (funcName)
                 {
+                    case "random":
+                    {
                         if (!_database.GetEnumDefinition(call.expr(0).GetText(), out var enumDef))
                             return (AddError(ErrorCode.UnknownEnum, call.expr(0).Start, call.expr(0).GetText()) as IValue)!;
                         return new RandomCall(enumDef.Index);
-                } else if (call.ID()?.GetText() == "passed_years")
-                {
-                    // TODO error checking
-                    int years = int.Parse(call.expr(0).GetText());
-                    return new YearsPassed(years);
+                    }
+                    case "passed_years":
+                    {
+                        // TODO error checking
+                        int years = int.Parse(call.expr(0).GetText());
+                        return new YearsPassed(years);
+                    }
+                    default:
+                        AddError(ErrorCode.UnknownCall, value.Start, funcName);
+                        return default!;
                 }
-                AddError(ErrorCode.UnknownCall, value.Start, call.ID()?.GetText());
-                return default!;
             }
             if (value.path() != null)
             {
@@ -364,13 +370,17 @@ public static class StoryParser
         }
         private IInstruction ParseCall(Moirai.Call_assignContext context)
         {
+            var funcName = context.ID().GetText();
+            if (funcName == "assert")
+            {
+                return new AssertInstr(ParseExpr(context.expr(0)), context.expr(0).GetText());
+            }
             int variableIndex = Math.Max(0,  _variables.Count - 1);
             if (context.VAR_ID() != null)
             {
                 if (!DeclareVar(context.VAR_ID().GetText(), context.Start, out variableIndex))
                     return null;
             }
-            var funcName = context.ID().GetText();
             switch (funcName)
             {
 
