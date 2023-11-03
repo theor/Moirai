@@ -3,8 +3,8 @@
 public class FormatAction : IInstruction
 {
     public readonly string FormatString;
-    public PropertyPath[] Arguments;
-    public FormatAction(string formatString, PropertyPath[] arguments)
+    public IValue[] Arguments;
+    public FormatAction(string formatString, IValue[] arguments)
     {
         FormatString = formatString;
         Arguments = arguments;

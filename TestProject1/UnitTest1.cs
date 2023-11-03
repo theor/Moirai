@@ -457,7 +457,7 @@ rule char_dies {
        
     }
     [Test]
-    public void Prop_Enum()
+    public void Enum_Set()
     {
         string s = @"
 entity Person {}
@@ -467,6 +467,31 @@ prop job = Job
 rule create {
     create Person
     set job = Job.Farmer
+}
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.PrintDb();
+        var e = db.Entities.Single();
+        PropertyId jobProp = db.GetProperty("job");
+        var value = e.GetProperty(jobProp);
+        Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
+        Assert.AreEqual(enumDefinition.ValueType, value.Type);
+        Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
+        Assert.AreEqual(1, value.IntValue);
+    }
+    
+    [Test]
+    public void Enum_Set_CastInt()
+    {
+        string s = @"
+entity Person {}
+enum Job { None, Farmer, Smith }
+prop job = Job
+
+rule create {
+    create Person
+    set job = 1
 }
 ";
         var db = Run(s, out var errors);
@@ -572,6 +597,20 @@ rule create_faction {
         Console.WriteLine(db.History.Changesets[0].Description);
         Assert.AreEqual("River creates the Faction of Cerelia to counter the Faction of Hecate", db.History.Changesets[0].Description);
     }
+    [Test]
+    public void FormatLiteral()
+    {
+        var s = @"
+rule create_faction {
+    format 'res {42} > {16} = {42 > 16}'
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        db.RunAction(db.Actions[0]);
+        db.Printer.PrintChangeset(db.History.Changesets[0], false);
+        Console.WriteLine(db.History.Changesets[0].Description);
+        Assert.AreEqual("res 42 > 16 = true", db.History.Changesets[0].Description);
+    }
 
     [Test]
     public void Time()
@@ -661,7 +700,7 @@ rule born {
 rule pass_15_years {
     pick $t: type=Time
     set $t.year = $t.year + 15
-    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20* (age+1) ) <= $t.year, age < Age.Old {
+    each $p: type=Person, alive = true, age < Age.Old, (birthdate + 20* (age+1) ) <= $t.year, age < Age.Old {
         set $p.age = age+1
     }
    
@@ -671,15 +710,20 @@ rule pass_15_years {
 }";
         var db = Run(s, out var errors);
         db.History = new();
-        db.RunAction(db.Events[0]);
-        db.RunAction(db.Events[1]);
+        db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[1]);
         db.PrintDb();
-        db.RunAction(db.Events[1]);
+        db.RunAction(db.Actions[2]);
+        db.RunAction(db.Actions[2]);
         db.PrintDb();
-        db.RunAction(db.Events[1]);
+        db.RunAction(db.Actions[2]);
         db.PrintDb();
-        db.RunAction(db.Events[1]);
+        db.RunAction(db.Actions[2]);
         db.PrintDb();
+        db.RunAction(db.Actions[2]);
+        db.RunAction(db.Actions[2]);
+        db.PrintDb();
+        db.PrintHistory();
     }
 
     void AssertInstruction(System.Action a)

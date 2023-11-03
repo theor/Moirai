@@ -221,11 +221,19 @@ public class Database
             entity.Properties = new();
             _entities[(int)entityId] = entity;
         }
+        if (GetPropertyType(property, out var type) && type.BaseType == PropertyValue.ValueBaseType.Enum)
+        {
+            if (value.Type.BaseType != PropertyValue.ValueBaseType.Enum)
+            {
+                value = new PropertyValue { Type = Enums[type.Index].ValueType, IntValue = value.IntValue };
+            }
+        }
         for (var index = 0; index < entity.Properties.Count; index++)
         {
             var entityProperty = entity.Properties[index];
             if (entityProperty.Type == property)
             {
+                
                 var prev = entityProperty.Value;
                 entityProperty.Value = value;
                 entity.Properties[index] = entityProperty;
@@ -425,6 +433,13 @@ public class Database
         }
         valueType = Properties[(int)type.Id].Type;
         return true;
+    }
+    public void PrintHistory()
+    {
+        foreach (var cs in History.Changesets)
+        {
+            Printer.PrintChangeset(cs);
+        }
     }
 }
 

@@ -33,7 +33,7 @@ event inherit {
         each $l: type = Link, $l.parent = $p  {
             pick $c: type = Person, alive = true, id = $l.child
             set $i.owner = $c
-            format "{$c.name} inherits the {$i.name} from {$p.name}"
+            format '{$c.name} inherits the {$i.name} from {$p.name}'
         }
     }
 }
@@ -44,12 +44,12 @@ rule char_born {
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = $t.year
-    format "{$p.name} is born in {$t.year}"
+    format '{$p.name} is born in {$t.year}'
 }
 rule char_dies {
     pick $p: type = Person, alive = true
     set $p.alive = false 
-    format "{$p.name} dies"
+    format '{$p.name} dies'
 }
 
 rule pass_15_years {
@@ -58,7 +58,7 @@ rule pass_15_years {
     each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= $t.year{
         set $p.age = Age.Young
         set $p.job = random Job
-        format "{$p.name} becomes a {$p.job}"
+        format '{$p.name} becomes a {$p.job}'
     }
     each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= $t.year{
         set $p.age = Age.Adult
@@ -68,7 +68,7 @@ rule pass_15_years {
     }
     each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
         set $p.alive = false
-        format "{$p.name} dies of old age in {$t.year}"
+        format '{$p.name} dies of old age in {$t.year}'
     }
 }
 
@@ -77,7 +77,7 @@ rule _parent_dies {
         pick $p: id = $l.parent, alive = true
         pick $c: id = $l.child
         set $p.alive = false 
-        format "{$p.name}, parent of {$c.name}, dies"
+        format '{$p.name}, parent of {$c.name}, dies'
 
     }
 }
@@ -86,14 +86,14 @@ rule wedding {
     pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x
     set $x.partner = $y
     set $y.partner = $x
-    format "{$x.name} and {$y.name} get married"
+    format '{$x.name} and {$y.name} get married'
 }
 rule divorce {
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner != null, id != $x
     set $x.partner = null
     set $y.partner = null
-    format "{$x.name} and {$y.name} separate"
+    format '{$x.name} and {$y.name} separate'
 }
 rule couple_has_child {
     pick $t: type=Time
@@ -110,41 +110,41 @@ rule couple_has_child {
         set $l2.parent = $y
         set $l2.child = $c
     
-    format "{$x.name} and {$y.name} have a child, {$c.name}, in the year {$t.year}"
+    format '{$x.name} and {$y.name} have a child, {$c.name}, in the year {$t.year}'
 }
 rule make_item {
     pick $p: type=Person, alive = true
     create $i: Item
     set $i.owner = $p
-    format "{$p.name} creates the {$i.name}"
+    format '{$p.name} creates the {$i.name}'
 }
 rule item_lost {
     pick $i: type=Item, owner != null
     set $i.owner = null
-    format "The {$i.name} is lost"
+    format 'The {$i.name} is lost'
 }
 rule item_found {
     pick $p: type=Person, alive = true
     pick $i: type=Item, owner = null
     set $i.owner = $p
-    format "{$p.name} obtains the {$i.name}"
+    format '{$p.name} obtains the {$i.name}'
 }
 rule item_sold {
     pick $i: type=Item, owner != null
     pick $p: type=Person, id != $i.owner
     set $i.owner = $p
-    format "{$p.name} acquires the {$i.name}"
+    format '{$p.name} acquires the {$i.name}'
 }
 rule create_faction {
     pick $p: type=Person, alive=true, faction = null
     create $f: Faction
     set $f.owner = $p
     set $p.faction = $f
-    format "{$p.name} creates the {$f.name}"
+    format '{$p.name} creates the {$f.name}'
 }
 rule char_joins_faction {
 pick $p: type=Person, faction = null
     pick $f: type=Faction
     set $p.faction = $f
-    format "{$p.name} joins the {$f.name}"
+    format '{$p.name} joins the {$f.name}'
 }

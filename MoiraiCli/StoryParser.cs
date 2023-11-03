@@ -68,11 +68,11 @@ public static class StoryParser
         }
     }
 
-    internal static PropertyPath ParsePath(AstVisitor visitor, string s, out List<Error> errors)
+    internal static IValue? ParseExpr(AstVisitor visitor, string s, out List<Error> errors)
     {
         SetupParser(s, out var parser, visitor);
-        var r = parser.path();
-        var propertyPath = visitor.ParsePath(r);
+        var r = parser.expr();
+        var propertyPath = visitor.ParseExpr(r);
         errors = visitor.Errors;
         return propertyPath;
 
@@ -423,7 +423,7 @@ public static class StoryParser
                     return new CreateEntity(variableIndex, typeId.Id, name);
                 case "format":
                     var str = context.expr(0).value().@string().GetString();
-                    List<PropertyPath> paths = new();
+                    List<IValue> paths = new();
                     string result = "";
                     int i = -1;
                     var prev = i + 1;
@@ -439,8 +439,8 @@ public static class StoryParser
                             throw new System.NotImplementedException($"Missing curly brace in string: {str}, opening brace at {i}");
 
                         var pathStr = str.Substring(i + 1, j - i - 1);
-                        var path = StoryParser.ParsePath(this, pathStr, out _errors);
-                        paths.Add(path);
+                        var path = StoryParser.ParseExpr(this, pathStr, out _errors);
+                        paths.Add(path!);
                         // Console.WriteLine($"'{pathStr}'");
                         if (i > prev)
                             result += str.Substring(prev, i - prev);
@@ -456,7 +456,7 @@ public static class StoryParser
 
             return (AddError(ErrorCode.UnknownCall, context.Start, funcName) as IInstruction)!;
         }
-        private IValue? ParseExpr(Moirai.ExprContext context)
+        public IValue? ParseExpr(Moirai.ExprContext context)
         {
             if (context.value() != null)
             {
