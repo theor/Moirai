@@ -251,6 +251,7 @@ public class Database
     }
     public bool RunAction(Action action)
     {
+        Console.WriteLine($"[{action.Name}]");
         CurrentChangeset = new Changeset(action.Name);
         _ctx.Values.Clear();
         // int argCount = 0;

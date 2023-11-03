@@ -29,6 +29,120 @@ public class Tests
     }
 
     [Test]
+    public void Int_Set()
+    {
+        var s = @"
+entity Person {}
+prop f = number
+rule r {
+    create Person
+    set f = 42
+    assert $0.f = 42
+}
+rule rr {
+    pick Person
+    set f = 43
+    assert $0.f = 43
+}
+";
+
+        var db = Run(s, out var errors);
+        db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[1]);
+        db.PrintDb();
+    }
+
+    [Test]
+    public void Int_Add() => RunAssert(@"
+entity Person {}
+prop f = number
+rule r {
+    create Person
+    set f = 2 + 3
+    assert $0.f = 5
+}
+");
+
+    [Test]
+    public void Int_AddMul_Precedence() => RunAssert(@"
+entity Person {}
+prop f = number
+rule r {
+    create Person
+    set f = 2 + 3 * 4
+    assert_eq $0.f, 14
+}
+");
+   
+
+    static void RunAssert(string s, string? actionName = null)
+    {
+        var db = Run(s, out var errors);
+        if (actionName != null)
+            db.RunAction(actionName);
+        else
+            db.RunAction(db.Actions[0]);
+        db.PrintDb();
+    }
+    
+    [Test]
+    public void Int_FromEnum()
+    {
+        var s = @"
+entity Person {}
+enum E { A, B, C }
+prop f = number
+rule r {
+    create Person
+    set f = E.B
+    assert $0.f = 1
+    set f = E.C * 2
+    assert $0.f = 4
+}
+";
+
+        var db = Run(s, out var errors);
+        db.RunAction(db.Actions[0]);
+        db.PrintDb();
+    }
+
+    [Test]
+    public void Int_Cmp()
+    {
+        var s = @"
+entity Person {}
+prop f = number
+rule r {
+    create Person
+    set f = 42 > 4
+    assert $0.f
+}
+";
+
+        var db = Run(s, out var errors);
+        db.RunAction(db.Actions[0]);
+        db.PrintDb();
+    }
+
+    [Test]
+    public void Int_Increment()
+    {
+        var s = @"
+entity Person {}
+prop f = number
+rule r {
+    create Person
+    set f = 42
+    set f = f + 1
+    assert $0.f = 43
+}
+";
+
+        var db = Run(s, out var errors);
+        db.RunAction(db.Actions[0]);
+        db.PrintDb();
+    }
+    [Test]
     public void Test1()
     {
         var s = @"
@@ -37,6 +151,7 @@ prop alive = bool
 rule born_char {
     create Person
     set alive = true
+    assert $0.alive = true
 }
 ";
         
@@ -45,7 +160,7 @@ rule born_char {
         Assert.AreEqual(1, db.Actions.Count);
         var action = db.Actions[0];
         Assert.AreEqual("born_char", action.Name);
-        Assert.AreEqual(2, action.Effects.Count);
+        Assert.AreEqual(3, action.Effects.Count);
         
         Assert.IsInstanceOf<SetProperty>(action.Effects[1]);
         
@@ -462,25 +577,60 @@ rule create_faction {
     public void Time()
     {
         var s = @"
+entity Time {}
+prop year = number
 entity Person {}
 enum Age { Child, Young, Adult, Old }
 prop alive = bool
+prop birthdate = number
 prop age = Age
+rule create_time {
+    create Time, 'time'
+    set year = 1000
+}
 rule born {
+    pick $t: type=Time
     create $p: Person
-    set $p.age = 'Child'
-    format 'The {$p.age} {$p.name} is born'
+    set $p.alive = true
+    set $p.age = Age.Child
+    set $p.birthdate = $t.year
+    format 'The {$p.age} {$p.name} is born in {$p.birthdate}'
 }
 
-event grow {
-    when (passed_years 20) = true
-    each $p: type=Person, alive = true, age = 'Child' {
-        set age = 'Young'
+rule pass_15_years {
+    pick $t: type=Time
+    set $t.year = $t.year + 15
+    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= $t.year{
+        set $p.age = Age.Young
+    }
+    each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= $t.year{
+        set $p.age = Age.Adult
+    }
+    each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= $t.year{
+        set $p.age = Age.Old
+    }
+    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
+        set $p.alive = false
     }
 }";
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[1]);
+        db.PrintDb();
+        db.RunAction(db.Actions[1]);
+        db.RunAction(db.Actions[2]);
+        db.PrintDb();
+        db.RunAction(db.Actions[1]);
+        db.RunAction(db.Actions[2]);
+        db.RunAction(db.Actions[2]);
+        db.PrintDb();
+        db.RunAction(db.Actions[1]);
+        db.RunAction(db.Actions[2]);
+        db.RunAction(db.Actions[2]);
+        db.PrintDb();
+        db.RunAction(db.Actions[1]);
+        db.RunAction(db.Actions[2]);
         db.PrintDb();
     }
 
@@ -488,19 +638,47 @@ event grow {
     public void Time2()
     {
         var s = @"
+entity Time {}
+prop year = number
 entity Person {}
 enum Age { Child, Young, Adult, Old }
+prop alive = bool
+prop birthdate = number
 prop age = Age
+rule create_time {
+    create Time, 'time'
+    set year = 1000
+}
+rule born {
+    pick $t: type=Time
+    create $p: Person
+    set $p.alive = true
+    set $p.age = Age.Child
+    set $p.birthdate = $t.year
+    format 'The {$p.age} {$p.name} is born in {$p.birthdate}'
+}
 
-event grow {
-    when true
-    each $p: type=Person, age = 'Child' {
-        set age = 'Young'
+rule pass_15_years {
+    pick $t: type=Time
+    set $t.year = $t.year + 15
+    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20* (age+1) ) <= $t.year, age < Age.Old {
+        set $p.age = age+1
+    }
+   
+    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
+        set $p.alive = false
     }
 }";
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Events[0]);
+        db.RunAction(db.Events[1]);
+        db.PrintDb();
+        db.RunAction(db.Events[1]);
+        db.PrintDb();
+        db.RunAction(db.Events[1]);
+        db.PrintDb();
+        db.RunAction(db.Events[1]);
         db.PrintDb();
     }
 

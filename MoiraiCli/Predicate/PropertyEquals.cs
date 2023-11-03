@@ -4,18 +4,14 @@
     {
         Equals,
         NotEquals,
+        Add,Sub,Div,Mul,
+        Gt,Lt,
+        Ge,Le,
     }
     public readonly Operator Op;
     public readonly IValue Left;
     public readonly IValue Right;
 
-  
-    public BinaryOperator(Operator op, IValue left, PropertyValue value)
-    {
-        Op = op;
-        Left = left;
-        Right = new Literal(value);
-    }
     public BinaryOperator(Operator op, IValue left, IValue right)
     {
         Op = op;
@@ -32,6 +28,22 @@
                 return left == right;
             case Operator.NotEquals:
                 return left != right;
+            case Operator.Add:
+                return left.IntValue + right.IntValue;
+            case Operator.Sub:
+                return left.IntValue - right.IntValue;
+            case Operator.Div:
+                return left.IntValue / right.IntValue;
+            case Operator.Mul:
+                return left.IntValue * right.IntValue;
+            case Operator.Gt:
+                return left.IntValue > right.IntValue;
+            case Operator.Lt:
+                return left.IntValue < right.IntValue;
+            case Operator.Ge:
+                return left.IntValue >= right.IntValue;
+            case Operator.Le:
+                return left.IntValue <= right.IntValue;
             default:
                 throw new ArgumentOutOfRangeException();
         }

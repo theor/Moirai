@@ -19,16 +19,18 @@ public class FormatAction : IInstruction
 class CreateEntity : IInstruction
 {
     public readonly int VariableIndex;
-    public EntityTypeId Type;
-    public CreateEntity(int variableIndex, EntityTypeId type)
+    public readonly EntityTypeId Type;
+    public readonly string? Name;
+    public CreateEntity(int variableIndex, EntityTypeId type, string? name)
     {
         VariableIndex = variableIndex;
         Type = type;
+        Name = name;
     }
     public bool Execute(PredicateContext ctx)
     {
         // if (!ctx.Database.EntityExists(ctx.EntityId))
-        string name = NameEntity.MakeName(ctx, Type);
+        string name = Name ?? NameEntity.MakeName(ctx, Type);
         var entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
         return true;

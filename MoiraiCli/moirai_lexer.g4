@@ -27,13 +27,21 @@ FALSE: 'false';
 DOT: '.' ;
 NEQ: '!=' ;
 EQ: '=';
+ADD: '+';
+SUB: '-';
+MUL: '*';
+DIV: '/';
+GE: '>=';
+LE: '<=';
+GT: '>';
+LT: '<';
 
 VAR_ID: '$' (ALPHA|DIGIT)(ALPHA|DIGIT|'_')*;
 PROP_ID: '%' [a-z][a-z_]*;
 
 AT : '@' ;
 TYPE_ID : ALPHA_UPPER (ALPHA|'_')* ;
-ID : ALPHA_LOWER (ALPHA|'_')* ;
+ID : ALPHA_LOWER (ALPHA|'_'|DIGIT)* ;
 NUMBER: DIGIT+ ;
 fragment
 DIGIT   :   ('0'..'9');

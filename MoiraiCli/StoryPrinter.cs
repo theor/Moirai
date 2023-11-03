@@ -97,7 +97,7 @@ public class StoryPrinter
                 sb.AppendLine("assert " + Print(assert.Value));
                 break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(instruction));
+                throw new ArgumentOutOfRangeException(nameof(instruction), instruction?.ToString());
         }
     }
     private string GetPropertyName(PropertyId p)
@@ -166,9 +166,17 @@ public class StoryPrinter
 
                     BinaryOperator.Operator.Equals => "=",
                     BinaryOperator.Operator.NotEquals => "!=",
+                    BinaryOperator.Operator.Add => "+",
+                    BinaryOperator.Operator.Sub => "-",
+                    BinaryOperator.Operator.Div => "/",
+                    BinaryOperator.Operator.Mul => "*",
+                    BinaryOperator.Operator.Gt => ">",
+                    BinaryOperator.Operator.Ge => ">=",
+                    BinaryOperator.Operator.Lt => "<",
+                    BinaryOperator.Operator.Le => "<=",
                     _ => throw new ArgumentOutOfRangeException()
                 };
-                return $"{Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)}";
+                return $"({Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)})";
             // case True @true:
             // break;
             default:

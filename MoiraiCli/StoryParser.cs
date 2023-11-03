@@ -229,8 +229,6 @@ public static class StoryParser
         }
         private IValue ParseValue(Moirai.ValueContext value)
         {
-            if (value.expr() != null)
-                return ParseExpr(value.expr());
             if (value.TYPE_ID() != null)
             {
                 var type = _database.GetEntityType(value.TYPE_ID().GetText());
@@ -357,11 +355,11 @@ public static class StoryParser
         private bool DeclareVar(string variable, IToken contextStart, out int varIndex)
         {
 
-            if (_variables.IndexOf(variable) != -1)
+            if ((varIndex = _variables.IndexOf(variable)) != -1)
             {
-                AddError(ErrorCode.DuplicateVariableDefinition,  contextStart, " Duplicate variable " + variable);
-                varIndex = 0;
-                return false;
+                // AddError(ErrorCode.DuplicateVariableDefinition,  contextStart, " Duplicate variable " + variable);
+                // varIndex = 0;
+                return true;
             }
 
             _variables.Add(variable);
@@ -374,6 +372,10 @@ public static class StoryParser
             if (funcName == "assert")
             {
                 return new AssertInstr(ParseExpr(context.expr(0)), context.expr(0).GetText());
+            }
+            if (funcName == "assert_eq")
+            {
+                return new AssertInstr(ParseExpr(context.expr(0)), ParseExpr(context.expr(1)), context.expr(0).GetText() + " = " + context.expr(1).GetText());
             }
             int variableIndex = Math.Max(0,  _variables.Count - 1);
             if (context.VAR_ID() != null)
@@ -389,13 +391,15 @@ public static class StoryParser
                     if (context.scope() == null)
                         AddError(ErrorCode.MissingEachScope, context.Start, "Missing scope in foreach");
                     var exprs = context.expr();
-                    return new AssignPick(
+                    var assignPick = new AssignPick(
                         variableIndex,
                         exprs.Length == 1
                             ? ParseExpr(exprs[0])!
                             : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
                         CallType.Each,
                         context.scope().effect().Select(ParseEffect).ToArray());
+                    // _variables[variableIndex] = "";
+                    return assignPick;
                 }
                 case "pick":
                 {
@@ -412,9 +416,11 @@ public static class StoryParser
                     var typeId = _database.GetEntityType(type);
                     if (typeId.Id == EntityTypeId.Null)
                         throw new Exception($"Unknown entity type '{type}'");
-                    return new CreateEntity(variableIndex, typeId.Id);
+
+                    string name = context.expr(1)?.GetText();
+                    return new CreateEntity(variableIndex, typeId.Id, name);
                 case "format":
-                    var str = context.expr(0).value(0).@string().GetString();
+                    var str = context.expr(0).value().@string().GetString();
                     List<PropertyPath> paths = new();
                     string result = "";
                     int i = -1;
@@ -450,19 +456,20 @@ public static class StoryParser
         }
         private IValue? ParseExpr(Moirai.ExprContext context)
         {
-            if (context.op() == null)
+            if (context.value() != null)
             {
-                return ParseValue(context.value(0));
+                return ParseValue(context.value());
                 // ComputedValue v = ParseValue(context.value(0), PropertyValue.TypeBool);
 
             }
-            string? op = context.op().GetText();
+            if (context.paren_expr != null)
+                return ParseExpr(context.paren_expr);
+            string op = context.op().GetText();
             // left, alive
-            var left = context.value(0);
-            var leftPath = ParseValue(left);
+            IValue leftPath = ParseExpr(context.left)!;
 
             // right, true or $x -  not alive or $x.alive
-            IValue rightValue = ParseValue(context.value(1));
+            IValue rightValue = ParseExpr(context.right)!;
 
             BinaryOperator.Operator pop;
             switch (op)
@@ -472,6 +479,30 @@ public static class StoryParser
                     break;
                 case "!=":
                     pop = BinaryOperator.Operator.NotEquals;
+                    break;
+                case "+":
+                    pop = BinaryOperator.Operator.Add;
+                    break;
+                case "-":
+                    pop = BinaryOperator.Operator.Sub;
+                    break;
+                case "/":
+                    pop = BinaryOperator.Operator.Div;
+                    break;
+                case "*":
+                    pop = BinaryOperator.Operator.Mul;
+                    break;
+                case ">":
+                    pop = BinaryOperator.Operator.Gt;
+                    break;
+                case "<":
+                    pop = BinaryOperator.Operator.Lt;
+                    break;
+                case ">=":
+                    pop = BinaryOperator.Operator.Ge;
+                    break;
+                case "<=":
+                    pop = BinaryOperator.Operator.Le;
                     break;
                 default: return (IValue?)AddError(ErrorCode.UnknownExpressionOperator,  context.Start, op);
             }
