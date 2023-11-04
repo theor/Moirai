@@ -140,7 +140,7 @@ public class Database
 
         e.Properties = new();
         e.Properties.Add(new Property(PropType, entityType));
-        if(name != null)
+        if(!String.IsNullOrEmpty(name))
             e.Properties.Add(new Property(PropName, name));
         e.Id = new EntityId((long)_entities.Count);
         _entities.Add(e);
@@ -355,15 +355,20 @@ public class Database
         foreach (var e in Entities)
         {
             any = true;
-            string name = e.TryGetProperty(Database.PropType, out var nameprop) ? (nameprop.Value ?? "") : "";
+            var type = GetEntityTypeName(e.GetProperty(Database.PropType).TypeId);
+            string name = e.TryGetProperty(Database.PropName, out var nameprop) ? (nameprop.Value ?? "") : "";
             Console.ForegroundColor = Colors[e.GetProperty(Database.PropType).IntValue % Colors.Length];
-            Console.WriteLine($"e{e.Id} {name}");
+            Console.WriteLine($"{e.Id} {type} {name}");
             Console.ResetColor();
             if (e.Properties != null)
                 foreach (var property in e.Properties)
                 {
-                    if (property.Type != Database.PropType)
-                        Console.WriteLine($"  {Properties[(int)property.Type.Id].Name}: {printer.Print(property.Value)}");
+                    if (property.Type == Database.PropType || property.Type == PropName)
+                        continue;
+                        Console.Write($"  {Properties[(int)property.Type.Id].Name}: {printer.Print(property.Value)}");
+                    if(property.Value.Type == PropertyValue.TypeRef && TryGetEntity(property.Value.Id, out var other) && other.TryGetProperty(PropName, out var otherName))
+                        Console.Write(" " + otherName.Value);
+                    Console.WriteLine();
                         // Console.WriteLine($"  {FormatProperty(property)}");
                 }
         }

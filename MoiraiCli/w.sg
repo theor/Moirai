@@ -38,12 +38,11 @@ event inherit {
 }
 
 rule char_born {
-    pick $t: type=Time
     create $p: Person, '{random name}'
     set $p.alive = true
     set $p.age = Age.Child
-    set $p.birthdate = $t.year
-    record '{$p.name} is born in {$t.year}'
+    set $p.birthdate = #Time.year
+    record '{$p.name} is born in {#Time.year}'
 }
 rule char_dies {
     pick $p: type = Person, alive = true
@@ -52,22 +51,21 @@ rule char_dies {
 }
 
 rule pass_15_years {
-    pick $t: type=Time
-    set $t.year = $t.year + 15
-    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= $t.year{
+    set #Time.year = #Time.year + 15
+    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
         set $p.age = Age.Young
         set $p.job = random Job
         record '{$p.name} becomes a {$p.job}'
     }
-    each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= $t.year{
+    each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year{
         set $p.age = Age.Adult
     }
-    each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= $t.year{
+    each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year{
         set $p.age = Age.Old
     }
-    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
+    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
         set $p.alive = false
-        record '{$p.name} dies of old age at {$t.year - $p.birthdate} in {$t.year}'
+        record '{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}'
     }
 }
 
@@ -95,13 +93,12 @@ rule divorce {
     record '{$x.name} and {$y.name} separate'
 }
 rule couple_has_child {
-    pick $t: type=Time
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner = $x, id != $x
     create $c: Person, '{random name}'
         set $c.alive = true
         set $c.age = Age.Child
-        set $c.birthdate = $t.year
+        set $c.birthdate = #Time.year
     create $l1: Link
         set $l1.parent = $x
         set $l1.child = $c
@@ -109,7 +106,7 @@ rule couple_has_child {
         set $l2.parent = $y
         set $l2.child = $c
     
-    record '{$x.name} and {$y.name} have a child, {$c.name}, in the year {$t.year}'
+    record '{$x.name} and {$y.name} have a child, {$c.name}, in the year {#Time.year}'
 }
 rule make_item {
     pick $p: type=Person, alive = true, job=Job.Smith
