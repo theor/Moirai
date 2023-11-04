@@ -13,18 +13,42 @@ public struct Literal : IValue
 
 public struct PropertyPath : IValue
 {
+    public readonly int VariableIndex;
+    public readonly PropertyId Property;
+    public readonly EntityTypeId SingletonType;
+    public enum PropertyPathMode { Variable, Singleton }
+
+    public readonly PropertyPathMode Mode;
     public PropertyPath(int variableIndex, PropertyId? property = null)
     {
         VariableIndex = variableIndex;
         Property = property ?? PropertyId.Null;
+        Mode = PropertyPathMode.Variable;
+        SingletonType = default;
     }
-
-    public readonly int VariableIndex;
-    public readonly PropertyId Property;
+    public PropertyPath(EntityTypeId singletonTypeId, PropertyId propertyId)
+    {
+        SingletonType = singletonTypeId;
+        Property = propertyId;
+        Mode = PropertyPathMode.Singleton;
+        VariableIndex = -1;
+    }
     public PropertyValue Compute(PredicateContext ctx)
     {
-        var varValue = ctx.Argument(VariableIndex);
-        if (!ctx.Database.TryGetEntity(varValue.IntValue, out var e))
+        if (Mode == PropertyPathMode.Singleton)
+        {
+            if (!ctx.GetSingleton(SingletonType, out var entity))
+                return default;
+            if (Property == PropertyId.Null)
+                return entity.Id;
+
+            return entity.GetProperty(Property);
+        }
+        
+        PropertyValue varValue = ctx.Argument(VariableIndex);
+        if (varValue.Type != PropertyValue.TypeRef)
+            return varValue;
+        if (!ctx.Database.TryGetEntity(varValue.Id, out var e))
             return default;
         if (Property == PropertyId.Null)
             return varValue;
@@ -121,15 +145,26 @@ public enum CallType
 }
 public struct CallRule : IInstruction
 {
+    public readonly int VariableIndex;
     public readonly int RuleIndex;
-    public CallRule(int ruleIndex)
+    public CallRule(int variableIndex, int ruleIndex)
     {
         RuleIndex = ruleIndex;
+        VariableIndex = variableIndex;
 
     }
     public bool Execute(PredicateContext ctx)
     {
-        return ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
+        // TODO offset value stack
+        // eg. if $0 $1 are used now, have called.$0 become $2
+        // copy result in VariableIndex then pop extra values
+        bool res;
+        using(var s = ctx.RunScope())
+        {
+            res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
+        }
+        ctx.SetArgument(VariableIndex, ctx.LastValue);
+        return res;
     }
 }
 public struct AssignPick : IInstruction

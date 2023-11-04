@@ -20,9 +20,9 @@ public class Tests
         {
             var reparsed = StoryParser.Parse(printed, out var errors2);
             Assert.AreEqual(errorCount, errors2.Count, "During reparse: " + string.Join(", ", errors2));
-            Console.WriteLine("### REPRINT 2");
+            // Console.WriteLine("### REPRINT 2");
             var print2 = reparsed.Printer.Print();
-            Console.WriteLine(print2);
+            // Console.WriteLine(print2);
             Assert.AreEqual(printed, print2);
         }
         return db;
@@ -33,7 +33,7 @@ public class Tests
     {
         var s = @"
 entity Person {}
-prop f = number
+prop f: number
 rule r {
     create Person
     set f = 42
@@ -55,7 +55,7 @@ rule rr {
     [Test]
     public void Int_Add() => RunAssert(@"
 entity Person {}
-prop f = number
+prop f: number
 rule r {
     create Person
     set f = 2 + 3
@@ -66,7 +66,7 @@ rule r {
     [Test]
     public void Int_AddMul_Precedence() => RunAssert(@"
 entity Person {}
-prop f = number
+prop f: number
 rule r {
     create Person
     set f = 2 + 3 * 4
@@ -91,7 +91,7 @@ rule r {
         var s = @"
 entity Person {}
 enum E { A, B, C }
-prop f = number
+prop f: number
 rule r {
     create Person
     set f = E.B
@@ -111,7 +111,7 @@ rule r {
     {
         var s = @"
 entity Person {}
-prop f = number
+prop f: number
 rule r {
     create Person
     set f = 42 > 4
@@ -129,7 +129,7 @@ rule r {
     {
         var s = @"
 entity Person {}
-prop f = number
+prop f: number
 rule r {
     create Person
     set f = 42
@@ -147,7 +147,7 @@ rule r {
     {
         var s = @"
 entity Person {}
-prop alive = bool
+prop alive: bool
 rule born_char {
     create Person
     set alive = true
@@ -179,7 +179,7 @@ rule born_char {
     {
         var s = @"
 entity Person {}
-prop alive = bool
+prop alive: bool
 rule r {
     pick type = Person
     set alive = true
@@ -208,7 +208,7 @@ rule r {
     {
         var s = @"
 entity Person {}
-prop alive = bool
+prop alive: bool
 rule char_dies {
     pick $p: type = Person, alive = true
     set $p.alive = false
@@ -225,7 +225,7 @@ rule char_dies {
     {
         var s = @"
 entity Person {}
-prop test = bool
+prop test: bool
 rule foreach {
     each $x: type=Person {
         set $x.test = true
@@ -262,8 +262,8 @@ rule foreach {
     {
         var s = @"
 entity Person {}
-prop alive = bool
-prop test = bool
+prop alive: bool
+prop test: bool
 rule born {
     create Person
     set alive = true
@@ -297,10 +297,10 @@ event on_death {
 entity Person {}
 entity Item {}
 entity Link {}
-prop alive = bool
-prop child = ref
-prop parent = ref
-prop owner = ref
+prop alive: bool
+prop child: ref
+prop parent: ref
+prop owner: ref
 
 event inherit {
     when $p: type = Person, alive = false
@@ -324,7 +324,7 @@ event inherit {
     public void Test3()
     {
         var s = @"
-prop alive = bool
+prop alive: bool
 rule char_dies {
     pick $x: alive = true
     pick $y: id != $x
@@ -443,17 +443,18 @@ rule char_dies {
     }
     
     [Test]
-    public void DuplicateVarError()
+    public void DuplicateVarNoError()
     {
         var s = @"
-prop alive = bool
+entity Person {}
+prop alive: bool
 rule char_dies {
-    $p = pick type=Person, alive = true
-    $p = pick type=Person, alive = true
+    pick $p: type=Person, alive = true
+    pick $p: type=Person, alive = true
     set $p.alive = false
 }";
        
-        var db = Run(s, out var errors, 1);
+        var db = Run(s, out var errors, 0);
        
     }
     [Test]
@@ -462,7 +463,7 @@ rule char_dies {
         string s = @"
 entity Person {}
 enum Job { None, Farmer, Smith }
-prop job = Job
+prop job: Job
 
 rule create {
     create Person
@@ -487,7 +488,7 @@ rule create {
         string s = @"
 entity Person {}
 enum Job { None, Farmer, Smith }
-prop job = Job
+prop job: Job
 
 rule create {
     create Person
@@ -512,7 +513,7 @@ rule create {
         string s = @"
 entity Person {}
 enum Job { None, Farmer, Smith }
-prop job = Job
+prop job: Job
 
 rule create {
     create Person
@@ -533,7 +534,7 @@ rule create {
         string s = @"
 entity Person {}
 enum Job { Farmer, Smith, Mayor }
-prop job = Job
+prop job: Job
 
 rule create {
     create Person
@@ -563,8 +564,8 @@ rule create {
         var s = @"
 entity Person {}
 entity Faction {}
-prop faction = ref
-prop owner = ref
+prop faction: ref
+prop owner: ref
 rule create_faction {
     pick $p: type=Person, faction = null
     create $f: Faction
@@ -583,7 +584,7 @@ entity Person {
 }
 entity Faction {
 }
-prop owner = ref
+prop owner: ref
 rule create_faction {
     create $f: Faction, 'Faction of {random name}'
     create $g: Faction
@@ -607,7 +608,7 @@ rule create_faction {
         var s = @"
 entity Person {
 }
-prop owner = ref
+prop owner: ref
 rule create_faction {
     create $p: Person, '{random name}-{random name} of {random name}'
     assert_eq $p.name, 'Cerelia-Hecate of River'
@@ -647,44 +648,104 @@ rule call {
         db.RunAction(db.Actions[1]);
        Assert.AreEqual(1, db.Entities.Count());
     }
+    [Test]
+    public void CallRuleReturnValue()
+    {
+        var s = @"
+entity E {}
+prop x: number
+rule called {
+    create E
+}
+rule call {
+    call $x: called
+    call $y: called
+    
+    set $y.x = 42
+    assert_eq $x, 1
+    assert_eq $y, 2
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        db.RunAction(db.Actions[1]);
+        db.PrintDb();
+       Assert.AreEqual(2, db.Entities.Count());
+    }
+    [Test]
+    public void SetLiteral()
+    {
+        var s = @"
+entity E {}
+prop x: number
+
+rule call {
+    var $w = 42
+    var $g: number = 43
+    assert_eq $w, 42
+    assert_eq $g, 43
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        db.RunAction(db.Actions[0]);
+        db.PrintDb();
+    }
+    [Test]
+    public void Singleton()
+    {
+        var s = @"
+entity Time {}
+prop year: number
+
+rule create {
+    create Time, 'time'
+    set year = 1000
+}
+rule read {
+    assert_eq #Time.year, 1000
+}";
+        
+        var db = Run(s, out var errors);
+        db.History = new();
+        db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[1]);
+        db.PrintDb();
+    }
 
     [Test]
     public void Time()
     {
         var s = @"
 entity Time {}
-prop year = number
+prop year: number
 entity Person {}
 enum Age { Child, Young, Adult, Old }
-prop alive = bool
-prop birthdate = number
-prop age = Age
+prop alive: bool
+prop birthdate: number
+prop age: Age
 rule create_time {
     create Time, 'time'
     set year = 1000
 }
 rule born {
-    pick $t: type=Time
     create $p: Person
     set $p.alive = true
     set $p.age = Age.Child
-    set $p.birthdate = $t.year
+    set $p.birthdate = #Time.year
     format 'The {$p.age} {$p.name} is born in {$p.birthdate}'
 }
 
 rule pass_15_years {
-    pick $t: type=Time
-    set $t.year = $t.year + 15
-    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= $t.year{
+    set #Time.year = #Time.year + 15
+    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
         set $p.age = Age.Young
     }
-    each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= $t.year{
+    each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year{
         set $p.age = Age.Adult
     }
-    each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= $t.year{
+    each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year{
         set $p.age = Age.Old
     }
-    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
+    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
         set $p.alive = false
     }
 }";
@@ -714,12 +775,12 @@ rule pass_15_years {
     {
         var s = @"
 entity Time {}
-prop year = number
+prop year: number
 entity Person {}
 enum Age { Child, Young, Adult, Old }
-prop alive = bool
-prop birthdate = number
-prop age = Age
+prop alive: bool
+prop birthdate: number
+prop age: Age
 rule create_time {
     create Time, 'time'
     set year = 1000

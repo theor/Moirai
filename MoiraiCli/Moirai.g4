@@ -8,9 +8,10 @@ r: (COMMENT | LINE_BREAK)* (action|event|prop_definition|enum_definition|type_de
 action: RULE AT? ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
 event: EVENT ID SCOPE_OPEN LINE_BREAK when+ effect+ SCOPE_CLOSE LINE_BREAK*;
 when: WHEN (VAR_ID COLON)? expr (COMMA expr)* SPACE* LINE_BREAK+;
-effect: (set |  call_assign) SPACE* LINE_BREAK+;
+effect: (set | var | call_assign) SPACE* LINE_BREAK+;
 
 set: SET  path EQ expr;
+var: VAR  VAR_ID (COLON (ID|TYPE_ID))? EQ expr;
 call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
 call : ID ((expr (COMMA expr)* )) scope?;
 scope: SCOPE_OPEN LINE_BREAK* effect* SCOPE_CLOSE LINE_BREAK*;
@@ -25,13 +26,13 @@ expr
 
 type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 
-prop_definition: PROP ID EQ (ID|TYPE_ID) LINE_BREAK+ ;
+prop_definition: PROP ID COLON (ID|TYPE_ID) LINE_BREAK+ ;
 
 enum_definition: ENUM TYPE_ID SCOPE_OPEN LINE_BREAK* TYPE_ID (COMMA TYPE_ID)* LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 
 string: STRING ;
 
 bool: TRUE | FALSE;
-path : VAR_ID (DOT ID)* | ID;
+path : (SINGLETON_ID | VAR_ID) (DOT ID)* | ID;
 enum_value: TYPE_ID DOT TYPE_ID ;
 number: NUMBER;

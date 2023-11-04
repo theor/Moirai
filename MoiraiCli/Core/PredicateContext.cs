@@ -3,7 +3,7 @@
 public class PredicateContext
 {
     public readonly Database Database;
-    public List<PropertyValue> Values = new();
+    private List<PropertyValue> Values = new();
     public Pcg32 Rnd;
 
     public PredicateContext(Database database, ulong seed)
@@ -12,7 +12,34 @@ public class PredicateContext
         Rnd = new Pcg32(seed, 42);
     }
     public long EntityId => Values[^1].IntValue;
+    public int ValueOffset { get; set; }
+    public PropertyValue LastValue => Values.Last();
 
+    public EntityId GetSingletonId(EntityTypeId type)
+    {
+        foreach (var entity in Database.Entities)
+        {
+            if (entity.GetProperty(Database.PropType).TypeId == type)
+            {
+                return entity.Id;
+            }
+        }
+        return default;
+    }
+    public bool GetSingleton(EntityTypeId type, out Entity value)
+    {
+
+        foreach (var entity in Database.Entities)
+        {
+            if (entity.GetProperty(Database.PropType).TypeId == type)
+            {
+                value = entity;
+                return true;
+            }
+        }
+        value = default;
+        return false;
+    }
     public bool Query(IValue? predicate, out EntityId value)
     {
         if (predicate == null)
@@ -71,17 +98,17 @@ public class PredicateContext
     public int PopArgument()
     {
         Values.RemoveAt(Values.Count - 1);
-        return Values.Count;
+        return Values.Count - ValueOffset;
     }
     public PropertyValue Argument(int idx)
     {
-        return Values[idx];
+        return Values[idx + ValueOffset];
     }
     public void SetArgument(int argumentIndex, PropertyValue value)
     {
-        while (Values.Count <= argumentIndex)
+        while (Values.Count <= argumentIndex + ValueOffset)
             Values.Add(default);
-        Values[argumentIndex] = value;
+        Values[argumentIndex + ValueOffset] = value;
     }
     public int PushArgument(EntityId entity)
     {
@@ -94,5 +121,33 @@ public class PredicateContext
     {
         if (!boolValue)
             throw new InvalidOperationException("assert failed: " + msg);
+    }
+    public void ClearValueStack()
+    {
+       Values.RemoveRange(ValueOffset, Values.Count - ValueOffset);
+    }
+    public struct Scope : IDisposable
+    {
+        private readonly PredicateContext _predicateContext;
+        private readonly int _valuesCount;
+        private readonly int _valueOffset;
+        public Scope(PredicateContext ctx, int valuesCount, int valueOffset)
+        {
+            _predicateContext = ctx;
+            _valuesCount = valuesCount;
+            _valueOffset = valueOffset;
+
+            ctx.ValueOffset = _valuesCount;
+        }
+        public void Dispose()
+        {
+            _predicateContext.ValueOffset = _valueOffset;
+            
+        }
+    }
+
+    public Scope RunScope()
+    {
+        return new Scope(this, Values.Count, ValueOffset);
     }
 }

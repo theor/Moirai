@@ -1,19 +1,21 @@
 ﻿TODO
-- [ ] parse prop type and use it in printer, maybe in operators ?
-- [ ] parse enums `enum job { farmer, smith }`, `set job = random(job)`
+- [ ] singletons ? `#Time.year`
+- [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
 - [x] parse types ? either an enum or `type person { alive, age, job }
   - [ ] parse types props init `type person { alive = true }`
+- [ ] probabilities, curves ? assign proba per entity to impact history ?
 
 FEATURES
 - [ ] time passing
-- [x] links
-  - specific syntax ??
 - [ ] format: prev value ? `set $i.owner = $p;`
-  - `format "from prev($i.owner.name) to $p.name" ?` 
-  - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?` 
-- [ ] probabilities, curves ? assign proba per entity to impact history ?
+  - `format "from prev($i.owner.name) to $p.name" ?`
+  - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?`
 - [ ] tags ?
 - [ ] arrays ? are links good enough ?
+- [x] links
+  - [ ] specific syntax ??
+- [x] parse prop type and use it in printer, maybe in operators ?
+- [x] parse enums `enum job { farmer, smith }`, `set job = random(job)`
 - [x] clean variant value
 - [x] format history
 - [x] keep diff during action run

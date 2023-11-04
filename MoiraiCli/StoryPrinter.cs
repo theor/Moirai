@@ -24,7 +24,7 @@ public class StoryPrinter
         foreach (var property in _database.Properties.Skip(Database.DefaultProperties().Count))
         {
             // TODO types
-            sb.AppendLine($"prop {property.Name} = {Print(property.Type)}");
+            sb.AppendLine($"prop {property.Name}: {Print(property.Type)}");
         }
         foreach (var action in _database.Actions.Concat(_database.Events))
         {
@@ -88,13 +88,13 @@ public class StoryPrinter
             // case Sequence sequence:
             case SetProperty setProperty:
                 sb.AppendLine(
-                    $"{indentStr}set {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
+                    $"{indentStr}{(setProperty.IsLocalVar ? "var" :"set")} {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
                 break;
             case FormatAction formatAction:
                 sb.AppendLine($"{indentStr}format {Print(formatAction.String)}");
                 break;
             case CallRule call:
-                sb.AppendLine( "call " + _database.Actions[call.RuleIndex].Name);
+                sb.AppendLine( $"{indentStr}call ${call.VariableIndex}: " + _database.Actions[call.RuleIndex].Name);
                 break;
             case AssertInstr assert:
                 switch (assert.Mode)
@@ -121,9 +121,13 @@ public class StoryPrinter
 
         return "<??>";
     }
-    private string Print(PropertyPath path) =>
-        path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
-   
+    private string Print(PropertyPath path)
+    {
+        if(path.Mode == PropertyPath.PropertyPathMode.Singleton)
+            return $"#{_database.GetEntityTypeName(path.SingletonType)}.{GetPropertyName(path.Property)}";
+        return path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
+    }
+
     public string Print(PropertyValue value, bool storyMode = false)
     {
         var s = value.Value;

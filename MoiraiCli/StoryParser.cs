@@ -159,7 +159,7 @@ public static class StoryParser
         }
         private PropertyValue.ValueType ParseType(ITerminalNode id)
         {
-            switch (id.GetText())
+             switch (id.GetText())
             {
                 case "bool": return PropertyValue.TypeBool;
                 case "ref": return PropertyValue.TypeRef;
@@ -222,7 +222,8 @@ public static class StoryParser
         {
             if (effectContext.call_assign() != null)
                 return ParseCall(effectContext.call_assign());
-
+            if (effectContext.var() != null)
+                return ParseVar(effectContext.var());
             return ParseSet(effectContext.set());
         }
         private AssignPick ParseWhen(Moirai.WhenContext context)
@@ -251,11 +252,19 @@ public static class StoryParser
 
             return null;
         }
+        private SetProperty ParseVar(Moirai.VarContext context)
+        {
+            var name = context.VAR_ID();
+            DeclareVar(name.GetText(), name.Symbol, out var varIndex);
+            PropertyValue.ValueType type = context.COLON() != null ? ParseType(context.ID() ?? context.TYPE_ID()) : default;
+            var expr = ParseExpr(context.expr());
+            return new SetProperty(new PropertyPath(varIndex), expr, true, type);
+        }
         private SetProperty ParseSet(Moirai.SetContext context)
         {
             var left = ParsePath(context.path());
             var right = ParseExpr(context.expr()); //, left.Property);
-            return new SetProperty(left, right);
+            return new SetProperty(left, right, false, default);
         }
         private IValue ParseValue(Moirai.ValueContext value)
         {
@@ -430,7 +439,7 @@ public static class StoryParser
                     var ruleIndex = _database.Actions.FindIndex(r => r.Name == ruleName);
                     if (ruleIndex == -1)
                         return (AddError(ErrorCode.UnknownRule, arg, ruleName) as IInstruction)!;
-                    return new CallRule(ruleIndex);
+                    return new CallRule(variableIndex, ruleIndex);
                 }
                 case "each":
                 {
@@ -593,6 +602,35 @@ public static class StoryParser
 
         public PropertyPath ParsePath(Moirai.PathContext context)
         {
+            
+
+            if (context.ID().Length > 1)
+                throw new Exception("expected two parts, got " + context.ID().Length);
+            
+            var propertyId = PropertyId.Null;
+            if (context.ID(0) != null)
+            {
+                var propertyName = context.ID(0)?.GetText();
+                propertyId = _database.GetProperty(propertyName.ToLowerInvariant());
+                if (!propertyId.IsValid)
+                {
+                    AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
+                    return default;
+                }
+            }
+
+            var singletonId = context.SINGLETON_ID();
+            if (singletonId != null)
+            {
+                var typeName = singletonId.GetText().Substring(1);
+                var singletonType = _database.GetEntityType(typeName);
+                if (!singletonType.Id.IsValid)
+                {
+                    AddError(ErrorCode.UnknownEntityType, singletonId, typeName);
+                    return default;
+                }
+                return new PropertyPath(singletonType.Id, propertyId);
+            }
             int variableIndex = Math.Max(0, _variables.Count - 1);
             var varId = context.VAR_ID();
             if (varId != null)
@@ -607,21 +645,11 @@ public static class StoryParser
                         return new PropertyPath();
                     }
                 }
+                if (context.ID().Length == 0)
+                    return new PropertyPath(variableIndex);
             }
-            if (context.ID().Length == 0)
-                return new PropertyPath(variableIndex);
 
-            if (context.ID().Length > 1)
-                throw new Exception("expected two parts, got " + context.ID().Length);
-
-            var propertyName = context.ID(0).GetText();
-            var indexOf = _database.GetProperty(propertyName.ToLowerInvariant());
-            if (!indexOf.IsValid)
-            {
-                AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
-                return default;
-            }
-            return new PropertyPath(variableIndex, indexOf);
+            return new PropertyPath(variableIndex, propertyId);
         }
     }
 }

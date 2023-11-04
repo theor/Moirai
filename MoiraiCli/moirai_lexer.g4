@@ -5,7 +5,7 @@ NULL: 'null';
 SPACE: [ \t]+ -> skip;
 LINE_BREAK: ('\r\n' | '\r' | '\n');
 COMMENT
-  :  '#' ~( '\r' | '\n' )* LINE_BREAK -> skip
+  :  '//' ~( '\r' | '\n' )* LINE_BREAK -> skip
   ;
 
 COLON: ':';
@@ -21,6 +21,7 @@ PROP: 'prop';
 ENUM: 'enum';
 WHEN: 'when';
 SET: 'set';
+VAR: 'var';
 COMMA: ',';
 
 TRUE: 'true';
@@ -37,6 +38,7 @@ LE: '<=';
 GT: '>';
 LT: '<';
 
+SINGLETON_ID: '#' (ALPHA_UPPER)(ALPHA|'_')*;
 VAR_ID: '$' (ALPHA|DIGIT)(ALPHA|DIGIT|'_')*;
 PROP_ID: '%' [a-z][a-z_]*;
 

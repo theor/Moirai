@@ -169,20 +169,20 @@ public class Database
     //     }
     //     return true;
     // }
-    public bool TryGetEntity(long entityId, out Entity entity)
+    public bool TryGetEntity(EntityId entityId, out Entity entity)
     {
         if (!EntityExists(entityId))
         {
             entity = default;
             return false;
         }
-        entity = _entities[(int)entityId];
+        entity = _entities[(int)entityId.Id];
         return true;
     }
-    public bool EntityExists(long entityId)
+    public bool EntityExists(EntityId entityId)
     {
 
-        return entityId != 0 && entityId < (long)_entities.Count;
+        return entityId.Id != 0 && entityId.Id < (long)_entities.Count;
     }
 
 
@@ -208,7 +208,7 @@ public class Database
     // {
     //     return SetProperty(entityId.IntValue, property, value);
     // }
-    public bool SetProperty(long entityId, PropertyId property, PropertyValue value = default)
+    public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
         if (!TryGetEntity(entityId, out var entity))
             return false;
@@ -219,7 +219,7 @@ public class Database
         if (entity.Properties == null)
         {
             entity.Properties = new();
-            _entities[(int)entityId] = entity;
+            _entities[(int)entityId.Id] = entity;
         }
         if (GetPropertyType(property, out var type) && type.BaseType == PropertyValue.ValueBaseType.Enum)
         {
@@ -237,11 +237,11 @@ public class Database
                 var prev = entityProperty.Value;
                 entityProperty.Value = value;
                 entity.Properties[index] = entityProperty;
-                CurrentChangeset.Changes?.Add(Change.Set(new EntityId(entityId), property, prev, value));
+                CurrentChangeset.Changes?.Add(Change.Set(entityId, property, prev, value));
                 return true;
             }
         }
-        CurrentChangeset.Changes?.Add(Change.Set(new EntityId(entityId), property, default, value));
+        CurrentChangeset.Changes?.Add(Change.Set(entityId, property, default, value));
         entity.Properties.Add(new Property(property, value));
         return true;
     }
@@ -261,17 +261,9 @@ public class Database
     {
         Console.WriteLine($"[{action.Name}]");
         CurrentChangeset = new Changeset(action.Name);
-        _ctx.Values.Clear();
-        // int argCount = 0;
-        // for (var index = 0; index < effect.Effects.Count; index++)
-        // {
-        //     var e = effect.Effects[index];
-        //     if (e is PredicateParameter pp)
-        //     {
-        //         pp.ArgumentIndex = argCount++;
-        //         effect.Effects[index] = pp;
-        //     }
-        // }
+        _ctx.ClearValueStack();
+        // _ctx.Values.Clear();
+
 
         for (var index = 0; index < action.Effects.Count; index++)
         {
@@ -314,7 +306,7 @@ public class Database
     {
         foreach (var entity in changedEntities)
         {
-            while (_ctx.PopArgument() > 0){}
+            // while (_ctx.PopArgument() > 0){}
             // TODO BUG
             _ctx.PushArgument(entity);
             foreach (var @event in Events)

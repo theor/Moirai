@@ -68,6 +68,12 @@ public interface IMoiraiVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitSet([NotNull] Moirai.SetContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="Moirai.var"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitVar([NotNull] Moirai.VarContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="Moirai.call_assign"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

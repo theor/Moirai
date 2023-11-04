@@ -4,22 +4,22 @@ entity Item {}
 entity Faction {}
 entity Link {}
 
-prop year = number
+prop year: number
 
 enum Job { Smith, Farmer, Painter, Sculptor }
 enum Age { Child, Young, Adult, Old }
 
-prop age = Age
-prop alive = bool
-prop birthdate = number
-prop partner = ref
-prop faction = ref
-prop job = Job
+prop age: Age
+prop alive: bool
+prop birthdate: number
+prop partner: ref
+prop faction: ref
+prop job: Job
 
-prop parent = ref
-prop child = ref
+prop parent: ref
+prop child: ref
 
-prop owner = ref
+prop owner: ref
  
 rule create_time {
     create Time, 'time'
