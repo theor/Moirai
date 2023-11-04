@@ -229,7 +229,7 @@ prop test: bool
 rule foreach {
     each $x: type=Person {
         set $x.test = true
-        format '{$x.name} {$x.test}'
+        record '{$x.name} {$x.test}'
     }
 }";
         var db  =Run(s, out var errors);
@@ -308,7 +308,7 @@ event inherit {
         pick $l: type = Link, $l.parent = $p 
         pick $c: type = Person, alive = true, id = $l.child
             set $i.owner = $c
-            format ""{$c.name} inherits the {$i.name} from {$p.name}""
+            record ""{$c.name} inherits the {$i.name} from {$p.name}""
     }
 }";
         var db  = Run(s, out _, 0);
@@ -434,10 +434,10 @@ rule char_dies {
         Assert.IsTrue(File.Exists(path));
         var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
         Console.WriteLine("------------------");
-        var format = db.Printer.Print();
-        Console.WriteLine(format);
+        var record = db.Printer.Print();
+        Console.WriteLine(record);
         Assert.AreEqual(0, errors.Count, string.Join(", ", errors));
-        var db2 = StoryParser.Parse(format, out var errors2);
+        var db2 = StoryParser.Parse(record, out var errors2);
         Assert.AreEqual(0, errors2.Count, string.Join(", ", errors2));
  
     }
@@ -592,7 +592,7 @@ rule create_faction {
     create $p: Person
     set $p.name = '{random name}'
     set $f.owner = $p
-    format '{$p.name} creates the {$f.name} to counter the {$g.name}'
+    record '{$p.name} creates the {$f.name} to counter the {$g.name}'
     assert_eq '{$p.name} creates the {$f.name} to counter the {$g.name}', 'River creates the Faction of Cerelia to counter the Circle of Hecate'
 }";
         var db = Run(s, out var errors);
@@ -622,7 +622,7 @@ rule create_faction {
     {
         var s = @"
 rule create_faction {
-    format 'res {42} > {16} = {42 > 16}'
+    record 'res {42} > {16} = {42 > 16}'
 }";
         var db = Run(s, out var errors);
         db.History = new();
@@ -731,7 +731,7 @@ rule born {
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = #Time.year
-    format 'The {$p.age} {$p.name} is born in {$p.birthdate}'
+    record 'The {$p.age} {$p.name} is born in {$p.birthdate}'
 }
 
 rule pass_15_years {
@@ -791,7 +791,7 @@ rule born {
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = $t.year
-    format 'The {$p.age} {$p.name} is born in {$p.birthdate}'
+    record 'The {$p.age} {$p.name} is born in {$p.birthdate}'
 }
 
 rule pass_15_years {

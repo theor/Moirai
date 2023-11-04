@@ -474,7 +474,7 @@ public static class StoryParser
 
                     var name = ParseInterpolatedString(context.expr(1)?.GetText().TrimQuotes() ?? "");
                     return new CreateEntity(variableIndex, typeId.Id, name);
-                case "format":
+                case "record":
                     var stringContext = context.expr(0).value().@string();
                     var interpolatedString = ParseInterpolatedString(stringContext.GetString());
                     return new FormatAction(interpolatedString);

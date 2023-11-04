@@ -63,7 +63,7 @@ public class StoryPrinter
     }
     private void PrintEffect(IInstruction instruction, StringBuilder sb, int indent)
     {
-        string indentStr = new string(' ', indent * 2);
+        string indentStr = new string(' ', indent * 4);
         switch (instruction)
         {
             case CreateEntity createEntity:
@@ -91,7 +91,7 @@ public class StoryPrinter
                     $"{indentStr}{(setProperty.IsLocalVar ? "var" :"set")} {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
                 break;
             case FormatAction formatAction:
-                sb.AppendLine($"{indentStr}format {Print(formatAction.String)}");
+                sb.AppendLine($"{indentStr}record {Print(formatAction.String)}");
                 break;
             case CallRule call:
                 sb.AppendLine( $"{indentStr}call ${call.VariableIndex}: " + _database.Actions[call.RuleIndex].Name);
@@ -167,7 +167,7 @@ public class StoryPrinter
         {
             case InterpolatedString interpolatedString:
                 return
-                    $"\"{string.Format(interpolatedString.FormatString, interpolatedString.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}\"";
+                    $"'{string.Format(interpolatedString.FormatString, interpolatedString.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}'";
             case Literal literal:
                 return Print(literal.Value);
             case PropertyPath path:
