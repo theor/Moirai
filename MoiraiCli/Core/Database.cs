@@ -365,11 +365,10 @@ public class Database
                 {
                     if (property.Type == Database.PropType || property.Type == PropName)
                         continue;
-                        Console.Write($"  {Properties[(int)property.Type.Id].Name}: {printer.Print(property.Value)}");
+                    Console.Write($"  {Properties[(int)property.Type.Id].Name}: {printer.Print(property.Value)}");
                     if(property.Value.Type == PropertyValue.TypeRef && TryGetEntity(property.Value.Id, out var other) && other.TryGetProperty(PropName, out var otherName))
                         Console.Write(" " + otherName.Value);
                     Console.WriteLine();
-                        // Console.WriteLine($"  {FormatProperty(property)}");
                 }
         }
         if (!any)

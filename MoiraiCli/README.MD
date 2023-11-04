@@ -1,17 +1,34 @@
 ﻿TODO
-- [ ] singletons ? `#Time.year`
 - [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
 - [x] parse types ? either an enum or `type person { alive, age, job }
   - [ ] parse types props init `type person { alive = true }`
 - [ ] probabilities, curves ? assign proba per entity to impact history ?
+  - `rule x @start {}`
+  - `rule x @every 15 years`
+  - `rule x @random 1,4 per 2 years`
+```
+for i in 0..years {
+  distrib expected = rule.distribution
+  distrib actual = compute(rule)
+  if(actual < expected) run(rule){}
+  
+  1 every 15 years =
+  1/15 per year
+  
+  
+  time since last: >=15 -> p = 1
+  time since last: 0 -> p = 1/15
+}
+```
 
 FEATURES
 - [ ] time passing
 - [ ] format: prev value ? `set $i.owner = $p;`
   - `format "from prev($i.owner.name) to $p.name" ?`
   - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?`
-- [ ] tags ?
+- [ ] tags ? are they arrays, bitflags, links, their own thing ?
 - [ ] arrays ? are links good enough ?
+- [x] singletons ? `#Time.year`
 - [x] links
   - [ ] specific syntax ??
 - [x] parse prop type and use it in printer, maybe in operators ?
