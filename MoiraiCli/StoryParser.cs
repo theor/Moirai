@@ -22,12 +22,19 @@ public static class StoryParser
         MissingEachScope,
         UnknownEnum,
         TypeNameMustStartWithUpperCase,
-        VariableNotDeclared
+        VariableNotDeclared,
+        NullEffect,
+        UnknownInstruction,
+        MissingArgument,
+        UnknownRule,
+        UnknownEntityType
     }
+
     public struct Error
     {
         public readonly ErrorCode Code;
         public int Line, Col;
+        public int LineEnd, ColEnd;
         public string Message;
         public Error(ErrorCode code, int line, int col, string message)
         {
@@ -35,13 +42,26 @@ public static class StoryParser
             Line = line;
             Col = col;
             Message = message;
+            LineEnd = line;
+            ColEnd = col + 1;
         }
-        public Error(ErrorCode code, IToken loc, string message)
+        public Error(ErrorCode code, ITerminalNode loc, string message)
         {
             Code = code;
-            Line = loc.Line;
-            Col = loc.Column;
+            Line = loc.Symbol.Line;
+            Col = loc.Symbol.Column;
             Message = message;
+            LineEnd = loc.Symbol.Line;
+            ColEnd = loc.Symbol.Column + loc.Symbol.Text.Length;
+        }
+        public Error(ErrorCode code, ParserRuleContext loc, string message)
+        {
+            Code = code;
+            Line = loc.Start.Line;
+            Col = loc.Start.Column;
+            Message = message;
+            LineEnd = loc.Stop.Line;
+            ColEnd = loc.Stop.Column;
         }
         public override string ToString() => $"M{(int)Code}: {Code} {Line}:{Col}: {Message}";
     }
@@ -114,7 +134,8 @@ public static class StoryParser
         public override object? VisitType_definition(Moirai.Type_definitionContext context)
         {
             if (context.TYPE_ID() == null)
-                return AddError(ErrorCode.TypeNameMustStartWithUpperCase, context.Start, context.GetText());
+                return AddError(ErrorCode.TypeNameMustStartWithUpperCase, context, context.GetText());
+
             var typeName = context.TYPE_ID().GetText();
             DeclareEntityType(typeName);
             return null;
@@ -130,7 +151,7 @@ public static class StoryParser
         {
             var propName = context.ID(0).GetText();
             if (_database.GetProperty(propName).Id != 0)
-                return AddError(ErrorCode.DuplicatePropertyDefinition,  context.Start, propName);
+                return AddError(ErrorCode.DuplicatePropertyDefinition, context, propName);
 
             PropertyValue.ValueType type = ParseType(context.ID(1) ?? context.TYPE_ID());
             _database.Properties.Add(new PropertyDefinition(propName, (uint)_database.Properties.Count, type));
@@ -147,13 +168,15 @@ public static class StoryParser
                 default:
                     if (_database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
                         return PropertyValue.TypeEnum(enumDefinition.Index);
-                    AddError(ErrorCode.UnknownPropertyType,  id.Symbol, id.GetText());
+
+                    AddError(ErrorCode.UnknownPropertyType, id, id.GetText());
                     return default;
             }
         }
         public override object? VisitEnum_definition(Moirai.Enum_definitionContext context)
         {
-            EnumDefinition en = new((ushort)_database.Enums.Count, context.TYPE_ID(0).GetText(), context.TYPE_ID().Skip(1).Select(v => v.GetText()).ToList());
+            EnumDefinition en = new((ushort)_database.Enums.Count, context.TYPE_ID(0).GetText(),
+                context.TYPE_ID().Skip(1).Select(v => v.GetText()).ToList());
             _database.Enums.Add(en);
             return null;
         }
@@ -167,6 +190,11 @@ public static class StoryParser
             foreach (Moirai.EffectContext effectContext in context.effect())
             {
                 var effect = ParseEffect(effectContext);
+                if (effect == null)
+                {
+                    AddError(ErrorCode.NullEffect, effectContext, effectContext.GetText());
+                    continue;
+                }
                 action.Effects.Add(effect);
             }
             _database.Actions.Add(action);
@@ -226,7 +254,7 @@ public static class StoryParser
         private SetProperty ParseSet(Moirai.SetContext context)
         {
             var left = ParsePath(context.path());
-            var right = ParseExpr(context.expr());//, left.Property);
+            var right = ParseExpr(context.expr()); //, left.Property);
             return new SetProperty(left, right);
         }
         private IValue ParseValue(Moirai.ValueContext value)
@@ -234,8 +262,8 @@ public static class StoryParser
             if (value.TYPE_ID() != null)
             {
                 var type = _database.GetEntityType(value.TYPE_ID().GetText());
-                if(!type.Id.IsValid)
-                    AddError(ErrorCode.UnknownPropertyType, value.Start, value.TYPE_ID().GetText());
+                if (!type.Id.IsValid)
+                    AddError(ErrorCode.UnknownPropertyType, value, value.TYPE_ID().GetText());
                 return new Literal(type.Id);
             }
             if (value.call() != null)
@@ -250,7 +278,8 @@ public static class StoryParser
                         if (Enum.TryParse(arg.GetText(), true, out RandomName.NameType nt))
                             return new RandomName(nt);
                         if (!_database.GetEnumDefinition(arg.GetText(), out var enumDef))
-                            return (AddError(ErrorCode.UnknownEnum, arg.Start, arg.GetText()) as IValue)!;
+                            return (AddError(ErrorCode.UnknownEnum, arg, arg.GetText()) as IValue)!;
+
                         return new RandomCall(enumDef.Index);
                     }
                     case "passed_years":
@@ -260,7 +289,7 @@ public static class StoryParser
                         return new YearsPassed(years);
                     }
                     default:
-                        AddError(ErrorCode.UnknownCall, value.Start, funcName);
+                        AddError(ErrorCode.UnknownCall, value, funcName);
                         return default!;
                 }
             }
@@ -269,25 +298,26 @@ public static class StoryParser
                 PropertyPath path = ParsePath(value.path());
                 return path;
             }
-            
-            if(value.@string() != null)
+
+            if (value.@string() != null)
                 return ParseInterpolatedString(value.@string().GetString());
             if (value.NULL() != null)
                 return new Literal(EntityId.Null);
-            if(value.number() != null)
+            if (value.number() != null)
                 return new Literal(int.Parse(value.number().GetText()));
-            if(value.@bool() != null)
+            if (value.@bool() != null)
                 return new Literal(value.@bool().TRUE() != null);
 
             if (value.enum_value() != null)
             {
                 var enumType = value.enum_value().TYPE_ID(0);
                 if (!_database.GetEnumDefinition(enumType.GetText(), out var enumDef))
-                    return (AddError(ErrorCode.UnknownEnum, enumType.Symbol, enumType.GetText()) as IValue)!;
+                    return (AddError(ErrorCode.UnknownEnum, enumType, enumType.GetText()) as IValue)!;
 
                 var enumValue = value.enum_value().TYPE_ID(1);
                 if (!enumDef.GetValueFromName(enumValue.GetText(), out var val))
-                    return (AddError(ErrorCode.UnknownEnumValue, enumValue.Symbol, enumValue.GetText() + " in enum " + enumDef.Name) as IValue)!;
+                    return (AddError(ErrorCode.UnknownEnumValue, enumValue,
+                        enumValue.GetText() + " in enum " + enumDef.Name) as IValue)!;
 
                 return new Literal(val);
             }
@@ -306,7 +336,7 @@ public static class StoryParser
         //         var typeId = _database.GetEntityType(value.@string().GetString());
         //             
         //         if (typeId == 0)
-        //            AddError( ErrorCode.UnknownPropertyType,  value.Start, value.@string().GetText());
+        //            AddError( ErrorCode.UnknownPropertyType,  value, value.@string().GetText());
         //         return new ComputedValue(typeId);
         //     }
         //     // TODO only call in value
@@ -317,7 +347,7 @@ public static class StoryParser
         //             var enumDef = _database.Enums[valueType.Index];
         //             return new ComputedValue(enumDef);
         //         }
-        //         AddError(ErrorCode.UnknownCall, value.Start, "Random only supported for enums");
+        //         AddError(ErrorCode.UnknownCall, value, "Random only supported for enums");
         //         return default;
         //         // switch (valueType.BaseType)
         //         // {
@@ -345,7 +375,7 @@ public static class StoryParser
         //             if (value.@string() != null)
         //             {
         //                 if(!_database.Enums[valueType.Index].GetValueFromName(value.@string().GetString(), out PropertyValue v))
-        //                     AddError(ErrorCode.UnknownEnumValue,  value.Start, $"'{value.@string().GetString()}' in enum {_database.Enums[valueType.Index].Name}");
+        //                     AddError(ErrorCode.UnknownEnumValue,  value, $"'{value.@string().GetString()}' in enum {_database.Enums[valueType.Index].Name}");
         //
         //                 return new ComputedValue(v);
         //             }
@@ -380,9 +410,10 @@ public static class StoryParser
             }
             if (funcName == "assert_eq")
             {
-                return new AssertInstr(ParseExpr(context.expr(0)), ParseExpr(context.expr(1)), context.expr(0).GetText() + " = " + context.expr(1).GetText());
+                return new AssertInstr(ParseExpr(context.expr(0)), ParseExpr(context.expr(1)),
+                    context.expr(0).GetText() + " = " + context.expr(1).GetText());
             }
-            int variableIndex = Math.Max(0,  _variables.Count - 1);
+            int variableIndex = Math.Max(0, _variables.Count - 1);
             if (context.VAR_ID() != null)
             {
                 if (!DeclareVar(context.VAR_ID().GetText(), context.Start, out variableIndex))
@@ -390,11 +421,21 @@ public static class StoryParser
             }
             switch (funcName)
             {
-
+                case "call":
+                {
+                    var arg = context.expr(0);
+                    string? ruleName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
+                    if (ruleName == null)
+                        return (AddError(ErrorCode.MissingArgument, context, "rule name") as IInstruction)!;
+                    var ruleIndex = _database.Actions.FindIndex(r => r.Name == ruleName);
+                    if (ruleIndex == -1)
+                        return (AddError(ErrorCode.UnknownRule, arg, ruleName) as IInstruction)!;
+                    return new CallRule(ruleIndex);
+                }
                 case "each":
                 {
                     if (context.scope() == null)
-                        AddError(ErrorCode.MissingEachScope, context.Start, "Missing scope in foreach");
+                        AddError(ErrorCode.MissingEachScope, context, "Missing scope in foreach");
                     var exprs = context.expr();
                     var assignPick = new AssignPick(
                         variableIndex,
@@ -420,7 +461,7 @@ public static class StoryParser
                     var type = context.expr(0).GetText().TrimQuotes();
                     var typeId = _database.GetEntityType(type);
                     if (typeId.Id == EntityTypeId.Null)
-                        throw new Exception($"Unknown entity type '{type}'");
+                        return ((IInstruction)AddError(ErrorCode.UnknownEntityType,  context.expr(0), $"'{type}'"))!;
 
                     var name = ParseInterpolatedString(context.expr(1)?.GetText().TrimQuotes() ?? "");
                     return new CreateEntity(variableIndex, typeId.Id, name);
@@ -430,7 +471,7 @@ public static class StoryParser
                     return new FormatAction(interpolatedString);
             }
 
-            return (AddError(ErrorCode.UnknownCall, context.Start, funcName) as IInstruction)!;
+            return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IInstruction)!;
         }
         private InterpolatedString ParseInterpolatedString(string str)
         {
@@ -457,7 +498,7 @@ public static class StoryParser
                     result += str.Substring(prev, i - prev);
                 result += $"{{{paths.Count - 1}}}";
                 i = j;
-                prev = i+1;
+                prev = i + 1;
             }
             if (prev < str.Length)
                 result += (str.Substring(prev));
@@ -475,6 +516,7 @@ public static class StoryParser
             }
             if (context.paren_expr != null)
                 return ParseExpr(context.paren_expr);
+
             string op = context.op.Text;
             // left, alive
             IValue leftPath = ParseExpr(context.left)!;
@@ -515,11 +557,21 @@ public static class StoryParser
                 case "<=":
                     pop = BinaryOperator.Operator.Le;
                     break;
-                default: return (IValue?)AddError(ErrorCode.UnknownExpressionOperator,  context.Start, op);
+                default: return (IValue?)AddError(ErrorCode.UnknownExpressionOperator, context, op);
             }
             return new BinaryOperator(pop, leftPath, rightValue);
         }
-        private object? AddError(ErrorCode code, IToken loc, string msg)
+        // private object? AddError(ErrorCode code, IToken loc, string msg)
+        // {
+        //     Errors.Add(new Error(code, loc, msg));
+        //     return null;
+        // }
+        private object? AddError(ErrorCode code, ParserRuleContext loc, string msg)
+        {
+            Errors.Add(new Error(code, loc, msg));
+            return null;
+        }
+        private object? AddError(ErrorCode code, ITerminalNode loc, string msg)
         {
             Errors.Add(new Error(code, loc, msg));
             return null;
@@ -541,7 +593,7 @@ public static class StoryParser
 
         public PropertyPath ParsePath(Moirai.PathContext context)
         {
-            int variableIndex = Math.Max(0,  _variables.Count - 1);
+            int variableIndex = Math.Max(0, _variables.Count - 1);
             var varId = context.VAR_ID();
             if (varId != null)
             {
@@ -551,7 +603,7 @@ public static class StoryParser
                     variableIndex = _variables.IndexOf(varId.GetText());
                     if (variableIndex == -1)
                     {
-                        AddError(ErrorCode.VariableNotDeclared, varId.Symbol,  varId.GetText());
+                        AddError(ErrorCode.VariableNotDeclared, varId, varId.GetText());
                         return new PropertyPath();
                     }
                 }
@@ -566,7 +618,7 @@ public static class StoryParser
             var indexOf = _database.GetProperty(propertyName.ToLowerInvariant());
             if (!indexOf.IsValid)
             {
-                AddError(ErrorCode.UnknownProperty,  context.ID(0).Symbol, propertyName);
+                AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
                 return default;
             }
             return new PropertyPath(variableIndex, indexOf);

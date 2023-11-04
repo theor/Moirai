@@ -93,6 +93,9 @@ public class StoryPrinter
             case FormatAction formatAction:
                 sb.AppendLine($"{indentStr}format {Print(formatAction.String)}");
                 break;
+            case CallRule call:
+                sb.AppendLine( "call " + _database.Actions[call.RuleIndex].Name);
+                break;
             case AssertInstr assert:
                 switch (assert.Mode)
                 {

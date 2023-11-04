@@ -119,6 +119,19 @@ public enum CallType
     Each,
     When
 }
+public struct CallRule : IInstruction
+{
+    public readonly int RuleIndex;
+    public CallRule(int ruleIndex)
+    {
+        RuleIndex = ruleIndex;
+
+    }
+    public bool Execute(PredicateContext ctx)
+    {
+        return ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
+    }
+}
 public struct AssignPick : IInstruction
 {
     public readonly int VariableIndex;

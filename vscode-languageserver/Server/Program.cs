@@ -169,7 +169,7 @@ public class MoiraiCache {
                     Code = "MR" + (int)error.Code,
                     Severity = DiagnosticSeverity.Error,
                     Message = error.Code + ": " + error.Message,
-                    Range = new Range(error.Line - 1, error.Col, error.Line - 1, error.Col + 1),
+                    Range = new Range(error.Line - 1, error.Col, error.LineEnd - 1, error.ColEnd),
                     Source = "Moirai",
 
                 });

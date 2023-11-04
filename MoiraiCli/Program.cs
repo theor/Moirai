@@ -7,11 +7,22 @@ internal class Program
     {
         string line;
         string path = "w.sg";
-        var db = MakeDb(path, 44);
+        ulong seed = 44;
+        var db = MakeDb(path, seed);
         Console.WriteLine(db.Printer.Print());
         int prevAction = -1;
         int historyCount = 0;
         Pcg32 rnd = new(32, 57);
+
+        bool watch = true;
+        bool reload = false;
+        if (watch)
+        {
+            FileSystemWatcher fsw = new FileSystemWatcher(Path.GetDirectoryName(Path.GetFullPath(path)));
+            fsw.Filter = Path.GetFileName(path);
+            fsw.NotifyFilter = NotifyFilters.LastWrite;
+            fsw.Changed +=  (_,e) => reload = true;
+        }
 
         Queue<string> replay = new(new[]
         {
@@ -57,12 +68,19 @@ internal class Program
             if (line == "qq")
                 break;
 
+            if (reload)
+            {
+                Console.WriteLine("RELOAD");
+                reload = false;
+                replay = new Queue<string>(db.History.Changesets.Select(c => c.ActionName));
+                db = MakeDb(path, seed);
+            }
             if (line.StartsWith("seed "))
             {
-                if (ulong.TryParse(line.Substring("seed ".Length), out ulong newSeed))
+                if (ulong.TryParse(line.Substring("seed ".Length), out seed))
                 {
                     replay = new Queue<string>(db.History.Changesets.Select(c => c.ActionName));
-                    db = MakeDb(path, newSeed);
+                    db = MakeDb(path, seed);
                 }
             }
             else if (line == "p")

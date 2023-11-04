@@ -21,6 +21,12 @@ prop child = ref
 
 prop owner = ref
 
+rule called {
+    create Person
+}
+rule call { 
+    call called
+}
 
 rule create_time {
     create Time, 'time'

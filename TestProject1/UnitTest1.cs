@@ -15,7 +15,7 @@ public class Tests
         var printed = db.Printer.Print();
         Console.WriteLine("### REPRINT");
         Console.WriteLine(printed);
-        Assert.AreEqual(errorCount, errors.Count, string.Join(", ", errors));
+        Assert.AreEqual(errorCount, errors.Count, string.Join("\n", errors));
         if (errorCount == 0)
         {
             var reparsed = StoryParser.Parse(printed, out var errors2);
@@ -629,6 +629,23 @@ rule create_faction {
         db.Printer.PrintChangeset(db.History.Changesets[0], false);
         Console.WriteLine(db.History.Changesets[0].Description);
         Assert.AreEqual("res 42 > 16 = true", db.History.Changesets[0].Description);
+    }
+    
+    [Test]
+    public void CallRule()
+    {
+        var s = @"
+entity E {}
+rule called {
+    create E
+}
+rule call {
+    call called
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        db.RunAction(db.Actions[1]);
+       Assert.AreEqual(1, db.Entities.Count());
     }
 
     [Test]
