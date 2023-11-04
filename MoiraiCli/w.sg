@@ -6,7 +6,7 @@ entity Link {}
 
 prop year = number
 
-enum Job { Smith, Farmer, Noble }
+enum Job { Smith, Farmer, Painter, Sculptor }
 enum Age { Child, Young, Adult, Old }
 
 prop age = Age
@@ -20,14 +20,7 @@ prop parent = ref
 prop child = ref
 
 prop owner = ref
-
-rule called {
-    create Person
-}
-rule call { 
-    call called
-}
-
+ 
 rule create_time {
     create Time, 'time'
     set year = 1000
@@ -119,14 +112,14 @@ rule couple_has_child {
     format '{$x.name} and {$y.name} have a child, {$c.name}, in the year {$t.year}'
 }
 rule make_item {
-    pick $p: type=Person, alive = true
+    pick $p: type=Person, alive = true, job=Job.Smith
     create $i: Item, '{random item} of {random name}'
     set $i.owner = $p
     format '{$p.name} creates the {$i.name}'
 }
 rule item_lost {
     pick $i: type=Item, owner != null
-    set $i.owner = null
+    set $i.owner = null 
     format 'The {$i.name} is lost'
 }
 rule item_found {

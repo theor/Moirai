@@ -1,9 +1,10 @@
-﻿using Pcg;
+﻿using System.Collections.Concurrent;
+using Pcg;
 using Pcg.Core;
 
 internal class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         string line;
         string path = "w.sg";
@@ -21,7 +22,12 @@ internal class Program
             FileSystemWatcher fsw = new FileSystemWatcher(Path.GetDirectoryName(Path.GetFullPath(path)));
             fsw.Filter = Path.GetFileName(path);
             fsw.NotifyFilter = NotifyFilters.LastWrite;
-            fsw.Changed +=  (_,e) => reload = true;
+            fsw.Changed +=  (_,e) =>
+            {
+                Console.WriteLine("changed");
+                reload = true;
+            };
+            fsw.EnableRaisingEvents = true;
         }
 
         Queue<string> replay = new(new[]
@@ -49,32 +55,49 @@ internal class Program
             // "f",
             
         });
-           
 
+        ConcurrentQueue<string> lines = new();
+        var t = Task.Run(() =>
+        {
+            while (true)
+            {
+                Console.Write("> ");
+                lines.Enqueue(Console.ReadLine());
+            }
+        });
+
+        bool printHistory = true;
         while (true)
         {
             bool fromQueue = replay.TryDequeue(out line);
             if (!fromQueue)
             {
-                Console.Write("> ");
-                line = Console.ReadLine() ?? "";
-                Console.WriteLine("-----------------");
-                for (var index = 0; index < db.Actions.Count; index++)
+                if(!lines.TryDequeue(out line) && !printHistory)
                 {
-                    var action = db.Actions[index];
-                    Console.WriteLine($"  {index:00} {action.Name}");
+                    await Task.Delay(200);
+                    if (reload)
+                    {
+                        Console.WriteLine("RELOAD");
+                        reload = false;
+                        replay = new Queue<string>(db.History.Changesets.Select(c => c.ActionName));
+                        db = MakeDb(path, seed);
+                        printHistory = true;
+                    }
+                    continue;
                 }
+                // Console.WriteLine("-----------------");
+                // for (var index = 0; index < db.Actions.Count; index++)
+                // {
+                //     var action = db.Actions[index];
+                //     Console.WriteLine($"  {index:00} {action.Name}");
+                // }
             }
+            line ??= "";
+
             if (line == "qq")
                 break;
 
-            if (reload)
-            {
-                Console.WriteLine("RELOAD");
-                reload = false;
-                replay = new Queue<string>(db.History.Changesets.Select(c => c.ActionName));
-                db = MakeDb(path, seed);
-            }
+           
             if (line.StartsWith("seed "))
             {
                 if (ulong.TryParse(line.Substring("seed ".Length), out seed))
@@ -103,8 +126,9 @@ internal class Program
                     db.Printer.PrintChangeset(cs);
                 }
             }
-            else if (line == "f")
+            else if (line == "f" || (printHistory && !fromQueue))
             {
+                printHistory = false;
                 foreach (var cs in db.History.Changesets)
                 {
                     if(!string.IsNullOrEmpty(cs.Description))
