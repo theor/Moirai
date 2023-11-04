@@ -7,12 +7,12 @@ static class NameEntity
         return GenerateName(ctx, t);
     }
 
-    private static readonly string[] Items =
+    public static readonly string[] Items =
     {
         "Ring", "Sword", "Spear", "Breastplate", "Greatsword", "Pendant",
     };
 
-    private static readonly string[] Names =
+    public static readonly string[] Names =
     {
         // ReSharper disable StringLiteralTypo
         "Abraxas", "Adara", "Adrienne", "Aeron", "Aeronwen", "Aeronwy", "Ailbhe", "Aileen", "Aislinn", "Aithne", "Alanna", "Alastair",
@@ -53,6 +53,6 @@ static class NameEntity
         // }
     }
 
-    static T RandomIn<T>(this T[] array, Pcg32 rnd) => array[rnd.GenerateNext((uint)array.Length)];
+    public static T RandomIn<T>(this T[] array, Pcg32 rnd) => array[rnd.GenerateNext((uint)array.Length)];
     public static T RandomIn<T>(this List<T> array, Pcg32 rnd) => array[(int)rnd.GenerateNext((uint)array.Count)];
 }

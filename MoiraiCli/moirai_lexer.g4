@@ -16,6 +16,7 @@ PAREN_CLOSE: ')';
 RULE: 'rule';
 ENTITY: 'entity';
 EVENT: 'event';
+//NAME: 'name';
 PROP: 'prop';
 ENUM: 'enum';
 WHEN: 'when';

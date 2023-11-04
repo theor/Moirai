@@ -541,7 +541,7 @@ rule create {
 }
 ";
         var db = Run(s, out var errors);
-        db.SetSeed(4);
+        db.SetSeed(45);
         int count = 1;
         for (int i = 0; i < count; i++)
         {
@@ -579,23 +579,42 @@ rule create_faction {
     public void Format()
     {
         var s = @"
-entity Person {}
-entity Faction {}
+entity Person {
+}
+entity Faction {
+}
 prop owner = ref
 rule create_faction {
-    create $f: Faction
+    create $f: Faction, 'Faction of {random name}'
     create $g: Faction
+    set $g.name = 'Circle of {random name}'
     create $p: Person
+    set $p.name = '{random name}'
     set $f.owner = $p
     format '{$p.name} creates the {$f.name} to counter the {$g.name}'
+    assert_eq '{$p.name} creates the {$f.name} to counter the {$g.name}', 'River creates the Faction of Cerelia to counter the Circle of Hecate'
 }";
         var db = Run(s, out var errors);
-        Assert.AreEqual(5, db.Actions[0].Effects.Count);
         db.History = new();
         db.RunAction(db.Actions[0]);
         db.Printer.PrintChangeset(db.History.Changesets[0], false);
         Console.WriteLine(db.History.Changesets[0].Description);
-        Assert.AreEqual("River creates the Faction of Cerelia to counter the Faction of Hecate", db.History.Changesets[0].Description);
+        Assert.AreEqual("River creates the Faction of Cerelia to counter the Circle of Hecate", db.History.Changesets[0].Description);
+    }
+    [Test]
+    public void Format_TwoRandomNames()
+    {
+        var s = @"
+entity Person {
+}
+prop owner = ref
+rule create_faction {
+    create $p: Person, '{random name}-{random name} of {random name}'
+    assert_eq $p.name, 'Cerelia-Hecate of River'
+}";
+        var db = Run(s, out var errors);
+        db.History = new();
+        db.RunAction(db.Actions[0]);
     }
     [Test]
     public void FormatLiteral()

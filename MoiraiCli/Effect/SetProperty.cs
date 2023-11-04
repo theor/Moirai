@@ -10,11 +10,6 @@ public class SetProperty : IInstruction
         PropertySet = property;
         Parameter = parameter;
     }
-    public SetProperty(PropertyPath property, PropertyValue parameter)
-    {
-        PropertySet = property;
-        Parameter = new Literal(parameter);
-    }
    
     public bool Execute(PredicateContext ctx)
     {

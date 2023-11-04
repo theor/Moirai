@@ -1,17 +1,29 @@
 ﻿using Pcg.Core;
 
-public class FormatAction : IInstruction
+public class InterpolatedString : IValue
 {
     public readonly string FormatString;
     public IValue[] Arguments;
-    public FormatAction(string formatString, IValue[] arguments)
+    public InterpolatedString(string formatString, IValue[] arguments)
     {
         FormatString = formatString;
         Arguments = arguments;
     }
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        return ctx.Database.Format(this) ?? "";
+    }
+}
+public class FormatAction : IInstruction
+{
+    public InterpolatedString String;
+    public FormatAction(InterpolatedString str)
+    {
+        String = str;
+    }
     public bool Execute(PredicateContext ctx)
     {
-        ctx.Format(this);
+        ctx.Database.AppendDescription(ctx.Database.Format(String));
         return true;
     }
 }
@@ -20,8 +32,8 @@ class CreateEntity : IInstruction
 {
     public readonly int VariableIndex;
     public readonly EntityTypeId Type;
-    public readonly string? Name;
-    public CreateEntity(int variableIndex, EntityTypeId type, string? name)
+    public readonly InterpolatedString? Name;
+    public CreateEntity(int variableIndex, EntityTypeId type, InterpolatedString? name)
     {
         VariableIndex = variableIndex;
         Type = type;
@@ -30,7 +42,12 @@ class CreateEntity : IInstruction
     public bool Execute(PredicateContext ctx)
     {
         // if (!ctx.Database.EntityExists(ctx.EntityId))
-        string name = Name ?? NameEntity.MakeName(ctx, Type);
+        string? name = null;
+        if (Name != null)
+        {
+            name = ctx.Database.Format(Name);
+        }
+      
         var entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
         return true;

@@ -67,7 +67,7 @@ public class StoryPrinter
         switch (instruction)
         {
             case CreateEntity createEntity:
-                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {_database.GetEntityTypeName(createEntity.Type)}");
+                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {_database.GetEntityTypeName(createEntity.Type)}, {Print(createEntity.Name)}");
                 break;
             // case NameEntity nameEntity:
             case AssignPick predicateParameter:
@@ -91,7 +91,7 @@ public class StoryPrinter
                     $"{indentStr}set {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
                 break;
             case FormatAction formatAction:
-                sb.AppendLine($"{indentStr}format \"{string.Format(formatAction.FormatString, formatAction.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}\"");
+                sb.AppendLine($"{indentStr}format {Print(formatAction.String)}");
                 break;
             case AssertInstr assert:
                 switch (assert.Mode)
@@ -137,7 +137,7 @@ public class StoryPrinter
             case PropertyValue.ValueBaseType.None:
                 return "null";
             case PropertyValue.ValueBaseType.String:
-                return $"\"{value.Value}\"";
+                return $"'{value.Value}'";
             case PropertyValue.ValueBaseType.Ref:
                 if (value.IntValue == 0)
                     return "null";
@@ -159,12 +159,17 @@ public class StoryPrinter
     {
         switch (value)
         {
+            case InterpolatedString interpolatedString:
+                return
+                    $"\"{string.Format(interpolatedString.FormatString, interpolatedString.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}\"";
             case Literal literal:
                 return Print(literal.Value);
             case PropertyPath path:
                 return Print(path);
             case RandomCall rnd:
                 return "random " + _database.Enums[rnd.EnumID].Name;
+            case RandomName rnd:
+                return "random " + rnd.Type.ToString().ToLowerInvariant();
             case YearsPassed y:
                 return "(passed_years " + y.Years + ")";
            

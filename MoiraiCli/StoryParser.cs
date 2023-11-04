@@ -246,8 +246,11 @@ public static class StoryParser
                 {
                     case "random":
                     {
-                        if (!_database.GetEnumDefinition(call.expr(0).GetText(), out var enumDef))
-                            return (AddError(ErrorCode.UnknownEnum, call.expr(0).Start, call.expr(0).GetText()) as IValue)!;
+                        var arg = call.expr(0);
+                        if (Enum.TryParse(arg.GetText(), true, out RandomName.NameType nt))
+                            return new RandomName(nt);
+                        if (!_database.GetEnumDefinition(arg.GetText(), out var enumDef))
+                            return (AddError(ErrorCode.UnknownEnum, arg.Start, arg.GetText()) as IValue)!;
                         return new RandomCall(enumDef.Index);
                     }
                     case "passed_years":
@@ -268,7 +271,7 @@ public static class StoryParser
             }
             
             if(value.@string() != null)
-                return new Literal(value.@string().STRING().GetText());
+                return ParseInterpolatedString(value.@string().GetString());
             if (value.NULL() != null)
                 return new Literal(EntityId.Null);
             if(value.number() != null)
@@ -419,42 +422,48 @@ public static class StoryParser
                     if (typeId.Id == EntityTypeId.Null)
                         throw new Exception($"Unknown entity type '{type}'");
 
-                    string name = context.expr(1)?.GetText();
+                    var name = ParseInterpolatedString(context.expr(1)?.GetText().TrimQuotes() ?? "");
                     return new CreateEntity(variableIndex, typeId.Id, name);
                 case "format":
-                    var str = context.expr(0).value().@string().GetString();
-                    List<IValue> paths = new();
-                    string result = "";
-                    int i = -1;
-                    var prev = i + 1;
-
-                    while (i < str.Length)
-                    {
-                        i = str.IndexOf('{', i + 1);
-                        if (i == -1)
-                            break;
-
-                        int j = str.IndexOf('}', i + 1);
-                        if (j == -1)
-                            throw new System.NotImplementedException($"Missing curly brace in string: {str}, opening brace at {i}");
-
-                        var pathStr = str.Substring(i + 1, j - i - 1);
-                        var path = StoryParser.ParseExpr(this, pathStr, out _errors);
-                        paths.Add(path!);
-                        // Console.WriteLine($"'{pathStr}'");
-                        if (i > prev)
-                            result += str.Substring(prev, i - prev);
-                        result += $"{{{paths.Count - 1}}}";
-                        i = j + 1;
-                        prev = i;
-                    }
-                    if (prev < str.Length)
-                        result += (str.Substring(prev));
-                    // Console.WriteLine($"res:'{result}'");
-                    return new FormatAction(result, paths.ToArray());
+                    var stringContext = context.expr(0).value().@string();
+                    var interpolatedString = ParseInterpolatedString(stringContext.GetString());
+                    return new FormatAction(interpolatedString);
             }
 
             return (AddError(ErrorCode.UnknownCall, context.Start, funcName) as IInstruction)!;
+        }
+        private InterpolatedString ParseInterpolatedString(string str)
+        {
+            List<IValue> paths = new();
+            string result = "";
+            int i = -1;
+            var prev = i + 1;
+
+            while (i < str.Length)
+            {
+                i = str.IndexOf('{', i + 1);
+                if (i == -1)
+                    break;
+
+                int j = str.IndexOf('}', i + 1);
+                if (j == -1)
+                    throw new System.NotImplementedException($"Missing curly brace in string: {str}, opening brace at {i}");
+
+                var pathStr = str.Substring(i + 1, j - i - 1);
+                var path = StoryParser.ParseExpr(this, pathStr, out _errors);
+                paths.Add(path!);
+                // Console.WriteLine($"'{pathStr}'");
+                if (i > prev)
+                    result += str.Substring(prev, i - prev);
+                result += $"{{{paths.Count - 1}}}";
+                i = j;
+                prev = i+1;
+            }
+            if (prev < str.Length)
+                result += (str.Substring(prev));
+            // Console.WriteLine($"res:'{result}'");
+            var interpolatedString = new InterpolatedString(result, paths.ToArray());
+            return interpolatedString;
         }
         public IValue? ParseExpr(Moirai.ExprContext context)
         {

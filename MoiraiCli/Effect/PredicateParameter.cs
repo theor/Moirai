@@ -96,6 +96,20 @@ public struct RandomCall : IValue
         return def.GetRandomValue(ctx.Rnd);
     }
 }
+public struct RandomName : IValue
+{
+    public enum NameType { Name, Item}
+
+    public readonly NameType Type;
+    public RandomName(NameType type)
+    {
+        Type = type;
+    }
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        return Type == NameType.Name ? NameEntity.Names.RandomIn(ctx.Rnd) : NameEntity.Items.RandomIn(ctx.Rnd);
+    }
+}
 
 
 public enum CallType

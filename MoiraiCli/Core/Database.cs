@@ -331,9 +331,8 @@ public class Database
         }
 
     }
-    public void AppendDescription(FormatAction formatAction)
+    public void AppendDescription(string? desc)
     {
-        string? desc = FormatDescription(formatAction);
         if (!String.IsNullOrEmpty(desc))
         {
             if(!String.IsNullOrEmpty(CurrentChangeset.Description))
@@ -341,7 +340,7 @@ public class Database
             CurrentChangeset.Description += desc;
         }
     }
-    private string? FormatDescription(FormatAction formatAction)
+    public string Format(InterpolatedString formatAction)
     {
         var printer = new StoryPrinter(this);
         var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(_ctx))).Cast<object?>().ToArray();

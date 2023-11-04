@@ -90,10 +90,6 @@ public class PredicateContext
         return count;
     }
     
-    public void Format(FormatAction formatAction)
-    {
-        Database.AppendDescription(formatAction);
-    }
     public void Assert(bool boolValue, string msg)
     {
         if (!boolValue)
