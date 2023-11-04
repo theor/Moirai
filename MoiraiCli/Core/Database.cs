@@ -343,7 +343,7 @@ public class Database
     public string Format(InterpolatedString formatAction)
     {
         var printer = new StoryPrinter(this);
-        var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(_ctx))).Cast<object?>().ToArray();
+        var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(_ctx), true)).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
     }
     private static ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
@@ -371,7 +371,7 @@ public class Database
                 foreach (var property in e.Properties)
                 {
                     if (property.Type != Database.PropType)
-                        Console.WriteLine($"  {Properties[(int)property.Type.Id].Name}: {printer.Print(property.Value, property.Type)}");
+                        Console.WriteLine($"  {Properties[(int)property.Type.Id].Name}: {printer.Print(property.Value)}");
                         // Console.WriteLine($"  {FormatProperty(property)}");
                 }
         }

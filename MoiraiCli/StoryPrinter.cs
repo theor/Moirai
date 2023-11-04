@@ -121,19 +121,18 @@ public class StoryPrinter
     private string Print(PropertyPath path) =>
         path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
    
-    public string Print(PropertyValue value, PropertyId typeHint = default)
+    public string Print(PropertyValue value, bool storyMode = false)
     {
         var s = value.Value;
         if (s != null)
             return s;
-        if (typeHint == Database.PropType)
-            return $"\"{_database.GetEntityTypeName(value.TypeId)}\"";
+        
 
         switch (value.Type.BaseType)
         {
             case PropertyValue.ValueBaseType.Enum:
                 var e = _database.Enums[value.Type.Index];
-                return $"{e.Name}.{e.Values[(int)value.IntValue]}";
+                return storyMode ? e.Values[(int)value.IntValue] : $"{e.Name}.{e.Values[(int)value.IntValue]}";
             case PropertyValue.ValueBaseType.None:
                 return "null";
             case PropertyValue.ValueBaseType.String:

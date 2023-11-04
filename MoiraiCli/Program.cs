@@ -7,9 +7,7 @@ internal class Program
     {
         string line;
         string path = "w.sg";
-        var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
-        db.SetSeed(44);
-        db.History = new();
+        var db = MakeDb(path, 44);
         Console.WriteLine(db.Printer.Print());
         int prevAction = -1;
         int historyCount = 0;
@@ -59,16 +57,28 @@ internal class Program
             if (line == "qq")
                 break;
 
-            if (line == "p")
+            if (line.StartsWith("seed "))
+            {
+                if (ulong.TryParse(line.Substring("seed ".Length), out ulong newSeed))
+                {
+                    replay = new Queue<string>(db.History.Changesets.Select(c => c.ActionName));
+                    db = MakeDb(path, newSeed);
+                }
+            }
+            else if (line == "p")
             {
                 db.PrintDb();
+            }
+            else if (line == "h")
+            {
+                Console.WriteLine(string.Join("\n", db.History.Changesets.Select(c => c.ActionName)));
             }
             else if (line == "r")
             {
                 prevAction = -1;
                 RunRandomAction(db, rnd);
             }
-            else if (line == "h")
+            else if (line == "cs")
             {
                 foreach (var cs in db.History.Changesets)
                 {
@@ -115,6 +125,14 @@ internal class Program
             }
 
         }
+    }
+    private static Database MakeDb(string path, ulong seed)
+    {
+
+        var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
+        db.SetSeed(seed);
+        db.History = new();
+        return db;
     }
     private static void RunRandomAction(Database db, Pcg32 rnd)
     {

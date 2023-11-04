@@ -40,7 +40,7 @@ event inherit {
 
 rule char_born {
     pick $t: type=Time
-    create $p: Person
+    create $p: Person, '{random name}'
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = $t.year
@@ -68,7 +68,7 @@ rule pass_15_years {
     }
     each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
         set $p.alive = false
-        format '{$p.name} dies of old age in {$t.year}'
+        format '{$p.name} dies of old age at {$t.year - $p.birthdate} in {$t.year}'
     }
 }
 
@@ -99,7 +99,7 @@ rule couple_has_child {
     pick $t: type=Time
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner = $x, id != $x
-    create $c: Person
+    create $c: Person, '{random name}'
         set $c.alive = true
         set $c.age = Age.Child
         set $c.birthdate = $t.year
@@ -114,7 +114,7 @@ rule couple_has_child {
 }
 rule make_item {
     pick $p: type=Person, alive = true
-    create $i: Item
+    create $i: Item, '{random item} of {random name}'
     set $i.owner = $p
     format '{$p.name} creates the {$i.name}'
 }

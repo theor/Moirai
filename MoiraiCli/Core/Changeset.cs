@@ -56,7 +56,7 @@ public struct Change
             case ChangeType.Create:
                 return $"CREATE {PrevValue.Value} {db.GetEntityTypeName(NewValue.TypeId)} {EntityId}";
             case ChangeType.Set:
-                return $"SET {EntityId}.{db.GetPropertyName(Property)}: {db.Printer.Print(PrevValue, Property)} -> {db.Printer.Print(NewValue, Property)}";
+                return $"SET {EntityId}.{db.GetPropertyName(Property)}: {db.Printer.Print(PrevValue)} -> {db.Printer.Print(NewValue)}";
             default:
                 throw new ArgumentOutOfRangeException();
         }
