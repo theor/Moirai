@@ -95,6 +95,12 @@ public sealed class Pcg32
 		Step();
 		return Helpers.OutputXshRr(oldState);
 	}
+	public float GenerateNextFloat()
+	{
+		// implements pcg_setseq_64_xsh_rr_32_random_r
+		uint next = GenerateNext();
+		return next / (float)uint.MaxValue;
+	}
 
 	/// <summary>
 	/// Generates a uniformly distributed 32-bit unsigned integer less than <paramref name="bound"/> (i.e., <c>x</c> where

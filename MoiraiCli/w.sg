@@ -23,7 +23,7 @@ prop owner: ref
  
 rule create_time {
     create Time, 'time'
-    set year = 1000
+    set year = 764
 }
 
 event inherit {
