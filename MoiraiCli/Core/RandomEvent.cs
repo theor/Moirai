@@ -3,9 +3,10 @@
 
 public struct RandomEvent
 {
-    public int ExpectedOccurences { get; }
-    public int ExpectedInterval { get; }
-    public float Probability => ExpectedOccurences / (float)ExpectedInterval;
+    public bool IsValid => ExpectedInterval != 0 && ExpectedOccurences != 0;
+    public int ExpectedOccurences;
+    public int ExpectedInterval;
+    public float Probability => ExpectedInterval == 0 ? 0 : (ExpectedOccurences / (float)ExpectedInterval);
 
     public int Occurences = 0;
     public int Interval = 0;
@@ -23,7 +24,7 @@ public struct RandomEvent
         return count;
     }
         
-    public int PoissonProbability (double lambda, Pcg32 rnd)
+    public readonly int PoissonProbability (double lambda, Pcg32 rnd)
     {
         double expLambda = Math.Exp (-lambda); //constant for terminating loop
 
@@ -36,5 +37,12 @@ public struct RandomEvent
         } while (prodUni > expLambda); 
 
         return randPoisson;
+    }
+    public void Set(int occurences, int expectedInterval)
+    {
+        ExpectedOccurences = occurences;
+        ExpectedInterval = expectedInterval;
+        Occurences = 0;
+        Interval = 0;
     }
 }

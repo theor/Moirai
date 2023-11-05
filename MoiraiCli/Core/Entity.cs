@@ -32,6 +32,8 @@
     }
     public PropertyValue GetProperty(PropertyId property)
     {
+        if(!property.IsValid)
+            throw new System.NotImplementedException("Null property");
         if (property == Database.PropId)
             return Id;
         if (Properties != null)

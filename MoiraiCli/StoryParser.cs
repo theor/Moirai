@@ -1,5 +1,6 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
+using Pcg.Core;
 
 public static class StoryParser
 {
@@ -183,10 +184,20 @@ public static class StoryParser
 
         public override object? VisitAction(Moirai.ActionContext context)
         {
+            
             string actionId = context.ID().GetText();
+            bool isStartAction = context.AT() != null;
             //Console.WriteLine("@ " + actionId);
             _variables.Clear();
-            var action = new Action(actionId, false);
+            RandomEvent random = default;
+            if (context.proba() != null)
+            {
+                var p = context.proba();
+                var o = int.Parse(p.occurence.Text);
+                var y = int.Parse(p.years.Text);
+                random.Set(o, y);
+            }
+            var action = new Action(actionId, false, random, isStartAction);
             foreach (Moirai.EffectContext effectContext in context.effect())
             {
                 var effect = ParseEffect(effectContext);

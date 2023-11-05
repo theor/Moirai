@@ -8,20 +8,23 @@ prop year: number
 
 enum Job { Smith, Farmer, Painter, Sculptor }
 enum Age { Child, Young, Adult, Old }
+enum ItemType { Forged, Painted, Sculpted }
 
 prop age: Age
+prop first_name: string
 prop alive: bool
 prop birthdate: number
 prop partner: ref
 prop faction: ref
 prop job: Job
+prop item_type: ItemType
 
 prop parent: ref
 prop child: ref
 
 prop owner: ref
  
-rule create_time {
+rule @create_time {
     create Time, 'time'
     set year = 764
 }
@@ -37,8 +40,11 @@ event inherit {
     }
 }
 
+@1 per 2 year
 rule char_born {
-    create $p: Person, '{random name}'
+    var $fname = '{random name}'
+    create $p: Person, '{$fname} {random name}'
+    set $p.first_name = $fname
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = #Time.year
@@ -50,8 +56,9 @@ rule char_dies {
     record '{$p.name} dies'
 }
 
+@1 per 1 year
 rule pass_15_years {
-    set #Time.year = #Time.year + 15
+    //set #Time.year = #Time.year + 15
     each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
         set $p.age = Age.Young
         set $p.job = random Job
@@ -78,6 +85,7 @@ rule _parent_dies {
 
     }
 }
+@1 per 2 year
 rule wedding {
     pick $x: type = Person, alive = true, partner = null, age > Age.Child
     pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x
@@ -85,6 +93,7 @@ rule wedding {
     set $y.partner = $x
     record '{$x.name} and {$y.name} get married'
 }
+@1 per 15 year
 rule divorce {
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner != null, id != $x
@@ -92,10 +101,13 @@ rule divorce {
     set $y.partner = null
     record '{$x.name} and {$y.name} separate'
 }
+@1 per 2 year
 rule couple_has_child {
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner = $x, id != $x
-    create $c: Person, '{random name}'
+    var $fname = '{random name}'
+    create $c: Person, '{$fname} {$x.first_name}son'
+        set $c.first_name = $fname
         set $c.alive = true
         set $c.age = Age.Child
         set $c.birthdate = #Time.year
@@ -108,36 +120,52 @@ rule couple_has_child {
     
     record '{$x.name} and {$y.name} have a child, {$c.name}, in the year {#Time.year}'
 }
+@1 per 2 year
 rule make_item {
-    pick $p: type=Person, alive = true, job=Job.Smith
+    pick $p: type=Person, alive = true, job=Job.Smith, age > Age.Child
     create $i: Item, '{random item} of {random name}'
+    set $i.item_type = ItemType.Forged
     set $i.owner = $p
     record '{$p.name} creates the {$i.name}'
 }
+@1 per 2 year
+rule make_item {
+    pick $p: type=Person, alive = true, job=Job.Painter, age > Age.Child
+    pick $t: type=Person, alive = true
+    create $i: Item, 'Portrait of {$t.name}'
+    set $i.item_type = ItemType.Painted
+    set $i.owner = $t
+    record '{$p.name} paints the {$i.name}'
+}
+@1 per 8 year
 rule item_lost {
     pick $i: type=Item, owner != null
     set $i.owner = null 
     record 'The {$i.name} is lost'
 }
+@1 per 20 year
 rule item_found {
     pick $p: type=Person, alive = true
     pick $i: type=Item, owner = null
     set $i.owner = $p
     record '{$p.name} obtains the {$i.name}'
 }
+@1 per 10 year
 rule item_sold {
     pick $i: type=Item, owner != null
     pick $p: type=Person, id != $i.owner
     set $i.owner = $p
     record '{$p.name} acquires the {$i.name}'
 }
+@1 per 20 year
 rule create_faction {
     pick $p: type=Person, alive=true, faction = null
-    create $f: Faction
+    create $f: Faction, 'Faction of {random name}'
     set $f.owner = $p
     set $p.faction = $f
     record '{$p.name} creates the {$f.name}'
 }
+@1 per 2 year
 rule char_joins_faction {
 pick $p: type=Person, faction = null
     pick $f: type=Faction

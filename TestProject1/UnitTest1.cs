@@ -712,6 +712,32 @@ rule read {
     }
 
     [Test]
+    public void CheckRandomEvent([Values(1ul, 2ul, 3ul, 4ul, 5ul, 6ul, 7ul)] ulong seed)
+    {
+        string s = @"
+entity Person {}
+entity Time {}
+prop years: number
+
+rule init {
+    create Time, 'time'
+    set years = 345
+}
+@4 per 1 years
+rule born {
+    create Person
+}
+";
+        var db = Run(s, out _);
+        db.SetSeed(seed);
+        db.RunAction("init");
+
+        db.PassYears(10);
+        db.PrintDb();
+        Console.WriteLine("Born: " + (db.Entities.Count() - 1));
+    }
+
+    [Test]
     public void Time()
     {
         var s = @"

@@ -28,6 +28,8 @@ public class StoryPrinter
         }
         foreach (var action in _database.Actions.Concat(_database.Events))
         {
+            if (action.Random.IsValid)
+                sb.AppendLine($"@ {action.Random.ExpectedOccurences} per {action.Random.ExpectedInterval} years");
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
             foreach (var when in action.Whens)
             {

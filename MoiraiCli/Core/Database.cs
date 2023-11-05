@@ -436,5 +436,30 @@ public class Database
             Printer.PrintChangeset(cs);
         }
     }
+    public void PassYears(int years)
+    {
+        var timeType = GetEntityType("Time");
+        var timeId = _ctx.GetSingletonId(timeType.Id);
+        var yearsProp = GetProperty("year");
+        if(!TryGetEntity(timeId, out var time))
+            throw new System.NotImplementedException("missing Time entity");
+
+        var startYear = time.GetProperty(yearsProp).IntValue;
+        for (int i = 0; i < years; i++)
+        {
+            SetProperty(timeId, yearsProp, ++startYear);
+            foreach (var action in Actions)
+            {
+                if(!action.Random.IsValid)
+                    continue;
+
+                int count = action.Random.Sample(_ctx.Rnd);
+                for (int j = 0; j < count; j++)
+                {
+                    RunAction(action);
+                }
+            }
+        }
+    }
 }
 

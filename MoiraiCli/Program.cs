@@ -11,6 +11,11 @@ internal class Program
         ulong seed = 44;
         var db = MakeDb(path, seed);
         Console.WriteLine(db.Printer.Print());
+        foreach (Action a in db.Actions)
+        {
+            if (a.IsStartAction)
+                db.RunAction(a);
+        }
         int prevAction = -1;
         int historyCount = 0;
         Pcg32 rnd = new(32, 57);
@@ -22,7 +27,7 @@ internal class Program
             FileSystemWatcher fsw = new FileSystemWatcher(Path.GetDirectoryName(Path.GetFullPath(path)));
             fsw.Filter = Path.GetFileName(path);
             fsw.NotifyFilter = NotifyFilters.LastWrite;
-            fsw.Changed +=  (_,e) =>
+            fsw.Changed += (_, e) =>
             {
                 Console.WriteLine("changed");
                 reload = true;
@@ -30,30 +35,30 @@ internal class Program
             fsw.EnableRaisingEvents = true;
         }
 
-        Queue<string> replay = new(new[]
+        Queue<string> replay = new(new string[]
         {
-            "create_time",
-            "char_born",
-            "char_born",
-            "pass_15_years",
-            "pass_15_years",
-            "wedding",
-            "make_item",
-            "make_item",
-            "make_item",
-            "make_item",
-            "make_item",
-            "couple_has_child",
-            "couple_has_child",
-            "couple_has_child",
-            "pass_15_years",
-            "pass_15_years",
-            "pass_15_years",
-            "pass_15_years",
+            // "create_time",
+            // "char_born",
+            // "char_born",
+            // "pass_15_years",
+            // "pass_15_years",
+            // "wedding",
+            // "make_item",
+            // "make_item",
+            // "make_item",
+            // "make_item",
+            // "make_item",
+            // "couple_has_child",
+            // "couple_has_child",
+            // "couple_has_child",
+            // "pass_15_years",
+            // "pass_15_years",
+            // "pass_15_years",
+            // "pass_15_years",
             // "parent_dies",
             // "p",
             // "f",
-            
+
         });
 
         ConcurrentQueue<string> lines = new();
@@ -72,7 +77,7 @@ internal class Program
             bool fromQueue = replay.TryDequeue(out line);
             if (!fromQueue)
             {
-                if(!lines.TryDequeue(out line) && !printHistory)
+                if (!lines.TryDequeue(out line) && !printHistory)
                 {
                     await Task.Delay(200);
                     if (reload)
@@ -97,8 +102,16 @@ internal class Program
             if (line == "qq")
                 break;
 
-           
-            if (line.StartsWith("seed "))
+            if (line == "t")
+                db.PassYears(1);
+            else if (line.StartsWith("t "))
+            {
+                if (int.TryParse(line.Substring("t ".Length), out var years))
+                {
+                    db.PassYears(years);
+                }
+            }
+            else if (line.StartsWith("seed "))
             {
                 if (ulong.TryParse(line.Substring("seed ".Length), out seed))
                 {
@@ -131,31 +144,42 @@ internal class Program
                 printHistory = false;
                 foreach (var cs in db.History.Changesets)
                 {
-                    if(!string.IsNullOrEmpty(cs.Description))
+                    if (!string.IsNullOrEmpty(cs.Description))
                         Console.WriteLine(cs.Description);
                 }
             }
             else if (line == "")
             {
-                if (prevAction == -1)
-                    RunRandomAction(db, rnd);
-                else
-                    db.RunAction(db.Actions[prevAction]);
+                db.PassYears(1);
+                // if (prevAction == -1)
+                //     RunRandomAction(db, rnd);
+                // else
+                //     db.RunAction(db.Actions[prevAction]);
                 // db.PrintDb();
             }
             else if (int.TryParse(line, out var i) && i >= 0 && i < db.Actions.Count)
             {
                 prevAction = i;
                 db.RunAction(db.Actions[i]);
-                // db.PrintDb();
+                // db.PrintDb(); 
             }
             else
             {
+                var indexOf = line.IndexOf(' ');
+                int count = 1;
+                if (indexOf != -1)
+                {
+                    count = int.Parse(line.Substring(indexOf + 1));
+                    line = line.Substring(0, indexOf - 1);
+                }
                 foreach (var a in db.Actions)
                 {
                     if (a.Name == line)
                     {
-                        db.RunAction(a);
+                        for (int j = 0; j < count; j++)
+                        {
+                            db.RunAction(a);
+                        }
                         break;
                     }
                 }
@@ -183,6 +207,8 @@ internal class Program
         do
         {
             a = db.Actions[(int)rnd.GenerateNext((uint)db.Actions.Count)];
+            if(a.IsStartAction)
+                continue;
             Console.WriteLine("try " + a.Name);
         } while (!db.RunAction(a));
     }

@@ -38,6 +38,12 @@ public interface IMoiraiVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitR([NotNull] Moirai.RContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="Moirai.proba"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitProba([NotNull] Moirai.ProbaContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="Moirai.action"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
