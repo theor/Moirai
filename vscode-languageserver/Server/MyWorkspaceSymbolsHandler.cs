@@ -19,7 +19,7 @@ internal class MyWorkspaceSymbolsHandler : IWorkspaceSymbolsHandler
         _logger = logger;
     }
 
-    public async Task<Container<WorkspaceSymbol>> Handle(
+    public async Task<Container<WorkspaceSymbol>?> Handle(
         WorkspaceSymbolParams request,
         CancellationToken cancellationToken
     )

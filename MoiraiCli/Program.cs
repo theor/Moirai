@@ -1,12 +1,12 @@
 ﻿using System.Collections.Concurrent;
 using Pcg;
 using Pcg.Core;
-
+	
 internal class Program
 {
     public static async Task Main(string[] args)
     {
-        string line;
+    string line;
         string path = "w.sg";
         ulong seed = 44;
         var db = MakeDb(path, seed);

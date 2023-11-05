@@ -140,7 +140,7 @@ internal class Program
 
 public class MoiraiCache {
     private readonly ILogger<MoiraiCache> _logger;
-    private MoiraiDocument _current;
+    private MoiraiDocument? _current;
 
     public MoiraiCache(ILogger<MoiraiCache> logger)
     {
@@ -205,8 +205,8 @@ internal class MoiraiDocument
     private string _content;
     public string Content => _content;
     public int Version;
-    public List<(Range range, SemanticTokenType type, string[] modifiers)> Symbols { get; set; }
-    public List<StoryParser.Error> Errors;
+    public List<(Range range, SemanticTokenType type, string[] modifiers)> Symbols { get; set; } = new();
+    public List<StoryParser.Error> Errors = new();
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
     {
         DocumentUri = documentUri;

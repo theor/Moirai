@@ -44,7 +44,7 @@ public class SemanticTokensHandler : SemanticTokensHandlerBase
         return result;
     }
 
-    protected override async Task Tokenize(
+    protected override Task Tokenize(
         SemanticTokensBuilder builder, ITextDocumentIdentifierParams identifier,
         CancellationToken cancellationToken
     )
@@ -52,7 +52,7 @@ public class SemanticTokensHandler : SemanticTokensHandlerBase
         _logger.LogCritical("Tokenize");
         // you would normally get this from a common source that is managed by current open editor, current active editor, etc.
         _moiraiCache.GetSymbols(identifier.TextDocument.Uri, builder);
-
+        return Task.CompletedTask;
     }
 
     protected override Task<SemanticTokensDocument>

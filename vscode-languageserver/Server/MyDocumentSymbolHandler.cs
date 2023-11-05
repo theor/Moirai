@@ -6,13 +6,13 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
 {
-    public async Task<SymbolInformationOrDocumentSymbolContainer> Handle(
+    public async Task<SymbolInformationOrDocumentSymbolContainer?> Handle(
         DocumentSymbolParams request,
         CancellationToken cancellationToken
     )
     {
         // you would normally get this from a common source that is managed by current open editor, current active editor, etc.
-        var content = await File.ReadAllTextAsync(DocumentUri.GetFileSystemPath(request), cancellationToken).ConfigureAwait(false);
+        var content = await File.ReadAllTextAsync(DocumentUri.GetFileSystemPath(request)!, cancellationToken).ConfigureAwait(false);
         var lines = content.Split('\n');
         var symbols = new List<SymbolInformationOrDocumentSymbol>();
         for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
