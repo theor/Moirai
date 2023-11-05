@@ -142,8 +142,16 @@ internal class Program
             else if (line == "f" || (printHistory && !fromQueue))
             {
                 printHistory = false;
+                long year = -1;
                 foreach (var cs in db.History.Changesets)
                 {
+                    if (cs.Year != year)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine(cs.Year);
+                        Console.ResetColor();
+                        year = cs.Year;
+                    }
                     if (!string.IsNullOrEmpty(cs.Description))
                         Console.WriteLine(cs.Description);
                 }

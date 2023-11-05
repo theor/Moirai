@@ -260,7 +260,7 @@ public class Database
     public bool RunAction(Action action)
     {
         Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(action.Name);
+        CurrentChangeset = new Changeset(action.Name, Year);
         _ctx.ClearValueStack();
         // _ctx.Values.Clear();
 
@@ -313,7 +313,7 @@ public class Database
             {
                 if(@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                 {
-                    CurrentChangeset = new(@event.Name);
+                    CurrentChangeset = new(@event.Name, Year);
                     
                         if(!@event.Effects.All(e => e.Execute(_ctx)))
                             continue;
@@ -327,8 +327,10 @@ public class Database
     {
         if (!String.IsNullOrEmpty(desc))
         {
-            if(!String.IsNullOrEmpty(CurrentChangeset.Description))
+            if (!String.IsNullOrEmpty(CurrentChangeset.Description))
                 CurrentChangeset.Description += "\n";
+            // else
+            //     CurrentChangeset.Description = $"{Year}\n";
             CurrentChangeset.Description += desc;
         }
     }
@@ -436,6 +438,7 @@ public class Database
             Printer.PrintChangeset(cs);
         }
     }
+    private static long Year;
     public void PassYears(int years)
     {
         var timeType = GetEntityType("Time");
@@ -444,10 +447,10 @@ public class Database
         if(!TryGetEntity(timeId, out var time))
             throw new System.NotImplementedException("missing Time entity");
 
-        var startYear = time.GetProperty(yearsProp).IntValue;
+        Year = time.GetProperty(yearsProp).IntValue;
         for (int i = 0; i < years; i++)
         {
-            SetProperty(timeId, yearsProp, ++startYear);
+            SetProperty(timeId, yearsProp, ++Year);
             foreach (var action in Actions)
             {
                 if(!action.Random.IsValid)

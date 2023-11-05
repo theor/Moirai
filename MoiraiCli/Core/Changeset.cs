@@ -8,10 +8,12 @@ public class History
 public struct Changeset
 {
     public readonly string ActionName;
-    public Changeset(string actionName)
+    public readonly long Year;
+    public Changeset(string actionName, long year)
     {
         Changes = new List<Change>();
         ActionName = actionName;
+        Year = year;
         Description = null;
     }
     public readonly List<Change> Changes;

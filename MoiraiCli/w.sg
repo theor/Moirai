@@ -85,7 +85,7 @@ rule _parent_dies {
 
     }
 }
-@1 per 2 year
+@1 per 2 years
 rule wedding {
     pick $x: type = Person, alive = true, partner = null, age > Age.Child
     pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x
