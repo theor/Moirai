@@ -717,11 +717,11 @@ rule read {
         string s = @"
 entity Person {}
 entity Time {}
-prop years: number
+prop year: number
 
 rule init {
     create Time, 'time'
-    set years = 345
+    set year = 345
 }
 @4 per 1 years
 rule born {

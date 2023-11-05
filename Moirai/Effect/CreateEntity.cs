@@ -28,7 +28,7 @@ public class FormatAction : IInstruction
     }
 }
 
-class CreateEntity : IInstruction
+public class CreateEntity : IInstruction
 {
     public readonly int VariableIndex;
     public readonly EntityTypeId Type;
