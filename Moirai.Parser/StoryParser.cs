@@ -633,7 +633,7 @@ public static class StoryParser
             
 
             if (context.ID().Length > 1)
-                throw new Exception("expected two parts, got " + context.ID().Length);
+                throw new Exception("expected two parts, got " + (context.ID().Length + 1));
             
             var propertyId = PropertyId.Null;
             if (context.ID(0) != null)

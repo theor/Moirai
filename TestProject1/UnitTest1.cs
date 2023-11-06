@@ -513,6 +513,29 @@ rule char_dies {
         var db = Run(s, out var errors, 0);
        
     }
+    
+    [Test]
+    public void PropertyPath_Nested()
+    {
+        string s = @"
+entity Person {}
+prop x: number
+prop link: Ref
+
+rule create {
+    create $p: Person
+    create $p2: Person
+    set $p.link = $p2
+    set $p2.x = 33
+    assert_eq 33, $p.link.x
+}
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.PrintDb();
+    }
+
+    
     [Test]
     public void Enum_Set()
     {
