@@ -5,19 +5,12 @@ public class History
     public readonly List<Changeset> Changesets = new();
 }
 
-public struct Changeset
+public struct Changeset(string actionName, long year)
 {
-    public readonly string ActionName;
-    public readonly long Year;
-    public Changeset(string actionName, long year)
-    {
-        Changes = new List<Change>();
-        ActionName = actionName;
-        Year = year;
-        Description = null;
-    }
-    public readonly List<Change> Changes;
-    public string? Description;
+    public readonly string ActionName = actionName;
+    public readonly long Year = year;
+    public readonly List<Change> Changes = new();
+    public string? Description = null;
 }
 
 public struct Change

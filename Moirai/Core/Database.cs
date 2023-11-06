@@ -64,6 +64,7 @@ public readonly struct EnumDefinition
         return new PropertyValue { IntValue = i, Type = ValueType };
     }
 }
+
 public readonly struct EntityType
 {
     public readonly string Name;
@@ -74,11 +75,12 @@ public readonly struct EntityType
         Id = new EntityTypeId(id);
     }
 }
+
 public readonly struct EntityTypeId : IEquatable<EntityTypeId>
 {
     public readonly uint Id;
     public static readonly EntityTypeId Null = new EntityTypeId(0);
-    public EntityTypeId( uint id)
+    public EntityTypeId(uint id)
     {
         Id = id;
     }
@@ -90,43 +92,63 @@ public readonly struct EntityTypeId : IEquatable<EntityTypeId>
     public static bool operator ==(EntityTypeId left, EntityTypeId right) => left.Equals(right);
     public static bool operator !=(EntityTypeId left, EntityTypeId right) => !left.Equals(right);
 }
-public readonly struct PropertyDefinition {
-public readonly string Name;
-public readonly uint Id;
-public readonly PropertyValue.ValueType Type;
-public PropertyDefinition(string name, uint id, PropertyValue.ValueType type)
+
+public readonly struct PropertyDefinition
 {
-    Name = name;
-    Id = id;
-    Type = type;
+    public readonly string Name;
+    public readonly uint Id;
+    public readonly PropertyValue.ValueType Type;
+    public PropertyDefinition(string name, uint id, PropertyValue.ValueType type)
+    {
+        Name = name;
+        Id = id;
+        Type = type;
+    }
 }
-}
+
 public class Database
 {
     public static readonly PropertyId PropId = new PropertyId(1);
     public static readonly PropertyId PropType = new PropertyId(2);
     public static readonly PropertyId PropName = new PropertyId(3);
+    public static readonly PropertyId PropYear = new PropertyId(4);
+    private static readonly ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
+    private static long Year;
+    public readonly List<Action> Actions;
+    public readonly List<EnumDefinition> Enums = new() { default };
+    public readonly List<Action> Events;
+    public readonly StoryPrinter Printer;
+    public readonly List<PropertyDefinition> Properties = DefaultProperties();
+    public readonly List<EntityType> Types;
+    public readonly int BuiltinTypes;
+    private PredicateContext _ctx;
+    private List<Entity> _entities = new() { default };
+    public Changeset CurrentChangeset;
+
+    public History? History;
+    internal List<Rule> Rules = new();
+    public Database(ulong seed = 42)
+    {
+        Types = new List<EntityType> { default, new EntityType("Time", 1) };
+        BuiltinTypes = Types.Count;
+        _ctx = new PredicateContext(this, seed);
+        Actions = new();
+        Events = new();
+        Printer = new StoryPrinter(this);
+    }
+
+    public IEnumerable<Entity> Entities => _entities.Skip(1);
     public static List<PropertyDefinition> DefaultProperties()
     {
 
-        return new() { default!, new("id", 1, PropertyValue.TypeRef),
-            new("type", 2, PropertyValue.TypeEntityType),
-            new PropertyDefinition("name", 3, PropertyValue.TypeString), };
+        return new()
+        {
+            default!, new("id", PropId.Id, PropertyValue.TypeRef),
+            new("type", PropType.Id, PropertyValue.TypeEntityType),
+            new PropertyDefinition("name", PropName.Id, PropertyValue.TypeString),
+            new PropertyDefinition("year", PropYear.Id, PropertyValue.TypeString),
+        };
     }
-    public List<PropertyDefinition> Properties = DefaultProperties();
-    private List<Entity> _entities = new() { default };
-    internal List<Rule> Rules = new();
-    public List<Action> Actions = new();
-    public List<EntityType> Types = new(){default};
-    public List<EnumDefinition> Enums = new(){default};
-    public readonly List<Action> Events;
-
-    public History? History;
-    public Changeset CurrentChangeset;
-
-    private PredicateContext _ctx;
-  
-    public IEnumerable<Entity> Entities => _entities.Skip(1);
 
     // public int DeclareProperty(string name)
     // {
@@ -140,9 +162,9 @@ public class Database
 
         e.Properties = new();
         e.Properties.Add(new Property(PropType, entityType));
-        if(!String.IsNullOrEmpty(name))
+        if (!String.IsNullOrEmpty(name))
             e.Properties.Add(new Property(PropName, name));
-        e.Id = new EntityId((long)_entities.Count);
+        e.Id = new EntityId(_entities.Count);
         _entities.Add(e);
         CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
 
@@ -151,24 +173,9 @@ public class Database
     public void AddEntity(ref Entity e)
     {
         Debug.Assert(e.Id.IsNull);
-        e.Id = new EntityId((long)_entities.Count);
+        e.Id = new EntityId(_entities.Count);
         _entities.Add(e);
     }
-    // private bool CheckEntity(in Entity entity)
-    // {
-    //     bool res = true;
-    //     _ctx.EntityId = entity.Id;
-    //     foreach (var rule in Rules)
-    //     {
-    //         if (rule.If.IsTrue(_ctx))
-    //         {
-    //             var isTrue = rule.Then.IsTrue(_ctx);
-    //             res = res && isTrue;
-    //             // _logger.LogRule(isTrue, rule);
-    //         }
-    //     }
-    //     return true;
-    // }
     public bool TryGetEntity(EntityId entityId, out Entity entity)
     {
         if (!EntityExists(entityId))
@@ -182,32 +189,10 @@ public class Database
     public bool EntityExists(EntityId entityId)
     {
 
-        return entityId.Id != 0 && entityId.Id < (long)_entities.Count;
-    }
-
-
-    public struct EntityScope : IDisposable
-    {
-        public readonly Database Database;
-        public long EntityId;
-        public Entity Entity;
-        public EntityScope(Database database, long entityId, Entity entity)
-        {
-            Database = database;
-            EntityId = entityId;
-            Entity = entity;
-        }
-        public void Dispose()
-        {
-            Database._entities[(int)EntityId] = Entity;
-        }
+        return entityId.Id != 0 && entityId.Id < _entities.Count;
     }
 
     public EntityScope GetEntityScope(long entityId) => new EntityScope(this, entityId, _entities[(int)entityId]);
-    // public bool SetProperty(PropertyValue entityId, PropertyType property, PropertyValue value = default)
-    // {
-    //     return SetProperty(entityId.IntValue, property, value);
-    // }
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
         if (!TryGetEntity(entityId, out var entity))
@@ -233,22 +218,22 @@ public class Database
             var entityProperty = entity.Properties[index];
             if (entityProperty.Type == property)
             {
-                
+
                 var prev = entityProperty.Value;
                 entityProperty.Value = value;
                 entity.Properties[index] = entityProperty;
-                CurrentChangeset.Changes?.Add(Change.Set(entityId, property, prev, value));
+                CurrentChangeset.Changes.Add(Change.Set(entityId, property, prev, value));
                 return true;
             }
         }
-        CurrentChangeset.Changes?.Add(Change.Set(entityId, property, default, value));
+        CurrentChangeset.Changes.Add(Change.Set(entityId, property, default, value));
         entity.Properties.Add(new Property(property, value));
         return true;
     }
     public bool RunAction(string actionName)
     {
         Console.WriteLine($"[{actionName}]");
-        foreach (var a in this.Actions)
+        foreach (var a in Actions)
         {
             if (a.Name == actionName)
             {
@@ -269,20 +254,20 @@ public class Database
         {
             var e = action.Effects[index];
             if (e is AssignPick { VariableIndex: -1 })
-                throw new System.NotImplementedException("Arg index -1 on p " + index);
+                throw new NotImplementedException("Arg index -1 on p " + index);
 
             if (!e.Execute(_ctx))
             {
                 if (CurrentChangeset.Changes.Count != 0)
                 {
                     Console.Error.WriteLine("Action failed but left changes:");
-                    History?.Changesets?.Add(CurrentChangeset);
+                    History?.Changesets.Add(CurrentChangeset);
                 }
                 return false;
             }
         }
         HashSet<EntityId> changedEntities = new();
-        
+
         foreach (var change in CurrentChangeset.Changes)
         {
             changedEntities.Add(change.EntityId);
@@ -291,7 +276,7 @@ public class Database
             if (change.NewValue.Type == PropertyValue.TypeRef && !change.NewValue.Id.IsNull)
                 changedEntities.Add(change.NewValue.Id);
         }
-        History?.Changesets?.Add(CurrentChangeset);
+        History?.Changesets.Add(CurrentChangeset);
         RunEvents(changedEntities);
 
         return true;
@@ -311,12 +296,13 @@ public class Database
             _ctx.PushArgument(entity);
             foreach (var @event in Events)
             {
-                if(@event.Whens.All(p => p.Value.IsTrue(_ctx)))
+                if (@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                 {
                     CurrentChangeset = new(@event.Name, Year);
-                    
-                        if(!@event.Effects.All(e => e.Execute(_ctx)))
-                            continue;
+
+                    if (!@event.Effects.All(e => e.Execute(_ctx)))
+                        continue;
+
                     History?.Changesets?.Add(CurrentChangeset);
                 }
             }
@@ -340,15 +326,6 @@ public class Database
         var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(_ctx), true)).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
     }
-    private static ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
-    public StoryPrinter Printer;
-    public Database(ulong seed = 42)
-    {
-        _ctx = new PredicateContext(this, seed);
-        Actions = new();
-        Events = new();
-        Printer = new StoryPrinter(this);
-    }
     public void PrintDb()
     {
         // Console.WriteLine("[DB]");
@@ -357,18 +334,20 @@ public class Database
         foreach (var e in Entities)
         {
             any = true;
-            var type = GetEntityTypeName(e.GetProperty(Database.PropType).TypeId);
-            string name = e.TryGetProperty(Database.PropName, out var nameprop) ? (nameprop.Value ?? "") : "";
-            Console.ForegroundColor = Colors[e.GetProperty(Database.PropType).IntValue % Colors.Length];
+            var type = GetEntityTypeName(e.GetProperty(PropType).TypeId);
+            string name = e.TryGetProperty(PropName, out var nameprop) ? (nameprop.Value ?? "") : "";
+            Console.ForegroundColor = Colors[e.GetProperty(PropType).IntValue % Colors.Length];
             Console.WriteLine($"{e.Id} {type} {name}");
             Console.ResetColor();
             if (e.Properties != null)
                 foreach (var property in e.Properties)
                 {
-                    if (property.Type == Database.PropType || property.Type == PropName)
+                    if (property.Type == PropType || property.Type == PropName)
                         continue;
+
                     Console.Write($"  {Properties[(int)property.Type.Id].Name}: {printer.Print(property.Value)}");
-                    if(property.Value.Type == PropertyValue.TypeRef && TryGetEntity(property.Value.Id, out var other) && other.TryGetProperty(PropName, out var otherName))
+                    if (property.Value.Type == PropertyValue.TypeRef && TryGetEntity(property.Value.Id, out var other) &&
+                        other.TryGetProperty(PropName, out var otherName))
                         Console.Write(" " + otherName.Value);
                     Console.WriteLine();
                 }
@@ -395,7 +374,7 @@ public class Database
     {
         for (uint i = 1; i < Types.Count; i++)
         {
-            if(Types[(int)i].Name == typeName)
+            if (Types[(int)i].Name == typeName)
                 return Types[(int)i];
         }
         return default;
@@ -438,14 +417,13 @@ public class Database
             Printer.PrintChangeset(cs);
         }
     }
-    private static long Year;
     public void PassYears(int years)
     {
         var timeType = GetEntityType("Time");
         var timeId = _ctx.GetSingletonId(timeType.Id);
         var yearsProp = GetProperty("year");
-        if(!TryGetEntity(timeId, out var time))
-            throw new System.NotImplementedException("missing Time entity");
+        if (!TryGetEntity(timeId, out var time))
+            throw new NotImplementedException("missing Time entity");
 
         Year = time.GetProperty(yearsProp).IntValue;
         for (int i = 0; i < years; i++)
@@ -453,7 +431,7 @@ public class Database
             SetProperty(timeId, yearsProp, ++Year);
             foreach (var action in Actions)
             {
-                if(!action.Random.IsValid)
+                if (!action.Random.IsValid)
                     continue;
 
                 int count = action.Random.Sample(_ctx.Rnd);
@@ -464,5 +442,22 @@ public class Database
             }
         }
     }
-}
 
+
+    public struct EntityScope : IDisposable
+    {
+        public readonly Database Database;
+        public readonly long EntityId;
+        public Entity Entity;
+        public EntityScope(Database database, long entityId, Entity entity)
+        {
+            Database = database;
+            EntityId = entityId;
+            Entity = entity;
+        }
+        public void Dispose()
+        {
+            Database._entities[(int)EntityId] = Entity;
+        }
+    }
+}

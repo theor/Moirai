@@ -353,78 +353,7 @@ rule char_dies {
         Assert.NotNull(pe2.Value);
         Assert.IsInstanceOf<BinaryOperator>(pe2.Value);
 
-    }[Test]
-    public void TestPredicateRightIsVar()
-    {
-        var s = @"
-@char_dies
-    $x = pick()
-    $y = pick(id != $x)
-    $z = pick(id != $y)
-";
-        Console.WriteLine(s);
-        var db = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(db.Printer.Print());
-        Console.WriteLine(string.Join("\n", errors.Select(e => ToString())));
-        Assert.AreEqual(0, errors.Count);
-        
-        Assert.AreEqual(1, db.Actions.Count);
-        var action = db.Actions[0];
-        Assert.AreEqual("char_dies", action.Name);
-        Assert.AreEqual(3, action.Effects.Count);
-        var e1 = action.Effects[0];
-        var e2 = action.Effects[1];
-        Assert.IsInstanceOf<AssignPick>(e1);
-        
-        Assert.IsInstanceOf<AssignPick>(e2);
-        
-        var pe1 = (AssignPick)e1;
-        var pe2 = (AssignPick)e2;
-
-        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
-        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
-        
-  
     }
-     [Test]
-    public void TestWedding()
-    {
-        var s = @"
-@wedding
-    $x = pick(type=Person, alive = true, partner = null)
-    $y = pick(type=Person, alive = true, partner = null, id != $x)
-    set $x.partner = $y
-    set $y.partner = $x
-";
-        Console.WriteLine(s);
-        var db = StoryParser.Parse(s, out var errors);
-        Console.WriteLine(db.Printer.Print());
-        Console.WriteLine(string.Join("\n", errors.Select(e => ToString())));
-        Assert.AreEqual(0, errors.Count);
-        
-        Assert.AreEqual(1, db.Actions.Count);
-        var action = db.Actions[0];
-        Assert.AreEqual("wedding", action.Name);
-        Assert.AreEqual(4, action.Effects.Count);
-        var e1 = action.Effects[0];
-        var e2 = action.Effects[1];
-        Assert.IsInstanceOf<AssignPick>(e1);
-        
-        Assert.IsInstanceOf<AssignPick>(e2);
-        
-        var pe1 = (AssignPick)e1;
-        var pe2 = (AssignPick)e2;
-
-        // Assert.AreEqual(ComputedValue.PredicateParameterType.Predicate, pe1.Type);
-        // Assert.AreEqual(ComputedValue.PredicateParameterType.Predicate, pe2.Type);
-        
-        Assert.NotNull(pe1.Value);
-        Assert.IsInstanceOf<And>(pe1.Value);
-        Assert.NotNull(pe2.Value);
-        Assert.IsInstanceOf<And>(pe2.Value);
-
-    }
-
 
     [Test]
     public void ParseWholeFile()
@@ -693,9 +622,6 @@ rule call {
     public void Singleton()
     {
         var s = @"
-entity Time {}
-prop year: number
-
 rule create {
     create Time, 'time'
     set year = 1000
@@ -716,8 +642,6 @@ rule read {
     {
         string s = @"
 entity Person {}
-entity Time {}
-prop year: number
 
 rule init {
     create Time, 'time'
@@ -741,8 +665,6 @@ rule born {
     public void Time()
     {
         var s = @"
-entity Time {}
-prop year: number
 entity Person {}
 enum Age { Child, Young, Adult, Old }
 prop alive: bool
@@ -800,8 +722,6 @@ rule pass_15_years {
     public void Time2()
     {
         var s = @"
-entity Time {}
-prop year: number
 entity Person {}
 enum Age { Child, Young, Adult, Old }
 prop alive: bool

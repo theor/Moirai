@@ -1,10 +1,7 @@
-entity Time {}
 entity Person {}
 entity Item {}
 entity Faction {}
 entity Link {}
-
-prop year: number
 
 enum Job { Smith, Farmer, Painter, Sculptor }
 enum Age { Child, Young, Adult, Old }

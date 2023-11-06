@@ -216,12 +216,12 @@ internal class MoiraiDocument
     public void Apply(IEnumerable<TextDocumentContentChangeEvent> changes, int? textDocumentVersion)
     {
         Version = textDocumentVersion.GetValueOrDefault();
-        if(changes.Any(c => c.Range != null))
+        if(changes?.Any(c => c.Range != null) == true)
             throw new System.NotImplementedException("incremental changes not implemented yet");
         var change = changes.Last();
         _content = change.Text;
     }
-    public async Task Process(Microsoft.Extensions.Logging.ILogger logger)
+    public Task Process(Microsoft.Extensions.Logging.ILogger logger)
     {
         var visitor = new TokenVisitor( logger);
         StoryParser.SetupParser(Content, out var parser, visitor);
@@ -233,6 +233,7 @@ internal class MoiraiDocument
         var astVisitor = new StoryParser.AstVisitor(db);
         r.Accept(astVisitor);
         Errors.AddRange(astVisitor.Errors);
+        return Task.CompletedTask;
     }
 }
 

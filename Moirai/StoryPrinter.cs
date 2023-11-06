@@ -11,7 +11,7 @@ public class StoryPrinter
     public string Print()
     {
         StringBuilder sb = new();
-        foreach (EntityType type in _database.Types.Skip(1))
+        foreach (EntityType type in _database.Types.Skip(_database.BuiltinTypes))
         {
             sb.AppendLine($"entity {type.Name} {{ }}");
 
