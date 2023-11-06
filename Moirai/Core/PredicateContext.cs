@@ -92,15 +92,15 @@ public class PredicateContext
             PushArgument(entity.Id);
             // Database.Printer.PrintEntity(entity);
             var isTrue = predicate.IsTrue(this);
-            Console.ForegroundColor = isTrue ? ConsoleColor.DarkGreen : ConsoleColor.DarkRed;
+            // Console.ForegroundColor = isTrue ? ConsoleColor.DarkGreen : ConsoleColor.DarkRed;
             // Console.WriteLine($"  TEST #{entity.Id} {isTrue}");
-            Console.ResetColor();
+            // Console.ResetColor();
             if (isTrue)
             {
                 results.Add(entity.Id);
             }else{
             }
-            Console.ResetColor();
+            // Console.ResetColor();
             PopArgument();
         }
         

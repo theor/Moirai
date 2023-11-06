@@ -29,9 +29,7 @@ rule create_time {
 
 event inherit {
     when $p: type = Person, alive = false
-    record '## {$p} {$p.name} died, inheriting'
     each $i: type = Item, owner = $p {
-        record '##   {$i} {$i.name} item'
         pick $l: type = Link, $l.parent = $p
         set $i.owner = $l.child
         record '{$l.child} inherits the {$i.name} from {$p.name} - {$l}'

@@ -37,7 +37,15 @@
         if (property == Database.PropId)
             return Id;
         if (Properties != null)
-            return Properties.FirstOrDefault(p => p.Type == property).Value;
+        {
+            foreach (var p in Properties)
+            {
+                if (p.Type == property)
+                {
+                    return p.Value;
+                }
+            }
+        }
 
         return default;
     }

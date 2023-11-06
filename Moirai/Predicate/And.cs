@@ -15,6 +15,11 @@
     }
     public bool IsTrue(PredicateContext ctx)
     {
-        return Predicates.All(p => p.IsTrue(ctx));
+        foreach (var p in Predicates)
+        {
+            if (!p.IsTrue(ctx))
+                return false;
+        }
+        return true;
     }
 }
