@@ -1,12 +1,7 @@
 namespace TestProject1;
 
-public class Tests
+public class TestsBase
 {
-    [SetUp]
-    public void Setup()
-    {
-    }
-
     public static Database Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)
     {
         Console.WriteLine(s);
@@ -26,6 +21,81 @@ public class Tests
             Assert.AreEqual(printed, print2);
         }
         return db;
+    }
+    protected void AssertInstruction(System.Action a)
+    {
+        try
+        {
+            a();
+        }
+        catch (InvalidOperationException e)
+        {
+            Console.WriteLine(e.Message);
+            return;
+        }
+        Assert.Fail("Should have thrown");
+    }
+    protected void NoAssertInstruction(System.Action a)
+    {
+        a();
+    }
+}
+
+public class FilterTests : TestsBase
+{
+    
+   
+    [Test]
+    public void Filter_Start()
+    {
+        var s = @"
+entity Person {}
+prop alive: bool
+@start
+rule char_dies {
+    pick $p: type=Person, alive = true
+    set $p.alive = false
+}";
+
+        Run(s, out _);
+    }
+    
+   
+    [Test]
+    public void Filter_Every()
+    {
+        var s = @"
+entity Person {}
+prop alive: bool
+@1 every 1 year
+rule char_dies {
+    pick $p: type=Person, alive = true
+    set $p.alive = false
+}";
+
+        Run(s, out _);
+    }
+   
+    [Test]
+    public void Filter_Frequency()
+    {
+        var s = @"
+entity Person {}
+prop alive: bool
+@1 per 2 years
+rule char_dies {
+    pick $p: type=Person, alive = true
+    set $p.alive = false
+}";
+
+        Run(s, out _);
+    }
+}
+public class Tests : TestsBase
+{
+    [SetUp]
+    public void Setup()
+    {
     }
 
     [Test]
@@ -270,8 +340,9 @@ rule born {
 }
 
 rule die {
-    pick type=Person, alive = true
-    set alive = false
+    each $p: type=Person, alive = true {
+        set alive = false
+    }
 }
 
 event on_death {
@@ -283,9 +354,10 @@ event on_death {
         Assert.AreEqual(1, db.Events.Count);
 
         db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
         db.PrintDb();
-        Entity e = db.Entities.Single();
+        Entity e = db.Entities.First();
         PropertyId propTest = db.GetProperty("test");
         Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
     }
@@ -370,7 +442,6 @@ rule char_dies {
         Assert.AreEqual(0, errors2.Count, string.Join(", ", errors2));
  
     }
-    
     [Test]
     public void DuplicateVarNoError()
     {
@@ -769,23 +840,6 @@ rule pass_15_years {
         db.PrintHistory();
     }
 
-    void AssertInstruction(System.Action a)
-    {
-        try
-        {
-            a();
-        }
-        catch (InvalidOperationException e)
-        {
-            Console.WriteLine(e.Message);
-            return;
-        }
-        Assert.Fail("Should have thrown");
-    }
-    void NoAssertInstruction(System.Action a)
-    {
-        a();
-    }
     [Test]
     public void TestAssertFalse()
     {

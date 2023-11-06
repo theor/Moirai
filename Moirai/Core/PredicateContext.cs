@@ -82,14 +82,26 @@ public class PredicateContext
         {
             return false;
         }
-        var iterationIdx = Values.Count;
+        Console.ForegroundColor = ConsoleColor.Blue;
+        Console.WriteLine("FIND ALL " + Database.Printer.Print(predicate));
+        Console.ResetColor(); 
         foreach (var entity in Database.Entities)
         {
-            SetArgument(iterationIdx, entity.Id);
+            PushArgument(entity.Id);
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
+            // Console.WriteLine("  TEST #" + entity.Id);
+            Console.ResetColor();
+            // Database.Printer.PrintEntity(entity);
             if (predicate.IsTrue(this))
             {
+                Console.ForegroundColor = ConsoleColor.DarkGreen;
+                // Console.WriteLine("    TRUE");
                 results.Add(entity.Id);
+            }else{
+                Console.ForegroundColor = ConsoleColor.Red;
+                // Console.WriteLine("    false");
             }
+            Console.ResetColor();
             PopArgument();
         }
         
@@ -106,6 +118,7 @@ public class PredicateContext
     }
     public void SetArgument(int argumentIndex, PropertyValue value)
     {
+        // TODO 
         while (Values.Count <= argumentIndex + ValueOffset)
             Values.Add(default);
         Values[argumentIndex + ValueOffset] = value;
@@ -142,6 +155,7 @@ public class PredicateContext
         public void Dispose()
         {
             _predicateContext.ValueOffset = _valueOffset;
+            _predicateContext.Values.RemoveRange(_valuesCount, _predicateContext.Values.Count - _valuesCount);
             
         }
     }

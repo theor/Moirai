@@ -12,7 +12,7 @@ internal class Program
         Console.WriteLine(db.Printer.Print());
         foreach (Action a in db.Actions)
         {
-            if (a.IsStartAction)
+            if (a.Filter is FilterAtStart)
                 db.RunAction(a);
         }
         int prevAction = -1;
@@ -37,18 +37,21 @@ internal class Program
         Queue<string> replay = new(new string[]
         {
             // "create_time",
-            // "char_born",
-            // "char_born",
+            "char_born",
+            "t 20",
+            "char_born",
+            "t 20",
             // "pass_15_years",
             // "pass_15_years",
-            // "wedding",
+            "wedding",
+            "paint_item",
+            // "paint_item",
+            "paint_item",
             // "make_item",
             // "make_item",
-            // "make_item",
-            // "make_item",
-            // "make_item",
+            "couple_has_child",
             // "couple_has_child",
-            // "couple_has_child",
+            "t 40",
             // "couple_has_child",
             // "pass_15_years",
             // "pass_15_years",
@@ -94,7 +97,7 @@ internal class Program
                 // {
                 //     var action = db.Actions[index];
                 //     Console.WriteLine($"  {index:00} {action.Name}");
-                // }
+                // }                                          
             }
             line ??= "";
 
@@ -144,15 +147,15 @@ internal class Program
                 long year = -1;
                 foreach (var cs in db.History.Changesets)
                 {
-                    if (cs.Year != year)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Cyan;
-                        Console.WriteLine(cs.Year);
-                        Console.ResetColor();
-                        year = cs.Year;
-                    }
+                    // if (cs.Year != year && cs.Changes.Any())
+                    // {
+                    //     Console.ForegroundColor = ConsoleColor.Cyan;
+                    //     Console.WriteLine(cs.Year);
+                    //     Console.ResetColor();
+                    //     year = cs.Year;
+                    // }
                     if (!string.IsNullOrEmpty(cs.Description))
-                        Console.WriteLine(cs.Description);
+                        Console.WriteLine(cs.Year + ": " + cs.Description);
                 }
             }
             else if (line == "")
@@ -214,7 +217,7 @@ internal class Program
         do
         {
             a = db.Actions[(int)rnd.GenerateNext((uint)db.Actions.Count)];
-            if (a.IsStartAction)
+            if (a.Filter is FilterAtStart)
                 continue;
 
             Console.WriteLine("try " + a.Name);

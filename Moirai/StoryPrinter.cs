@@ -28,8 +28,8 @@ public class StoryPrinter
         }
         foreach (var action in _database.Actions.Concat(_database.Events))
         {
-            if (action.Random.IsValid)
-                sb.AppendLine($"@ {action.Random.ExpectedOccurences} per {action.Random.ExpectedInterval} years");
+            if (action.Filter != null)
+                sb.AppendLine(Print(action.Filter));
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
             foreach (var when in action.Whens)
             {
@@ -44,6 +44,21 @@ public class StoryPrinter
 
         }
         return sb.ToString();
+    }
+    private string Print(IFilter actionFilter)
+    {
+        switch (actionFilter)
+        {
+            case FilterAtStart:
+               return "@start";
+            case FilterExactlyXEveryYYears filterExactlyXEveryYYears:
+               return $"@ {filterExactlyXEveryYYears.Count} every {filterExactlyXEveryYYears.Years} years";
+            case FilterProbabilityXPerYears filterProbabilityXPerYears:
+                return $"@ {filterProbabilityXPerYears.Event.ExpectedOccurences} every {filterProbabilityXPerYears.Event.ExpectedInterval} years";
+            default:
+                throw new ArgumentOutOfRangeException(nameof(actionFilter));
+
+        }
     }
     private string Print(PropertyValue.ValueType propertyType)
     {
@@ -227,4 +242,26 @@ public class StoryPrinter
         if (oneLine)
             Console.WriteLine();
     }
+    public void PrintEntity(Entity e)
+    {
+
+        var type = _database.GetEntityTypeName(e.GetProperty(Database.PropType).TypeId);
+        string name = e.TryGetProperty(Database.PropName, out var nameprop) ? (nameprop.Value ?? "") : "";
+        Console.ForegroundColor = Colors[e.GetProperty(Database.PropType).IntValue % Colors.Length];
+        Console.WriteLine($"{e.Id} {type} {name}");
+        Console.ResetColor();
+        if (e.Properties != null)
+            foreach (var property in e.Properties)
+            {
+                if (property.Type == Database.PropType || property.Type == Database.PropName)
+                    continue;
+
+                Console.Write($"  {_database.Properties[(int)property.Type.Id].Name}: {Print(property.Value)}");
+                if (property.Value.Type == PropertyValue.TypeRef && _database.TryGetEntity(property.Value.Id, out var other) &&
+                    other.TryGetProperty(Database.PropName, out var otherName))
+                    Console.Write(" " + otherName.Value);
+                Console.WriteLine();
+            }
+    }
+    private static readonly ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
 }

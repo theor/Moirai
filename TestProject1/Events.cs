@@ -7,7 +7,7 @@ public class Events
 {
 
     [Test]
-    public void Proba(
+    public void Filter_Frequency(
         [ValueSource(nameof(MakePairs))](int eventsPer, int interval) p,
         [Values(32ul,48932ul,12348932ul,42ul,12542ul, 142ul)] ulong seed
         )
@@ -30,5 +30,4 @@ public class Events
         (1,5),
         (10,5),
     };
-   
 }

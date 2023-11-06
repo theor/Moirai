@@ -159,11 +159,13 @@ public struct CallRule : IInstruction
         // eg. if $0 $1 are used now, have called.$0 become $2
         // copy result in VariableIndex then pop extra values
         bool res;
+        PropertyValue ctxLastValue;
         using(var s = ctx.RunScope())
         {
             res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
+            ctxLastValue = ctx.LastValue;
         }
-        ctx.SetArgument(VariableIndex, ctx.LastValue);
+        ctx.SetArgument(VariableIndex, ctxLastValue);
         return res;
     }
 }
@@ -203,7 +205,13 @@ public struct AssignPick : IInstruction
                         foreach (var entityId in _pool)
                         {
                             ctx.SetArgument(VariableIndex, entityId);
-                            if(!ScopeEffects.All(e => e.Execute(ctx))) continue;
+                            foreach (var e in ScopeEffects)
+                            {
+                                if (!e.Execute(ctx))
+                                {
+                                    break;
+                                }
+                            }
                         }
                 }
                 return true;

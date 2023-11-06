@@ -1,32 +1,12 @@
 ﻿using Pcg.Core;
 
-public struct Action
+public struct Action(string name, bool isEvent,IFilter? filter)
 {
-    public readonly string Name;
-    public readonly bool IsEvent;
+    public readonly string Name = name;
+    public readonly bool IsEvent = isEvent;
 
-    public readonly List<IInstruction> Effects;
-    public readonly List<AssignPick> Whens;
+    public readonly List<IInstruction> Effects = new();
+    public readonly List<AssignPick> Whens = new();
 
-    public RandomEvent Random;
-
-    public readonly bool IsStartAction;
-    // public Action(string name, IPredicate? @if, IEffect then)
-    // {
-    //     Name = name;
-    //     Effects = new()
-    //     {
-    //         new PredicateParameter(@if),
-    //         then,
-    //     };
-    // }
-    public Action(string name, bool isEvent, RandomEvent random = default, bool isStartAction = false)
-    {
-        IsEvent = isEvent;
-        Name = name;
-        Effects = new();
-        Whens = new();
-        Random = random;
-        IsStartAction = isStartAction;
-    }
+    public IFilter? Filter = filter;
 }
