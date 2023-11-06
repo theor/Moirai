@@ -462,7 +462,8 @@ event inherit {
         record '##   {$i} {$i.name} item'
         pick $l: type = Link, $l.parent = $p
         set $i.owner = $l.child
-        record '{$l.child} inherits the {$i.name} from {$p.name} - {$l}'
+        var $c = $l.child
+        record '{$c.name} inherits the {$i.name} from {$p.name} - {$l}'
     }
 }
 
@@ -481,6 +482,8 @@ rule olds_dies {
         db.PassYears(1);
         // db.PrintDb();
         db.Printer.PrintChangeset(db.CurrentChangeset, false);
+        Console.WriteLine(db.CurrentChangeset.Description);
+        
     }
 
     [Test]
@@ -520,7 +523,7 @@ rule char_dies {
         string s = @"
 entity Person {}
 prop x: number
-prop link: Ref
+prop link: ref
 
 rule create {
     create $p: Person
@@ -528,6 +531,28 @@ rule create {
     set $p.link = $p2
     set $p2.x = 33
     assert_eq 33, $p.link.x
+}
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.PrintDb();
+    }
+    
+    [Test]
+    public void PropertyPath_Var()
+    {
+        string s = @"
+entity Person {}
+prop x: number
+prop link: ref
+
+rule create {
+    create $p: Person
+    create $p2: Person
+    set $p.link = $p2
+    set $p2.x = 33
+    var $tmp = $p.link
+    assert_eq 33, $tmp.x
 }
 ";
         var db = Run(s, out var errors);

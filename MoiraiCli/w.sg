@@ -32,7 +32,8 @@ event inherit {
     each $i: type = Item, owner = $p {
         pick $l: type = Link, $l.parent = $p
         set $i.owner = $l.child
-        record '{$l.child} inherits the {$i.name} from {$p.name} - {$l}'
+        var $c = $l.child
+        record '{$c.name} inherits the {$i.name} from {$p.name} - {$l}'
     }
 }
 
