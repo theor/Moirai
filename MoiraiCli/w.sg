@@ -38,7 +38,7 @@ event inherit {
     }
 }
 
-// @1 per 2 year
+@1 per 2 year
 rule char_born {
     var $fname = '{random name}'
     create $p: Person, '{$fname} {random name}'
@@ -67,7 +67,7 @@ rule children_grow {
 rule youngs_grow {
     each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year{
         set $p.age = Age.Adult
-       // record '{$p.name} grew up as a {$p.age}'
+       record '{$p.name} grew up as a {$p.age}'
     }
 }
 
@@ -96,7 +96,7 @@ rule _parent_dies {
 
     }
 }
-//  @1 per 2 years
+ @1 per 2 years
 rule wedding {
     pick $x: type = Person, alive = true, partner = null, age > Age.Child
     pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x
@@ -108,7 +108,7 @@ rule wedding {
     //set $j.owner = $y
     record '{$x.name} and {$y.name} get married'
 }
-//  @1 per 15 year
+ @1 per 15 year
 rule divorce {
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner != null, id != $x
@@ -116,14 +116,14 @@ rule divorce {
     set $y.partner = null
     record '{$x.name} and {$y.name} separate'
 } 
-// @1 per 15 year
-// rule murder {
-//     pick $x: type = Person, alive = true
-//     pick $y: type = Person, alive = true, id != $x
-//     set $y.alive = false
-//     record '{$x} {$x.name} murders {$y} {$y.name}'
-// } 
-// @4 per 1 year
+//@1 per 15 year
+//rule murder {
+//    pick $x: type = Person, alive = true
+//    pick $y: type = Person, alive = true, id != $x
+//    set $y.alive = false
+//    record '{$x} {$x.name} murders {$y} {$y.name}'
+//} 
+@4 per 1 year
 rule couple_has_child {
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner = $x, id != $x
@@ -142,7 +142,7 @@ rule couple_has_child {
     
     record '{$x} {$x.name} and {$y} {$y.name} have a child, {$c} {$c.name}, in the year {#Time.year}'
 }
-// @1 per 2 year
+@1 per 2 year
 rule make_item {
     pick $p: type=Person, alive = true, job=Job.Smith, age > Age.Child
     create $i: Item, '{random item} of {random name}'
@@ -150,7 +150,7 @@ rule make_item {
     set $i.owner = $p
     record '{$p} {$p.name} crafts the {$i} {$i.name}'
 }
-// @1 per 2 year
+@1 per 2 year
 rule paint_item {
     pick $p: type=Person, alive = true, job=Job.Painter, age > Age.Child
     pick $t: type=Person, alive = true, id != $p
@@ -159,7 +159,7 @@ rule paint_item {
     set $i.owner = $p
     record '{$p} {$p.name} paints the {$i} {$i.name}'
 }
-// @1 per 8 year
+@1 per 8 year
 rule item_lost {
     pick $i: type=Item, owner != null
     pick $p: id = owner, alive
@@ -167,21 +167,21 @@ rule item_lost {
     set $i.owner = null 
     record '{$prev.name} lost the {$i.name}'
 }
-// @1 per 20 year
+@1 per 20 year
 rule item_found {
     pick $p: type=Person, alive = true
     pick $i: type=Item, owner = null
     set $i.owner = $p
     record '{$p.name} obtains the {$i.name}'
 }
-// @1 per 10 year
+@1 per 10 year
 rule item_sold {
     pick $i: type=Item, owner != null
     pick $p: type=Person, id != $i.owner
     set $i.owner = $p
     record '{$p.name} acquires the {$i.name}'
 }
-// @1 per 20 year
+@1 per 20 year
 rule create_faction {
     pick $p: type=Person, alive, faction = null, age > Age.Child
     create $f: Faction, 'Faction of {random name}'
@@ -189,7 +189,7 @@ rule create_faction {
     set $p.faction = $f
     record '{$p.name} creates the {$f.name}'
 }
-// @1 per 2 year
+@1 per 2 year
 rule char_joins_faction {
 pick $p: type=Person, alive, faction = null, age > Age.Child
     pick $f: type=Faction

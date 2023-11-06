@@ -192,8 +192,10 @@ public struct AssignPick : IInstruction
 
             case CallType.Pick:
             {
+                // Console.WriteLine($"PICK {ctx.Database.Printer.Print(Value)}");
                 bool res = ctx.PickRandom(Value, out var val);
                 ctx.SetArgument(VariableIndex, val);
+                // Console.WriteLine($"ENDPICK {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                 return res;
             }
             case CallType.Each:
@@ -201,18 +203,29 @@ public struct AssignPick : IInstruction
                 _pool ??= new();
                 if (ScopeEffects != null)
                 {
+                    // Console.ForegroundColor = ConsoleColor.Blue;
+                    // Console.WriteLine($"FIND ALL {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
+                    // Console.ResetColor(); 
                     if(ctx.FindAll(Value, ref _pool))
-                        foreach (var entityId in _pool)
+                    {
+                        for (var index = 0; index < _pool.Count; index++)
                         {
+                            int valueCountIterationStart = ctx.ValueCount;
+                            var entityId = _pool[index];
                             ctx.SetArgument(VariableIndex, entityId);
+                            // Console.WriteLine($"{index + 1} / {_pool.Count} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                             foreach (var e in ScopeEffects)
                             {
+                                // Console.WriteLine("  Exec " + ctx.Database.Printer.PrintEffect(e));
                                 if (!e.Execute(ctx))
                                 {
                                     break;
                                 }
                             }
+                            while (ctx.ValueCount > valueCountIterationStart)
+                                ctx.PopArgument();
                         }
+                    }
                 }
                 return true;
             }

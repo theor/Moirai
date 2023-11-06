@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Pcg;
 using Pcg.Core;
 
@@ -46,7 +48,7 @@ public readonly struct EnumDefinition
     public readonly string Name;
     public readonly List<string> Values;
     public readonly ushort Index;
-    public PropertyValue.ValueType ValueType => PropertyValue.TypeEnum(Index);
+    public PropertyValue.ValueType ValueType => Index != 0 ? PropertyValue.TypeEnum(Index) : default;
     public EnumDefinition(ushort index, string name, List<string> values)
     {
         Name = name;
@@ -101,7 +103,7 @@ public readonly struct EntityTypeId : IEquatable<EntityTypeId>
     public static bool operator !=(EntityTypeId left, EntityTypeId right) => !left.Equals(right);
     public override string ToString()
     {
-        
+
         if (Database.Instance != null)
         {
             return $"t{Id}:{Database.Instance.Types[(int)Id].Name}";
@@ -144,6 +146,23 @@ public class Database
     public History? History;
     internal List<Rule> Rules = new();
     public static Database Instance;
+
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+    {
+        IncludeFields = true,
+        IgnoreReadOnlyProperties = true,
+
+        WriteIndented = true,
+        Converters =
+        {
+            new JsonStringEnumConverter(),
+            new EntityIdConverter(),
+            new PropertyIdConverter(),
+            new EntityTypeIdConverter(),
+            new ValueTypeConverter(),
+        }
+    };
+
     public Database(ulong seed = 42)
     {
         Types = new List<EntityType> { default, new EntityType("Time", 1) };
@@ -250,7 +269,7 @@ public class Database
     }
     public bool RunAction(string actionName)
     {
-        Console.WriteLine($"[{actionName}]");
+        // Console.WriteLine($"[{actionName}]");
         foreach (var a in Actions)
         {
             if (a.Name == actionName)
@@ -262,7 +281,7 @@ public class Database
     }
     public bool RunAction(Action action)
     {
-        Console.WriteLine($"[{action.Name}]");
+        // Console.WriteLine($"[{action.Name}]");
         CurrentChangeset = new Changeset(action.Name, Year);
         _ctx.ClearValueStack();
         // _ctx.Values.Clear();
@@ -276,7 +295,7 @@ public class Database
 
             if (!e.Execute(_ctx))
             {
-                Console.WriteLine($"  ABORT [{action.Name}]");
+                // Console.WriteLine($"  ABORT [{action.Name}]");
                 if (CurrentChangeset.Changes.Count != 0)
                 {
                     Console.Error.WriteLine("Action failed but left changes:");
@@ -295,7 +314,7 @@ public class Database
             if (change.NewValue.Type == PropertyValue.TypeRef && !change.NewValue.Id.IsNull)
                 changedEntities.Add(change.NewValue.Id);
         }
-        if(CurrentChangeset.Changes.Any())
+        if (CurrentChangeset.Changes.Any())
             History?.Changesets.Add(CurrentChangeset);
         RunEvents(changedEntities);
 
@@ -307,6 +326,17 @@ public class Database
         // }
         // return false;
     }
+    public string Serialize()
+    {
+        return JsonSerializer.Serialize(Entities, JsonSerializerOptions);
+    }
+    public void Deserialize(string json)
+    {
+        List<Entity> entities = JsonSerializer.Deserialize<List<Entity>>(json, JsonSerializerOptions);
+
+        _entities = new() { default };
+        _entities.AddRange(entities);
+    }
     private void RunEvents(HashSet<EntityId> changedEntities)
     {
         foreach (var entity in changedEntities)
@@ -314,27 +344,31 @@ public class Database
             // while (_ctx.PopArgument() > 0){}
             // TODO BUG
 
-
+            // Console.ForegroundColor = ConsoleColor.Yellow;
+            // Console.WriteLine("Event entity: " + entity);
+            // Console.ResetColor();
             foreach (var @event in Events)
             {
 
                 using (var s = _ctx.RunScope())
                 {
-                    _ctx.PushArgument(entity);
+                    _ctx.SetArgument(0, entity);
                     if (@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                     {
                         Console.WriteLine("  @ " + @event.Name);
                         CurrentChangeset = new(@event.Name, Year);
-
-                        foreach (var e in @event.Effects)
+                        // using (var s2 = _ctx.RunScope())
                         {
-                            if (!e.Execute(_ctx))
+                            foreach (var e in @event.Effects)
                             {
-                                // continue;
-                                break;
+                                if (!e.Execute(_ctx))
+                                {
+                                    // continue;
+                                    break;
+                                }
                             }
                         }
-                        if(CurrentChangeset.Changes.Any())
+                        if (CurrentChangeset.Changes.Any())
                             History?.Changesets?.Add(CurrentChangeset);
                     }
                 }
@@ -437,6 +471,7 @@ public class Database
     }
     public void PassYears(int years)
     {
+        CurrentChangeset = new Changeset("time", Int64.MaxValue);
         var timeType = GetEntityType("Time");
         var timeId = _ctx.GetSingletonId(timeType.Id);
         var yearsProp = GetProperty("year");
@@ -478,5 +513,68 @@ public class Database
         {
             Database._entities[(int)EntityId] = Entity;
         }
+    }
+}
+
+internal class EntityIdConverter : JsonConverter<EntityId>
+{
+    public override EntityId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return new EntityId(reader.GetInt64());
+    }
+    public override void Write(Utf8JsonWriter writer, EntityId value, JsonSerializerOptions options)
+    {
+        writer.WriteNumberValue(value.Id);
+    }
+}
+internal class PropertyIdConverter : JsonConverter<PropertyId>
+{
+    public override PropertyId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return new PropertyId(reader.GetUInt32());
+    }
+    public override void Write(Utf8JsonWriter writer, PropertyId value, JsonSerializerOptions options)
+    {
+        writer.WriteNumberValue(value.Id);
+    }
+}
+
+internal class ValueTypeConverter : JsonConverter<PropertyValue.ValueType>
+{
+    // private JsonStringEnumConverter _e = new();
+    public override PropertyValue.ValueType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if(reader.TokenType != JsonTokenType.StartArray)
+            throw new System.NotImplementedException("no start array");
+
+        reader.Read();
+        PropertyValue.ValueBaseType baseType = JsonSerializer.Deserialize<PropertyValue.ValueBaseType>(ref reader, options);
+        reader.Read();
+        var index = reader.GetUInt16();
+        reader.Read();
+        if(reader.TokenType != JsonTokenType.EndArray)
+            throw new System.NotImplementedException("no end array");
+
+        return new PropertyValue.ValueType(baseType, index);
+    }
+    public override void Write(Utf8JsonWriter writer, PropertyValue.ValueType value, JsonSerializerOptions options)
+    {
+        writer.WriteStartArray();
+        JsonSerializer.Serialize(writer, value.BaseType);
+        JsonSerializer.Serialize(writer, value.Index);
+
+        writer.WriteEndArray();
+    }
+}
+
+internal class EntityTypeIdConverter : JsonConverter<EntityTypeId>
+{
+    public override EntityTypeId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        return new EntityTypeId(reader.GetUInt32());
+    }
+    public override void Write(Utf8JsonWriter writer, EntityTypeId value, JsonSerializerOptions options)
+    {
+        writer.WriteNumberValue(value.Id);
     }
 }

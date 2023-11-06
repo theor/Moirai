@@ -36,30 +36,20 @@ internal class Program
 
         Queue<string> replay = new(new string[]
         {
-            // "create_time",
-            "char_born",
-            "t 20",
-            "char_born",
-            "t 20",
-            // "pass_15_years",
-            // "pass_15_years",
-            "wedding",
-            "paint_item",
+            // "char_born",
+            // "t 20",
+            // "char_born",
+            // "t 20",
+            // "wedding",
             // "paint_item",
-            "paint_item",
-            // "make_item",
-            // "make_item",
-            "couple_has_child",
+            // "paint_item",
             // "couple_has_child",
-            "t 40",
-            // "couple_has_child",
-            // "pass_15_years",
-            // "pass_15_years",
-            // "pass_15_years",
-            // "pass_15_years",
-            // "parent_dies",
-            // "p",
-            // "f",
+            // "roundtrip",
+            // "t 40",
+            
+            
+            // "deserialize",
+            // "t 1",
 
         });
 
@@ -104,6 +94,21 @@ internal class Program
             if (line == "qq")
                 break;
 
+            if (line == "deserialize")
+                db.Deserialize(File.ReadAllText("db.json"));
+
+            if (line == "serialize")
+                File.WriteAllText("db.json",db.Serialize());
+            if (line == "roundtrip")
+            {
+                var json1 = db.Serialize();
+                File.WriteAllText("db.json",json1);
+                db.Deserialize(json1);
+                var json2 = db.Serialize();
+                File.WriteAllText("db2.json",json2);
+if(json1 != json2)
+    throw new System.NotImplementedException("Diff");
+            }
             if (line == "t")
                 db.PassYears(1);
             else if (line.StartsWith("t "))

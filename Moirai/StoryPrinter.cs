@@ -78,6 +78,12 @@ public class StoryPrinter
                 throw new ArgumentOutOfRangeException();
         }
     }
+    public string PrintEffect(IInstruction instruction)
+    {
+        StringBuilder sb = new();
+        PrintEffect(instruction, sb, 0);
+        return sb.ToString();
+    }
     private void PrintEffect(IInstruction instruction, StringBuilder sb, int indent)
     {
         string indentStr = new string(' ', indent * 4);

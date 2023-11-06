@@ -3,7 +3,7 @@
 public class PredicateContext
 {
     public readonly Database Database;
-    private List<PropertyValue> Values = new();
+    private List<PropertyValue> _values = new();
     public Pcg32 Rnd;
 
     public PredicateContext(Database database, ulong seed)
@@ -11,9 +11,10 @@ public class PredicateContext
         Database = database;
         Rnd = new Pcg32(seed, 42);
     }
-    public long EntityId => Values[^1].IntValue;
+    public long EntityId => _values[^1].IntValue;
     public int ValueOffset { get; set; }
-    public PropertyValue LastValue => Values.Last();
+    public int ValueCount => _values.Count;
+    public PropertyValue LastValue => _values.Last();
 
     public EntityId GetSingletonId(EntityTypeId type)
     {
@@ -47,7 +48,7 @@ public class PredicateContext
             value = default;
             return true;
         }
-        var iterationIdx = Values.Count;
+        var iterationIdx = _values.Count;
         foreach (var entity in Database.Entities)
         {
             SetArgument(iterationIdx, entity.Id);
@@ -66,6 +67,9 @@ public class PredicateContext
 
     public bool PickRandom(IValue value, out EntityId id)
     {
+        // Console.ForegroundColor = ConsoleColor.Blue;
+        // Console.WriteLine($"PICK {Database.Printer.Print(value)}  VAL COUNT {ValueCount} OFFSET {ValueOffset}");
+        // Console.ResetColor(); 
         FindAll(value, ref _pool);
         if (_pool.Count == 0)
         {
@@ -82,24 +86,19 @@ public class PredicateContext
         {
             return false;
         }
-        Console.ForegroundColor = ConsoleColor.Blue;
-        Console.WriteLine("FIND ALL " + Database.Printer.Print(predicate));
-        Console.ResetColor(); 
+
         foreach (var entity in Database.Entities)
         {
             PushArgument(entity.Id);
-            Console.ForegroundColor = ConsoleColor.DarkGreen;
-            // Console.WriteLine("  TEST #" + entity.Id);
-            Console.ResetColor();
             // Database.Printer.PrintEntity(entity);
-            if (predicate.IsTrue(this))
+            var isTrue = predicate.IsTrue(this);
+            Console.ForegroundColor = isTrue ? ConsoleColor.DarkGreen : ConsoleColor.DarkRed;
+            // Console.WriteLine($"  TEST #{entity.Id} {isTrue}");
+            Console.ResetColor();
+            if (isTrue)
             {
-                Console.ForegroundColor = ConsoleColor.DarkGreen;
-                // Console.WriteLine("    TRUE");
                 results.Add(entity.Id);
             }else{
-                Console.ForegroundColor = ConsoleColor.Red;
-                // Console.WriteLine("    false");
             }
             Console.ResetColor();
             PopArgument();
@@ -109,24 +108,24 @@ public class PredicateContext
     }
     public int PopArgument()
     {
-        Values.RemoveAt(Values.Count - 1);
-        return Values.Count - ValueOffset;
+        _values.RemoveAt(_values.Count - 1);
+        return _values.Count - ValueOffset;
     }
     public PropertyValue Argument(int idx)
     {
-        return Values[idx + ValueOffset];
+        return _values[idx + ValueOffset];
     }
     public void SetArgument(int argumentIndex, PropertyValue value)
     {
         // TODO 
-        while (Values.Count <= argumentIndex + ValueOffset)
-            Values.Add(default);
-        Values[argumentIndex + ValueOffset] = value;
+        while (_values.Count <= argumentIndex + ValueOffset)
+            _values.Add(default);
+        _values[argumentIndex + ValueOffset] = value;
     }
     public int PushArgument(EntityId entity)
     {
-        int count = Values.Count;
-        Values.Add(entity);
+        int count = _values.Count;
+        _values.Add(entity);
         return count;
     }
     
@@ -137,7 +136,7 @@ public class PredicateContext
     }
     public void ClearValueStack()
     {
-       Values.RemoveRange(ValueOffset, Values.Count - ValueOffset);
+       _values.RemoveRange(ValueOffset, _values.Count - ValueOffset);
     }
     public struct Scope : IDisposable
     {
@@ -155,13 +154,13 @@ public class PredicateContext
         public void Dispose()
         {
             _predicateContext.ValueOffset = _valueOffset;
-            _predicateContext.Values.RemoveRange(_valuesCount, _predicateContext.Values.Count - _valuesCount);
+            _predicateContext._values.RemoveRange(_valuesCount, _predicateContext._values.Count - _valuesCount);
             
         }
     }
 
     public Scope RunScope()
     {
-        return new Scope(this, Values.Count, ValueOffset);
+        return new Scope(this, _values.Count, ValueOffset);
     }
 }

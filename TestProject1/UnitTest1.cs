@@ -428,6 +428,62 @@ rule char_dies {
     }
 
     [Test]
+    public void Bug_Inherit()
+    {
+        string json = "[{\"Id\":1,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"time\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":4,\"Value\":{\"Value\":null,\"IntValue\":844,\"Type\":[3,0]}}]},{\"Id\":2,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Lowenna Tarian\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Lowenna\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":764,\"Type\":[3,0]}},{\"Type\":11,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[5,1]}},{\"Type\":9,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[2,0]}}]},{\"Id\":3,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Aeron\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":784,\"Type\":[3,0]}},{\"Type\":11,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[5,1]}},{\"Type\":9,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":4,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"ring of Lowenna Tarian\",\"IntValue\":-2147483648,\"Type\":[1,0]}}]},{\"Id\":5,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Portrait of Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":12,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,3]}},{\"Type\":15,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":6,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Portrait of Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":12,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,3]}},{\"Type\":15,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":7,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Auberon Lowennason\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Auberon\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":0,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":804,\"Type\":[3,0]}}]},{\"Id\":8,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":5,\"Type\":[6,0]}},{\"Type\":13,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}},{\"Type\":14,\"Value\":{\"Value\":null,\"IntValue\":7,\"Type\":[2,0]}}]},{\"Id\":9,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":5,\"Type\":[6,0]}},{\"Type\":13,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[2,0]}},{\"Type\":14,\"Value\":{\"Value\":null,\"IntValue\":7,\"Type\":[2,0]}}]}]";
+        string script = @"
+entity Person {}
+entity Item {}
+entity Faction {}
+entity Link {}
+
+enum Job { Smith, Farmer, Painter, Sculptor }
+enum Age { Child, Young, Adult, Old }
+enum ItemType { Forged, Painted, Sculpted }
+
+prop age: Age
+prop first_name: string
+prop alive: bool
+prop birthdate: number
+prop partner: ref
+prop faction: ref
+prop job: Job
+prop item_type: ItemType
+
+prop parent: ref
+prop child: ref
+
+prop owner: ref
+
+event inherit {
+    when $p: type = Person, alive = false
+    record '## {$p} {$p.name} died, inheriting'
+    each $i: type = Item, owner = $p {
+        record '##   {$i} {$i.name} item'
+        pick $l: type = Link, $l.parent = $p
+        set $i.owner = $l.child
+        record '{$l.child} inherits the {$i.name} from {$p.name} - {$l}'
+    }
+}
+
+@1 every 1 year
+rule olds_dies {
+    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
+        set $p.alive = false
+        record '{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}'
+    }
+}
+";
+
+        var db = StoryParser.Parse(script, out var error);
+        db.Deserialize(json);
+        // db.PrintDb();
+        db.PassYears(1);
+        // db.PrintDb();
+        db.Printer.PrintChangeset(db.CurrentChangeset, false);
+    }
+
+    [Test]
     public void ParseWholeFile()
     {
         var path = Path.GetFullPath("../../../../MoiraiCli/w.sg");
