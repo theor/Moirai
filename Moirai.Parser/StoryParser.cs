@@ -186,18 +186,35 @@ public static class StoryParser
         {
             
             string actionId = context.ID().GetText();
-            bool isStartAction = context.AT() != null;
+            // bool isStartAction = context.AT() != null;
             //Console.WriteLine("@ " + actionId);
             _variables.Clear();
-            RandomEvent random = default;
-            if (context.proba() != null)
+            IFilter? f = null;
+            if (context.filter() != null)
             {
-                var p = context.proba();
-                var o = int.Parse(p.occurence.Text);
-                var y = int.Parse(p.years.Text);
-                random.Set(o, y);
+                var p = context.filter();
+                switch (p.ID(0).GetText())
+                {
+                    case "start":
+                        f = new FilterAtStart();
+                        break;
+                    case "every":
+                    {
+                        var x = int.Parse(p.occurence.Text);
+                        var y = int.Parse(p.years.Text);
+                        f = new FilterExactlyXEveryYYears(x, y);
+                        break;
+                    }
+                    case "per":
+                    {
+                        var x = int.Parse(p.occurence.Text);
+                        var y = int.Parse(p.years.Text);
+                        f = new FilterProbabilityXPerYears(x, y);
+                        break;
+                    }
+                }
             }
-            var action = new Action(actionId, false, random, isStartAction);
+            var action = new Action(actionId, false, f);
             foreach (Moirai.EffectContext effectContext in context.effect())
             {
                 var effect = ParseEffect(effectContext);
@@ -215,7 +232,7 @@ public static class StoryParser
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
-            var action = new Action(actionId, true);
+            var action = new Action(actionId, true, null);
             _variables.Clear();
             foreach (var whenContext in context.when())
             {

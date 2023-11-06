@@ -5,8 +5,8 @@ options {
 }
 r: (COMMENT | LINE_BREAK)* (action|event|prop_definition|enum_definition|type_definition)+ EOF;
 
-proba:AT occurence=NUMBER ID years=NUMBER ID LINE_BREAK?;
-action: proba? RULE AT? ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
+filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
+action: filter? RULE  ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
 event: EVENT ID SCOPE_OPEN LINE_BREAK when+ effect+ SCOPE_CLOSE LINE_BREAK*;
 when: WHEN (VAR_ID COLON)? expr (COMMA expr)* SPACE* LINE_BREAK+;
 effect: (set | var | call_assign) SPACE* LINE_BREAK+;

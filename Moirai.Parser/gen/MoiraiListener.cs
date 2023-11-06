@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/StoryGen/MoiraiCli/Moirai.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/StoryGen/Moirai.Parser/Moirai.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -41,15 +41,15 @@ public interface IMoiraiListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitR([NotNull] Moirai.RContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="Moirai.proba"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.filter"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterProba([NotNull] Moirai.ProbaContext context);
+	void EnterFilter([NotNull] Moirai.FilterContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="Moirai.proba"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.filter"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitProba([NotNull] Moirai.ProbaContext context);
+	void ExitFilter([NotNull] Moirai.FilterContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.action"/>.
 	/// </summary>

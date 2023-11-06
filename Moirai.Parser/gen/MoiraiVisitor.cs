@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/StoryGen/MoiraiCli/Moirai.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/StoryGen/Moirai.Parser/Moirai.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -38,11 +38,11 @@ public interface IMoiraiVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitR([NotNull] Moirai.RContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.proba"/>.
+	/// Visit a parse tree produced by <see cref="Moirai.filter"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitProba([NotNull] Moirai.ProbaContext context);
+	Result VisitFilter([NotNull] Moirai.FilterContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="Moirai.action"/>.
 	/// </summary>

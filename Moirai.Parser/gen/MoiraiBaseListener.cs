@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/StoryGen/MoiraiCli/Moirai.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/StoryGen/Moirai.Parser/Moirai.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -48,17 +48,17 @@ public partial class MoiraiBaseListener : IMoiraiListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitR([NotNull] Moirai.RContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="Moirai.proba"/>.
+	/// Enter a parse tree produced by <see cref="Moirai.filter"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterProba([NotNull] Moirai.ProbaContext context) { }
+	public virtual void EnterFilter([NotNull] Moirai.FilterContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="Moirai.proba"/>.
+	/// Exit a parse tree produced by <see cref="Moirai.filter"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitProba([NotNull] Moirai.ProbaContext context) { }
+	public virtual void ExitFilter([NotNull] Moirai.FilterContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="Moirai.action"/>.
 	/// <para>The default implementation does nothing.</para>
