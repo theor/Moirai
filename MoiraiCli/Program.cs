@@ -1,10 +1,25 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using Moirai;
+using Terminal.Gui;
+
 internal class Program
 {
     public static async Task Main(string[] args)
     {
+            var t = new Thread(() =>
+            {
+                string content = File.ReadAllText(@"C:\Users\theor\StoryGen\MoiraiCli\w.sg");
+                var db = StoryParser.Parse(content, out var errors);
+                db.Init();
+                Application.MainLoop.Invoke(() => (Application.Top as MainWindow).LoadDatabase(db));
+            });
+            t.Start();
+            Application.Run<MainWindow> ();
+            Application.Shutdown ();
+        }
+        static async void F(){
+        
         string line;
         string path = "w.sg";
         ulong seed = 44;
@@ -109,13 +124,13 @@ if(json1 != json2)
     throw new System.NotImplementedException("Diff");
             }
             if (line == "t")
-                db.Ctx.PassYears(1, db);
+                db.Ctx.PassYears(1);
             else if (line.StartsWith("t "))
             {
                 if (int.TryParse(line.Substring("t ".Length), out var years))
                 {
                     Stopwatch sw = Stopwatch.StartNew();
-                    db.Ctx.PassYears(years, db);
+                    db.Ctx.PassYears(years);
                     Console.WriteLine($"Time: {(sw.ElapsedMilliseconds / 1000f)}s");
                 }
             }
@@ -179,7 +194,7 @@ if(json1 != json2)
             }
             else if (line == "")
             {
-                db.Ctx.PassYears(1, db);
+                db.Ctx.PassYears(1);
                 // if (prevAction == -1)
                 //     RunRandomAction(db, rnd);
                 // else
@@ -230,11 +245,7 @@ if(json1 != json2)
         db.SetSeed(seed);
         db.History = new();
         
-        foreach (Action a in db.Actions)
-        {
-            if (a.Filter is FilterAtStart)
-                db.RunAction(a);
-        }
+        db.Init();
         return db;
     }
     private static void RunRandomAction(Database db, Pcg32 rnd)

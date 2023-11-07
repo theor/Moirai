@@ -36,12 +36,6 @@ public class Database
         get { return _ctx; }
     }
 
-    public PredicateContext Ctx1
-    {
-        set { _ctx = value; }
-        get { return _ctx; }
-    }
-
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         IncludeFields = true,
@@ -299,6 +293,15 @@ public class Database
 
         _entities = new() { default };
         _entities.AddRange(entities);
+    }
+    public void Init()
+    {
+
+        foreach (Action a in Actions)
+        {
+            if (a.Filter is FilterAtStart)
+                RunAction(a);
+        }
     }
 }
 

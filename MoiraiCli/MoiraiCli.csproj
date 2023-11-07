@@ -13,4 +13,8 @@
       <ProjectReference Include="..\Moirai\Moirai.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Terminal.Gui" Version="1.14.1" />
+    </ItemGroup>
+
 </Project>

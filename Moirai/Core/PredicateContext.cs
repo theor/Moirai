@@ -3,7 +3,7 @@ using Moirai.Core;
 
 public class PredicateContext
 {
-    internal long _year;
+    public long _year;
 
     public readonly Database Database;
     public Pcg32 Rnd;
@@ -148,29 +148,29 @@ public class PredicateContext
         }
     }
 
-    public void PassYears(int years, Database database)
+    public void PassYears(int years)
     {
-        database.CurrentChangeset = new Changeset("time", Int64.MaxValue);
-        var timeType = database.GetEntityType("Time");
+        Database.CurrentChangeset = new Changeset("time", Int64.MaxValue);
+        var timeType = Database.GetEntityType("Time");
         var timeId = this.GetSingletonId(timeType.Id);
-        var yearsProp = database.GetProperty("year");
-        if (!database.TryGetEntity(timeId, out var time))
+        var yearsProp = Database.GetProperty("year");
+        if (!Database.TryGetEntity(timeId, out var time))
             throw new NotImplementedException("missing Time entity");
 
         _year = time.GetProperty(yearsProp).IntValue;
         for (int i = 0; i < years; i++)
         {
             Console.WriteLine("\tTIME " + _year);
-            database.SetProperty(timeId, yearsProp, ++_year);
-            foreach (var action in database.Actions)
+            Database.SetProperty(timeId, yearsProp, ++_year);
+            foreach (var action in Database.Actions)
             {
                 if (action.Filter == null)
                     continue;
 
-                int count = (int)action.Filter.Compute(database.Ctx).IntValue;
+                int count = (int)action.Filter.Compute(Database.Ctx).IntValue;
                 for (int j = 0; j < count; j++)
                 {
-                    database.RunAction(action);
+                    Database.RunAction(action);
                 }
             }
         }

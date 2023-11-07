@@ -293,7 +293,7 @@ public class StoryPrinter
     public string Format(InterpolatedString formatAction, Database database)
     {
         var printer = new StoryPrinter(database);
-        var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(database.Ctx1), true)).Cast<object?>().ToArray();
+        var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(database.Ctx), true)).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
     }
 }
