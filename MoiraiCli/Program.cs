@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using Moirai;
+using Moirai.Core;
 using Terminal.Gui;
 
 internal class Program
@@ -11,7 +12,10 @@ internal class Program
             {
                 string content = File.ReadAllText(@"C:\Users\theor\StoryGen\MoiraiCli\w.sg");
                 var db = StoryParser.Parse(content, out var errors);
+                db.History = new(History.HistoryMode.FormatEntityIds);
+
                 db.Init();
+                db.Ctx.PassYears(100);
                 Application.MainLoop.Invoke(() => (Application.Top as MainWindow).LoadDatabase(db));
             });
             t.Start();

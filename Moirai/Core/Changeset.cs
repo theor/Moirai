@@ -2,7 +2,22 @@
 
 public class History
 {
+    public readonly HistoryMode Mode;
     public readonly List<Changeset> Changesets = new();
+
+    public History(HistoryMode mode = HistoryMode.Default)
+    {
+        Mode = mode;
+    }
+
+    [Flags]
+    public enum HistoryMode
+    {
+        Default = 0,
+
+        Story = 1,
+        FormatEntityIds = 2
+    }
 }
 
 public struct Changeset(string actionName, long year)

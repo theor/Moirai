@@ -151,7 +151,7 @@ public class StoryPrinter
         return path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
     }
 
-    public string Print(PropertyValue value, bool storyMode = false)
+    public string Print(PropertyValue value, History.HistoryMode storyMode = History.HistoryMode.Default)
     {
         var s = value.Value;
         if (s != null)
@@ -162,7 +162,7 @@ public class StoryPrinter
         {
             case PropertyValue.ValueBaseType.Enum:
                 var e = _database.Enums[value.Type.Index];
-                return storyMode ? e.Values[(int)value.IntValue] : $"{e.Name}.{e.Values[(int)value.IntValue]}";
+                return (storyMode & History.HistoryMode.Story) != 0 ? e.Values[(int)value.IntValue] : $"{e.Name}.{e.Values[(int)value.IntValue]}";
             case PropertyValue.ValueBaseType.None:
                 return "null";
             case PropertyValue.ValueBaseType.String:
@@ -170,7 +170,8 @@ public class StoryPrinter
             case PropertyValue.ValueBaseType.Ref:
                 if (value.IntValue == 0)
                     return "null";
-
+                if ((storyMode & History.HistoryMode.FormatEntityIds) != 0)
+                    return $"%id{value.Id.Id}%";
                 return "#" + value.IntValue;
             case PropertyValue.ValueBaseType.Number:
                 return value.IntValue.ToString();
@@ -292,8 +293,10 @@ public class StoryPrinter
     }
     public string Format(InterpolatedString formatAction, Database database)
     {
-        var printer = new StoryPrinter(database);
-        var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(database.Ctx), true)).Cast<object?>().ToArray();
+        var propertyValues = formatAction.Arguments.Select(path =>
+        {
+            return Print(path.Compute(database.Ctx), (database.History?.Mode ?? History.HistoryMode.Default) | History.HistoryMode.Story);
+        }).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
     }
 }

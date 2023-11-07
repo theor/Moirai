@@ -1,4 +1,5 @@
-﻿using Terminal.Gui;
+﻿using Moirai.Core;
+using Terminal.Gui;
 
 namespace Moirai;
 
@@ -13,18 +14,18 @@ public class MainWindow : Toplevel
     public MainWindow()
     {
         ColorScheme = Colors.TopLevel;
-        AddCommand(Command.PageLeft, () =>
-        {
-            GoBack();
-            return true;
-        });
-        AddKeyBinding(Key.AltMask | Key.CursorLeft, Command.PageLeft);
-        AddCommand(Command.PageRight, () =>
-        {
-            GoForward();
-            return true;
-        });
-        AddKeyBinding(Key.AltMask | Key.CursorRight, Command.PageRight);
+        // AddCommand(Command.PageLeft, () =>
+        // {
+        //     GoBack();
+        //     return true;
+        // });
+        // AddKeyBinding(Key.AltMask | Key.CursorLeft, Command.PageLeft);
+        // AddCommand(Command.PageRight, () =>
+        // {
+        //     GoForward();
+        //     return true;
+        // });
+        // AddKeyBinding(Key.AltMask | Key.CursorRight, Command.PageRight);
         LeftPane = new View()
         {
             X = 0,
@@ -36,25 +37,35 @@ public class MainWindow : Toplevel
         {
             Height = Dim.Fill(),
             Width = Dim.Fill(),
-            Shortcut = Key.CtrlMask | Key.A,
+            // Shortcut = Key.CtrlMask | Key.D1,
             CanFocus = true,
-            ShortcutAction = () => ActionList.SetFocus(),
+            // ShortcutAction = () => ActionList.SetFocus(),
+            Visible = false,
         };
         ActionList.Title = $"{ActionList.Title} ({ActionList.ShortcutTag})";
-        RightPane = new EntityList(this)
+        EntityList = new EntityList(this)
         {
             X = Pos.Right(LeftPane),
             Y = 1,
             Height = Dim.Fill(1),
             Width = Dim.Fill(),
             CanFocus = true,
-            Shortcut = Key.CtrlMask | Key.D,
-            ShortcutAction = () => RightPane.SetFocus(),
+            Visible = false,
+
+            // Shortcut = Key.CtrlMask | Key.D,
+            // ShortcutAction = () => RightPane.SetFocus(),
         };
         EntityDetails = new EntityDetailsView(this)
         {
             Height = Dim.Fill(),
             Width = Dim.Fill(),
+        };
+        WorldHistory = new WorldHistoryView(this)
+        {
+            Width = Dim.Fill(),
+            Height = Dim.Fill(1),
+            X = Pos.Right(LeftPane),
+            Y=1,
         };
         // RightPane.Title = $"{RightPane.Title} ({RightPane.ShortcutTag})";
         MenuBar = new MenuBar(new MenuBarItem[]
@@ -62,6 +73,11 @@ public class MainWindow : Toplevel
             new MenuBarItem("_File", new MenuItem[]
             {
                 new MenuItem("_Quit", "Quit UI Catalog", () => RequestStop(), null, null, Key.Q | Key.CtrlMask)
+            }),
+            new MenuBarItem("_View", new MenuItem[]
+            {
+                new MenuItem("Go to _Previous", "Select the previous entity", GoBack, null, null, Key.AltMask | Key.CursorLeft),
+                new MenuItem("Go to _Next", "Select the next entity", GoForward, null, null, Key.AltMask | Key.CursorRight),
             }),
         });
         FileStatus = new StatusItem(Key.CharMask, "Driver:", null);
@@ -73,24 +89,32 @@ public class MainWindow : Toplevel
             {
                 FileStatus,
                 YearStatus,
-                new StatusItem(Key.CtrlMask | Key.ShiftMask | Key.A, "Actions", () =>
+                new StatusItem(Key.CtrlMask | Key.ShiftMask | Key.D1, "Actions/Details", () =>
                 {
                     ActionList.Visible = !ActionList.Visible;
-                    RightPane.SetNeedsDisplay();
-                    this.LayoutSubviews();
+                    EntityDetails.Visible = !ActionList.Visible;
+                }),
+                new StatusItem(Key.CtrlMask | Key.ShiftMask | Key.D2, "Entities/History", () =>
+                {
+                    EntityList.Visible = !EntityList.Visible;
+                    WorldHistory.Visible = !EntityList.Visible;
                 }),
             }
         };
         LeftPane.Add(EntityDetails);
-        // LeftPane.Add(ActionList);
+        LeftPane.Add(ActionList);
         Add(MenuBar);
         Add(LeftPane);
-        Add(RightPane);
+        Add(EntityList);
+        Add(WorldHistory);
         Add(StatusBar);
     }
+
     public ActionListView ActionList { get; set; }
     public EntityDetailsView EntityDetails { get; set; }
-    public EntityList RightPane { get; set; }
+    public EntityList EntityList { get; set; }
+    public WorldHistoryView WorldHistory { get; set; }
+
     public void SelectEntity(EntityId entityId, bool addToHistory = true)
     {
         if (addToHistory)
@@ -182,14 +206,15 @@ public class MainWindow : Toplevel
     private void UpdateDb()
     {
         YearStatus.Title = "~^T~ Year: " + Database.Ctx._year;
-        RightPane.Update();
+        EntityList.Update();
+        WorldHistory.Update();
     }
     public void LoadDatabase(Database db)
     {
         Database = db;
         FileStatus.Title = "Loaded";
         ActionList.Load();
-        RightPane.Load();
+        EntityList.Load();
         UpdateDb();
     }
 }
