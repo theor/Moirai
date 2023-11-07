@@ -2,6 +2,7 @@ entity Person {}
 entity Item {}
 entity Faction {}
 entity Link {}
+entity Country {}
 
 enum Job { Smith, Farmer, Painter, Sculptor }
 enum Age { Child, Young, Adult, Old }

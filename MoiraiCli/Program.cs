@@ -31,6 +31,10 @@ internal class Program
             {
                 Console.WriteLine("changed");
                 reload = true;
+            }; fsw.Renamed += (_, e) =>
+            {
+                Console.WriteLine("changed");
+                reload = true;
             };
             fsw.EnableRaisingEvents = true;
         }

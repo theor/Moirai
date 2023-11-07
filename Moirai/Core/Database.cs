@@ -4,150 +4,34 @@ using System.Text.Json.Serialization;
 using Pcg;
 using Pcg.Core;
 
-public readonly struct PropertyId : IEquatable<PropertyId>
-{
-    public bool Equals(PropertyId other)
-    {
-        return Id == other.Id;
-    }
-    public override bool Equals(object? obj)
-    {
-        return obj is PropertyId other && Equals(other);
-    }
-    public override int GetHashCode()
-    {
-        return (int)Id;
-    }
-    public static bool operator ==(PropertyId left, PropertyId right)
-    {
-        return left.Equals(right);
-    }
-    public static bool operator !=(PropertyId left, PropertyId right)
-    {
-        return !left.Equals(right);
-    }
-    public static readonly PropertyId Null = new PropertyId();
-    public bool IsValid => Id != 0;
-    public readonly uint Id;
-    public PropertyId(uint id)
-    {
-        Id = id;
-    }
-    public override string ToString()
-    {
-        if (Database.Instance != null)
-        {
-            return $"p{Id}:{Database.Instance.Properties[(int)Id].Name}";
-        }
-        return $"p{Id}";
-    }
-}
-
-public readonly struct EnumDefinition
-{
-    public readonly string Name;
-    public readonly List<string> Values;
-    public readonly ushort Index;
-    public PropertyValue.ValueType ValueType => Index != 0 ? PropertyValue.TypeEnum(Index) : default;
-    public EnumDefinition(ushort index, string name, List<string> values)
-    {
-        Name = name;
-        Values = values;
-        Index = index;
-    }
-    public bool GetValueFromName(string valueName, out PropertyValue propertyValue)
-    {
-        for (int i = 0; i < Values.Count; i++)
-        {
-            if (Values[i] == valueName)
-            {
-                propertyValue = new PropertyValue { IntValue = i, Type = ValueType };
-                return true;
-            }
-        }
-        propertyValue = default;
-        return false;
-    }
-    public PropertyValue GetRandomValue(Pcg32 rnd)
-    {
-        var i = rnd.GenerateNext((uint)Values.Count);
-        return new PropertyValue { IntValue = i, Type = ValueType };
-    }
-}
-
-public readonly struct EntityType
-{
-    public readonly string Name;
-    public readonly EntityTypeId Id;
-    public EntityType(string name, uint id)
-    {
-        Name = name;
-        Id = new EntityTypeId(id);
-    }
-}
-
-public readonly struct EntityTypeId : IEquatable<EntityTypeId>
-{
-    public readonly uint Id;
-    public static readonly EntityTypeId Null = new EntityTypeId(0);
-    public EntityTypeId(uint id)
-    {
-        Id = id;
-    }
-    public bool IsValid => Id != 0;
-
-    public bool Equals(EntityTypeId other) => Id == other.Id;
-    public override bool Equals(object? obj) => obj is EntityTypeId other && Equals(other);
-    public override int GetHashCode() => (int)Id;
-    public static bool operator ==(EntityTypeId left, EntityTypeId right) => left.Equals(right);
-    public static bool operator !=(EntityTypeId left, EntityTypeId right) => !left.Equals(right);
-    public override string ToString()
-    {
-
-        if (Database.Instance != null)
-        {
-            return $"t{Id}:{Database.Instance.Types[(int)Id].Name}";
-        }
-        return $"t{Id}";
-    }
-}
-
-public readonly struct PropertyDefinition
-{
-    public readonly string Name;
-    public readonly uint Id;
-    public readonly PropertyValue.ValueType Type;
-    public PropertyDefinition(string name, uint id, PropertyValue.ValueType type)
-    {
-        Name = name;
-        Id = id;
-        Type = type;
-    }
-}
-
 public class Database
 {
-    public static readonly PropertyId PropId = new PropertyId(1);
-    public static readonly PropertyId PropType = new PropertyId(2);
-    public static readonly PropertyId PropName = new PropertyId(3);
-    public static readonly PropertyId PropYear = new PropertyId(4);
-    private static long Year;
-    public readonly List<Action> Actions;
+    public static readonly PropertyId PropId = new(1);
+    public static readonly PropertyId PropType = new(2);
+    public static readonly PropertyId PropName = new(3);
+    public static readonly PropertyId PropYear = new(4);
+    
+    public static Database? Instance;
+    private static long _year;
+
     public readonly List<EnumDefinition> Enums = new() { default };
-    public readonly List<Action> Events;
-    public readonly StoryPrinter Printer;
-    public readonly List<PropertyDefinition> Properties = DefaultProperties();
     public readonly List<EntityType> Types;
+    public readonly List<PropertyDefinition> Properties = DefaultProperties();
     public readonly int BuiltinTypes;
-    private PredicateContext _ctx;
-    private List<Entity> _entities = new() { default };
-    public Changeset CurrentChangeset;
-
+    
+    public readonly List<Action> Actions;
+    public readonly List<Action> Events;
+    
+    public readonly StoryPrinter Printer;
     public History? History;
-    internal List<Rule> Rules = new();
-    public static Database Instance;
+    public Changeset CurrentChangeset;
+    
+    private PredicateContext _ctx;
+    
+    private List<Entity> _entities = new() { default };
+    public IEnumerable<Entity> Entities => _entities.Skip(1);
 
-    private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         IncludeFields = true,
         IgnoreReadOnlyProperties = true,
@@ -165,7 +49,7 @@ public class Database
 
     public Database(ulong seed = 42)
     {
-        Types = new List<EntityType> { default, new EntityType("Time", 1) };
+        Types = new List<EntityType> { default, new("Time", 1) };
         BuiltinTypes = Types.Count;
         _ctx = new PredicateContext(this, seed);
         Actions = new();
@@ -174,7 +58,6 @@ public class Database
         Instance = this;
     }
 
-    public IEnumerable<Entity> Entities => _entities.Skip(1);
     public static List<PropertyDefinition> DefaultProperties()
     {
 
@@ -186,12 +69,6 @@ public class Database
             new PropertyDefinition("year", PropYear.Id, PropertyValue.TypeString),
         };
     }
-
-    // public int DeclareProperty(string name)
-    // {
-    //     Properties.Add(name);
-    //     return Properties.Count - 1;
-    // }
 
     public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
     {
@@ -229,7 +106,7 @@ public class Database
         return entityId.Id != 0 && entityId.Id < _entities.Count;
     }
 
-    public EntityScope GetEntityScope(long entityId) => new EntityScope(this, entityId, _entities[(int)entityId]);
+    public EntityScope GetEntityScope(long entityId) => new(this, entityId, _entities[(int)entityId]);
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
         if (!TryGetEntity(entityId, out var entity))
@@ -282,7 +159,7 @@ public class Database
     public bool RunAction(Action action)
     {
         // Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(action.Name, Year);
+        CurrentChangeset = new Changeset(action.Name, _year);
         _ctx.ClearValueStack();
         // _ctx.Values.Clear();
 
@@ -356,7 +233,7 @@ public class Database
                     if (@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                     {
                         // Console.WriteLine("  @ " + @event.Name);
-                        CurrentChangeset = new(@event.Name, Year);
+                        CurrentChangeset = new(@event.Name, _year);
                         // using (var s2 = _ctx.RunScope())
                         {
                             foreach (var e in @event.Effects)
@@ -478,11 +355,11 @@ public class Database
         if (!TryGetEntity(timeId, out var time))
             throw new NotImplementedException("missing Time entity");
 
-        Year = time.GetProperty(yearsProp).IntValue;
+        _year = time.GetProperty(yearsProp).IntValue;
         for (int i = 0; i < years; i++)
         {
-            Console.WriteLine("\tTIME " + Year);
-            SetProperty(timeId, yearsProp, ++Year);
+            Console.WriteLine("\tTIME " + _year);
+            SetProperty(timeId, yearsProp, ++_year);
             foreach (var action in Actions)
             {
                 if (action.Filter == null)
@@ -516,65 +393,3 @@ public class Database
     }
 }
 
-internal class EntityIdConverter : JsonConverter<EntityId>
-{
-    public override EntityId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        return new EntityId(reader.GetInt64());
-    }
-    public override void Write(Utf8JsonWriter writer, EntityId value, JsonSerializerOptions options)
-    {
-        writer.WriteNumberValue(value.Id);
-    }
-}
-internal class PropertyIdConverter : JsonConverter<PropertyId>
-{
-    public override PropertyId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        return new PropertyId(reader.GetUInt32());
-    }
-    public override void Write(Utf8JsonWriter writer, PropertyId value, JsonSerializerOptions options)
-    {
-        writer.WriteNumberValue(value.Id);
-    }
-}
-
-internal class ValueTypeConverter : JsonConverter<PropertyValue.ValueType>
-{
-    // private JsonStringEnumConverter _e = new();
-    public override PropertyValue.ValueType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        if(reader.TokenType != JsonTokenType.StartArray)
-            throw new System.NotImplementedException("no start array");
-
-        reader.Read();
-        PropertyValue.ValueBaseType baseType = JsonSerializer.Deserialize<PropertyValue.ValueBaseType>(ref reader, options);
-        reader.Read();
-        var index = reader.GetUInt16();
-        reader.Read();
-        if(reader.TokenType != JsonTokenType.EndArray)
-            throw new System.NotImplementedException("no end array");
-
-        return new PropertyValue.ValueType(baseType, index);
-    }
-    public override void Write(Utf8JsonWriter writer, PropertyValue.ValueType value, JsonSerializerOptions options)
-    {
-        writer.WriteStartArray();
-        JsonSerializer.Serialize(writer, value.BaseType);
-        JsonSerializer.Serialize(writer, value.Index);
-
-        writer.WriteEndArray();
-    }
-}
-
-internal class EntityTypeIdConverter : JsonConverter<EntityTypeId>
-{
-    public override EntityTypeId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-    {
-        return new EntityTypeId(reader.GetUInt32());
-    }
-    public override void Write(Utf8JsonWriter writer, EntityTypeId value, JsonSerializerOptions options)
-    {
-        writer.WriteNumberValue(value.Id);
-    }
-}
