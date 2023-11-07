@@ -18,6 +18,16 @@ public class EntityDetailsView : FrameView
             Width = Dim.Fill(),
             Height = Dim.Fill()
         };
+        _listView.OpenSelectedItem += e =>
+        {
+            if (e.Value is Property p)
+            {
+                if (p.Value.Type == PropertyValue.TypeRef)
+                {
+                    _w.SelectEntity(p.Value.Id);
+                }
+            }
+        };
         Add(_listView);
     }
 
@@ -32,15 +42,17 @@ public class EntityDetailsView : FrameView
         {
             Title = eid.ToString();
             // _listView.SetSource(e.Properties.Select(p => p.Id.ToString() + p.Value.ToString()).ToList());
-            _listView.Source = new PropertySource(e);
+            _listView.Source = new PropertySource(_w.Database.Printer, e);
         }
     }
 
     public class PropertySource : IListDataSource
     {
+        private readonly StoryPrinter _printer;
         private readonly Entity _entity;
-        public PropertySource(Entity entity)
+        public PropertySource(StoryPrinter printer, Entity entity)
         {
+            _printer = printer;
             _entity = entity;
         }
         public void Render(ListView container, ConsoleDriver driver, bool selected, int item, int col, int line, int width, int start = 0)
@@ -59,7 +71,7 @@ public class EntityDetailsView : FrameView
             {
                 if (!selected)
                     driver.SetAttribute(container.GetNormalColor());
-                RenderUstr(driver,  props.Value.ToString(), col, line, width, start);
+                RenderUstr(driver, _printer.Print(props.Value), col, line, width, start);
             }
         }
         public bool IsMarked(int item) => false;

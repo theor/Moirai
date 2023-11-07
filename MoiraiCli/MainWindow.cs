@@ -7,15 +7,30 @@ public class MainWindow : Toplevel
     public Database Database;
     public StatusItem FileStatus, YearStatus;
     private View LeftPane;
+    private List<EntityId> _history = new();
+    private int _historyIndex;
+    private EntityId Current => _historyIndex < _history.Count ? _history[_historyIndex] : default;
     public MainWindow()
     {
         ColorScheme = Colors.TopLevel;
+        AddCommand(Command.PageLeft, () =>
+        {
+            GoBack();
+            return true;
+        });
+        AddKeyBinding(Key.AltMask | Key.CursorLeft, Command.PageLeft);
+        AddCommand(Command.PageRight, () =>
+        {
+            GoForward();
+            return true;
+        });
+        AddKeyBinding(Key.AltMask | Key.CursorRight, Command.PageRight);
         LeftPane = new View()
         {
             X = 0,
             Y = 1,
             Height = Dim.Fill(1),
-            Width = Dim.Percent(25),
+            Width = Dim.Percent(40),
         };
         ActionList = new ActionListView(this)
         {
@@ -76,9 +91,32 @@ public class MainWindow : Toplevel
     public ActionListView ActionList { get; set; }
     public EntityDetailsView EntityDetails { get; set; }
     public EntityList RightPane { get; set; }
-    public void SelectEntity(int row)
+    public void SelectEntity(EntityId entityId, bool addToHistory = true)
     {
-        EntityDetails.SetSelectedEntity(new EntityId(row + 1));
+        if (addToHistory)
+        {
+            if(_historyIndex < _history.Count - 1)
+                _history.RemoveRange(_historyIndex+1, _history.Count - _historyIndex-1);
+            _history.Add(entityId);
+            _historyIndex++;
+        }
+        EntityDetails.SetSelectedEntity(entityId);
+    }
+    public void GoBack()
+    {
+        if (_historyIndex > 0)
+        {
+            _historyIndex--;
+                SelectEntity(Current, false);
+        }
+    }
+    public void GoForward()
+    {
+        if (_historyIndex < _history.Count - 1)
+        {
+            _historyIndex++;
+            SelectEntity(Current, false);
+        }
     }
     private StatusItem MakeYearsStatus()
     {
