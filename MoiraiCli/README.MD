@@ -1,8 +1,9 @@
 ﻿TODO
 - [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
-- [x] parse types ? either an enum or `type person { alive, age, job }
-  - [ ] parse types props init `type person { alive = true }`
-- [ ] probabilities, curves ? assign proba per entity to impact history ?
+- [ ] parse types props init `type person { alive = true }`
+- [ ] restrict props to type ? `type person { alive: number = true }`
+- [ ] curves ?
+- [ ] assign factor per entity to impact history ?
   - `rule x @start {}`
   - `rule x @every 15 years`
   - `rule x @random 1,4 per 2 years`
@@ -22,12 +23,14 @@ for i in 0..years {
 ```
 
 FEATURES
-- [ ] time passing
 - [ ] format: prev value ? `set $i.owner = $p;`
   - `format "from prev($i.owner.name) to $p.name" ?`
   - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?`
 - [ ] tags ? are they arrays, bitflags, links, their own thing ?
 - [ ] arrays ? are links good enough ?
+- [x] time passing
+- [x] parse types ? either an enum or `type person { alive, age, job }
+- [x] probabilities ?
 - [x] singletons ? `#Time.year`
 - [x] links
   - [ ] specific syntax ??

@@ -355,7 +355,7 @@ public class Database
                     _ctx.SetArgument(0, entity);
                     if (@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                     {
-                        Console.WriteLine("  @ " + @event.Name);
+                        // Console.WriteLine("  @ " + @event.Name);
                         CurrentChangeset = new(@event.Name, Year);
                         // using (var s2 = _ctx.RunScope())
                         {

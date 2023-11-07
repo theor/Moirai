@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using Pcg;
 
 internal class Program
@@ -115,7 +116,9 @@ if(json1 != json2)
             {
                 if (int.TryParse(line.Substring("t ".Length), out var years))
                 {
+                    Stopwatch sw = Stopwatch.StartNew();
                     db.PassYears(years);
+                    Console.WriteLine($"Time: {(sw.ElapsedMilliseconds / 1000f)}s");
                 }
             }
             else if (line.StartsWith("seed "))
@@ -199,10 +202,12 @@ if(json1 != json2)
                     }
                 }
             }
+            int maxPrinted = 100;
             while (historyCount < db.History.Changesets.Count)
             {
                 var cs = db.History.Changesets[historyCount++];
-                db.Printer.PrintChangeset(cs, false);
+                if(maxPrinted-- > 0)
+                    db.Printer.PrintChangeset(cs, false);
             }
 
         }
