@@ -1,28 +1,12 @@
 ﻿TODO
 - [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
 - [ ] parse types props init `type person { alive = true }`
-- [ ] restrict props to type ? `type person { alive: number = true }`
-- [ ] curves ?
+- [ ] restrict props to type ? `type person { alive: number = true }` would allow overlap of prop indices across types and to index them directly
 - [ ] assign factor per entity to impact history ?
-  - `rule x @start {}`
-  - `rule x @every 15 years`
-  - `rule x @random 1,4 per 2 years`
-```
-for i in 0..years {
-  distrib expected = rule.distribution
-  distrib actual = compute(rule)
-  if(actual < expected) run(rule){}
-  
-  1 every 15 years =
-  1/15 per year
-  
-  
-  time since last: >=15 -> p = 1
-  time since last: 0 -> p = 1/15
-}
-```
 
 FEATURES
+- [ ] curves ?
+- [ ] nested property paths. add a ppath nested fieldto ppath ? make a separate NestedPropPath class ?
 - [ ] format: prev value ? `set $i.owner = $p;`
   - `format "from prev($i.owner.name) to $p.name" ?`
   - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?`

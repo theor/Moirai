@@ -314,7 +314,7 @@ public class Database
             if (change.NewValue.Type == PropertyValue.TypeRef && !change.NewValue.Id.IsNull)
                 changedEntities.Add(change.NewValue.Id);
         }
-        if (CurrentChangeset.Changes.Any())
+        if (!String.IsNullOrEmpty(CurrentChangeset.Description) || CurrentChangeset.Changes.Any())
             History?.Changesets.Add(CurrentChangeset);
         RunEvents(changedEntities);
 
