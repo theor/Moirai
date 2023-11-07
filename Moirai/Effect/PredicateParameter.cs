@@ -16,7 +16,12 @@ public struct PropertyPath : IValue
     public readonly int VariableIndex;
     public readonly PropertyId Property;
     public readonly EntityTypeId SingletonType;
-    public enum PropertyPathMode { Variable, Singleton }
+
+    public enum PropertyPathMode
+    {
+        Variable,
+        Singleton
+    }
 
     public readonly PropertyPathMode Mode;
     public PropertyPath(int variableIndex, PropertyId? property = null)
@@ -44,7 +49,7 @@ public struct PropertyPath : IValue
 
             return entity.GetProperty(Property);
         }
-        
+
         PropertyValue varValue = ctx.Argument(VariableIndex);
         if (varValue.Type != PropertyValue.TypeRef)
             return varValue;
@@ -56,6 +61,7 @@ public struct PropertyPath : IValue
         return e.GetProperty(Property);
     }
 }
+
 public struct YearsPassed : IValue
 {
     public readonly int Years;
@@ -69,9 +75,14 @@ public struct YearsPassed : IValue
         throw new NotImplementedException();
     }
 }
+
 public struct AssertInstr : IInstruction
 {
-    public enum AssertMode { True, Eq, }
+    public enum AssertMode
+    {
+        True,
+        Eq,
+    }
 
     public readonly AssertMode Mode;
     public readonly IValue Value;
@@ -99,7 +110,8 @@ public struct AssertInstr : IInstruction
             case AssertMode.Eq:
                 PropertyValue left = Value.Compute(ctx);
                 PropertyValue right = Right.Compute(ctx);
-                ctx.Assert(left == right, $"{Message}, actual values:\n     left: {ctx.Database.Printer.Print(left)}\n    right: {ctx.Database.Printer.Print(right)}");
+                ctx.Assert(left == right,
+                    $"{Message}, actual values:\n     left: {ctx.Database.Printer.Print(left)}\n    right: {ctx.Database.Printer.Print(right)}");
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -107,6 +119,7 @@ public struct AssertInstr : IInstruction
         return true;
     }
 }
+
 public struct RandomCall : IValue
 {
     public readonly ushort EnumID;
@@ -120,9 +133,14 @@ public struct RandomCall : IValue
         return def.GetRandomValue(ctx.Rnd);
     }
 }
+
 public struct RandomName : IValue
 {
-    public enum NameType { Name, Item}
+    public enum NameType
+    {
+        Name,
+        Item
+    }
 
     public readonly NameType Type;
     public RandomName(NameType type)
@@ -143,13 +161,16 @@ public enum CallType
     Each,
     When
 }
+
 public struct CallRule : IInstruction
 {
     public readonly int VariableIndex;
     public readonly int RuleIndex;
-    public CallRule(int variableIndex, int ruleIndex)
+    public readonly int Count;
+    public CallRule(int variableIndex, int ruleIndex, int count)
     {
         RuleIndex = ruleIndex;
+        Count = count;
         VariableIndex = variableIndex;
 
     }
@@ -158,17 +179,19 @@ public struct CallRule : IInstruction
         // TODO offset value stack
         // eg. if $0 $1 are used now, have called.$0 become $2
         // copy result in VariableIndex then pop extra values
-        bool res;
-        PropertyValue ctxLastValue;
-        using(var s = ctx.RunScope())
-        {
-            res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
-            ctxLastValue = ctx.LastValue;
-        }
+        bool res = false;
+        PropertyValue ctxLastValue = default;
+        for (int i = 0; i < Count; i++)
+            using (ctx.RunScope())
+            {
+                res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
+                ctxLastValue = ctx.LastValue;
+            }
         ctx.SetArgument(VariableIndex, ctxLastValue);
         return res;
     }
 }
+
 public struct AssignPick : IInstruction
 {
     public readonly int VariableIndex;
@@ -184,7 +207,7 @@ public struct AssignPick : IInstruction
         ScopeEffects = scopeEffects;
         _pool = null;
     }
-    
+
     public bool Execute(PredicateContext ctx)
     {
         switch (CallType)
@@ -206,7 +229,7 @@ public struct AssignPick : IInstruction
                     // Console.ForegroundColor = ConsoleColor.Blue;
                     // Console.WriteLine($"FIND ALL {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                     // Console.ResetColor(); 
-                    if(ctx.FindAll(Value, ref _pool))
+                    if (ctx.FindAll(Value, ref _pool))
                     {
                         for (var index = 0; index < _pool.Count; index++)
                         {

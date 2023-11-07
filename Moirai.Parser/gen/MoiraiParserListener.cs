@@ -44,6 +44,16 @@ public interface IMoiraiParserListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitR([NotNull] MoiraiParser.RContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MoiraiParser.comment"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterComment([NotNull] MoiraiParser.CommentContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MoiraiParser.comment"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitComment([NotNull] MoiraiParser.CommentContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MoiraiParser.filter"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

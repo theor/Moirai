@@ -59,6 +59,7 @@ internal class Program
                     )
                     .WithServices(x => x.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)))
                     // .WithServices(x => x.AddLogging())
+                    
                     .WithServices(
                         services =>
                         {
@@ -223,16 +224,24 @@ internal class MoiraiDocument
     }
     public Task Process(Microsoft.Extensions.Logging.ILogger logger)
     {
-        var visitor = new TokenVisitor( logger);
-        StoryParser.SetupParser(Content, out var parser, visitor);
-        var r = parser.r();
-        r.Accept(visitor);
-        Errors = visitor.Errors;
-        Symbols = visitor.Symbols;
-        var db = new Database();
-        var astVisitor = new StoryParser.AstVisitor(db);
-        r.Accept(astVisitor);
-        Errors.AddRange(astVisitor.Errors);
+        try
+        {
+            var visitor = new TokenVisitor( logger);
+        
+            StoryParser.SetupParser(Content, out var parser, visitor);
+            var r = parser.r();
+            r.Accept(visitor);
+            Errors = visitor.Errors;
+            Symbols = visitor.Symbols;
+            var db = new Database();
+            var astVisitor = new StoryParser.AstVisitor(db);
+            r.Accept(astVisitor);
+            Errors.AddRange(astVisitor.Errors);
+        }
+        catch (Exception e)
+        {
+            Errors.Add(new StoryParser.Error(StoryParser.ErrorCode.Exception, 1,1, e.ToString()));
+        }
         return Task.CompletedTask;
     }
 }

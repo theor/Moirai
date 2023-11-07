@@ -51,6 +51,18 @@ public partial class MoiraiParserBaseListener : IMoiraiParserListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitR([NotNull] MoiraiParser.RContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MoiraiParser.comment"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterComment([NotNull] MoiraiParser.CommentContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MoiraiParser.comment"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitComment([NotNull] MoiraiParser.CommentContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MoiraiParser.filter"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>

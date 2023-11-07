@@ -41,6 +41,12 @@ public interface IMoiraiParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitR([NotNull] MoiraiParser.RContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="MoiraiParser.comment"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitComment([NotNull] MoiraiParser.CommentContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.filter"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

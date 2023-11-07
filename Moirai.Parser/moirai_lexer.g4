@@ -5,7 +5,7 @@ NULL: 'null';
 SPACE: [ \t]+ -> skip;
 LINE_BREAK: ('\r\n' | '\r' | '\n');
 COMMENT
-  :  '//' ~( '\r' | '\n' )* LINE_BREAK -> skip
+  :  '//' ~( '\r' | '\n' )*
   ;
 
 COLON: ':';

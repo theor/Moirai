@@ -27,7 +27,8 @@ public static class StoryParser
         UnknownInstruction,
         MissingArgument,
         UnknownRule,
-        UnknownEntityType
+        UnknownEntityType,
+        Exception
     }
 
     public struct Error
@@ -216,6 +217,8 @@ public static class StoryParser
             var action = new Action(actionId, false, f);
             foreach (MoiraiParser.EffectContext effectContext in context.effect())
             {
+                if(effectContext.comment() != null)
+                    continue;
                 var effect = ParseEffect(effectContext);
                 if (effect == null)
                 {
@@ -240,6 +243,8 @@ public static class StoryParser
             _database.Events.Add(action);
             foreach (var effectContext in context.effect())
             {
+                if(effectContext.comment() != null)
+                    continue;
                 var effect = ParseEffect(effectContext);
                 action.Effects.Add(effect);
             }
@@ -251,7 +256,11 @@ public static class StoryParser
                 return ParseCall(effectContext.call_assign());
             if (effectContext.var() != null)
                 return ParseVar(effectContext.var());
-            return ParseSet(effectContext.set());
+            if(effectContext.set() != null)
+                return ParseSet(effectContext.set());
+
+            AddError(ErrorCode.Exception, effectContext, "NULL");
+            return new SetProperty(default, null, false, default);
         }
         private AssignPick ParseWhen(MoiraiParser.WhenContext context)
         {
@@ -466,7 +475,13 @@ public static class StoryParser
                     var ruleIndex = _database.Actions.FindIndex(r => r.Name == ruleName);
                     if (ruleIndex == -1)
                         return (AddError(ErrorCode.UnknownRule, arg, ruleName) as IInstruction)!;
-                    return new CallRule(variableIndex, ruleIndex);
+
+                    int count = 1;
+                    if (context.expr(1) != null)
+                    {
+                        count = int.Parse(context.expr(1).GetText());
+                    }
+                    return new CallRule(variableIndex, ruleIndex, count);
                 }
                 case "each":
                 {
@@ -479,7 +494,7 @@ public static class StoryParser
                             ? ParseExpr(exprs[0])!
                             : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
                         CallType.Each,
-                        context.scope().effect().Select(ParseEffect).ToArray());
+                        context.scope().effect().Where(e => e.comment() == null).Select(ParseEffect).ToArray());
                     // _variables[variableIndex] = "";
                     return assignPick;
                 }

@@ -100,6 +100,17 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             tokenType,
             keyword));
     }
+    private void PushSymbol(ParserRuleContext symbol, SemanticTokenType tokenType, params string[] keyword)
+    {
+        Symbols.Add((
+            new Range(
+                symbol.Start.Line - 1,
+                symbol.Start.Column,
+                symbol.Stop.Line - 1,
+                5),//symbol.Stop.Column ),
+            tokenType,
+            keyword));
+    }
     public override object? VisitAction(MoiraiParser.ActionContext context)
     {
         var id = context.ID();
@@ -161,6 +172,17 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             PushSymbol(node.Symbol, SemanticTokenType.Keyword);
         }
         return base.VisitTerminal(node);
+    }
+    public override object? VisitComment(MoiraiParser.CommentContext context)
+    {
+        PushSymbol(context.COMMENT().Symbol, SemanticTokenType.Comment);
+        
+        return null;
+    }
+    public override object? VisitFilter(MoiraiParser.FilterContext context)
+    {
+        PushSymbol(context.AT().Symbol, SemanticTokenType.Keyword);
+        return base.VisitFilter(context);
     }
     public override object? VisitPath(MoiraiParser.PathContext context)
     {

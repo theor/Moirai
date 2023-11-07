@@ -10,11 +10,6 @@ internal class Program
         ulong seed = 44;
         var db = MakeDb(path, seed);
         Console.WriteLine(db.Printer.Print());
-        foreach (Action a in db.Actions)
-        {
-            if (a.Filter is FilterAtStart)
-                db.RunAction(a);
-        }
         int prevAction = -1;
         int historyCount = 0;
         Pcg32 rnd = new(32, 57);
@@ -134,7 +129,20 @@ if(json1 != json2)
             }
             else if (line == "p")
             {
+                var ids = line.Substring(1).Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                
                 db.Printer.PrintDb(db);
+            }
+            else if (line.StartsWith("p"))
+            {
+                foreach (var id in line.Substring(1).Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                             .Select(long.Parse))
+                {
+                    if(db.TryGetEntity(new EntityId(id), out var e))
+                        db.Printer.PrintEntity(e);
+                    else
+                        Console.WriteLine($"#{id} not found");
+                }
             }
             else if (line == "h")
             {
@@ -158,15 +166,15 @@ if(json1 != json2)
                 long year = -1;
                 foreach (var cs in db.History.Changesets)
                 {
-                    // if (cs.Year != year && cs.Changes.Any())
-                    // {
-                    //     Console.ForegroundColor = ConsoleColor.Cyan;
-                    //     Console.WriteLine(cs.Year);
-                    //     Console.ResetColor();
-                    //     year = cs.Year;
-                    // }
+                    if (cs.Year != year && cs.Changes.Any())
+                    {
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine(cs.Year);
+                        Console.ResetColor();
+                        year = cs.Year;
+                    }
                     if (!string.IsNullOrEmpty(cs.Description))
-                        Console.WriteLine(cs.Year + ": " + cs.Description);
+                        Console.WriteLine(/*cs.Year + ": " +*/ cs.Description);
                 }
             }
             else if (line == "")
@@ -221,6 +229,12 @@ if(json1 != json2)
         var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
         db.SetSeed(seed);
         db.History = new();
+        
+        foreach (Action a in db.Actions)
+        {
+            if (a.Filter is FilterAtStart)
+                db.RunAction(a);
+        }
         return db;
     }
     private static void RunRandomAction(Database db, Pcg32 rnd)

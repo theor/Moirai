@@ -3,6 +3,7 @@ entity Item {}
 entity Faction {}
 entity Link {}
 entity Country {}
+entity God {}
 
 enum Job { Smith, Farmer, Painter, Sculptor }
 enum Age { Child, Young, Adult, Old }
@@ -13,7 +14,11 @@ prop first_name: string
 prop alive: bool
 prop birthdate: number
 prop partner: ref
+prop war_with: ref
+prop god: ref
 prop faction: ref
+prop birthplace: ref
+prop place: ref
 prop job: Job
 prop item_type: ItemType
 
@@ -21,11 +26,34 @@ prop parent: ref
 prop child: ref
 
 prop owner: ref
- 
+
+enum CountryName {
+    Land_of,
+    Kingdom_of,
+    Coast_of,
+}
+enum GodTypes {
+    Thunder,
+    Fertility,
+    The_Hunt,
+    The_Sea,
+    War,
+    Death,
+}
+
+rule create_country  {
+    create Country, '{random CountryName} {random name}'
+}
+
+rule create_god  {
+    create God, '{random name}, God of {random GodTypes}'
+}
 @start
 rule create_time {
     create Time, 'time'
     set year = 764
+    call create_country, 10
+    call create_god, 10
 }
 
 event inherit {
@@ -41,12 +69,15 @@ event inherit {
 @1 per 2 year
 rule char_born {
     var $fname = '{random name}'
+    pick $loc: type = Country
     create $p: Person, '{$fname} {random name}'
     set $p.first_name = $fname
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = #Time.year
-    record '{$p.name} is born in {#Time.year}'
+    set $p.birthplace = $loc
+    set $p.place = $loc
+    record '{$p.name} is born in {$loc.name}'
 }
 rule char_dies {
     pick $p: type = Person, alive = true
@@ -76,7 +107,7 @@ rule adults_grow {
     each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year{
         set $p.age = Age.Old
         //record '{$p.name} grew up as a {$p.age}'
-    }
+    }   
 }
 
 @1 every 1 year
@@ -96,10 +127,17 @@ rule _parent_dies {
 
     }
 }
+@1 per 1 years
+rule char_joins_faith {
+    pick $x: type = Person, alive
+    pick $g: type = God
+    set $x.god = $g
+    record '{$x.name} takes the faith of {$g.name}'
+}
  @1 per 2 years
 rule wedding {
     pick $x: type = Person, alive = true, partner = null, age > Age.Child
-    pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x
+    pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x, place = $x.place
     set $x.partner = $y
     set $y.partner = $x
     create $i: Item, "ring of {$x.name}"
@@ -116,23 +154,58 @@ rule divorce {
     set $y.partner = null
     record '{$x.name} and {$y.name} separate'
 } 
-//@1 per 15 year
-//rule murder {
-//    pick $x: type = Person, alive = true
-//    pick $y: type = Person, alive = true, id != $x
-//    set $y.alive = false
-//    record '{$x} {$x.name} murders {$y} {$y.name}'
-//} 
+@1 per 15 year
+rule murder {
+    pick $x: type = Person, alive = true, age > Age.Child
+    pick $y: type = Person, alive = true, id != $x
+    set $y.alive = false
+    record '{$x} {$x.name} murders {$y} {$y.name}'
+} 
+@1 per 4 year
+rule char_migrates {
+    pick $p: type = Person, alive, partner = null
+    pick $c: type = Country, id != $p.place
+    set $p.place = $c
+    record '{$p.name} moves to {$c.name}'
+}
+@1 per 4 year
+rule country_war_start {
+    pick $x: type = Country, war_with = null
+    pick $y: type = Country, id != $x, war_with = null
+    set $x.war_with = $y
+    set $y.war_with = $x
+    record '{$x.name} and {$y.name} start a war'
+}
+@1 per 10 year
+rule country_war_peace {
+    pick $x: type = Country, war_with != null
+    var $y = $x.war_with
+    set $x.war_with = null
+    set $y.war_with = null
+    record '{$x.name} and {$y.name} sign a peace treaty, ending the war'
+}
+@1 per 10 year
+rule country_war_win {
+    pick $x: type = Country, war_with != null
+    var $y = $x.war_with
+    set $x.war_with = null
+    set $y.war_with = null
+    record '{$x.name} wins the war against {$y.name}'
+}
 @4 per 1 year
 rule couple_has_child {
     pick $x: type = Person, alive = true, partner != null
-    pick $y: type = Person, alive = true, partner = $x, id != $x
+    var $y = $x.partner
+    
     var $fname = '{random name}'
     create $c: Person, '{$fname} {$x.first_name}son'
         set $c.first_name = $fname
         set $c.alive = true
         set $c.age = Age.Child
         set $c.birthdate = #Time.year
+        set $c.place = $x.place
+        set $c.birthplace = $x.place
+        set $c.god = $x.god
     create $l1: Link
         set $l1.parent = $x
         set $l1.child = $c
@@ -140,7 +213,7 @@ rule couple_has_child {
         set $l2.parent = $y
         set $l2.child = $c
     
-    record '{$x} {$x.name} and {$y} {$y.name} have a child, {$c} {$c.name}, in the year {#Time.year}'
+    record '{$x.name} and {$y.name} have a child, {$c.name}'
 }
 @1 per 2 year
 rule make_item {
