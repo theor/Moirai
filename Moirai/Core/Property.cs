@@ -1,10 +1,10 @@
 ﻿public struct Property
 {
-    public PropertyId Type;
+    public PropertyId Id;
     public PropertyValue Value;
-    public Property(PropertyId type, PropertyValue value)
+    public Property(PropertyId id, PropertyValue value)
     {
-        Type = type;
+        Id = id;
         Value = value;
     }
 }

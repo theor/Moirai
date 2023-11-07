@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Pcg.Core;
+namespace Moirai.Core;
 
 internal class EntityIdConverter : JsonConverter<EntityId>
 {

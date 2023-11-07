@@ -21,7 +21,7 @@
         }
         foreach (var p in Properties)
         {
-            if (p.Type == property)
+            if (p.Id == property)
             {
                 value = p.Value;
                 return true;
@@ -40,7 +40,7 @@
         {
             foreach (var p in Properties)
             {
-                if (p.Type == property)
+                if (p.Id == property)
                 {
                     return p.Value;
                 }

@@ -1,7 +1,6 @@
 ﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
-using Pcg.Core;
-
+using Moirai.Parser;
 public static class StoryParser
 {
     public interface IVisitor
@@ -110,17 +109,17 @@ public static class StoryParser
         return db;
     }
 
-    public static void SetupParser(string s, out Moirai parser, IVisitor visitor)
+    public static void SetupParser(string s, out MoiraiParser parser, IVisitor visitor)
     {
         var lexer = new moirai_lexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
         var tokens = new CommonTokenStream(lexer);
-        parser = new Moirai(tokens);
+        parser = new MoiraiParser(tokens);
         var listener = new Listener(visitor.Errors);
         lexer.AddErrorListener(listener);
         parser.AddErrorListener(listener);
     }
 
-    public class AstVisitor : MoiraiBaseVisitor<object?>, IVisitor
+    public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
         private List<string> _variables = new();
         private List<Error> _errors = new();
@@ -132,7 +131,7 @@ public static class StoryParser
             _database = database;
         }
 
-        public override object? VisitType_definition(Moirai.Type_definitionContext context)
+        public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
         {
             if (context.TYPE_ID() == null)
                 return AddError(ErrorCode.TypeNameMustStartWithUpperCase, context, context.GetText());
@@ -148,7 +147,7 @@ public static class StoryParser
             return id;
         }
 
-        public override object? VisitProp_definition(Moirai.Prop_definitionContext context)
+        public override object? VisitProp_definition(MoiraiParser.Prop_definitionContext context)
         {
             var propName = context.ID(0).GetText();
             if (_database.GetProperty(propName).Id != 0)
@@ -174,7 +173,7 @@ public static class StoryParser
                     return default;
             }
         }
-        public override object? VisitEnum_definition(Moirai.Enum_definitionContext context)
+        public override object? VisitEnum_definition(MoiraiParser.Enum_definitionContext context)
         {
             EnumDefinition en = new((ushort)_database.Enums.Count, context.TYPE_ID(0).GetText(),
                 context.TYPE_ID().Skip(1).Select(v => v.GetText()).ToList());
@@ -182,7 +181,7 @@ public static class StoryParser
             return null;
         }
 
-        public override object? VisitAction(Moirai.ActionContext context)
+        public override object? VisitAction(MoiraiParser.ActionContext context)
         {
             
             string actionId = context.ID().GetText();
@@ -215,7 +214,7 @@ public static class StoryParser
                 }
             }
             var action = new Action(actionId, false, f);
-            foreach (Moirai.EffectContext effectContext in context.effect())
+            foreach (MoiraiParser.EffectContext effectContext in context.effect())
             {
                 var effect = ParseEffect(effectContext);
                 if (effect == null)
@@ -228,7 +227,7 @@ public static class StoryParser
             _database.Actions.Add(action);
             return null;
         }
-        public override object? VisitEvent(Moirai.EventContext context)
+        public override object? VisitEvent(MoiraiParser.EventContext context)
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
@@ -246,7 +245,7 @@ public static class StoryParser
             }
             return null;
         }
-        private IInstruction ParseEffect(Moirai.EffectContext effectContext)
+        private IInstruction ParseEffect(MoiraiParser.EffectContext effectContext)
         {
             if (effectContext.call_assign() != null)
                 return ParseCall(effectContext.call_assign());
@@ -254,7 +253,7 @@ public static class StoryParser
                 return ParseVar(effectContext.var());
             return ParseSet(effectContext.set());
         }
-        private AssignPick ParseWhen(Moirai.WhenContext context)
+        private AssignPick ParseWhen(MoiraiParser.WhenContext context)
         {
             var exprs = context.expr();
             var predicate = exprs.Length == 1
@@ -269,18 +268,18 @@ public static class StoryParser
             }
             return new AssignPick(variableIndex, predicate, CallType.When);
         }
-        public override object? VisitWhen(Moirai.WhenContext context)
+        public override object? VisitWhen(MoiraiParser.WhenContext context)
         {
             throw new System.NotImplementedException();
 
         }
-        public override object? VisitSet(Moirai.SetContext context)
+        public override object? VisitSet(MoiraiParser.SetContext context)
         {
             throw new System.NotImplementedException();
 
             return null;
         }
-        private SetProperty ParseVar(Moirai.VarContext context)
+        private SetProperty ParseVar(MoiraiParser.VarContext context)
         {
             var name = context.VAR_ID();
             DeclareVar(name.GetText(), name.Symbol, out var varIndex);
@@ -288,13 +287,13 @@ public static class StoryParser
             var expr = ParseExpr(context.expr());
             return new SetProperty(new PropertyPath(varIndex), expr, true, type);
         }
-        private SetProperty ParseSet(Moirai.SetContext context)
+        private SetProperty ParseSet(MoiraiParser.SetContext context)
         {
             var left = ParsePath(context.path());
             var right = ParseExpr(context.expr()); //, left.Property);
             return new SetProperty(left, right, false, default);
         }
-        private IValue ParseValue(Moirai.ValueContext value)
+        private IValue ParseValue(MoiraiParser.ValueContext value)
         {
             if (value.TYPE_ID() != null)
             {
@@ -360,7 +359,7 @@ public static class StoryParser
             }
             throw new ArgumentOutOfRangeException();
         }
-        // private ComputedValue ParseComputedValue(Moirai.ValueContext value, PropertyId type)
+        // private ComputedValue ParseComputedValue(MoiraiParser.ValueContext value, PropertyId type)
         // {
         //     if(!type.IsValid || !_database.GetPropertyType(type, out PropertyValue.ValueType valueType))
         //     {
@@ -438,7 +437,7 @@ public static class StoryParser
             varIndex = _variables.Count - 1;
             return true;
         }
-        private IInstruction ParseCall(Moirai.Call_assignContext context)
+        private IInstruction ParseCall(MoiraiParser.Call_assignContext context)
         {
             var funcName = context.ID().GetText();
             if (funcName == "assert")
@@ -543,7 +542,7 @@ public static class StoryParser
             var interpolatedString = new InterpolatedString(result, paths.ToArray());
             return interpolatedString;
         }
-        public IValue? ParseExpr(Moirai.ExprContext context)
+        public IValue? ParseExpr(MoiraiParser.ExprContext context)
         {
             if (context.value() != null)
             {
@@ -613,22 +612,22 @@ public static class StoryParser
             Errors.Add(new Error(code, loc, msg));
             return null;
         }
-        public override object? VisitCall(Moirai.CallContext context)
+        public override object? VisitCall(MoiraiParser.CallContext context)
         {
             throw new System.NotImplementedException();
         }
-        public override object? VisitExpr(Moirai.ExprContext context)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public override object? VisitPath(Moirai.PathContext context)
+        public override object? VisitExpr(MoiraiParser.ExprContext context)
         {
             throw new System.NotImplementedException();
         }
 
+        public override object? VisitPath(MoiraiParser.PathContext context)
+        {
+            throw new System.NotImplementedException();
+        }
 
-        public PropertyPath ParsePath(Moirai.PathContext context)
+
+        public PropertyPath ParsePath(MoiraiParser.PathContext context)
         {
             
 
@@ -685,5 +684,5 @@ public static class StoryParser
 internal static class ParsingExtensions
 {
     public static string TrimQuotes(this string s) => s.Trim('"', '\'');
-    public static string GetString(this Moirai.StringContext context) => context.STRING().GetText().TrimQuotes();
+    public static string GetString(this MoiraiParser.StringContext context) => context.STRING().GetText().TrimQuotes();
 }

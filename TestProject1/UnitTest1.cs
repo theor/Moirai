@@ -119,7 +119,7 @@ rule rr {
         var db = Run(s, out var errors);
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
 
     [Test]
@@ -152,7 +152,7 @@ rule r {
             db.RunAction(actionName);
         else
             db.RunAction(db.Actions[0]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
     
     [Test]
@@ -173,7 +173,7 @@ rule r {
 
         var db = Run(s, out var errors);
         db.RunAction(db.Actions[0]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
 
     [Test]
@@ -191,7 +191,7 @@ rule r {
 
         var db = Run(s, out var errors);
         db.RunAction(db.Actions[0]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
 
     [Test]
@@ -210,7 +210,7 @@ rule r {
 
         var db = Run(s, out var errors);
         db.RunAction(db.Actions[0]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
     [Test]
     public void Test1()
@@ -240,7 +240,7 @@ rule born_char {
         // TODO reactivate
         // Assert.AreEqual(propId, ((SetProperty)action.Effects[1]).PropertySet.Property);
         db.RunAction(action.Name);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         Assert.AreEqual(1, db.Entities.Count());
     }
     
@@ -268,7 +268,7 @@ rule r {
         // TODO reactivate
         // Assert.AreEqual(propId, ((SetProperty)action.Effects[1]).PropertySet.Property);
         db.RunAction(action.Name);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         Assert.AreEqual(1, db.Entities.Count());
         Assert.AreEqual(true, db.Entities.Single().GetProperty(propId).BoolValue);
     }
@@ -308,13 +308,13 @@ rule foreach {
         var typePerson = db.GetEntityType("Person");
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         foreach (var entity in db.Entities)
         {
             Assert.IsFalse(entity.TryGetProperty(propId, out var val));
         }
         db.RunAction(db.Actions[0]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         foreach (var entity in db.Entities)
         {
             Assert.IsTrue(entity.TryGetProperty(propId, out var val));
@@ -356,7 +356,7 @@ event on_death {
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         Entity e = db.Entities.First();
         PropertyId propTest = db.GetProperty("test");
         Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
@@ -387,7 +387,7 @@ event inherit {
         Assert.AreEqual(1, db.Events.Count);
 
         // db.RunAction(db.Events[0]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         // Entity e = db.Entities.Single();
         // PropertyId propTest = db.GetProperty("test");
         // Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
@@ -478,8 +478,8 @@ rule olds_dies {
 
         var db = StoryParser.Parse(script, out var error);
         db.Deserialize(json);
-        // db.PrintDb();
-        db.PassYears(1);
+        db.Printer.PrintDb(db);
+        db.Ctx.PassYears(1, db);
         // db.PrintDb();
         db.Printer.PrintChangeset(db.CurrentChangeset, false);
         Console.WriteLine(db.CurrentChangeset.Description);
@@ -535,7 +535,7 @@ rule create {
 ";
         var db = Run(s, out var errors);
         db.RunAction("create");
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
     
     [Test]
@@ -557,7 +557,7 @@ rule create {
 ";
         var db = Run(s, out var errors);
         db.RunAction("create");
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
 
     
@@ -576,7 +576,7 @@ rule create {
 ";
         var db = Run(s, out var errors);
         db.RunAction("create");
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetProperty("job");
         var value = e.GetProperty(jobProp);
@@ -601,7 +601,7 @@ rule create {
 ";
         var db = Run(s, out var errors);
         db.RunAction("create");
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetProperty("job");
         var value = e.GetProperty(jobProp);
@@ -626,7 +626,7 @@ rule create {
 ";
         var db = Run(s, out var errors, 1);
         db.RunAction("create");
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetProperty("job");
         var value = e.GetProperty(jobProp);
@@ -653,7 +653,7 @@ rule create {
             db.RunAction("create");
 
         }
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         var e = db.Entities.First();
         PropertyId jobProp = db.GetProperty("job");
         var value = e.GetProperty(jobProp);
@@ -772,7 +772,7 @@ rule call {
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[1]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
        Assert.AreEqual(2, db.Entities.Count());
     }
     [Test]
@@ -791,7 +791,7 @@ rule call {
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
     [Test]
     public void Singleton()
@@ -809,7 +809,7 @@ rule read {
         db.History = new();
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
 
     [Test]
@@ -831,8 +831,8 @@ rule born {
         db.SetSeed(seed);
         db.RunAction("init");
 
-        db.PassYears(10);
-        db.PrintDb();
+        db.Ctx.PassYears(10, db);
+        db.Printer.PrintDb(db);
         Console.WriteLine("Born: " + (db.Entities.Count() - 1));
     }
 
@@ -876,21 +876,21 @@ rule pass_15_years {
         db.History = new();
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         db.RunAction(db.Actions[1]);
         db.RunAction(db.Actions[2]);
-        db.PrintDb();
-        db.RunAction(db.Actions[1]);
-        db.RunAction(db.Actions[2]);
-        db.RunAction(db.Actions[2]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         db.RunAction(db.Actions[1]);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         db.RunAction(db.Actions[1]);
         db.RunAction(db.Actions[2]);
-        db.PrintDb();
+        db.RunAction(db.Actions[2]);
+        db.Printer.PrintDb(db);
+        db.RunAction(db.Actions[1]);
+        db.RunAction(db.Actions[2]);
+        db.Printer.PrintDb(db);
     }
 
     [Test]
@@ -930,18 +930,18 @@ rule pass_15_years {
         db.History = new();
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         db.RunAction(db.Actions[2]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         db.RunAction(db.Actions[2]);
-        db.PrintDb();
+        db.Printer.PrintDb(db);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
-        db.PrintDb();
-        db.PrintHistory();
+        db.Printer.PrintDb(db);
+        db.Printer.PrintHistory(db);
     }
 
     [Test]
@@ -955,7 +955,7 @@ rule r {
         db.History = new();
         
         AssertInstruction(() => db.RunAction(db.Actions[0]));
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
     [Test]
     public void TestAssertEq()
@@ -968,7 +968,7 @@ rule r {
         db.History = new();
         
         AssertInstruction(() => db.RunAction(db.Actions[0]));
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
     [Test]
     public void TestAssertTrue()
@@ -981,6 +981,6 @@ rule r {
         db.History = new();
         
         NoAssertInstruction(() => db.RunAction(db.Actions[0]));
-        db.PrintDb();
+        db.Printer.PrintDb(db);
     }
 }

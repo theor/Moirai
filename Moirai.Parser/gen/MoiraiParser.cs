@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/StoryGen/Moirai.Parser/Moirai.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/StoryGen/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -18,6 +18,9 @@
 #pragma warning disable 1591
 // Ambiguous reference in cref attribute
 #pragma warning disable 419
+
+
+    namespace Moirai.Parser;
 
 using System;
 using System.IO;
@@ -32,7 +35,7 @@ using DFA = Antlr4.Runtime.Dfa.DFA;
 
 [System.CodeDom.Compiler.GeneratedCode("ANTLR", "4.13.1")]
 [System.CLSCompliant(false)]
-public partial class Moirai : Parser {
+public partial class MoiraiParser : Parser {
 	protected static DFA[] decisionToDFA;
 	protected static PredictionContextCache sharedContextCache = new PredictionContextCache();
 	public const int
@@ -78,29 +81,29 @@ public partial class Moirai : Parser {
 		}
 	}
 
-	public override string GrammarFileName { get { return "Moirai.g4"; } }
+	public override string GrammarFileName { get { return "MoiraiParser.g4"; } }
 
 	public override string[] RuleNames { get { return ruleNames; } }
 
 	public override int[] SerializedAtn { get { return _serializedATN; } }
 
-	static Moirai() {
+	static MoiraiParser() {
 		decisionToDFA = new DFA[_ATN.NumberOfDecisions];
 		for (int i = 0; i < _ATN.NumberOfDecisions; i++) {
 			decisionToDFA[i] = new DFA(_ATN.GetDecisionState(i), i);
 		}
 	}
 
-		public Moirai(ITokenStream input) : this(input, Console.Out, Console.Error) { }
+		public MoiraiParser(ITokenStream input) : this(input, Console.Out, Console.Error) { }
 
-		public Moirai(ITokenStream input, TextWriter output, TextWriter errorOutput)
+		public MoiraiParser(ITokenStream input, TextWriter output, TextWriter errorOutput)
 		: base(input, output, errorOutput)
 	{
 		Interpreter = new ParserATNSimulator(this, _ATN, decisionToDFA, sharedContextCache);
 	}
 
 	public partial class RContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode Eof() { return GetToken(Moirai.Eof, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode Eof() { return GetToken(MoiraiParser.Eof, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ActionContext[] action() {
 			return GetRuleContexts<ActionContext>();
 		}
@@ -131,13 +134,13 @@ public partial class Moirai : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public Type_definitionContext type_definition(int i) {
 			return GetRuleContext<Type_definitionContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMENT() { return GetTokens(Moirai.COMMENT); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMENT() { return GetTokens(MoiraiParser.COMMENT); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COMMENT(int i) {
-			return GetToken(Moirai.COMMENT, i);
+			return GetToken(MoiraiParser.COMMENT, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
 		public RContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -146,17 +149,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_r; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterR(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitR(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitR(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -256,15 +259,15 @@ public partial class Moirai : Parser {
 	public partial class FilterContext : ParserRuleContext {
 		public IToken occurence;
 		public IToken years;
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode AT() { return GetToken(Moirai.AT, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] ID() { return GetTokens(Moirai.ID); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode AT() { return GetToken(MoiraiParser.AT, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] ID() { return GetTokens(MoiraiParser.ID); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID(int i) {
-			return GetToken(Moirai.ID, i);
+			return GetToken(MoiraiParser.ID, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK() { return GetToken(Moirai.LINE_BREAK, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] NUMBER() { return GetTokens(Moirai.NUMBER); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK() { return GetToken(MoiraiParser.LINE_BREAK, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] NUMBER() { return GetTokens(MoiraiParser.NUMBER); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NUMBER(int i) {
-			return GetToken(Moirai.NUMBER, i);
+			return GetToken(MoiraiParser.NUMBER, i);
 		}
 		public FilterContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -273,17 +276,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_filter; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterFilter(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitFilter(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitFilter(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -339,14 +342,14 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class ActionContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode RULE() { return GetToken(Moirai.RULE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(Moirai.ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(Moirai.SCOPE_OPEN, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode RULE() { return GetToken(MoiraiParser.RULE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(MoiraiParser.ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(MoiraiParser.SCOPE_OPEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(Moirai.SCOPE_CLOSE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(MoiraiParser.SCOPE_CLOSE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public FilterContext filter() {
 			return GetRuleContext<FilterContext>(0);
 		}
@@ -363,17 +366,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_action; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterAction(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitAction(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitAction(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -449,14 +452,14 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class EventContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EVENT() { return GetToken(Moirai.EVENT, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(Moirai.ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(Moirai.SCOPE_OPEN, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EVENT() { return GetToken(MoiraiParser.EVENT, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(MoiraiParser.ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(MoiraiParser.SCOPE_OPEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(Moirai.SCOPE_CLOSE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(MoiraiParser.SCOPE_CLOSE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public WhenContext[] when() {
 			return GetRuleContexts<WhenContext>();
 		}
@@ -476,17 +479,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_event; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterEvent(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitEvent(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEvent(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -566,26 +569,26 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class WhenContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode WHEN() { return GetToken(Moirai.WHEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode WHEN() { return GetToken(MoiraiParser.WHEN, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext[] expr() {
 			return GetRuleContexts<ExprContext>();
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext expr(int i) {
 			return GetRuleContext<ExprContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(Moirai.VAR_ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(Moirai.COLON, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(Moirai.COMMA); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(MoiraiParser.VAR_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(MoiraiParser.COLON, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(MoiraiParser.COMMA); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COMMA(int i) {
-			return GetToken(Moirai.COMMA, i);
+			return GetToken(MoiraiParser.COMMA, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] SPACE() { return GetTokens(Moirai.SPACE); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] SPACE() { return GetTokens(MoiraiParser.SPACE); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SPACE(int i) {
-			return GetToken(Moirai.SPACE, i);
+			return GetToken(MoiraiParser.SPACE, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
 		public WhenContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -594,17 +597,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_when; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterWhen(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitWhen(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitWhen(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -701,13 +704,13 @@ public partial class Moirai : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public Call_assignContext call_assign() {
 			return GetRuleContext<Call_assignContext>(0);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] SPACE() { return GetTokens(Moirai.SPACE); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] SPACE() { return GetTokens(MoiraiParser.SPACE); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SPACE(int i) {
-			return GetToken(Moirai.SPACE, i);
+			return GetToken(MoiraiParser.SPACE, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
 		public EffectContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -716,17 +719,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_effect; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterEffect(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitEffect(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEffect(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -806,11 +809,11 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class SetContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SET() { return GetToken(Moirai.SET, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SET() { return GetToken(MoiraiParser.SET, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public PathContext path() {
 			return GetRuleContext<PathContext>(0);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EQ() { return GetToken(Moirai.EQ, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EQ() { return GetToken(MoiraiParser.EQ, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext expr() {
 			return GetRuleContext<ExprContext>(0);
 		}
@@ -821,17 +824,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_set; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterSet(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitSet(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitSet(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -866,15 +869,15 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class VarContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR() { return GetToken(Moirai.VAR, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(Moirai.VAR_ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EQ() { return GetToken(Moirai.EQ, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR() { return GetToken(MoiraiParser.VAR, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(MoiraiParser.VAR_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EQ() { return GetToken(MoiraiParser.EQ, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext expr() {
 			return GetRuleContext<ExprContext>(0);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(Moirai.COLON, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(Moirai.ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(Moirai.TYPE_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(MoiraiParser.COLON, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(MoiraiParser.ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(MoiraiParser.TYPE_ID, 0); }
 		public VarContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -882,17 +885,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_var; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterVar(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitVar(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitVar(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -947,9 +950,9 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class Call_assignContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(Moirai.ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(Moirai.VAR_ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(Moirai.COLON, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(MoiraiParser.ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(MoiraiParser.VAR_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(MoiraiParser.COLON, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ScopeContext scope() {
 			return GetRuleContext<ScopeContext>(0);
 		}
@@ -959,9 +962,9 @@ public partial class Moirai : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext expr(int i) {
 			return GetRuleContext<ExprContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(Moirai.COMMA); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(MoiraiParser.COMMA); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COMMA(int i) {
-			return GetToken(Moirai.COMMA, i);
+			return GetToken(MoiraiParser.COMMA, i);
 		}
 		public Call_assignContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -970,17 +973,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_call_assign; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterCall_assign(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitCall_assign(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitCall_assign(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1054,7 +1057,7 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class CallContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(Moirai.ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(MoiraiParser.ID, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ScopeContext scope() {
 			return GetRuleContext<ScopeContext>(0);
 		}
@@ -1064,9 +1067,9 @@ public partial class Moirai : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext expr(int i) {
 			return GetRuleContext<ExprContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(Moirai.COMMA); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(MoiraiParser.COMMA); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COMMA(int i) {
-			return GetToken(Moirai.COMMA, i);
+			return GetToken(MoiraiParser.COMMA, i);
 		}
 		public CallContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -1075,17 +1078,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_call; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterCall(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitCall(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitCall(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1149,11 +1152,11 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class ScopeContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(Moirai.SCOPE_OPEN, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(Moirai.SCOPE_CLOSE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(MoiraiParser.SCOPE_OPEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(MoiraiParser.SCOPE_CLOSE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public EffectContext[] effect() {
 			return GetRuleContexts<EffectContext>();
@@ -1168,17 +1171,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_scope; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterScope(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitScope(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitScope(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1264,7 +1267,7 @@ public partial class Moirai : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public Enum_valueContext enum_value() {
 			return GetRuleContext<Enum_valueContext>(0);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(Moirai.TYPE_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(MoiraiParser.TYPE_ID, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public PathContext path() {
 			return GetRuleContext<PathContext>(0);
 		}
@@ -1274,7 +1277,7 @@ public partial class Moirai : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public NumberContext number() {
 			return GetRuleContext<NumberContext>(0);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NULL() { return GetToken(Moirai.NULL, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NULL() { return GetToken(MoiraiParser.NULL, 0); }
 		public ValueContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -1282,17 +1285,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_value; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterValue(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitValue(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitValue(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1380,8 +1383,8 @@ public partial class Moirai : Parser {
 		public ExprContext paren_expr;
 		public IToken op;
 		public ExprContext right;
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PAREN_OPEN() { return GetToken(Moirai.PAREN_OPEN, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PAREN_CLOSE() { return GetToken(Moirai.PAREN_CLOSE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PAREN_OPEN() { return GetToken(MoiraiParser.PAREN_OPEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PAREN_CLOSE() { return GetToken(MoiraiParser.PAREN_CLOSE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext[] expr() {
 			return GetRuleContexts<ExprContext>();
 		}
@@ -1391,16 +1394,16 @@ public partial class Moirai : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public ValueContext value() {
 			return GetRuleContext<ValueContext>(0);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EQ() { return GetToken(Moirai.EQ, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NEQ() { return GetToken(Moirai.NEQ, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode GE() { return GetToken(Moirai.GE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LE() { return GetToken(Moirai.LE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode GT() { return GetToken(Moirai.GT, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LT() { return GetToken(Moirai.LT, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode MUL() { return GetToken(Moirai.MUL, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode DIV() { return GetToken(Moirai.DIV, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ADD() { return GetToken(Moirai.ADD, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SUB() { return GetToken(Moirai.SUB, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EQ() { return GetToken(MoiraiParser.EQ, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NEQ() { return GetToken(MoiraiParser.NEQ, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode GE() { return GetToken(MoiraiParser.GE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LE() { return GetToken(MoiraiParser.LE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode GT() { return GetToken(MoiraiParser.GT, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LT() { return GetToken(MoiraiParser.LT, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode MUL() { return GetToken(MoiraiParser.MUL, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode DIV() { return GetToken(MoiraiParser.DIV, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ADD() { return GetToken(MoiraiParser.ADD, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SUB() { return GetToken(MoiraiParser.SUB, 0); }
 		public ExprContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -1408,17 +1411,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_expr; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterExpr(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitExpr(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitExpr(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1570,13 +1573,13 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class Type_definitionContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ENTITY() { return GetToken(Moirai.ENTITY, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(Moirai.TYPE_ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(Moirai.SCOPE_OPEN, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(Moirai.SCOPE_CLOSE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ENTITY() { return GetToken(MoiraiParser.ENTITY, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(MoiraiParser.TYPE_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(MoiraiParser.SCOPE_OPEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(MoiraiParser.SCOPE_CLOSE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
 		public Type_definitionContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -1585,17 +1588,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_type_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterType_definition(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitType_definition(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitType_definition(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1659,16 +1662,16 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class Prop_definitionContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PROP() { return GetToken(Moirai.PROP, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] ID() { return GetTokens(Moirai.ID); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PROP() { return GetToken(MoiraiParser.PROP, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] ID() { return GetTokens(MoiraiParser.ID); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID(int i) {
-			return GetToken(Moirai.ID, i);
+			return GetToken(MoiraiParser.ID, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(Moirai.COLON, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(Moirai.TYPE_ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(MoiraiParser.COLON, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(MoiraiParser.TYPE_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
 		public Prop_definitionContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -1677,17 +1680,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_prop_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterProp_definition(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitProp_definition(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitProp_definition(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1744,20 +1747,20 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class Enum_definitionContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ENUM() { return GetToken(Moirai.ENUM, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] TYPE_ID() { return GetTokens(Moirai.TYPE_ID); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ENUM() { return GetToken(MoiraiParser.ENUM, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] TYPE_ID() { return GetTokens(MoiraiParser.TYPE_ID); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID(int i) {
-			return GetToken(Moirai.TYPE_ID, i);
+			return GetToken(MoiraiParser.TYPE_ID, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(Moirai.SCOPE_OPEN, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(Moirai.SCOPE_CLOSE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(Moirai.LINE_BREAK); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(MoiraiParser.SCOPE_OPEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(MoiraiParser.SCOPE_CLOSE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
-			return GetToken(Moirai.LINE_BREAK, i);
+			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(Moirai.COMMA); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(MoiraiParser.COMMA); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COMMA(int i) {
-			return GetToken(Moirai.COMMA, i);
+			return GetToken(MoiraiParser.COMMA, i);
 		}
 		public Enum_definitionContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -1766,17 +1769,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_enum_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterEnum_definition(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitEnum_definition(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEnum_definition(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1872,7 +1875,7 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class StringContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode STRING() { return GetToken(Moirai.STRING, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode STRING() { return GetToken(MoiraiParser.STRING, 0); }
 		public StringContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -1880,17 +1883,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_string; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterString(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitString(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitString(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1919,8 +1922,8 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class BoolContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TRUE() { return GetToken(Moirai.TRUE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode FALSE() { return GetToken(Moirai.FALSE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TRUE() { return GetToken(MoiraiParser.TRUE, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode FALSE() { return GetToken(MoiraiParser.FALSE, 0); }
 		public BoolContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -1928,17 +1931,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_bool; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterBool(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitBool(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitBool(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -1975,15 +1978,15 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class PathContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SINGLETON_ID() { return GetToken(Moirai.SINGLETON_ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(Moirai.VAR_ID, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] DOT() { return GetTokens(Moirai.DOT); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SINGLETON_ID() { return GetToken(MoiraiParser.SINGLETON_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(MoiraiParser.VAR_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] DOT() { return GetTokens(MoiraiParser.DOT); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode DOT(int i) {
-			return GetToken(Moirai.DOT, i);
+			return GetToken(MoiraiParser.DOT, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] ID() { return GetTokens(Moirai.ID); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] ID() { return GetTokens(MoiraiParser.ID); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID(int i) {
-			return GetToken(Moirai.ID, i);
+			return GetToken(MoiraiParser.ID, i);
 		}
 		public PathContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -1992,17 +1995,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_path; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterPath(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitPath(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitPath(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -2074,11 +2077,11 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class Enum_valueContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] TYPE_ID() { return GetTokens(Moirai.TYPE_ID); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] TYPE_ID() { return GetTokens(MoiraiParser.TYPE_ID); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID(int i) {
-			return GetToken(Moirai.TYPE_ID, i);
+			return GetToken(MoiraiParser.TYPE_ID, i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode DOT() { return GetToken(Moirai.DOT, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode DOT() { return GetToken(MoiraiParser.DOT, 0); }
 		public Enum_valueContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -2086,17 +2089,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_enum_value; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterEnum_value(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitEnum_value(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEnum_value(this);
 			else return visitor.VisitChildren(this);
 		}
@@ -2129,7 +2132,7 @@ public partial class Moirai : Parser {
 	}
 
 	public partial class NumberContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NUMBER() { return GetToken(Moirai.NUMBER, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NUMBER() { return GetToken(MoiraiParser.NUMBER, 0); }
 		public NumberContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -2137,17 +2140,17 @@ public partial class Moirai : Parser {
 		public override int RuleIndex { get { return RULE_number; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.EnterNumber(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiListener typedListener = listener as IMoiraiListener;
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
 			if (typedListener != null) typedListener.ExitNumber(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
-			IMoiraiVisitor<TResult> typedVisitor = visitor as IMoiraiVisitor<TResult>;
+			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitNumber(this);
 			else return visitor.VisitChildren(this);
 		}

@@ -1,5 +1,5 @@
 ﻿using System.Text;
-using Pcg.Core;
+using Moirai.Core;
 
 public class StoryPrinter
 {
@@ -259,10 +259,10 @@ public class StoryPrinter
         if (e.Properties != null)
             foreach (var property in e.Properties)
             {
-                if (property.Type == Database.PropType || property.Type == Database.PropName)
+                if (property.Id == Database.PropType || property.Id == Database.PropName)
                     continue;
 
-                Console.Write($"  {_database.Properties[(int)property.Type.Id].Name}: {Print(property.Value)}");
+                Console.Write($"  {_database.Properties[(int)property.Id.Id].Name}: {Print(property.Value)}");
                 if (property.Value.Type == PropertyValue.TypeRef && _database.TryGetEntity(property.Value.Id, out var other) &&
                     other.TryGetProperty(Database.PropName, out var otherName))
                     Console.Write(" " + otherName.Value);
@@ -270,4 +270,30 @@ public class StoryPrinter
             }
     }
     private static readonly ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
+    public void PrintDb(Database database)
+    {
+        // Console.WriteLine("[DB]");
+        bool any = false;
+        foreach (var e in database.Entities)
+        {
+            any = true;
+            this.PrintEntity(e);
+        }
+        if (!any)
+            Console.WriteLine("<Empty>");
+        Console.WriteLine();
+    }
+    public void PrintHistory(Database database)
+    {
+        foreach (var cs in database.History.Changesets)
+        {
+            this.PrintChangeset(cs);
+        }
+    }
+    public string Format(InterpolatedString formatAction, Database database)
+    {
+        var printer = new StoryPrinter(database);
+        var propertyValues = formatAction.Arguments.Select(path => printer.Print(path.Compute(database.Ctx1), true)).Cast<object?>().ToArray();
+        return String.Format(formatAction.FormatString, propertyValues);
+    }
 }

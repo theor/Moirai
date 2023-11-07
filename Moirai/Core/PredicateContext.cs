@@ -1,20 +1,23 @@
-﻿using Pcg;
+﻿using Moirai;
+using Moirai.Core;
 
 public class PredicateContext
 {
+    internal long _year;
+
     public readonly Database Database;
-    private List<PropertyValue> _values = new();
     public Pcg32 Rnd;
+    private List<PropertyValue> _values = new();
+    private List<EntityId> _pool = new();
+    public int ValueOffset { get; set; }
+    public int ValueCount => _values.Count;
+    public PropertyValue LastValue => _values.Last();
 
     public PredicateContext(Database database, ulong seed)
     {
         Database = database;
         Rnd = new Pcg32(seed, 42);
     }
-    public long EntityId => _values[^1].IntValue;
-    public int ValueOffset { get; set; }
-    public int ValueCount => _values.Count;
-    public PropertyValue LastValue => _values.Last();
 
     public EntityId GetSingletonId(EntityTypeId type)
     {
@@ -41,29 +44,7 @@ public class PredicateContext
         value = default;
         return false;
     }
-    public bool Query(IValue? predicate, out EntityId value)
-    {
-        if (predicate == null)
-        {
-            value = default;
-            return true;
-        }
-        var iterationIdx = _values.Count;
-        foreach (var entity in Database.Entities)
-        {
-            SetArgument(iterationIdx, entity.Id);
-            if (predicate.IsTrue(this))
-            {
-                PopArgument();
-                value = entity.Id;
-                return true;
-            }
-        }
-        PopArgument();
-        value = default;
-        return false;
-    }
-    private List<EntityId> _pool = new();
+
 
     public bool PickRandom(IValue value, out EntityId id)
     {
@@ -79,7 +60,7 @@ public class PredicateContext
         id = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
         return true;
     }
-    public bool FindAll( IValue? predicate,ref List<EntityId> results)
+    public bool FindAll(IValue? predicate, ref List<EntityId> results)
     {
         results.Clear();
         if (predicate == null)
@@ -98,12 +79,14 @@ public class PredicateContext
             if (isTrue)
             {
                 results.Add(entity.Id);
-            }else{
+            }
+            else
+            {
             }
             // Console.ResetColor();
             PopArgument();
         }
-        
+
         return true;
     }
     public int PopArgument()
@@ -128,16 +111,22 @@ public class PredicateContext
         _values.Add(entity);
         return count;
     }
-    
+    public void ClearValueStack()
+    {
+        _values.RemoveRange(ValueOffset, _values.Count - ValueOffset);
+    }
+
+
+    public Scope RunScope()
+    {
+        return new Scope(this, _values.Count, ValueOffset);
+    }
     public void Assert(bool boolValue, string msg)
     {
         if (!boolValue)
             throw new InvalidOperationException("assert failed: " + msg);
     }
-    public void ClearValueStack()
-    {
-       _values.RemoveRange(ValueOffset, _values.Count - ValueOffset);
-    }
+
     public struct Scope : IDisposable
     {
         private readonly PredicateContext _predicateContext;
@@ -155,12 +144,35 @@ public class PredicateContext
         {
             _predicateContext.ValueOffset = _valueOffset;
             _predicateContext._values.RemoveRange(_valuesCount, _predicateContext._values.Count - _valuesCount);
-            
+
         }
     }
 
-    public Scope RunScope()
+    public void PassYears(int years, Database database)
     {
-        return new Scope(this, _values.Count, ValueOffset);
+        database.CurrentChangeset = new Changeset("time", Int64.MaxValue);
+        var timeType = database.GetEntityType("Time");
+        var timeId = this.GetSingletonId(timeType.Id);
+        var yearsProp = database.GetProperty("year");
+        if (!database.TryGetEntity(timeId, out var time))
+            throw new NotImplementedException("missing Time entity");
+
+        _year = time.GetProperty(yearsProp).IntValue;
+        for (int i = 0; i < years; i++)
+        {
+            Console.WriteLine("\tTIME " + _year);
+            database.SetProperty(timeId, yearsProp, ++_year);
+            foreach (var action in database.Actions)
+            {
+                if (action.Filter == null)
+                    continue;
+
+                int count = (int)action.Filter.Compute(database.Ctx).IntValue;
+                for (int j = 0; j < count; j++)
+                {
+                    database.RunAction(action);
+                }
+            }
+        }
     }
 }

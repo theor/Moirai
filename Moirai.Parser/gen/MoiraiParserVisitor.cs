@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/StoryGen/Moirai.Parser/Moirai.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/StoryGen/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -19,142 +19,145 @@
 // Ambiguous reference in cref attribute
 #pragma warning disable 419
 
+
+    namespace Moirai.Parser;
+
 using Antlr4.Runtime.Misc;
 using Antlr4.Runtime.Tree;
 using IToken = Antlr4.Runtime.IToken;
 
 /// <summary>
 /// This interface defines a complete generic visitor for a parse tree produced
-/// by <see cref="Moirai"/>.
+/// by <see cref="MoiraiParser"/>.
 /// </summary>
 /// <typeparam name="Result">The return type of the visit operation.</typeparam>
 [System.CodeDom.Compiler.GeneratedCode("ANTLR", "4.13.1")]
 [System.CLSCompliant(false)]
-public interface IMoiraiVisitor<Result> : IParseTreeVisitor<Result> {
+public interface IMoiraiParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.r"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.r"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitR([NotNull] Moirai.RContext context);
+	Result VisitR([NotNull] MoiraiParser.RContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.filter"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.filter"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitFilter([NotNull] Moirai.FilterContext context);
+	Result VisitFilter([NotNull] MoiraiParser.FilterContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.action"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.action"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitAction([NotNull] Moirai.ActionContext context);
+	Result VisitAction([NotNull] MoiraiParser.ActionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.event"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.event"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitEvent([NotNull] Moirai.EventContext context);
+	Result VisitEvent([NotNull] MoiraiParser.EventContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.when"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.when"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitWhen([NotNull] Moirai.WhenContext context);
+	Result VisitWhen([NotNull] MoiraiParser.WhenContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.effect"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.effect"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitEffect([NotNull] Moirai.EffectContext context);
+	Result VisitEffect([NotNull] MoiraiParser.EffectContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.set"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.set"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitSet([NotNull] Moirai.SetContext context);
+	Result VisitSet([NotNull] MoiraiParser.SetContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.var"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.var"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitVar([NotNull] Moirai.VarContext context);
+	Result VisitVar([NotNull] MoiraiParser.VarContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.call_assign"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.call_assign"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitCall_assign([NotNull] Moirai.Call_assignContext context);
+	Result VisitCall_assign([NotNull] MoiraiParser.Call_assignContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.call"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.call"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitCall([NotNull] Moirai.CallContext context);
+	Result VisitCall([NotNull] MoiraiParser.CallContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.scope"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.scope"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitScope([NotNull] Moirai.ScopeContext context);
+	Result VisitScope([NotNull] MoiraiParser.ScopeContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.value"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.value"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitValue([NotNull] Moirai.ValueContext context);
+	Result VisitValue([NotNull] MoiraiParser.ValueContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.expr"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.expr"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitExpr([NotNull] Moirai.ExprContext context);
+	Result VisitExpr([NotNull] MoiraiParser.ExprContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.type_definition"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.type_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitType_definition([NotNull] Moirai.Type_definitionContext context);
+	Result VisitType_definition([NotNull] MoiraiParser.Type_definitionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.prop_definition"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.prop_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitProp_definition([NotNull] Moirai.Prop_definitionContext context);
+	Result VisitProp_definition([NotNull] MoiraiParser.Prop_definitionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.enum_definition"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.enum_definition"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitEnum_definition([NotNull] Moirai.Enum_definitionContext context);
+	Result VisitEnum_definition([NotNull] MoiraiParser.Enum_definitionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.string"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.string"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitString([NotNull] Moirai.StringContext context);
+	Result VisitString([NotNull] MoiraiParser.StringContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.bool"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.bool"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitBool([NotNull] Moirai.BoolContext context);
+	Result VisitBool([NotNull] MoiraiParser.BoolContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.path"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.path"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitPath([NotNull] Moirai.PathContext context);
+	Result VisitPath([NotNull] MoiraiParser.PathContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.enum_value"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.enum_value"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitEnum_value([NotNull] Moirai.Enum_valueContext context);
+	Result VisitEnum_value([NotNull] MoiraiParser.Enum_valueContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="Moirai.number"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.number"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitNumber([NotNull] Moirai.NumberContext context);
+	Result VisitNumber([NotNull] MoiraiParser.NumberContext context);
 }

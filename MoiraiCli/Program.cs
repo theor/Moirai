@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using Pcg;
-
+using Moirai;
 internal class Program
 {
     public static async Task Main(string[] args)
@@ -115,13 +114,13 @@ if(json1 != json2)
     throw new System.NotImplementedException("Diff");
             }
             if (line == "t")
-                db.PassYears(1);
+                db.Ctx.PassYears(1, db);
             else if (line.StartsWith("t "))
             {
                 if (int.TryParse(line.Substring("t ".Length), out var years))
                 {
                     Stopwatch sw = Stopwatch.StartNew();
-                    db.PassYears(years);
+                    db.Ctx.PassYears(years, db);
                     Console.WriteLine($"Time: {(sw.ElapsedMilliseconds / 1000f)}s");
                 }
             }
@@ -135,7 +134,7 @@ if(json1 != json2)
             }
             else if (line == "p")
             {
-                db.PrintDb();
+                db.Printer.PrintDb(db);
             }
             else if (line == "h")
             {
@@ -172,7 +171,7 @@ if(json1 != json2)
             }
             else if (line == "")
             {
-                db.PassYears(1);
+                db.Ctx.PassYears(1, db);
                 // if (prevAction == -1)
                 //     RunRandomAction(db, rnd);
                 // else

@@ -1,5 +1,9 @@
-parser grammar Moirai;
+parser grammar MoiraiParser;
+@header {
+    namespace Moirai.Parser;
+}
 options {
+
   tokenVocab=moirai_lexer;
 
 }

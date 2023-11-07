@@ -1,4 +1,4 @@
-﻿namespace Pcg.Core;
+﻿namespace Moirai.Core;
 
 
 public struct RandomEvent
@@ -37,12 +37,5 @@ public struct RandomEvent
         } while (prodUni > expLambda); 
 
         return randPoisson;
-    }
-    public void Set(int occurences, int expectedInterval)
-    {
-        ExpectedOccurences = occurences;
-        ExpectedInterval = expectedInterval;
-        Occurences = 0;
-        Interval = 0;
     }
 }

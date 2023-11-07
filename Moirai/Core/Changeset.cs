@@ -1,4 +1,4 @@
-﻿namespace Pcg.Core;
+﻿namespace Moirai.Core;
 
 public class History
 {
@@ -10,7 +10,18 @@ public struct Changeset(string actionName, long year)
     public readonly string ActionName = actionName;
     public readonly long Year = year;
     public readonly List<Change> Changes = new();
-    public string? Description = null;
+    public string? Description { get; private set; } = null;
+    public void AppendDescription(string? desc)
+    {
+        if (!String.IsNullOrEmpty(desc))
+        {
+            if (!String.IsNullOrEmpty(this.Description))
+                this.Description += "\n";
+            // else
+            //     CurrentChangeset.Description = $"{Year}\n";
+            this.Description += desc;
+        }
+    }
 }
 
 public struct Change

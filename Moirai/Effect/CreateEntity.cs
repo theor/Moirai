@@ -1,4 +1,4 @@
-﻿using Pcg.Core;
+﻿using Moirai.Core;
 
 public class InterpolatedString : IValue
 {
@@ -11,7 +11,7 @@ public class InterpolatedString : IValue
     }
     public PropertyValue Compute(PredicateContext ctx)
     {
-        return ctx.Database.Format(this) ?? "";
+        return ctx.Database.Printer.Format(this, ctx.Database) ?? "";
     }
 }
 public class FormatAction : IInstruction
@@ -23,7 +23,7 @@ public class FormatAction : IInstruction
     }
     public bool Execute(PredicateContext ctx)
     {
-        ctx.Database.AppendDescription(ctx.Database.Format(String));
+        ctx.Database.CurrentChangeset.AppendDescription(ctx.Database.Printer.Format(String, ctx.Database));
         return true;
     }
 }
@@ -45,7 +45,7 @@ public class CreateEntity : IInstruction
         string? name = null;
         if (Name != null)
         {
-            name = ctx.Database.Format(Name);
+            name = ctx.Database.Printer.Format(Name, ctx.Database);
         }
       
         var entity = ctx.Database.AllocateEntity(Type, name);

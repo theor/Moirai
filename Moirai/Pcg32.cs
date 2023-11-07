@@ -1,4 +1,4 @@
-﻿namespace Pcg;
+﻿namespace Moirai;
 internal static class Helpers
 {
 	/// <summary>

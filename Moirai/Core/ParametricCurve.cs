@@ -1,4 +1,4 @@
-﻿namespace Pcg.Core;
+﻿namespace Moirai.Core;
 /// <summary>
     /// see https://www.gdcvault.com/play/1021848/Building-a-Better-Centaur-AI and https://www.gdcvault.com/play/1018040/Architecture-Tricks-Managing-Behaviors-in
     /// </summary>
