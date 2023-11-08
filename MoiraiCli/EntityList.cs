@@ -34,6 +34,7 @@ public class EntityList : View
         {
             _tableView.Table.Columns.Remove(name);
         }
+        Load();
     }
     public EntityList(MainWindow w)
     {

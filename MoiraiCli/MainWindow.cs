@@ -6,7 +6,7 @@ namespace Moirai;
 public class MainWindow : Toplevel
 {
     public Database Database;
-    public StatusItem FileStatus, YearStatus;
+    public StatusItem FileStatus, YearStatus, MessageStatus;
     private View LeftPane;
     private List<EntityId> _history = new();
     private int _historyIndex = -1;
@@ -85,6 +85,7 @@ public class MainWindow : Toplevel
         });
         FileStatus = new StatusItem(Key.CharMask, "Driver:", null);
         YearStatus = MakeYearsStatus();
+        MessageStatus = new StatusItem(Key.Unknown, "Message", null);
         StatusBar = new StatusBar()
         {
             Visible = true,
@@ -102,6 +103,7 @@ public class MainWindow : Toplevel
                     EntityList.Visible = !EntityList.Visible;
                     WorldHistory.Visible = !EntityList.Visible;
                 }),
+                MessageStatus,
             }
         };
         LeftPane.Add(EntityDetails);
@@ -219,6 +221,7 @@ public class MainWindow : Toplevel
                 catch (TaskCanceledException)
                 {
                 }
+                MessageStatus.Title = cw.Ms + "ms";
                 UpdateDb();
             };
             // dialog.FocusFirst();

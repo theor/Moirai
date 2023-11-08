@@ -178,5 +178,6 @@ public class PredicateContext
                 }
             }
         }
+        Profiler.Dump();
     }
 }

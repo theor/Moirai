@@ -119,6 +119,8 @@ public class Database
     }
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
+        Profiler.Set(property);
+
         if (!TryGetEntity(entityId, out var entity))
             return false;
 
@@ -302,7 +304,7 @@ public class Database
     }
     public void Init()
     {
-
+        Profiler.Init(this);
         foreach (Action a in Actions)
         {
             if (a.Filter is FilterAtStart)

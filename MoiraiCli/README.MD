@@ -30,3 +30,6 @@ FEATURES
 - [x] pick must be random
 - [x] wip add factions ?
 - [x] fix single parent
+
+run 100 years twice:
+- init 147, 365 ms

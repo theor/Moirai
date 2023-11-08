@@ -20,6 +20,8 @@ abstract class TaskDialog : Dialog
             // Debug.WriteLine("completed: " + _t.IsCompleted);
             if (_t.IsCompleted)
             {
+                Ms = _sw.ElapsedMilliseconds;
+                _sw.Stop();
                 Canceled = !_t.IsCompletedSuccessfully;
                 Application.RequestStop();
                 return false;
@@ -32,16 +34,21 @@ abstract class TaskDialog : Dialog
             cts.Cancel();
             Debug.WriteLine("Closing");
             Application.MainLoop.RemoveIdle(idle);
+            _sw.Stop();
         };
         var button = new Button("Cancel", true);
         button.Clicked += () =>
         {
+            _sw.Stop();
             Application.RequestStop();
 
         };
         AddButton(button);
+        _sw = Stopwatch.StartNew();
         _t = CreateTask(cts.Token, progress);
         //         this.Add(new Label(10, 10, "Test"));
     }
+    private Stopwatch _sw;
+    public long Ms;
     protected abstract void OnProgress(int obj);
 }
