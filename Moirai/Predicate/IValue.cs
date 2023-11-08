@@ -3,6 +3,7 @@
 public interface IValue
 {
     PropertyValue Compute(PredicateContext ctx);
+    bool HasTypeFilter(out EntityTypeId type);
     bool IsTrue(PredicateContext ctx) => Compute(ctx).BoolValue;
 }
 
@@ -18,7 +19,14 @@ public class IsOfType : IValue
     public PropertyValue Compute(PredicateContext ctx)
     {
         var typeId = Entity.Compute(ctx).TypeId;
-        return typeId == ValueTypeId;
+        var result = typeId == ValueTypeId;
+        Profiler.HitOfType(typeId, result);
+        return result;
+    }
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        type = ValueTypeId;
+        return true;
     }
 }
 

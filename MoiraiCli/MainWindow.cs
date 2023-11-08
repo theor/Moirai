@@ -85,7 +85,7 @@ public class MainWindow : Toplevel
         });
         FileStatus = new StatusItem(Key.CharMask, "Driver:", null);
         YearStatus = MakeYearsStatus();
-        MessageStatus = new StatusItem(Key.Unknown, "Message", null);
+        MessageStatus = new StatusItem(Key.Unknown, "", null);
         StatusBar = new StatusBar()
         {
             Visible = true,

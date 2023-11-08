@@ -34,4 +34,27 @@ FEATURES
 run 100 years twice:
 - init 147, 365 ms
 - type prop: 128, 350
-- 1000 twice: 4800ms, 13300ms
+- 1000 twice: 4800ms, 13 300ms
+- 3000: 42s
+prealloc all properties for each entity:
+- 1000 twice: 4600ms, 12 600ms
+- 3000: 37s
+
+hit on 500y:
+    Person: 63.60% 3136428 / 4930778
+      Item: 13.68% 433517  / 3166992
+   Faction:  2.92% 3860    / 131889
+      Link: 10.25% 769908  / 7507848
+   Country:  7.20% 6980    / 96881
+       God:  2.46% 2370    / 96254
+per type index
+- 1000 twice: 2200, 5100
+- 3000: 17s
+    Person: 100.00% 3136428 / 3136428
+      Item:  99.82% 433517 / 434268
+   Faction:  93.10% 3860 / 4146
+      Link:  99.76% 769908 / 771700
+   Country:  79.76% 6980 / 8751
+       God:  67.44% 2370 / 3514
+
+op equality ??

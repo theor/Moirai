@@ -85,18 +85,22 @@ public class Database
 
     public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
     {
-        Entity e = new();
+        Entity e = new(this);
 
-        e.Properties = new();
         e.Type = entityType;
         if (!String.IsNullOrEmpty(name))
-            e.Properties.Add(new Property(PropName, name));
+        {
+            e.Properties[PropName.Id].Id  = PropName;
+            e.Properties[PropName.Id].Value= name;
+        }
         e.Id = new EntityId(_entities.Count);
         _entities.Add(e);
+        PerTypeIndices[(int)entityType.Id].Add(e.Id);
         CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
 
         return e.Id;
     }
+    public List<EntityId>[] PerTypeIndices;
     public bool TryGetEntity(EntityId entityId, out Entity entity)
     {
         if (entityId.Id == 0 || entityId.Id >= _entities.Count)
@@ -129,11 +133,11 @@ public class Database
         if (property == PropType)
             throw new NotImplementedException();
 
-        if (entity.Properties == null)
-        {
-            entity.Properties = new();
-            _entities[(int)entityId.Id] = entity;
-        }
+        // if (entity.Properties == null)
+        // {
+        //     entity.Properties = new();
+        //     _entities[(int)entityId.Id] = entity;
+        // }
         if (GetPropertyType(property, out var type) && type.BaseType == PropertyValue.ValueBaseType.Enum)
         {
             if (value.Type.BaseType != PropertyValue.ValueBaseType.Enum)
@@ -141,21 +145,27 @@ public class Database
                 value = new PropertyValue { Type = Enums[type.Index].ValueType, IntValue = value.IntValue };
             }
         }
-        for (var index = 0; index < entity.Properties.Count; index++)
-        {
-            var entityProperty = entity.Properties[index];
-            if (entityProperty.Id == property)
-            {
-
-                var prev = entityProperty.Value;
-                entityProperty.Value = value;
-                entity.Properties[index] = entityProperty;
-                CurrentChangeset.Changes.Add(Change.Set(entityId, property, prev, value));
-                return true;
-            }
-        }
-        CurrentChangeset.Changes.Add(Change.Set(entityId, property, default, value));
-        entity.Properties.Add(new Property(property, value));
+        var p = entity.Properties[property.Id];
+        var prev = p.Value;
+        p.Id = property;
+        p.Value = value;
+        CurrentChangeset.Changes.Add(Change.Set(entityId, property, prev, value));
+        entity.Properties[property.Id] = p;
+        // for (var index = 0; index < entity.Properties.Count; index++)
+        // {
+        //     var entityProperty = entity.Properties[index];
+        //     if (entityProperty.Id == property)
+        //     {
+        //
+        //         var prev = entityProperty.Value;
+        //         entityProperty.Value = value;
+        //         entity.Properties[index] = entityProperty;
+        //         CurrentChangeset.Changes.Add(Change.Set(entityId, property, prev, value));
+        //         return true;
+        //     }
+        // }
+        // CurrentChangeset.Changes.Add(Change.Set(entityId, property, default, value));
+        // entity.Properties.Add(new Property(property, value));
         return true;
     }
     public PropertyId GetPropertyId(string name)
@@ -307,6 +317,11 @@ public class Database
     public void Init()
     {
         Profiler.Init(this);
+        PerTypeIndices = new List<EntityId>[Types.Count];
+        for (var i = 0; i < PerTypeIndices.Length; i++)
+        {
+            PerTypeIndices[i] = new List<EntityId>(100);
+        }
         foreach (Action a in Actions)
         {
             if (a.Filter is FilterAtStart)

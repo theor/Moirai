@@ -105,7 +105,7 @@ public class EntityDetailsView : FrameView
         {
         }
         public IList ToList() => _entity.Properties.SelectMany(x => new object[]{x.Id, x.Value}).ToList();
-        public int Count => _entity.Properties.Count * 2;
+        public int Count => _entity.Properties.Length * 2;
         public int Length => 20;
 
         void RenderUstr(ConsoleDriver driver, ustring ustr, int col, int line, int width, bool? enabled)

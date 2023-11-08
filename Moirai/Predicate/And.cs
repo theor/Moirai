@@ -13,6 +13,10 @@
     {
         throw new NotImplementedException();
     }
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        return Predicates[0].HasTypeFilter(out type);
+    }
     public bool IsTrue(PredicateContext ctx)
     {
         foreach (var p in Predicates)

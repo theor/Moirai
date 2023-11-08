@@ -10,11 +10,10 @@ public struct Entity
     }
 
     public PropertyValue _type;
-    public List<Property>? Properties;
-    public Entity(params Property[] properties) : this()
+    public Property[] Properties;
+    public Entity(Database db) : this()
     {
-        Properties ??= new();
-        Properties.AddRange(properties);
+        Properties = new Property[db.Properties.Count];
     }
     public bool TryGetProperty(PropertyId property, out PropertyValue value)
     {
@@ -26,7 +25,7 @@ public struct Entity
         }
         if (property == Database.PropType)
         {
-            value = Type;
+            value = _type;
             return true;
         }
         if(!property.IsValid)
@@ -36,16 +35,8 @@ public struct Entity
             value = default;
             return false;
         }
-        foreach (var p in Properties)
-        {
-            if (p.Id == property)
-            {
-                value = p.Value;
-                return true;
-            }
-        }
-        value = default;
-        return false;
+        value = Properties[property.Id].Value;
+        return Properties[property.Id].Id.IsValid;
     }
     public PropertyValue GetProperty(PropertyId property)
     {
@@ -63,6 +54,7 @@ public static class Profiler
 
     static PropData[]? Hits = null;
     static int[]? ValueHits = null;
+    static (int,int)[]? HitsOfType = null;
     private static Database _db;
     [Conditional("DEBUG")]
     public static void Get(PropertyId id)
@@ -86,12 +78,24 @@ public static class Profiler
              Hits[index] = new();
         }
         ValueHits = new int[Enum.GetValues<PropertyValue.ValueBaseType>().Length];
+        HitsOfType = new (int,int)[database.Types.Count];
     }
     [Conditional("DEBUG")]
     public static void Value(PropertyValue.ValueBaseType t)
     {
         if(ValueHits != null)
         ValueHits[(int)t]++;
+    }
+    [Conditional("DEBUG")]
+    public static void HitOfType(EntityTypeId t, bool success)
+    {
+        if (HitsOfType != null)
+        {
+            ref var h = ref HitsOfType[(int)t.Id];
+            h.Item1++;
+            if (success)
+                h.Item2++;
+        }
     }
     [Conditional("DEBUG")]
     public static void Dump()
@@ -104,6 +108,11 @@ public static class Profiler
         {
             Debug.WriteLine($"{type,10}: {ValueHits[(int)type]}");
 
+        }
+        for (var index = 0; index < HitsOfType.Length; index++)
+        {
+            var (total, success) = HitsOfType[index];
+            Debug.WriteLine($"{_db.Types[index].Name,10}: {100 * success / (float)total}% {success} / {total}");
         }
     }
 }

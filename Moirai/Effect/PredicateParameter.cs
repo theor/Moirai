@@ -8,6 +8,11 @@ public struct Literal : IValue
         Value = value;
     }
     public PropertyValue Compute(PredicateContext ctx) => Value;
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        type = default;
+        return false;
+    }
 }
 
 
@@ -62,6 +67,11 @@ public struct PropertyPath : IValue
 
         return e.GetProperty(Property);
     }
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        type = default;
+        return false;
+    }
 }
 
 public struct YearsPassed : IValue
@@ -75,6 +85,11 @@ public struct YearsPassed : IValue
     public PropertyValue Compute(PredicateContext ctx)
     {
         throw new NotImplementedException();
+    }
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        type = default;
+        return false;
     }
 }
 
@@ -134,6 +149,11 @@ public struct RandomCall : IValue
         var def = ctx.Database.Enums[EnumID];
         return def.GetRandomValue(ctx.Rnd);
     }
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        type = default;
+        return false;
+    }
 }
 
 public struct RandomName : IValue
@@ -152,6 +172,11 @@ public struct RandomName : IValue
     public PropertyValue Compute(PredicateContext ctx)
     {
         return Type == NameType.Name ? NameEntity.Names.RandomIn(ctx.Rnd) : NameEntity.Items.RandomIn(ctx.Rnd);
+    }
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        type = default;
+        return false;
     }
 }
 

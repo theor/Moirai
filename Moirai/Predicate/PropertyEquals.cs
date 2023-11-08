@@ -50,4 +50,9 @@
                 throw new ArgumentOutOfRangeException();
         }
     }
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        type = default;
+        return false;
+    }
 }

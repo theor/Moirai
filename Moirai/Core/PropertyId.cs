@@ -14,11 +14,11 @@ public readonly struct PropertyId : IEquatable<PropertyId>
     }
     public static bool operator ==(PropertyId left, PropertyId right)
     {
-        return left.Equals(right);
+        return left.Id == right.Id;
     }
     public static bool operator !=(PropertyId left, PropertyId right)
     {
-        return !left.Equals(right);
+        return left.Id != right.Id;
     }
     public static readonly PropertyId Null = new PropertyId();
     public bool IsValid => Id != 0;

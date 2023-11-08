@@ -13,6 +13,11 @@ public class InterpolatedString : IValue
     {
         return ctx.Database.Printer.Format(this, ctx.Database) ?? "";
     }
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        type = default;
+        return false;
+    }
 }
 public class FormatAction : IInstruction
 {

@@ -68,6 +68,21 @@ public class PredicateContext
             return false;
         }
 
+        if (predicate.HasTypeFilter(out var typeFilter))
+        {
+            var ids = Database.PerTypeIndices[(int)typeFilter.Id];
+            foreach (var id in ids)
+            {
+                PushArgument(id);
+                var isTrue = predicate.IsTrue(this);
+                if (isTrue)
+                    results.Add(id);
+                PopArgument();
+
+            }
+            return true;
+            // TODO TYPE FILTER
+        }
         foreach (var entity in Database.Entities)
         {
             PushArgument(entity.Id);
