@@ -20,6 +20,7 @@ public class TestsBase
             // Console.WriteLine(print2);
             Assert.AreEqual(printed, print2);
         }
+        db.Init();
         return db;
     }
     protected void AssertInstruction(System.Action a)
@@ -502,6 +503,7 @@ rule olds_dies {
 ";
 
         var db = StoryParser.Parse(script, out var error);
+        db.Init();
         db.Deserialize(json);
         db.Printer.PrintDb(db);
         db.Ctx.PassYears(1);
@@ -731,7 +733,7 @@ rule create_faction {
         db.RunAction(db.Actions[0]);
         db.Printer.PrintChangeset(db.History.Changesets[0], false);
         Console.WriteLine(db.History.Changesets[0].Description);
-        Assert.AreEqual("River creates the Faction of Cerelia to counter the Circle of Hecate", db.History.Changesets[0].Description);
+        Assert.AreEqual("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>", db.History.Changesets[0].Description);
     }
     [Test]
     public void Format_TwoRandomNames()
