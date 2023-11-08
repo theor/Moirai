@@ -38,6 +38,8 @@ public struct PropertyPath : IValue
         Mode = PropertyPathMode.Singleton;
         VariableIndex = -1;
     }
+    public bool Nested => false;
+
     public PropertyValue Compute(PredicateContext ctx)
     {
         if (Mode == PropertyPathMode.Singleton)

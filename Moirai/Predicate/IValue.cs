@@ -5,6 +5,23 @@ public interface IValue
     PropertyValue Compute(PredicateContext ctx);
     bool IsTrue(PredicateContext ctx) => Compute(ctx).BoolValue;
 }
+
+public class IsOfType : IValue
+{
+    public readonly IValue Entity;
+    public readonly EntityTypeId ValueTypeId;
+    public IsOfType(IValue entity, EntityTypeId valueTypeId)
+    {
+        Entity = entity;
+        ValueTypeId = valueTypeId;
+    }
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        var typeId = Entity.Compute(ctx).TypeId;
+        return typeId == ValueTypeId;
+    }
+}
+
 public interface IFilter{
     PropertyValue Compute(PredicateContext ctx);}
 public class FilterAtStart : IFilter

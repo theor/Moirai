@@ -223,6 +223,8 @@ public class StoryPrinter
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 return $"({Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)})";
+            case IsOfType ofType :
+                return $"({Print(ofType.Entity)} = {Print(ofType.ValueTypeId)})";
             // case True @true:
             // break;
             default:

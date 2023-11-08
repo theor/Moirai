@@ -3,6 +3,13 @@
 public struct Entity
 {
     public EntityId Id;
+    public EntityTypeId Type
+    {
+        get => _type.TypeId;
+        set => _type = value;
+    }
+
+    public PropertyValue _type;
     public List<Property>? Properties;
     public Entity(params Property[] properties) : this()
     {
@@ -12,13 +19,18 @@ public struct Entity
     public bool TryGetProperty(PropertyId property, out PropertyValue value)
     {
         Profiler.Get(property);
-        if(!property.IsValid)
-            throw new System.NotImplementedException("Null property");
         if (property == Database.PropId)
         {
             value = Id;
             return true;
         }
+        if (property == Database.PropType)
+        {
+            value = Type;
+            return true;
+        }
+        if(!property.IsValid)
+            throw new System.NotImplementedException("Null property");
         if (Properties == null)
         {
             value = default;
@@ -50,15 +62,18 @@ public static class Profiler
     }
 
     static PropData[]? Hits = null;
+    static int[]? ValueHits = null;
     private static Database _db;
     [Conditional("DEBUG")]
     public static void Get(PropertyId id)
     {
+        if(Hits != null)
         Hits[(int)id.Id].Get++;
     }
     [Conditional("DEBUG")]
     public static void Set(PropertyId id)
     {
+        if(Hits != null)
         Hits[(int)id.Id].Set++;
     }
     [Conditional("DEBUG")]
@@ -70,6 +85,13 @@ public static class Profiler
         {
              Hits[index] = new();
         }
+        ValueHits = new int[Enum.GetValues<PropertyValue.ValueBaseType>().Length];
+    }
+    [Conditional("DEBUG")]
+    public static void Value(PropertyValue.ValueBaseType t)
+    {
+        if(ValueHits != null)
+        ValueHits[(int)t]++;
     }
     [Conditional("DEBUG")]
     public static void Dump()
@@ -77,6 +99,11 @@ public static class Profiler
         foreach (var property in _db.Properties.Select(p => (p, Hits[p.Id])).OrderByDescending(x => x.Item2.Get))
         {
             Debug.WriteLine($"{property.p.Name ?? ""}: get {property.Item2.Get} / set {property.Item2.Set}");
+        }
+        foreach (var type in Enum.GetValues<PropertyValue.ValueBaseType>())
+        {
+            Debug.WriteLine($"{type,10}: {ValueHits[(int)type]}");
+
         }
     }
 }

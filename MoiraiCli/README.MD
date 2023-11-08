@@ -33,3 +33,5 @@ FEATURES
 
 run 100 years twice:
 - init 147, 365 ms
+- type prop: 128, 350
+- 1000 twice: 4800ms, 13300ms

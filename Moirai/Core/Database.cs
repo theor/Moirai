@@ -88,7 +88,7 @@ public class Database
         Entity e = new();
 
         e.Properties = new();
-        e.Properties.Add(new Property(PropType, entityType));
+        e.Type = entityType;
         if (!String.IsNullOrEmpty(name))
             e.Properties.Add(new Property(PropName, name));
         e.Id = new EntityId(_entities.Count);
@@ -125,6 +125,8 @@ public class Database
             return false;
 
         if (property == PropId)
+            throw new NotImplementedException();
+        if (property == PropType)
             throw new NotImplementedException();
 
         if (entity.Properties == null)

@@ -21,7 +21,9 @@
     public PropertyValue Compute(PredicateContext ctx)
     {
         var left = Left.Compute(ctx);
+        Profiler.Value(left.Type.BaseType);
         var right = Right.Compute(ctx);
+        Profiler.Value(right.Type.BaseType);
         switch (Op)
         {
             case Operator.Equals:

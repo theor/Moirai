@@ -245,6 +245,31 @@ rule born_char {
     }
     
     [Test]
+    public void FilterByType()
+    {
+        var s = @"
+entity Person {}
+prop x: number
+rule born_char {
+    create Person
+}
+rule r {
+    each type=Person {
+        set x = 2
+    }
+}
+";
+        
+        var db = Run(s, out var errors);
+
+        db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[1]);
+        db.Printer.PrintDb(db);
+        Assert.AreEqual(1, db.Entities.Count());
+        Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("x")).IntValue);
+    }
+    
+    [Test]
     public void TypeQuery()
     {
         var s = @"
