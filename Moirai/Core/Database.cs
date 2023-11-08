@@ -106,6 +106,15 @@ public class Database
         return true;
     }
 
+    public bool GetProperty(EntityId entityId, PropertyId property, out PropertyValue value)
+    {
+        if (!TryGetEntity(entityId, out var entity))
+        {
+            value = default;
+            return false;
+        }
+        return entity.TryGetProperty(property, out value);
+    }
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
         if (!TryGetEntity(entityId, out var entity))
@@ -143,7 +152,7 @@ public class Database
         entity.Properties.Add(new Property(property, value));
         return true;
     }
-    public PropertyId GetProperty(string name)
+    public PropertyId GetPropertyId(string name)
     {
         for (var index = 1; index < Properties.Count; index++)
         {

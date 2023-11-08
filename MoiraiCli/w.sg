@@ -253,7 +253,7 @@ rule item_found {
 @1 per 10 year
 rule item_sold {
     pick $i: type=Item, owner != null
-    pick $p: type=Person, id != $i.owner
+    pick $p: type=Person, alive, id != $i.owner
     var $prev = $i.owner
     set $i.owner = $p
     record '{$p.name} acquires the {$i.name} from {$prev.name}'

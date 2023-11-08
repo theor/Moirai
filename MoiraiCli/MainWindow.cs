@@ -42,7 +42,6 @@ public class MainWindow : Toplevel
             // ShortcutAction = () => ActionList.SetFocus(),
             Visible = false,
         };
-        ActionList.Title = $"{ActionList.Title} ({ActionList.ShortcutTag})";
         EntityList = new EntityList(this)
         {
             X = Pos.Right(LeftPane),
@@ -142,6 +141,7 @@ public class MainWindow : Toplevel
             SelectEntity(Current, false);
         }
     }
+    private int _lastPassedYearsValue = 100;
     private StatusItem MakeYearsStatus()
     {
 
@@ -152,13 +152,12 @@ public class MainWindow : Toplevel
             {
                 HelpText = "Time passing will trigger multiple events according to their probability or filter",
             };
-            int delta = 1;
             var label1 = new Label("Years ") { X = Pos.Center(), Y = Pos.Center() };
             var label2 = new Label("Result ") { X = Pos.Center(), Y = Pos.Center() + 2 };
             wizardStep.Add(label1);
             wizardStep.Add(label2);
 
-            var textField = new TextField(delta.ToString())
+            var textField = new TextField(_lastPassedYearsValue.ToString())
             {
                 Width = 20,
                 X = Pos.Right(label1),
@@ -166,7 +165,7 @@ public class MainWindow : Toplevel
                 CanFocus = true,
                 TabIndex = 0,
             };
-            var result = new Label((Database.Ctx._year + delta).ToString())
+            var result = new Label((Database.Ctx._year + _lastPassedYearsValue).ToString())
             {
                 Width = 20,
                 X = Pos.Right(label2),
@@ -176,8 +175,8 @@ public class MainWindow : Toplevel
             {
                 if (int.TryParse(textField.Text.ToString(), out var d))
                 {
-                    delta = d;
-                    result.Text = (Database.Ctx._year + delta).ToString();
+                    _lastPassedYearsValue = d;
+                    result.Text = (Database.Ctx._year + _lastPassedYearsValue).ToString();
                     textField.ColorScheme = Colors.Base;
                 }
                 else
@@ -191,18 +190,25 @@ public class MainWindow : Toplevel
 
             dialog.AddStep(wizardStep);
             dialog.StepChanged += (_) => textField.SetFocus();
-            dialog.Finished += e =>
+            dialog.Finished += async e =>
             {
-                if (delta > 0)
+                if (_lastPassedYearsValue <= 0)
+                    return;
+                var cw = new PassYearsDialog(Database, _lastPassedYearsValue);
+                try
                 {
-                    Database.Ctx.PassYears(delta);
-                    UpdateDb();
+                    await cw.Execute();
                 }
+                catch (TaskCanceledException)
+                {
+                }
+                UpdateDb();
             };
             // dialog.FocusFirst();
             Application.Run(dialog);
         });
     }
+
     private void UpdateDb()
     {
         YearStatus.Title = "~^T~ Year: " + Database.Ctx._year;

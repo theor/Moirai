@@ -151,7 +151,7 @@ public static class StoryParser
         public override object? VisitProp_definition(MoiraiParser.Prop_definitionContext context)
         {
             var propName = context.ID(0).GetText();
-            if (_database.GetProperty(propName).Id != 0)
+            if (_database.GetPropertyId(propName).Id != 0)
                 return AddError(ErrorCode.DuplicatePropertyDefinition, context, propName);
 
             PropertyValue.ValueType type = ParseType(context.ID(1) ?? context.TYPE_ID());
@@ -653,7 +653,7 @@ public static class StoryParser
             if (context.ID(0) != null)
             {
                 var propertyName = context.ID(0)?.GetText();
-                propertyId = _database.GetProperty(propertyName.ToLowerInvariant());
+                propertyId = _database.GetPropertyId(propertyName.ToLowerInvariant());
                 if (!propertyId.IsValid)
                 {
                     AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);

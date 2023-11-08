@@ -148,20 +148,24 @@ public class PredicateContext
         }
     }
 
-    public void PassYears(int years)
+    public void PassYears(int years) => PassYears(years, CancellationToken.None, null);
+    public void PassYears(int years, CancellationToken token, IProgress<int>? progress)
     {
         Database.CurrentChangeset = new Changeset("time", Int64.MaxValue);
         var timeType = Database.GetEntityType("Time");
         var timeId = this.GetSingletonId(timeType.Id);
-        var yearsProp = Database.GetProperty("year");
+        var yearsProp = Database.GetPropertyId("year");
         if (!Database.TryGetEntity(timeId, out var time))
             throw new NotImplementedException("missing Time entity");
 
         _year = time.GetProperty(yearsProp).IntValue;
         for (int i = 0; i < years; i++)
         {
+            if (token.IsCancellationRequested)
+                return;
             Console.WriteLine("\tTIME " + _year);
             Database.SetProperty(timeId, yearsProp, ++_year);
+            progress?.Report(i);
             foreach (var action in Database.Actions)
             {
                 if (action.Filter == null)

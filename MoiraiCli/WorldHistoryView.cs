@@ -171,6 +171,11 @@ public class WorldHistoryView : View
     public void SetFiltering(bool filtering)
     {
         _listView.HistorySource.SetFiltering(filtering);
+        if (_listView.TopItem >= _listView.HistorySource.Count && _listView.HistorySource.Count > 0)
+        {
+            _listView.SelectedItem = 0;
+            _listView.TopItem = Math.Max(0, _listView.HistorySource.Count - 30);
+        }
         _listView.SetNeedsDisplay();
     }
 }

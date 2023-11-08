@@ -14,7 +14,8 @@ public class ActionListView : FrameView
         {
             Y = 0,
             Width = Dim.Fill(),
-            Height = Dim.Fill()
+            Height = Dim.Fill(),
+            AllowsMultipleSelection = true,
         };
         _listView.OpenSelectedItem += e =>
         {
