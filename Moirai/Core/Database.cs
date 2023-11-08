@@ -36,6 +36,8 @@ public class Database
         get { return _ctx; }
     }
 
+    public string? FilePath { get; set; }
+
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         IncludeFields = true,

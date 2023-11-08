@@ -8,17 +8,7 @@ internal class Program
 {
     public static async Task Main(string[] args)
     {
-            var t = new Thread(() =>
-            {
-                string content = File.ReadAllText(@"C:\Users\theor\StoryGen\MoiraiCli\w.sg");
-                var db = StoryParser.Parse(content, out var errors);
-                db.History = new();
-
-                db.Init();
-                db.Ctx.PassYears(100);
-                Application.MainLoop.Invoke(() => (Application.Top as MainWindow).LoadDatabase(db));
-            });
-            t.Start();
+            
             Application.Run<MainWindow> ();
             Application.Shutdown ();
         }

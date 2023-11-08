@@ -479,7 +479,7 @@ rule olds_dies {
         var db = StoryParser.Parse(script, out var error);
         db.Deserialize(json);
         db.Printer.PrintDb(db);
-        db.Ctx.PassYears(1, db);
+        db.Ctx.PassYears(1);
         // db.PrintDb();
         db.Printer.PrintChangeset(db.CurrentChangeset, false);
         Console.WriteLine(db.CurrentChangeset.Description);
@@ -487,9 +487,11 @@ rule olds_dies {
     }
 
     [Test]
-    public void ParseWholeFile()
+    [TestCase("../../../../MoiraiCli/w.sg")]
+    [TestCase("../../../../MoiraiCli/space.sg")]
+    public void ParseWholeFile(string rpath)
     {
-        var path = Path.GetFullPath("../../../../MoiraiCli/w.sg");
+        var path = Path.GetFullPath(rpath);
         Console.WriteLine(path);
         Assert.IsTrue(File.Exists(path));
         var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
@@ -831,7 +833,7 @@ rule born {
         db.SetSeed(seed);
         db.RunAction("init");
 
-        db.Ctx.PassYears(10, db);
+        db.Ctx.PassYears(10);
         db.Printer.PrintDb(db);
         Console.WriteLine("Born: " + (db.Entities.Count() - 1));
     }

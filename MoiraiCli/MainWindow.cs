@@ -13,6 +13,9 @@ public class MainWindow : Toplevel
     public EntityId Current => _historyIndex < _history.Count ? _history[_historyIndex] : default;
     public MainWindow()
     {
+        var args = Environment.GetCommandLineArgs();
+        string path = args.Length > 1 ? args[1] : @"C:\Users\theor\StoryGen\MoiraiCli\w.sg";
+
         ColorScheme = Colors.TopLevel;
         // AddCommand(Command.PageLeft, () =>
         // {
@@ -71,7 +74,8 @@ public class MainWindow : Toplevel
         {
             new MenuBarItem("_File", new MenuItem[]
             {
-                new MenuItem("_Quit", "Quit UI Catalog", () => RequestStop(), null, null, Key.Q | Key.CtrlMask)
+                new MenuItem("_Reload", "Reload current file", () => ReloadFile(Database.FilePath), null, null, Key.F5),
+                new MenuItem("_Quit", "Quit UI Catalog", () => RequestStop(), null, null, Key.Q | Key.CtrlMask),
             }),
             new MenuBarItem("_View", new MenuItem[]
             {
@@ -107,6 +111,19 @@ public class MainWindow : Toplevel
         Add(EntityList);
         Add(WorldHistory);
         Add(StatusBar);
+        
+        ReloadFile(path);
+    }
+    public void ReloadFile(string path)
+    {
+        string content = File.ReadAllText(path);
+        var db = StoryParser.Parse(content, out var errors);
+        db.FilePath = path;
+        db.History = new();
+
+        db.Init();
+        // db.Ctx.PassYears(100);
+        LoadDatabase(db);
     }
 
     public ActionListView ActionList { get; set; }
@@ -226,5 +243,9 @@ public class MainWindow : Toplevel
     public void SetFiltering(bool filtering)
     {
         WorldHistory.SetFiltering(filtering);
+    }
+    public void SetDisplayedProperty(PropertyId id, bool displayed)
+    {
+        EntityList.SetPropertyColumn(id, displayed);
     }
 }
