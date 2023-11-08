@@ -23,7 +23,7 @@ public class FormatAction : IInstruction
     }
     public bool Execute(PredicateContext ctx)
     {
-        ctx.Database.CurrentChangeset.AppendDescription(ctx.Database.Printer.Format(String, ctx.Database));
+        ctx.Database.CurrentChangeset.AppendDescription(ctx.Database.Printer.Format(String, ctx.Database, true));
         return true;
     }
 }

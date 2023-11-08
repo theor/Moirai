@@ -12,7 +12,7 @@ internal class Program
             {
                 string content = File.ReadAllText(@"C:\Users\theor\StoryGen\MoiraiCli\w.sg");
                 var db = StoryParser.Parse(content, out var errors);
-                db.History = new(History.HistoryMode.FormatEntityIds);
+                db.History = new();
 
                 db.Init();
                 db.Ctx.PassYears(100);

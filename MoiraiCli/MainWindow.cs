@@ -9,8 +9,8 @@ public class MainWindow : Toplevel
     public StatusItem FileStatus, YearStatus;
     private View LeftPane;
     private List<EntityId> _history = new();
-    private int _historyIndex;
-    private EntityId Current => _historyIndex < _history.Count ? _history[_historyIndex] : default;
+    private int _historyIndex = -1;
+    public EntityId Current => _historyIndex < _history.Count ? _history[_historyIndex] : default;
     public MainWindow()
     {
         ColorScheme = Colors.TopLevel;
@@ -216,5 +216,9 @@ public class MainWindow : Toplevel
         ActionList.Load();
         EntityList.Load();
         UpdateDb();
+    }
+    public void SetFiltering(bool filtering)
+    {
+        WorldHistory.SetFiltering(filtering);
     }
 }

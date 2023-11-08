@@ -29,6 +29,9 @@ public class EntityDetailsView : FrameView
             }
         };
         Add(_listView);
+        var checkBox = new CheckBox("Filter"){ Y = Pos.AnchorEnd(1), X = Pos.AnchorEnd(10)};
+        checkBox.Toggled += _ => _w.SetFiltering(checkBox.Checked);
+        Add(checkBox);
     }
 
     public void SetSelectedEntity(EntityId eid)
@@ -71,7 +74,7 @@ public class EntityDetailsView : FrameView
             {
                 if (!selected)
                     driver.SetAttribute(container.GetNormalColor());
-                RenderUstr(driver, _printer.Print(props.Value), col, line, width, start);
+                RenderUstr(driver, " " +_printer.Print(props.Value), col, line, width, start);
             }
         }
         public bool IsMarked(int item) => false;

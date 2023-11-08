@@ -13,6 +13,7 @@ prop age: Age
 prop first_name: string
 prop alive: bool
 prop birthdate: number
+prop children_count: number
 prop partner: ref
 prop war_with: ref
 prop god: ref
@@ -129,7 +130,7 @@ rule _parent_dies {
 }
 @1 per 1 years
 rule char_joins_faith {
-    pick $x: type = Person, alive
+    pick $x: type = Person, alive, god = null
     pick $g: type = God
     set $x.god = $g
     record '{$x.name} takes the faith of {$g.name}'
@@ -194,8 +195,10 @@ rule country_war_win {
 }
 @4 per 1 year
 rule couple_has_child {
-    pick $x: type = Person, alive = true, partner != null
+    pick $x: type = Person, alive = true, partner != null, children_count < 4
     var $y = $x.partner
+    set $x.children_count = $x.children_count + 1
+    set $y.children_count = $y.children_count + 1
     
     var $fname = '{random name}'
     create $c: Person, '{$fname} {$x.first_name}son'
@@ -221,7 +224,7 @@ rule make_item {
     create $i: Item, '{random item} of {random name}'
     set $i.item_type = ItemType.Forged
     set $i.owner = $p
-    record '{$p} {$p.name} crafts the {$i} {$i.name}'
+    record '{$p.name} crafts the {$i} {$i.name}'
 }
 @1 per 2 year
 rule paint_item {
@@ -230,7 +233,7 @@ rule paint_item {
     create $i: Item, 'Portrait of {$t.name}'
     set $i.item_type = ItemType.Painted
     set $i.owner = $p
-    record '{$p} {$p.name} paints the {$i} {$i.name}'
+    record '{$p.name} paints the {$i.name}'
 }
 @1 per 8 year
 rule item_lost {
@@ -251,8 +254,9 @@ rule item_found {
 rule item_sold {
     pick $i: type=Item, owner != null
     pick $p: type=Person, id != $i.owner
+    var $prev = $i.owner
     set $i.owner = $p
-    record '{$p.name} acquires the {$i.name}'
+    record '{$p.name} acquires the {$i.name} from {$prev.name}'
 }
 @1 per 20 year
 rule create_faction {

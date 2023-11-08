@@ -170,8 +170,8 @@ public class StoryPrinter
             case PropertyValue.ValueBaseType.Ref:
                 if (value.IntValue == 0)
                     return "null";
-                if ((storyMode & History.HistoryMode.FormatEntityIds) != 0)
-                    return $"%id{value.Id.Id}%";
+                // if ((storyMode & History.HistoryMode.FormatEntityIds) != 0)
+                //     return $"%id{value.Id.Id}%";
                 return "#" + value.IntValue;
             case PropertyValue.ValueBaseType.Number:
                 return value.IntValue.ToString();
@@ -291,11 +291,19 @@ public class StoryPrinter
             this.PrintChangeset(cs);
         }
     }
-    public string Format(InterpolatedString formatAction, Database database)
+    public string Format(InterpolatedString formatAction, Database database, bool injectIdTags = false)
     {
-        var propertyValues = formatAction.Arguments.Select(path =>
+        var propertyValues = formatAction.Arguments.Select(v =>
         {
-            return Print(path.Compute(database.Ctx), (database.History?.Mode ?? History.HistoryMode.Default) | History.HistoryMode.Story);
+
+            var print = Print(v.Compute(database.Ctx), History.HistoryMode.Story);
+            if (injectIdTags && v is PropertyPath path && path.Mode == PropertyPath.PropertyPathMode.Variable)
+            {
+                var entity = database.Ctx.Argument(path.VariableIndex);
+                if(entity.Type == PropertyValue.TypeRef)
+                    return $"<{entity.Id}>{print}</>";
+            }
+            return print;
         }).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
     }

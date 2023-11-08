@@ -52,6 +52,8 @@ public class Database
         }
     };
 
+    private HashSet<EntityId> _changedEntities = new();
+
     public static List<PropertyDefinition> DefaultProperties()
     {
 
@@ -230,19 +232,12 @@ public class Database
                 return false;
             }
         }
-        HashSet<EntityId> changedEntities = new();
-
-        foreach (var change in CurrentChangeset.Changes)
-        {
-            changedEntities.Add(change.EntityId);
-            if (change.PrevValue.Type == PropertyValue.TypeRef && !change.PrevValue.Id.IsNull)
-                changedEntities.Add(change.PrevValue.Id);
-            if (change.NewValue.Type == PropertyValue.TypeRef && !change.NewValue.Id.IsNull)
-                changedEntities.Add(change.NewValue.Id);
-        }
+        _changedEntities.Clear();
+        CurrentChangeset.GetAffectedEntities(_changedEntities);
         if (!String.IsNullOrEmpty(CurrentChangeset.Description) || CurrentChangeset.Changes.Any())
             History?.Changesets.Add(CurrentChangeset);
-        RunEvents(changedEntities);
+
+        RunEvents(_changedEntities);
 
         return true;
     }

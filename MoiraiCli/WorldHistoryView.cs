@@ -10,11 +10,12 @@ namespace Moirai;
 public class WorldHistoryView : View
 {
     private readonly MainWindow _w;
-    private readonly ListView _listView;
+    private readonly MouseListView _listView;
 
     public class MouseListView : ListView
     {
         private readonly MainWindow _w;
+        public HistorySource HistorySource => (HistorySource)Source;
         public MouseListView(MainWindow w)
         {
             _w = w;
@@ -24,12 +25,15 @@ public class WorldHistoryView : View
         {
             if ((mouseEvent.Flags & MouseFlags.Button1Clicked) != 0)
             {
-                var l = _ids[mouseEvent.Y];
-                var r = l.FirstOrDefault(range => range.start <= mouseEvent.X && mouseEvent.X < range.start + range.length);
-                if(!r.id.IsNull)
-                    _w.SelectEntity(r.id);
-                Debug.WriteLine(
-                    $"{mouseEvent.X} {mouseEvent.Y} : {r.start}:{r.length} {r.id}");
+                if (mouseEvent.Y < _ids.Count)
+                {
+                    var l = _ids[mouseEvent.Y];
+                    var r = l.FirstOrDefault(range => range.start <= mouseEvent.X && mouseEvent.X < range.start + range.length);
+                    if (!r.id.IsNull)
+                        _w.SelectEntity(r.id);
+                    // Debug.WriteLine(
+                    //     $"{mouseEvent.X} {mouseEvent.Y} : {r.start}:{r.length} {r.id}");
+                }
             }
             return base.OnMouseEvent(mouseEvent);
         }
@@ -77,55 +81,96 @@ public class WorldHistoryView : View
         public void Render(ListView container, ConsoleDriver driver, bool selected, int item, int col, int line, int width, int start = 0)
         {
             container.Move(col, line);
-            var cs = _w.Database.History.Changesets[item];
+            var cs = _filtering ? _filtered[item] : _w.Database.History.Changesets[item];
             var str = (cs.Description ?? cs.ActionName).ReplaceLineEndings(" - ");
             _mlv.StartRow(line);
+            // driver.AddStr(str);
+            // return;
             int index = 0;
-            int displayedIndex = 0;
+            int displayedIndex = 5;
+            var yearString = cs.Year.ToString();
+            for (int i = 0; i < displayedIndex; i++)
+            {
+                if(i < yearString.Length)
+                    driver.AddRune(yearString[i]);
+                else
+                    driver.AddRune(' ');
+            }
             while (index < str.Length)
             {
-                var next = str.IndexOf("%id", index, StringComparison.Ordinal);
+                var next = str.IndexOf("<#", index, StringComparison.Ordinal);
+                
+                // no other tag, add remaining line
                 if (next == -1)
                 {
                     displayedIndex += str.Length - index;
                     driver.AddStr(str.Substring(index));
                     break;
                 }
+                
+                // found a tag opening
                 driver.AddStr(str.Substring(index, next - index));
                 displayedIndex += next - index;
-                var end = str.IndexOf('%', next + 3);
-                if (end == -1)
+                var startClose = str.IndexOf('>', next + 2);
+                if (startClose == -1)
                     throw new System.InvalidOperationException(str);
 
+                var id = str.Substring(next + 2, startClose - next - 2);
 
-                driver.SetAttribute(container.ColorScheme.HotFocus);
-                var id = str.Substring(next + 3, end - next - 3);
-                _mlv.RegisterId(new EntityId(long.Parse(id)), displayedIndex, line, id.Length);
-                displayedIndex += id.Length;
-                driver.AddStr(id);
+                // closing
+                var endOpen = str.IndexOf("</>", startClose, StringComparison.Ordinal);
+                if (endOpen == -1)
+                    throw new System.InvalidOperationException(str);
 
+                var content = str.Substring(startClose + 1, endOpen - startClose - 1);
 
-                driver.SetAttribute(container.ColorScheme.Normal);
-                index = end + 1;
+                // add link tag
+                var entityId = new EntityId(long.Parse(id));
+                if(_w.Current.Id == entityId.Id)
+                    driver.SetAttribute(container.ColorScheme.Disabled);
+                else
+                    driver.SetAttribute(/*selected ? container.ColorScheme.HotFocus : */container.ColorScheme.HotNormal);
+                _mlv.RegisterId(entityId, displayedIndex, line, content.Length);
+                displayedIndex += content.Length;
+                driver.AddStr(content);
+                driver.SetAttribute(/*selected ? container.ColorScheme.Focus : */container.ColorScheme.Normal);
+                index = endOpen + 3;
             }
-            // width -= TextFormatter.GetTextWidth(u);
             while (displayedIndex++ < width)
-            // {
-            driver.AddRune(' ');
-            // }
+                driver.AddRune(' ');
         }
         public bool IsMarked(int item) => false;
         public void SetMark(int item, bool value)
         {
         }
-        public IList ToList() => _w.Database?.History?.Changesets ?? new List<Changeset>();
-        public int Count => _w.Database?.History?.Changesets?.Count ?? 0;
+        public IList ToList() => _filtering ? _filtered : _w.Database?.History?.Changesets ?? new List<Changeset>();
+        public int Count => _filtering ? _filtered.Count : _w.Database?.History?.Changesets?.Count ?? 0;
         public int Length => 0; //100;
+        
+        private bool _filtering;
+        private List<Changeset> _filtered = new();
+        private HashSet<EntityId> _changed = new();
+        public void SetFiltering(bool filtering)
+        {
+            _filtering = filtering;
+            if (filtering)
+                _filtered = _w.Database.History.Changesets.Where(cs =>
+                {
+                    _changed.Clear();
+                    cs.GetAffectedEntities(_changed);
+                    return _changed.Contains(_w.Current);
+                }).ToList();
+        }
     }
 
     public void Update()
     {
         _listView.SetNeedsDisplay();
         // _listView.Source = new HistorySource(_w);
+    }
+    public void SetFiltering(bool filtering)
+    {
+        _listView.HistorySource.SetFiltering(filtering);
+        _listView.SetNeedsDisplay();
     }
 }

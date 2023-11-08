@@ -16,7 +16,6 @@ public class History
         Default = 0,
 
         Story = 1,
-        FormatEntityIds = 2
     }
 }
 
@@ -35,6 +34,17 @@ public struct Changeset(string actionName, long year)
             // else
             //     CurrentChangeset.Description = $"{Year}\n";
             this.Description += desc;
+        }
+    }
+    public void GetAffectedEntities(HashSet<EntityId> changedEntities)
+    {
+        foreach (var change in this.Changes)
+        {
+            changedEntities.Add(change.EntityId);
+            if (change.PrevValue.Type == PropertyValue.TypeRef && !change.PrevValue.Id.IsNull)
+                changedEntities.Add(change.PrevValue.Id);
+            if (change.NewValue.Type == PropertyValue.TypeRef && !change.NewValue.Id.IsNull)
+                changedEntities.Add(change.NewValue.Id);
         }
     }
 }
