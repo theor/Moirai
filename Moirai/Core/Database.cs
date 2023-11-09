@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Data.Sqlite;
 using Moirai;
 using Moirai.Core;
 
@@ -61,7 +62,8 @@ public class Database
 
         return new()
         {
-            default!, new("id", PropId.Id, PropertyValue.TypeRef),
+            default!,
+            new("id", PropId.Id, PropertyValue.TypeRef),
             new("type", PropType.Id, PropertyValue.TypeEntityType),
             new PropertyDefinition("name", PropName.Id, PropertyValue.TypeString),
             new PropertyDefinition("year", PropYear.Id, PropertyValue.TypeString),
@@ -95,12 +97,20 @@ public class Database
         }
         e.Id = new EntityId(_entities.Count);
         _entities.Add(e);
-        PerTypeIndices[(int)entityType.Id].Add(e.Id);
+        // PerTypeIndices[(int)entityType.Id].Add(e.Id);
         CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
 
+        var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"INSERT INTO entity (name, type)
+                    VALUES ($name, $type)
+                    RETURNING id";
+        cmd.Parameters.AddWithValue("$name", name ?? "?");
+        cmd.Parameters.AddWithValue("$type", entityType.Id);
+        cmd.ExecuteScalar();
+        // Console.WriteLine($"Result: " + cmd.ExecuteScalar());
         return e.Id;
     }
-    public List<EntityId>[] PerTypeIndices;
+    // public List<EntityId>[] PerTypeIndices;
     public bool TryGetEntity(EntityId entityId, out Entity entity)
     {
         if (entityId.Id == 0 || entityId.Id >= _entities.Count)
@@ -114,6 +124,13 @@ public class Database
 
     public bool GetProperty(EntityId entityId, PropertyId property, out PropertyValue value)
     {
+        var cmd = _connection.CreateCommand();
+        cmd.CommandText = $@"SELECT {GetPropertyName(property)} FROM entity WHERE id = $id  LIMIT 1;";
+        // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
+        cmd.Parameters.AddWithValue("$id", entityId.Id);
+        // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
+        var res = cmd.ExecuteScalar();
+        Console.WriteLine($"get {GetPropertyName(property)} = {res}");
         if (!TryGetEntity(entityId, out var entity))
         {
             value = default;
@@ -123,6 +140,14 @@ public class Database
     }
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
+        var cmd = _connection.CreateCommand();
+        cmd.CommandText = $@"UPDATE entity
+SET {GetPropertyName(property)} = {(value.Type.BaseType == PropertyValue.ValueBaseType.String ? ("'"+value.Value+"'") : (int)value.IntValue)}
+WHERE id = $id;";
+        // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
+        cmd.Parameters.AddWithValue("$id", entityId.Id);
+        // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
+        cmd.ExecuteNonQuery();
         Profiler.Set(property);
 
         if (!TryGetEntity(entityId, out var entity))
@@ -314,19 +339,83 @@ public class Database
         _entities = new() { default };
         _entities.AddRange(entities);
     }
+    private SqliteConnection _connection;
+
+    public static string ToSqlType(PropertyValue.ValueType t)
+    {
+        switch (t.BaseType)
+        {
+            case PropertyValue.ValueBaseType.String:
+                return "TEXT";
+
+            case PropertyValue.ValueBaseType.None:
+            case PropertyValue.ValueBaseType.Ref:
+            case PropertyValue.ValueBaseType.Number:
+            case PropertyValue.ValueBaseType.Bool:
+            case PropertyValue.ValueBaseType.Enum:
+            case PropertyValue.ValueBaseType.EntityType:
+                return "INTEGER DEFAULT 0";
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
     public void Init()
     {
+        Console.WriteLine(Path.GetFullPath("."));
+        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection.Open();
+        var cmd = _connection.CreateCommand();
+        cmd.CommandText = $@"
+CREATE TABLE entity (
+    id INTEGER PRIMARY KEY,
+    type INTEGER NOT NULL,
+    {string.Join(",\n  ", Properties.Skip(3).Select(p => $@"{p.Name} {ToSqlType(p.Type)}"))}
+)";
+        cmd.ExecuteNonQuery();
         Profiler.Init(this);
-        PerTypeIndices = new List<EntityId>[Types.Count];
-        for (var i = 0; i < PerTypeIndices.Length; i++)
-        {
-            PerTypeIndices[i] = new List<EntityId>(100);
-        }
+        // PerTypeIndices = new List<EntityId>[Types.Count];
+        // for (var i = 0; i < PerTypeIndices.Length; i++)
+        // {
+            // PerTypeIndices[i] = new List<EntityId>(100);
+        // }
         foreach (Action a in Actions)
         {
             if (a.Filter is FilterAtStart)
                 RunAction(a);
         }
+    }
+    public void Commit()
+    {
+        var path = "../../../hello.db";
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+        using(var _backup = new SqliteConnection("Data Source=" + path))
+            _connection.BackupDatabase(_backup);
+    }
+    public bool FindAll(IValue? predicate, ref List<EntityId> results)
+    {
+            results.Clear();
+            if (predicate == null)
+            {
+                return false;
+            }
+
+            string sql = predicate.ToSql(_ctx);
+            // Console.WriteLine(sql);
+            var cmd = _connection.CreateCommand();
+            cmd.CommandText = @"
+SELECT id FROM entity WHERE " + sql;
+            Debug.WriteLine(cmd.CommandText);
+            var r = cmd.ExecuteReader();
+            while(r.Read())
+                results.Add(new EntityId(r.GetInt64(0)));
+            return true;
     }
 }
 

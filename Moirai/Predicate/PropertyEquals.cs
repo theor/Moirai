@@ -55,4 +55,25 @@
         type = default;
         return false;
     }
+    public string ToSql(PredicateContext ctx)
+    {
+        var l = Left.ToSql(ctx);
+        var r = Right.ToSql(ctx);
+        string op = Op switch
+        {
+
+            Operator.Equals => "=",
+            Operator.NotEquals => "!=",
+            Operator.Add => "+",
+            Operator.Sub => "-",
+            Operator.Div => "/",
+            Operator.Mul => "*",
+            Operator.Gt => ">",
+            Operator.Lt => "<",
+            Operator.Ge => ">=",
+            Operator.Le => "<=",
+            _ => throw new ArgumentOutOfRangeException()
+        };
+        return $"({l} {op} {r})";
+    }
 }

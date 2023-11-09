@@ -26,4 +26,5 @@
         }
         return true;
     }
+    public string ToSql(PredicateContext ctx) => String.Join(" AND ", Predicates.Select(p => p.ToSql(ctx)));
 }

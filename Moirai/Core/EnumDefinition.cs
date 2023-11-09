@@ -18,7 +18,7 @@ public readonly struct EnumDefinition
         {
             if (Values[i] == valueName)
             {
-                propertyValue = new PropertyValue { IntValue = i, Type = ValueType };
+                propertyValue = new PropertyValue { IntValue = i+1, Type = ValueType };
                 return true;
             }
         }
@@ -28,6 +28,6 @@ public readonly struct EnumDefinition
     public PropertyValue GetRandomValue(Pcg32 rnd)
     {
         var i = rnd.GenerateNext((uint)Values.Count);
-        return new PropertyValue { IntValue = i, Type = ValueType };
+        return new PropertyValue { IntValue = i+1, Type = ValueType };
     }
 }

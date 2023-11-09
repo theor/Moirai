@@ -38,7 +38,6 @@ static class NameEntity
     {
         var n = Names.RandomIn(predicateContext.Rnd);
         return n;
-        // TODO entitytype
         // switch (t)
         // {
         //

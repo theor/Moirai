@@ -109,7 +109,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
         IntValue = b ? 1 : 0,
         Type = TypeBool,
     };
-    public bool BoolValue => IntValue != 0;
+    public bool BoolValue => IntValue == 1;
     public EntityId Id => new EntityId(IntValue);
     public EntityTypeId TypeId => new EntityTypeId((uint)IntValue);
 
@@ -132,5 +132,23 @@ public struct PropertyValue : IEquatable<PropertyValue>
     public static bool operator !=(PropertyValue left, PropertyValue right)
     {
         return !left.Equals(right);
+    }
+    public string ToSql()
+    {
+
+        switch (Type.BaseType)
+        {
+
+            case PropertyValue.ValueBaseType.String:
+                return $"'{Value}'";
+            case PropertyValue.ValueBaseType.Ref:
+            case PropertyValue.ValueBaseType.Number:
+            case PropertyValue.ValueBaseType.Bool:
+            case PropertyValue.ValueBaseType.Enum:
+            case PropertyValue.ValueBaseType.EntityType:
+                return IntValue.ToString();
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
     }
 }

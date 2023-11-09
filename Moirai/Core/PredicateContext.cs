@@ -1,4 +1,5 @@
-﻿using Moirai;
+﻿using System.Diagnostics;
+using Moirai;
 using Moirai.Core;
 
 public class PredicateContext
@@ -51,7 +52,7 @@ public class PredicateContext
         // Console.ForegroundColor = ConsoleColor.Blue;
         // Console.WriteLine($"PICK {Database.Printer.Print(value)}  VAL COUNT {ValueCount} OFFSET {ValueOffset}");
         // Console.ResetColor(); 
-        FindAll(value, ref _pool);
+        Database.FindAll(value, ref _pool);
         if (_pool.Count == 0)
         {
             id = default;
@@ -60,7 +61,7 @@ public class PredicateContext
         id = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
         return true;
     }
-    public bool FindAll(IValue? predicate, ref List<EntityId> results)
+    public bool _FindAll(IValue? predicate, ref List<EntityId> results)
     {
         results.Clear();
         if (predicate == null)
@@ -68,21 +69,23 @@ public class PredicateContext
             return false;
         }
 
-        if (predicate.HasTypeFilter(out var typeFilter))
-        {
-            var ids = Database.PerTypeIndices[(int)typeFilter.Id];
-            foreach (var id in ids)
-            {
-                PushArgument(id);
-                var isTrue = predicate.IsTrue(this);
-                if (isTrue)
-                    results.Add(id);
-                PopArgument();
-
-            }
-            return true;
-            // TODO TYPE FILTER
-        }
+        string sql = predicate.ToSql(this);
+        Debug.WriteLine(sql);
+        
+        // if (predicate.HasTypeFilter(out var typeFilter))
+        // {
+        //     var ids = Database.PerTypeIndices[(int)typeFilter.Id];
+        //     foreach (var id in ids)
+        //     {
+        //         PushArgument(id);
+        //         var isTrue = predicate.IsTrue(this);
+        //         if (isTrue)
+        //             results.Add(id);
+        //         PopArgument();
+        //
+        //     }
+        //     return true;
+        // }
         foreach (var entity in Database.Entities)
         {
             PushArgument(entity.Id);
@@ -115,7 +118,6 @@ public class PredicateContext
     }
     public void SetArgument(int argumentIndex, PropertyValue value)
     {
-        // TODO 
         while (_values.Count <= argumentIndex + ValueOffset)
             _values.Add(default);
         _values[argumentIndex + ValueOffset] = value;

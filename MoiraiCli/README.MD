@@ -41,7 +41,7 @@ prealloc all properties for each entity:
 - 3000: 37s
 
 hit on 500y:
-    Person: 63.60% 3136428 / 4930778
+    Person: 63.60% 3136428 /  4930778
       Item: 13.68% 433517  / 3166992
    Faction:  2.92% 3860    / 131889
       Link: 10.25% 769908  / 7507848
@@ -57,4 +57,12 @@ per type index
    Country:  79.76% 6980 / 8751
        God:  67.44% 2370 / 3514
 
-op equality ??
+start sqlite
+1000 5600ms
+
+sqlite findall
+1000: 7500
+3000: 42s
+
+remove writeline
+3000: 984ms

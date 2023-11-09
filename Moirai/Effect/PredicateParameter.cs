@@ -13,6 +13,10 @@ public struct Literal : IValue
         type = default;
         return false;
     }
+    public string ToSql(PredicateContext ctx)
+    {
+        return Value.ToSql();
+    }
 }
 
 
@@ -72,26 +76,15 @@ public struct PropertyPath : IValue
         type = default;
         return false;
     }
-}
-
-public struct YearsPassed : IValue
-{
-    public readonly int Years;
-    public YearsPassed(int years)
+    public string ToSql(PredicateContext ctx)
     {
-        Years = years;
-
-    }
-    public PropertyValue Compute(PredicateContext ctx)
-    {
-        throw new NotImplementedException();
-    }
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
+        // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
+        if (Mode == PropertyPathMode.Variable)
+            return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
+        return Compute(ctx).ToSql();
     }
 }
+
 
 public struct AssertInstr : IInstruction
 {
@@ -154,6 +147,10 @@ public struct RandomCall : IValue
         type = default;
         return false;
     }
+    public string ToSql(PredicateContext ctx)
+    {
+        return Compute(ctx).ToSql();
+    }
 }
 
 public struct RandomName : IValue
@@ -177,6 +174,10 @@ public struct RandomName : IValue
     {
         type = default;
         return false;
+    }
+    public string ToSql(PredicateContext ctx)
+    {
+        return Compute(ctx).ToSql();
     }
 }
 
@@ -203,7 +204,7 @@ public struct CallRule : IInstruction
     }
     public bool Execute(PredicateContext ctx)
     {
-        // TODO offset value stack
+        // DONE offset value stack
         // eg. if $0 $1 are used now, have called.$0 become $2
         // copy result in VariableIndex then pop extra values
         bool res = false;
@@ -256,7 +257,7 @@ public struct AssignPick : IInstruction
                     // Console.ForegroundColor = ConsoleColor.Blue;
                     // Console.WriteLine($"FIND ALL {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                     // Console.ResetColor(); 
-                    if (ctx.FindAll(Value, ref _pool))
+                    if (ctx.Database.FindAll(Value, ref _pool))
                     {
                         for (var index = 0; index < _pool.Count; index++)
                         {

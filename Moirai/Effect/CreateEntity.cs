@@ -18,6 +18,7 @@ public class InterpolatedString : IValue
         type = default;
         return false;
     }
+    public string ToSql(PredicateContext ctx) => $"'{Compute(ctx)}'";
 }
 public class FormatAction : IInstruction
 {

@@ -51,6 +51,7 @@ class PassYearsDialog : TaskDialog
         return Task.Run(() =>
         {
             _db.Ctx.PassYears(_years, cancellationToken, progress);
+            _db.Commit();
         });
     }
     protected override void OnProgress(int passed)

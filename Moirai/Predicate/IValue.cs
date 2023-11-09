@@ -5,6 +5,7 @@ public interface IValue
     PropertyValue Compute(PredicateContext ctx);
     bool HasTypeFilter(out EntityTypeId type);
     bool IsTrue(PredicateContext ctx) => Compute(ctx).BoolValue;
+    string ToSql(PredicateContext ctx);
 }
 
 public class IsOfType : IValue
@@ -28,6 +29,7 @@ public class IsOfType : IValue
         type = ValueTypeId;
         return true;
     }
+    public string ToSql(PredicateContext ctx) => $"type = " + ValueTypeId.Id;
 }
 
 public interface IFilter{

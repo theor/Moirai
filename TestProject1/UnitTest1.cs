@@ -166,9 +166,9 @@ prop f: number
 rule r {
     create Person
     set f = E.B
-    assert $0.f = 1
+    assert $0.f = 2
     set f = E.C * 2
-    assert $0.f = 4
+    assert $0.f = 6
 }
 ";
 
@@ -220,7 +220,7 @@ rule r {
 entity Person {}
 prop alive: bool
 rule born_char {
-    create Person
+    create Person, '{random name}'
     set alive = true
     assert $0.alive = true
 }
@@ -238,10 +238,9 @@ rule born_char {
 
         PropertyId propId = db.GetPropertyId("alive");
         Assert.IsTrue(propId.IsValid);
-        // TODO reactivate
-        // Assert.AreEqual(propId, ((SetProperty)action.Effects[1]).PropertySet.Property);
         db.RunAction(action.Name);
         db.Printer.PrintDb(db);
+        // db.Commit();
         Assert.AreEqual(1, db.Entities.Count());
     }
     
@@ -250,24 +249,28 @@ rule born_char {
     {
         var s = @"
 entity Person {}
-prop x: number
+prop alive: number
 rule born_char {
-    create Person
+    create Person, '{random name}'
+}
+@start rule init {
+call born_char, 10
 }
 rule r {
     each type=Person {
-        set x = 2
+        set alive = 2
     }
 }
 ";
         
         var db = Run(s, out var errors);
 
-        db.RunAction(db.Actions[0]);
-        db.RunAction(db.Actions[1]);
+        // db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[2]);
         db.Printer.PrintDb(db);
-        Assert.AreEqual(1, db.Entities.Count());
-        Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("x")).IntValue);
+        // db.Commit();
+        Assert.AreEqual(10, db.Entities.Count());
+        Assert.AreEqual(2, db.Entities.Last().GetProperty(db.GetPropertyId("alive")).IntValue);
     }
     
     [Test]
@@ -291,10 +294,9 @@ rule r {
 
         PropertyId propId = db.GetPropertyId("alive");
         Assert.IsTrue(propId.IsValid);
-        // TODO reactivate
-        // Assert.AreEqual(propId, ((SetProperty)action.Effects[1]).PropertySet.Property);
         db.RunAction(action.Name);
         db.Printer.PrintDb(db);
+        db.Commit();
         Assert.AreEqual(1, db.Entities.Count());
         Assert.AreEqual(true, db.Entities.Single().GetProperty(propId).BoolValue);
     }
@@ -503,7 +505,6 @@ rule olds_dies {
 ";
 
         var db = StoryParser.Parse(script, out var error);
-        db.Init();
         db.Deserialize(json);
         db.Printer.PrintDb(db);
         db.Ctx.PassYears(1);
@@ -528,7 +529,9 @@ rule olds_dies {
         Assert.AreEqual(0, errors.Count, string.Join(", ", errors));
         var db2 = StoryParser.Parse(record, out var errors2);
         Assert.AreEqual(0, errors2.Count, string.Join(", ", errors2));
- 
+        db.Init();
+        db.Ctx.PassYears(100);
+ db.Commit();
     }
     [Test]
     public void DuplicateVarNoError()
@@ -612,7 +615,7 @@ rule create {
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
         Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
-        Assert.AreEqual(1, value.IntValue);
+        Assert.AreEqual(2, value.IntValue);
     }
     
     [Test]
@@ -689,7 +692,7 @@ rule create {
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
         Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
-        Assert.AreEqual(2, value.IntValue);
+        Assert.AreEqual(3, value.IntValue);
     }
     [Test]
     public void AssignCreate()

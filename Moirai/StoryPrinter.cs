@@ -23,7 +23,6 @@ public class StoryPrinter
         }
         foreach (var property in _database.Properties.Skip(Database.DefaultProperties().Count))
         {
-            // TODO types
             sb.AppendLine($"prop {property.Name}: {Print(property.Type)}");
         }
         foreach (var action in _database.Actions.Concat(_database.Events))
@@ -162,7 +161,8 @@ public class StoryPrinter
         {
             case PropertyValue.ValueBaseType.Enum:
                 var e = _database.Enums[value.Type.Index];
-                return (storyMode & History.HistoryMode.Story) != 0 ? e.Values[(int)value.IntValue] : $"{e.Name}.{e.Values[(int)value.IntValue]}";
+                if (value.IntValue == 0) return "null";
+                return (storyMode & History.HistoryMode.Story) != 0 ? e.Values[(int)value.IntValue-1] : $"{e.Name}.{e.Values[(int)value.IntValue-1]}";
             case PropertyValue.ValueBaseType.None:
                 return "null";
             case PropertyValue.ValueBaseType.String:
@@ -200,8 +200,6 @@ public class StoryPrinter
                 return "random " + _database.Enums[rnd.EnumID].Name;
             case RandomName rnd:
                 return "random " + rnd.Type.ToString().ToLowerInvariant();
-            case YearsPassed y:
-                return "(passed_years " + y.Years + ")";
            
             case And and:
                 return string.Join(", ", and.Predicates.Select(Print));
