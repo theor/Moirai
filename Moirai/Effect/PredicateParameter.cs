@@ -79,8 +79,10 @@ public struct PropertyPath : IValue
     public string ToSql(PredicateContext ctx)
     {
         // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
-        if (Mode == PropertyPathMode.Variable)
-            return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
+        // TODO ugly
+        if (Mode == PropertyPathMode.Variable && (VariableIndex == -1 || VariableIndex == ctx.ValueCount - ctx.ValueOffset))
+            return ctx.Database.GetPropertyName(Property);
+            // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
         return Compute(ctx).ToSql();
     }
 }

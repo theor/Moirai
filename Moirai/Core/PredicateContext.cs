@@ -114,6 +114,8 @@ public class PredicateContext
     }
     public PropertyValue Argument(int idx)
     {
+        if (idx == -1)
+            return _values[_values.Count - 1];
         return _values[idx + ValueOffset];
     }
     public void SetArgument(int argumentIndex, PropertyValue value)

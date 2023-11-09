@@ -127,6 +127,7 @@ public static class StoryParser
         public List<Error> Errors => _errors;
         protected override object? DefaultResult => null;
         private readonly Database _database;
+        // private int _implicitVariableIndex = -1;
         public AstVisitor(Database database)
         {
             _database = database;
@@ -327,12 +328,6 @@ public static class StoryParser
 
                         return new RandomCall(enumDef.Index);
                     }
-                    case "passed_years":
-                    {
-                        // TODO error checking
-                        int years = int.Parse(call.expr(0).GetText());
-                        return new YearsPassed(years);
-                    }
                     default:
                         AddError(ErrorCode.UnknownCall, value, funcName);
                         return default!;
@@ -368,70 +363,7 @@ public static class StoryParser
             }
             throw new ArgumentOutOfRangeException();
         }
-        // private ComputedValue ParseComputedValue(MoiraiParser.ValueContext value, PropertyId type)
-        // {
-        //     if(!type.IsValid || !_database.GetPropertyType(type, out PropertyValue.ValueType valueType))
-        //     {
-        //         throw new Exception("Property has no type");
-        //     }
-        //     
-        //     // TODO use proper EntityType type
-        //     if (type == Database.PropType)
-        //     {
-        //         var typeId = _database.GetEntityType(value.@string().GetString());
-        //             
-        //         if (typeId == 0)
-        //            AddError( ErrorCode.UnknownPropertyType,  value, value.@string().GetText());
-        //         return new ComputedValue(typeId);
-        //     }
-        //     // TODO only call in value
-        //     if (value.call()?.ID()?.GetText() == "random")
-        //     {
-        //         if(valueType.BaseType == PropertyValue.ValueBaseType.Enum)
-        //         {
-        //             var enumDef = _database.Enums[valueType.Index];
-        //             return new ComputedValue(enumDef);
-        //         }
-        //         AddError(ErrorCode.UnknownCall, value, "Random only supported for enums");
-        //         return default;
-        //         // switch (valueType.BaseType)
-        //         // {
-        //         //     case PropertyValue.ValueBaseType.Enum
-        //         // }
-        //     }
-        //     if (value.path() != null)
-        //     {
-        //         PropertyPath path = ParsePath(value.path());
-        //         return new ComputedValue(path);
-        //     }
-        //     switch (valueType.BaseType)
-        //     {
-        //         case PropertyValue.ValueBaseType.String:
-        //             return new ComputedValue(value.@string().STRING().GetText());
-        //         case PropertyValue.ValueBaseType.Ref:
-        //             if (value.NULL() != null)
-        //                 return new ComputedValue((PropertyValue)EntityId.Null);
-        //             throw new System.NotImplementedException("Literal ref not supported");
-        //         case PropertyValue.ValueBaseType.Number:
-        //             return (ComputedValue)(PropertyValue)int.Parse(value.number().GetText());
-        //         case PropertyValue.ValueBaseType.Bool:
-        //             return (ComputedValue)(PropertyValue)(value.@bool().GetText() == "true");
-        //         case PropertyValue.ValueBaseType.Enum:
-        //             if (value.@string() != null)
-        //             {
-        //                 if(!_database.Enums[valueType.Index].GetValueFromName(value.@string().GetString(), out PropertyValue v))
-        //                     AddError(ErrorCode.UnknownEnumValue,  value, $"'{value.@string().GetString()}' in enum {_database.Enums[valueType.Index].Name}");
-        //
-        //                 return new ComputedValue(v);
-        //             }
-        //             throw new System.NotImplementedException();
-        //         case PropertyValue.ValueBaseType.EntityType:
-        //             throw new System.NotImplementedException();
-        //         case PropertyValue.ValueBaseType.None:
-        //         default:
-        //             throw new ArgumentOutOfRangeException();
-        //     }
-        // }
+        
         private bool DeclareVar(string variable, IToken contextStart, out int varIndex)
         {
 
@@ -458,10 +390,15 @@ public static class StoryParser
                 return new AssertInstr(ParseExpr(context.expr(0)), ParseExpr(context.expr(1)),
                     context.expr(0).GetText() + " = " + context.expr(1).GetText());
             }
-            int variableIndex = Math.Max(0, _variables.Count - 1);
+            int variableIndex = Math.Max(0, _variables.Count);
             if (context.VAR_ID() != null)
             {
                 if (!DeclareVar(context.VAR_ID().GetText(), context.Start, out variableIndex))
+                    return null;
+            }
+            else
+            {
+                if (!DeclareVar('$'+variableIndex.ToString(), context.Start, out variableIndex))
                     return null;
             }
             switch (funcName)
@@ -580,6 +517,13 @@ public static class StoryParser
             {
                 case "=":
                     pop = BinaryOperator.Operator.Equals;
+
+                    if (leftPath is PropertyPath { Nested: false } p && p.Property == Database.PropType && rightValue is Literal l &&
+                        l.Value.Type == PropertyValue.TypeEntityType)
+                    {
+                        return new IsOfType(leftPath, l.Value.TypeId);
+                    }
+                    
                     break;
                 case "!=":
                     pop = BinaryOperator.Operator.NotEquals;
@@ -673,7 +617,7 @@ public static class StoryParser
                 }
                 return new PropertyPath(singletonType.Id, propertyId);
             }
-            int variableIndex = Math.Max(0, _variables.Count - 1);
+            int variableIndex = -1;
             var varId = context.VAR_ID();
             if (varId != null)
             {

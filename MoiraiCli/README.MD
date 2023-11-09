@@ -65,4 +65,4 @@ sqlite findall
 3000: 42s
 
 remove writeline
-3000: 984ms
+3000: 35s

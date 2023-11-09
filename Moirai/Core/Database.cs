@@ -411,7 +411,7 @@ CREATE TABLE entity (
             var cmd = _connection.CreateCommand();
             cmd.CommandText = @"
 SELECT id FROM entity WHERE " + sql;
-            Debug.WriteLine(cmd.CommandText);
+            // Console.WriteLine(cmd.CommandText);
             var r = cmd.ExecuteReader();
             while(r.Read())
                 results.Add(new EntityId(r.GetInt64(0)));

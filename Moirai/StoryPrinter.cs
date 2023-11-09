@@ -147,6 +147,8 @@ public class StoryPrinter
     {
         if(path.Mode == PropertyPath.PropertyPathMode.Singleton)
             return $"#{_database.GetEntityTypeName(path.SingletonType)}.{GetPropertyName(path.Property)}";
+        if (path.VariableIndex == -1)
+            return GetPropertyName(path.Property);
         return path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
     }
 
@@ -260,7 +262,7 @@ public class StoryPrinter
         if (e.Properties != null)
             foreach (var property in e.Properties)
             {
-                if (property.Id == Database.PropType || property.Id == Database.PropName)
+                if (property.Id == Database.PropType || property.Id == Database.PropName || !property.Id.IsValid)
                     continue;
 
                 Console.Write($"  {_database.Properties[(int)property.Id.Id].Name}: {Print(property.Value)}");
