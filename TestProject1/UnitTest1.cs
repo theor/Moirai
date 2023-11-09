@@ -926,6 +926,34 @@ rule pass_15_years {
     }
 
     [Test]
+    public void SetVar2XEqVar1Y()
+    {
+        string s = @"
+entity Person {}
+prop birthdate: number
+rule born {
+    pick $t: type=Time
+    create $p: Person
+    set $p.birthdate = $t.year
+}";
+        Run(s, out _);
+    }
+
+    [Test]
+    public void SetVar2XEqVar1Y_ImplicitVar()
+    {
+        string s = @"
+entity Person {}
+prop birthdate: number
+rule born {
+    pick $t: type=Time
+    create Person
+    set birthdate = $t.year
+}";
+        Run(s, out _);
+    }
+    
+    [Test]
     public void Time2()
     {
         var s = @"
@@ -963,6 +991,8 @@ rule pass_15_years {
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb(db);
+        db.Commit();
+        Assert.AreEqual(1000, db.Entities.Last().GetProperty(db.GetPropertyId("birthdate")).IntValue);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
         db.Printer.PrintDb(db);
