@@ -130,7 +130,7 @@ public class Database
         cmd.Parameters.AddWithValue("$id", entityId.Id);
         // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
         var res = cmd.ExecuteScalar();
-        Console.WriteLine($"get {GetPropertyName(property)} = {res}");
+        // Console.WriteLine($"get {GetPropertyName(property)} = {res}");
         if (!TryGetEntity(entityId, out var entity))
         {
             value = default;

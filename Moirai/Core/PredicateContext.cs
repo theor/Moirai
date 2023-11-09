@@ -182,7 +182,7 @@ public class PredicateContext
         {
             if (token.IsCancellationRequested)
                 return;
-            Console.WriteLine("\tTIME " + _year);
+            //Console.WriteLine("\tTIME " + _year);
             Database.SetProperty(timeId, yearsProp, ++_year);
             progress?.Report(i);
             foreach (var action in Database.Actions)
