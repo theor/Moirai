@@ -44,10 +44,12 @@ enum GodTypes {
 
 rule create_country  {
     create Country, '{random CountryName} {random name}'
+    record "The {name} is created"
 }
 
 rule create_god  {
     create God, '{random name}, God of {random GodTypes}'
+    record "{name} appears"
 }
 @start
 rule create_time {
@@ -142,7 +144,7 @@ rule wedding {
     set $x.partner = $y
     set $y.partner = $x
     create $i: Item, "ring of {$x.name}"
-    //set $i.owner = $x
+    // set $i.owner = $x
     //create $j: Item, "ring of {$y.name}"
     //set $j.owner = $y
     record '{$x.name} and {$y.name} get married'

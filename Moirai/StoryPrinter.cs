@@ -164,7 +164,7 @@ public class StoryPrinter
             case PropertyValue.ValueBaseType.Enum:
                 var e = _database.Enums[value.Type.Index];
                 if (value.IntValue == 0) return "null";
-                return (storyMode & History.HistoryMode.Story) != 0 ? e.Values[(int)value.IntValue-1] : $"{e.Name}.{e.Values[(int)value.IntValue-1]}";
+                return (storyMode & History.HistoryMode.Story) != 0 ? e.FormattedValues[(int)value.IntValue-1] : $"{e.Name}.{e.Values[(int)value.IntValue-1]}";
             case PropertyValue.ValueBaseType.None:
                 return "null";
             case PropertyValue.ValueBaseType.String:

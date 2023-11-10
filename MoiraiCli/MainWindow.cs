@@ -1,4 +1,5 @@
-﻿using Moirai.Core;
+﻿using System.Diagnostics;
+using Moirai.Core;
 using Terminal.Gui;
 
 namespace Moirai;
@@ -11,6 +12,8 @@ public class MainWindow : Toplevel
     private List<EntityId> _history = new();
     private int _historyIndex = -1;
     public EntityId Current => _historyIndex < _history.Count ? _history[_historyIndex] : default;
+    public string CurrentAction;
+
     public MainWindow()
     {
         var args = Environment.GetCommandLineArgs();
@@ -113,8 +116,26 @@ public class MainWindow : Toplevel
         Add(EntityList);
         Add(WorldHistory);
         Add(StatusBar);
-        
+
+       
         ReloadFile(path);
+        Application.RootMouseEvent += e =>
+        {
+            if((e.Flags & MouseFlags.ReportMousePosition) == 0)
+                Debug.WriteLine(e.Flags);
+            if ((e.Flags == (MouseFlags.ButtonAlt| MouseFlags.Button3Released)))
+            {
+                    e.Handled = true;
+                    GoBack();
+            }
+            
+            if ((e.Flags == (MouseFlags.ButtonAlt| MouseFlags.ButtonShift| MouseFlags.Button3Released)))
+            {
+                e.Handled = true;
+                GoForward();
+            }
+        };
+
     }
     public void ReloadFile(string path)
     {
@@ -133,6 +154,12 @@ public class MainWindow : Toplevel
     public EntityList EntityList { get; set; }
     public WorldHistoryView WorldHistory { get; set; }
 
+    public void SelectAction(string a)
+    {
+        CurrentAction = a;
+        if(_mode == FilteringMode.Action)
+            WorldHistory.SetFiltering(_mode);
+    }
     public void SelectEntity(EntityId entityId, bool addToHistory = true)
     {
         if (addToHistory)
@@ -143,6 +170,8 @@ public class MainWindow : Toplevel
             _historyIndex++;
         }
         EntityDetails.SetSelectedEntity(entityId);
+        if(_mode == FilteringMode.Entity)
+            WorldHistory.SetFiltering(_mode);
     }
     public void GoBack()
     {
@@ -243,8 +272,18 @@ public class MainWindow : Toplevel
         EntityList.Load();
         UpdateDb();
     }
-    public void SetFiltering(bool filtering)
+
+    public enum FilteringMode
     {
+        None,
+        Entity,
+        Action,
+    }
+
+    private FilteringMode _mode;
+    public void SetFiltering(FilteringMode filtering)
+    {
+        _mode = filtering;
         WorldHistory.SetFiltering(filtering);
     }
     public void SetDisplayedProperty(PropertyId id, bool displayed)

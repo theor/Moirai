@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Diagnostics;
 using NStack;
 using Terminal.Gui;
 
@@ -9,6 +10,12 @@ public class EntityDetailsView : FrameView
     private readonly ListView _listView;
     private readonly MainWindow _w;
     private HashSet<PropertyId> _displayedProps = new();
+    
+    // public override bool OnMouseEvent(MouseEvent mouseEvent)
+    // {
+    //     Debug.WriteLine(mouseEvent.Flags);
+    //     return base.OnMouseEvent(mouseEvent);
+    // }
     public EntityDetailsView(MainWindow w) : base("Details")
     {
         _w = w;
@@ -47,7 +54,7 @@ public class EntityDetailsView : FrameView
         };
         Add(_listView);
         var checkBox = new CheckBox("Filter"){ Y = Pos.AnchorEnd(1), X = Pos.AnchorEnd(10)};
-        checkBox.Toggled += _ => _w.SetFiltering(checkBox.Checked);
+        checkBox.Toggled += _ => _w.SetFiltering(checkBox.Checked ? MainWindow.FilteringMode.Entity : MainWindow.FilteringMode.None);
         Add(checkBox);
     }
 
@@ -71,18 +78,20 @@ public class EntityDetailsView : FrameView
         private readonly Database _database;
         private readonly Entity _entity;
         private readonly HashSet<PropertyId> _displayedProps;
+        private readonly List<Property> _props;
         public PropertySource(Database database, Entity entity, HashSet<PropertyId> displayedProps)
         {
             _database = database;
             _entity = entity;
             _displayedProps = displayedProps;
+            _props = entity.Properties.Where(p => p.Id.IsValid).ToList();
         }
         public void Render(ListView container, ConsoleDriver driver, bool selected, int item, int col, int line, int width, int start = 0)
         {
             container.Move(col, line);
             int propIdx = item / 2;
             bool isHeader = item % 2 == 0;
-            var props = _entity.Properties[propIdx];
+            var props = _props[propIdx];
             if (isHeader)
             {
                 if (!selected)
@@ -104,8 +113,8 @@ public class EntityDetailsView : FrameView
         public void SetMark(int item, bool value)
         {
         }
-        public IList ToList() => _entity.Properties.SelectMany(x => new object[]{x.Id, x.Value}).ToList();
-        public int Count => _entity.Properties.Length * 2;
+        public IList ToList() => _props.SelectMany(x => new object[]{x.Id, x.Value}).ToList();
+        public int Count => _props.Count() * 2;
         public int Length => 20;
 
         void RenderUstr(ConsoleDriver driver, ustring ustr, int col, int line, int width, bool? enabled)

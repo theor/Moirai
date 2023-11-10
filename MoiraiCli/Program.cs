@@ -8,7 +8,7 @@ internal class Program
 {
     public static async Task Main(string[] args)
     {
-            
+        
             Application.Run<MainWindow> ();
             Application.Shutdown ();
         }

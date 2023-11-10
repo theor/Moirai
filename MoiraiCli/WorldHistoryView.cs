@@ -81,7 +81,7 @@ public class WorldHistoryView : View
         public void Render(ListView container, ConsoleDriver driver, bool selected, int item, int col, int line, int width, int start = 0)
         {
             container.Move(col, line);
-            var cs = _filtering ? _filtered[item] : _w.Database.History.Changesets[item];
+            var cs = _filtering != MainWindow.FilteringMode.None ? _filtered[item] : _w.Database.History.Changesets[item];
             var str = (cs.Description ?? cs.ActionName).ReplaceLineEndings(" - ");
             _mlv.StartRow(line);
             // driver.AddStr(str);
@@ -143,23 +143,25 @@ public class WorldHistoryView : View
         public void SetMark(int item, bool value)
         {
         }
-        public IList ToList() => _filtering ? _filtered : _w.Database?.History?.Changesets ?? new List<Changeset>();
-        public int Count => _filtering ? _filtered.Count : _w.Database?.History?.Changesets?.Count ?? 0;
+        public IList ToList() => _filtering != MainWindow.FilteringMode.None ? _filtered : _w.Database?.History?.Changesets ?? new List<Changeset>();
+        public int Count => _filtering != MainWindow.FilteringMode.None ? _filtered.Count : _w.Database?.History?.Changesets?.Count ?? 0;
         public int Length => 0; //100;
         
-        private bool _filtering;
+        private MainWindow.FilteringMode _filtering;
         private List<Changeset> _filtered = new();
         private HashSet<EntityId> _changed = new();
-        public void SetFiltering(bool filtering)
+        public void SetFiltering(MainWindow.FilteringMode filtering)
         {
             _filtering = filtering;
-            if (filtering)
+            if (filtering == MainWindow.FilteringMode.Entity)
                 _filtered = _w.Database.History.Changesets.Where(cs =>
                 {
                     _changed.Clear();
                     cs.GetAffectedEntities(_changed);
                     return _changed.Contains(_w.Current);
                 }).ToList();
+            else if (filtering == MainWindow.FilteringMode.Action)
+                _filtered = _w.Database.History.Changesets.Where(cs => cs.ActionName == _w.CurrentAction).ToList();
         }
     }
 
@@ -168,7 +170,7 @@ public class WorldHistoryView : View
         _listView.SetNeedsDisplay();
         // _listView.Source = new HistorySource(_w);
     }
-    public void SetFiltering(bool filtering)
+    public void SetFiltering(MainWindow.FilteringMode filtering)
     {
         _listView.HistorySource.SetFiltering(filtering);
         if (_listView.TopItem >= _listView.HistorySource.Count && _listView.HistorySource.Count > 0)

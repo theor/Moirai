@@ -57,6 +57,6 @@ class PassYearsDialog : TaskDialog
     protected override void OnProgress(int passed)
     {
         PulseProgressBar.Fraction = passed / (float)_years;
-        Label.Text = $"{passed} / {_years} years";
+        Label.Text = $"{passed} / {_years} years - {Ms/1000}s";
     }
 }

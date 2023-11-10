@@ -370,7 +370,11 @@ CREATE TABLE entity (
     id INTEGER PRIMARY KEY,
     type INTEGER NOT NULL,
     {string.Join(",\n  ", Properties.Skip(3).Select(p => $@"{p.Name} {ToSqlType(p.Type)}"))}
-)";
+);
+CREATE INDEX types ON entity (type);
+CREATE INDEX owners ON entity (owner) WHERE type = 3;
+CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;
+";
         cmd.ExecuteNonQuery();
         Profiler.Init(this);
         // PerTypeIndices = new List<EntityId>[Types.Count];

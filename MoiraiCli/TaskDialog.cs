@@ -16,6 +16,7 @@ abstract class TaskDialog : Dialog
         Progress<int> progress = new Progress<int>(OnProgress);
         var idle = Application.MainLoop.AddIdle(() =>
         {
+            Ms = _sw.ElapsedMilliseconds;
             OnIdle();
             // Debug.WriteLine("completed: " + _t.IsCompleted);
             if (_t.IsCompleted)

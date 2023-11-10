@@ -3,6 +3,7 @@
 - [ ] parse types props init `type person { alive = true }`
 - [ ] restrict props to type ? `type person { alive: number = true }` would allow overlap of prop indices across types and to index them directly
 - [ ] assign factor per entity to impact history ?
+- [ ] fix shaky implicit variables (equal to -1 or variable.count)
 
 FEATURES
 - [ ] curves ?
@@ -57,12 +58,26 @@ per type index
    Country:  79.76% 6980 / 8751
        God:  67.44% 2370 / 3514
 
-start sqlite
-1000 5600ms
+no sql, per type cache
+500 sampling: findall 1103 ms
+500 tracing: findall 12 487 ms 9562 calls
 
-sqlite findall
-1000: 7500
-3000: 42s
+1000: 4.6s, 7525 entities, last: person ascella aureliusson, link, link
+3000: 40s, 23091 e, last: Portrait of Silvana Caradoc
 
-remove writeline
-3000: 35s
+
+sqlite
+1000: 5.1s 7525 entities, last: person ascella aureliusson, link, link
+3000: 35s, 23091 e, last: Portrait of Silvana Caradoc
+500 sampling: findall 1072 ms
+500 tracing: findall 1 519 ms 9562 calls
+
+sqlite indexed:
+-- CREATE INDEX owners ON entity (owner) WHERE type = 3;
+-- CREATE INDEX types ON entity (type,alive)  WHERE type = 2;
+1000 2.8s
+3000  13s
+
+
+CREATE INDEX types_alive ON entity (type,alive);
+3000 16s
