@@ -4,7 +4,7 @@ using Moirai.Core;
 
 public class PredicateContext
 {
-    public long _year;
+    public long Year { get; private set; }
 
     public readonly Database Database;
     public Pcg32 Rnd;
@@ -167,8 +167,9 @@ public class PredicateContext
         }
     }
 
-    public void PassYears(int years) => PassYears(years, CancellationToken.None, null);
-    public void PassYears(int years, CancellationToken token, IProgress<int>? progress)
+   
+    public void PassYears(int years, bool offset) => PassYears(years, CancellationToken.None, null, offset);
+    public void PassYears(long years, CancellationToken token, IProgress<int>? progress, bool offset)
     {
         Database.CurrentChangeset = new Changeset("time", Int64.MaxValue);
         var timeType = Database.GetEntityType("Time");
@@ -177,13 +178,14 @@ public class PredicateContext
         if (!Database.TryGetEntity(timeId, out var time))
             throw new NotImplementedException("missing Time entity");
 
-        _year = time.GetProperty(yearsProp).IntValue;
-        for (int i = 0; i < years; i++)
+        Year = time.GetProperty(yearsProp).IntValue;
+        var howMany = offset ? years : (years - Year);
+        for (int i = 0; i < howMany; i++)
         {
             if (token.IsCancellationRequested)
                 return;
             //Console.WriteLine("\tTIME " + _year);
-            Database.SetProperty(timeId, yearsProp, ++_year);
+            Database.SetProperty(timeId, yearsProp, ++Year);
             progress?.Report(i);
             foreach (var action in Database.Actions)
             {

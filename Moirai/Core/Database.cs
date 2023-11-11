@@ -260,7 +260,7 @@ WHERE id = $id;";
     public bool RunAction(Action action)
     {
         // Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(action.Name, _ctx._year);
+        CurrentChangeset = new Changeset(action.Name, _ctx.Year);
         _ctx.ClearValueStack();
         // _ctx.Values.Clear();
 
@@ -307,7 +307,7 @@ WHERE id = $id;";
                     if (@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                     {
                         // Console.WriteLine("  @ " + @event.Name);
-                        CurrentChangeset = new(@event.Name, _ctx._year);
+                        CurrentChangeset = new(@event.Name, _ctx.Year);
                         // using (var s2 = _ctx.RunScope())
                         {
                             foreach (var e in @event.Effects)
@@ -319,7 +319,7 @@ WHERE id = $id;";
                                 }
                             }
                         }
-                        if (CurrentChangeset.Changes.Any())
+                        if (CurrentChangeset.Changes.Any() || CurrentChangeset.HasDescription)
                             History?.Changesets?.Add(CurrentChangeset);
                     }
                 }

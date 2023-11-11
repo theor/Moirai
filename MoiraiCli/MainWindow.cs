@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Threading.Channels;
 using Moirai.Core;
 using Terminal.Gui;
 
@@ -13,7 +14,42 @@ public class MainWindow : Toplevel
     private int _historyIndex = -1;
     public EntityId Current => _historyIndex < _history.Count ? _history[_historyIndex] : default;
     public string CurrentAction;
+    
+    interface IMessage{}
 
+    struct ReloadMessage : IMessage
+    {
+        public readonly string Path;
+        public readonly int YearsToPass;
+        public ReloadMessage(string path, int yearsToPass)
+        {
+            Path = path;
+            YearsToPass = yearsToPass;
+        }
+    }
+
+     static ChannelReader<IMessage> CreateWatcher(string path)
+    {
+        Channel<IMessage> channel = Channel.CreateBounded<IMessage>(new BoundedChannelOptions(40)
+            { FullMode = BoundedChannelFullMode.Wait, SingleReader = true, SingleWriter = true }); 
+        new Thread(async () =>
+        {
+            FileSystemWatcher fsw = new FileSystemWatcher(Path.GetDirectoryName(Path.GetFullPath(path)));
+            fsw.Filter = Path.GetFileName(path);
+            fsw.NotifyFilter = NotifyFilters.LastWrite;
+
+            while (true)
+            {
+                var res = fsw.WaitForChanged(WatcherChangeTypes.All, 1000);
+                if(res.TimedOut)
+                    continue;
+                await channel.Writer.WaitToWriteAsync();
+                Debug.WriteLine($"Changed: {res.ChangeType} {res.Name}");
+                await channel.Writer.WriteAsync(new ReloadMessage(path, -1));
+            }
+        }).Start();
+        return channel.Reader;
+    }
     public MainWindow()
     {
         var args = Environment.GetCommandLineArgs();
@@ -37,7 +73,7 @@ public class MainWindow : Toplevel
             X = 0,
             Y = 1,
             Height = Dim.Fill(1),
-            Width = Dim.Percent(40),
+            Width =  Dim.Sized(30),
         };
         ActionList = new ActionListView(this)
         {
@@ -77,7 +113,7 @@ public class MainWindow : Toplevel
         {
             new MenuBarItem("_File", new MenuItem[]
             {
-                new MenuItem("_Reload", "Reload current file", () => ReloadFile(Database.FilePath), null, null, Key.F5),
+                new MenuItem("_Reload", "Reload current file", async () => await ReloadFile(Database.FilePath), null, null, Key.F5),
                 new MenuItem("_Quit", "Quit UI Catalog", () => RequestStop(), null, null, Key.Q | Key.CtrlMask),
             }),
             new MenuBarItem("_View", new MenuItem[]
@@ -117,8 +153,17 @@ public class MainWindow : Toplevel
         Add(WorldHistory);
         Add(StatusBar);
 
-       
+
+        var reader = CreateWatcher(path);
         ReloadFile(path);
+        Application.MainLoop.AddIdle( () =>
+        {
+            if (reader.TryRead(out var msg))
+            {
+                ReloadFile(((ReloadMessage)msg).Path);
+            }
+            return true;
+        });
         Application.RootMouseEvent += e =>
         {
             if((e.Flags & MouseFlags.ReportMousePosition) == 0)
@@ -137,14 +182,17 @@ public class MainWindow : Toplevel
         };
 
     }
-    public void ReloadFile(string path)
+    public async Task ReloadFile(string path)
     {
+        Debug.WriteLine("Reloading " + path);
+        var targetYear = Database?.Ctx?.Year ?? 0;
         string content = File.ReadAllText(path);
         var db = StoryParser.Parse(content, out var errors);
         db.FilePath = path;
         db.History = new();
 
         db.Init();
+        await new PassYearsDialog(db, targetYear, false).Execute();
         // db.Ctx.PassYears(100);
         LoadDatabase(db);
     }
@@ -213,7 +261,7 @@ public class MainWindow : Toplevel
                 CanFocus = true,
                 TabIndex = 0,
             };
-            var result = new Label((Database.Ctx._year + _lastPassedYearsValue).ToString())
+            var result = new Label((Database.Ctx.Year + _lastPassedYearsValue).ToString())
             {
                 Width = 20,
                 X = Pos.Right(label2),
@@ -224,7 +272,7 @@ public class MainWindow : Toplevel
                 if (int.TryParse(textField.Text.ToString(), out var d))
                 {
                     _lastPassedYearsValue = d;
-                    result.Text = (Database.Ctx._year + _lastPassedYearsValue).ToString();
+                    result.Text = (Database.Ctx.Year + _lastPassedYearsValue).ToString();
                     textField.ColorScheme = Colors.Base;
                 }
                 else
@@ -242,7 +290,7 @@ public class MainWindow : Toplevel
             {
                 if (_lastPassedYearsValue <= 0)
                     return;
-                var cw = new PassYearsDialog(Database, _lastPassedYearsValue);
+                var cw = new PassYearsDialog(Database, _lastPassedYearsValue, true);
                 try
                 {
                     await cw.Execute();
@@ -260,7 +308,7 @@ public class MainWindow : Toplevel
 
     private void UpdateDb()
     {
-        YearStatus.Title = "~^T~ Year: " + Database.Ctx._year;
+        YearStatus.Title = "~^T~ Year: " + Database.Ctx.Year;
         EntityList.Update();
         WorldHistory.Update();
     }

@@ -507,7 +507,7 @@ rule olds_dies {
         var db = StoryParser.Parse(script, out var error);
         db.Deserialize(json);
         db.Printer.PrintDb(db);
-        db.Ctx.PassYears(1);
+        db.Ctx.PassYears(1, true);
         // db.PrintDb();
         db.Printer.PrintChangeset(db.CurrentChangeset, false);
         Console.WriteLine(db.CurrentChangeset.Description);
@@ -530,7 +530,7 @@ rule olds_dies {
         var db2 = StoryParser.Parse(record, out var errors2);
         Assert.AreEqual(0, errors2.Count, string.Join(", ", errors2));
         db.Init();
-        db.Ctx.PassYears(100);
+        db.Ctx.PassYears(100, true);
  db.Commit();
     }
     [Test]
@@ -863,7 +863,7 @@ rule born {
         db.SetSeed(seed);
         db.RunAction("init");
 
-        db.Ctx.PassYears(10);
+        db.Ctx.PassYears(10, true);
         db.Printer.PrintDb(db);
         Console.WriteLine("Born: " + (db.Entities.Count() - 1));
     }

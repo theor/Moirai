@@ -8,12 +8,13 @@ internal class Program
 {
     public static async Task Main(string[] args)
     {
-        
-            Application.Run<MainWindow> ();
-            Application.Shutdown ();
-        }
-        static async void F(){
-        
+
+        Application.Run<MainWindow>();
+        Application.Shutdown();
+    }
+    static async void F()
+    {
+
         string line;
         string path = "w.sg";
         ulong seed = 44;
@@ -34,7 +35,8 @@ internal class Program
             {
                 Console.WriteLine("changed");
                 reload = true;
-            }; fsw.Renamed += (_, e) =>
+            };
+            fsw.Renamed += (_, e) =>
             {
                 Console.WriteLine("changed");
                 reload = true;
@@ -54,8 +56,8 @@ internal class Program
             // "couple_has_child",
             // "roundtrip",
             // "t 40",
-            
-            
+
+
             // "deserialize",
             // "t 1",
 
@@ -106,25 +108,25 @@ internal class Program
                 db.Deserialize(File.ReadAllText("db.json"));
 
             if (line == "serialize")
-                File.WriteAllText("db.json",db.Serialize());
+                File.WriteAllText("db.json", db.Serialize());
             if (line == "roundtrip")
             {
                 var json1 = db.Serialize();
-                File.WriteAllText("db.json",json1);
+                File.WriteAllText("db.json", json1);
                 db.Deserialize(json1);
                 var json2 = db.Serialize();
-                File.WriteAllText("db2.json",json2);
-if(json1 != json2)
-    throw new System.NotImplementedException("Diff");
+                File.WriteAllText("db2.json", json2);
+                if (json1 != json2)
+                    throw new System.NotImplementedException("Diff");
             }
             if (line == "t")
-                db.Ctx.PassYears(1);
+                db.Ctx.PassYears(1, true);
             else if (line.StartsWith("t "))
             {
                 if (int.TryParse(line.Substring("t ".Length), out var years))
                 {
                     Stopwatch sw = Stopwatch.StartNew();
-                    db.Ctx.PassYears(years);
+                    db.Ctx.PassYears(years, true);
                     Console.WriteLine($"Time: {(sw.ElapsedMilliseconds / 1000f)}s");
                 }
             }
@@ -139,7 +141,7 @@ if(json1 != json2)
             else if (line == "p")
             {
                 var ids = line.Substring(1).Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                
+
                 db.Printer.PrintDb(db);
             }
             else if (line.StartsWith("p"))
@@ -147,7 +149,7 @@ if(json1 != json2)
                 foreach (var id in line.Substring(1).Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
                              .Select(long.Parse))
                 {
-                    if(db.TryGetEntity(new EntityId(id), out var e))
+                    if (db.TryGetEntity(new EntityId(id), out var e))
                         db.Printer.PrintEntity(e);
                     else
                         Console.WriteLine($"#{id} not found");
@@ -183,12 +185,12 @@ if(json1 != json2)
                         year = cs.Year;
                     }
                     if (!string.IsNullOrEmpty(cs.Description))
-                        Console.WriteLine(/*cs.Year + ": " +*/ cs.Description);
+                        Console.WriteLine( /*cs.Year + ": " +*/ cs.Description);
                 }
             }
             else if (line == "")
             {
-                db.Ctx.PassYears(1);
+                db.Ctx.PassYears(1, true);
                 // if (prevAction == -1)
                 //     RunRandomAction(db, rnd);
                 // else
@@ -226,7 +228,7 @@ if(json1 != json2)
             while (historyCount < db.History.Changesets.Count)
             {
                 var cs = db.History.Changesets[historyCount++];
-                if(maxPrinted-- > 0)
+                if (maxPrinted-- > 0)
                     db.Printer.PrintChangeset(cs, false);
             }
 
@@ -238,7 +240,7 @@ if(json1 != json2)
         var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
         db.SetSeed(seed);
         db.History = new();
-        
+
         db.Init();
         return db;
     }

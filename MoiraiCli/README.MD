@@ -3,6 +3,7 @@
 - [ ] parse types props init `type person { alive = true }`
 - [ ] restrict props to type ? `type person { alive: number = true }` would allow overlap of prop indices across types and to index them directly
 - [ ] assign factor per entity to impact history ?
+- [ ] filter sinceLastEvent ? avoid having 4 children in the same year
 - [ ] fix shaky implicit variables (equal to -1 or variable.count)
 
 FEATURES

@@ -25,6 +25,8 @@ public struct Changeset(string actionName, long year)
     public readonly long Year = year;
     public readonly List<Change> Changes = new();
     public string? Description { get; private set; } = null;
+    public bool HasDescription => !String.IsNullOrEmpty(Description);
+
     public void AppendDescription(string? desc)
     {
         if (!String.IsNullOrEmpty(desc))

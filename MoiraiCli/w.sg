@@ -5,7 +5,7 @@ entity Link {}
 entity Country {}
 entity God {}
 
-enum Job { Smith, Farmer, Painter, Sculptor }
+enum Job { Smith, Farmer, Painter, Sculptor, Writer, Wizard, Soldier }
 enum Age { Child, Young, Adult, Old }
 enum ItemType { Forged, Painted, Sculpted }
 
@@ -13,6 +13,7 @@ prop age: Age
 prop first_name: string
 prop alive: bool
 prop birthdate: number
+prop deathdate: number
 prop children_count: number
 prop partner: ref
 prop war_with: ref
@@ -29,15 +30,19 @@ prop child: ref
 prop owner: ref
 
 enum CountryName {
-    Land_of,
-    Kingdom_of,
-    Coast_of,
+    The_Land_of,
+    The_Kingdom_of,
+    The_Coast_of,
+    The_Province_of
 }
 enum GodTypes {
     Thunder,
     Fertility,
     The_Hunt,
     The_Sea,
+    Wisdom,
+    Murder,
+    Blood,
     War,
     Death,
 }
@@ -61,11 +66,22 @@ rule create_time {
 
 event inherit {
     when $p: type = Person, alive = false
+    set $p.deathdate = #Time.year
     each $i: type = Item, owner = $p {
         pick $l: type = Link, $l.parent = $p
+        pick $child: type=Person, id = $l.child, alive
         set $i.owner = $l.child
         var $c = $l.child
-        record '{$c.name} inherits the {$i.name} from {$p.name} - {$l}'
+        record '{$c.name} inherits the {$i.name} from {$p.name}'
+    }
+}
+
+event buries_children {
+    when $p: type = Person, alive = false
+    
+    each $l: type = Link, $l.child = $p {
+        pick $parent: type=Person, alive, id = $l.parent
+        record '++ {$parent.name} buries their child, {$p.name}'
     }
 }
 
@@ -109,7 +125,7 @@ rule youngs_grow {
 rule adults_grow {
     each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year{
         set $p.age = Age.Old
-        //record '{$p.name} grew up as a {$p.age}'
+        record '{$p.name} grew old'
     }   
 }
 
@@ -143,10 +159,10 @@ rule wedding {
     pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x, place = $x.place
     set $x.partner = $y
     set $y.partner = $x
-    create $i: Item, "ring of {$x.name}"
+    // create $i: Item, "Wedding ring of {$x.name}"
     // set $i.owner = $x
-    //create $j: Item, "ring of {$y.name}"
-    //set $j.owner = $y
+    // create $j: Item, "Wedding ring of {$y.name}"
+    // set $j.owner = $y
     record '{$x.name} and {$y.name} get married'
 }
  @1 per 15 year
@@ -179,6 +195,25 @@ rule country_war_start {
     set $y.war_with = $x
     record '{$x.name} and {$y.name} start a war'
 }
+@1 per 1 year
+rule soldier_war_distinction {
+    each $c: type = Country, war_with != null {
+        pick $s: type = Person, alive, job = Job.Soldier, place = $c
+        var $o = $c.war_with
+        record '{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}'
+
+    }
+}
+@1 per 1 year
+rule soldier_war_death {
+    each $c: type = Country, war_with != null {
+        pick $s: type = Person, alive, job = Job.Soldier, place = $c
+        var $o = $c.war_with
+        set $s.alive = false
+        record '{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}'
+
+    }
+}
 @1 per 10 year
 rule country_war_peace {
     pick $x: type = Country, war_with != null
@@ -198,7 +233,7 @@ rule country_war_win {
 @4 per 1 year
 rule couple_has_child {
     pick $x: type = Person, alive = true, partner != null, children_count < 4
-    var $y = $x.partner
+    pick $y: id = $x.partner, alive
     set $x.children_count = $x.children_count + 1
     set $y.children_count = $y.children_count + 1
     
@@ -226,7 +261,7 @@ rule make_item {
     create $i: Item, '{random item} of {random name}'
     set $i.item_type = ItemType.Forged
     set $i.owner = $p
-    record '{$p.name} crafts the {$i} {$i.name}'
+    record '{$p.name} crafts the {$i.name}'
 }
 @1 per 2 year
 rule paint_item {
@@ -240,7 +275,7 @@ rule paint_item {
 @1 per 8 year
 rule item_lost {
     pick $i: type=Item, owner != null
-    pick $p: id = owner, alive
+    pick $p: id = $i.owner, alive
     var $prev = $i.owner
     set $i.owner = null 
     record '{$prev.name} lost the {$i.name}'
@@ -255,7 +290,8 @@ rule item_found {
 @1 per 10 year
 rule item_sold {
     pick $i: type=Item, owner != null
-    pick $p: type=Person, alive, id != $i.owner
+    pick $s: id = $i.owner, type=Person, alive
+    pick $p: type=Person, alive, id != $s
     var $prev = $i.owner
     set $i.owner = $p
     record '{$p.name} acquires the {$i.name} from {$prev.name}'

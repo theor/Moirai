@@ -1,0 +1,76 @@
+entity Object {}
+entity System {}
+
+enum Kind {
+    Asteroid,
+    Star,
+    Planet,
+    Satelite,
+}
+
+
+prop system: ref
+prop dead: bool
+prop kind: Kind
+prop distance_to_sun: number
+
+@start
+rule create_time {
+    create Time, 'time'
+    set year = 0
+}
+@start
+rule create_solar_system {
+    create $s: System, "Solar System"
+
+    create $p: Object, "Sun"
+    set kind = Kind.Star
+    set system = $s
+    
+    create $p: Object, "Mercury"
+    set kind = Kind.Planet
+    set distance_to_sun = 57
+    set system = $s
+    create Object, "Venus"
+    set kind = Kind.Planet
+    set distance_to_sun = 108
+    set system = $s
+    create Object, "Earth"
+    set kind = Kind.Planet
+    set distance_to_sun = 149
+    set system = $s
+    create Object, "Mars"
+    set kind = Kind.Planet
+    set distance_to_sun = 227
+    set system = $s
+    create Object, "Jupiter"
+    set kind = Kind.Planet
+    set distance_to_sun = 778
+    set system = $s
+    create Object, "Saturn"
+    set kind = Kind.Planet
+    set distance_to_sun = 1433
+    set system = $s
+    create Object, "Uranus"
+    set kind = Kind.Planet
+    set distance_to_sun = 2872
+    set system = $s
+    create Object, "Neptune"
+    set kind = Kind.Planet
+    set distance_to_sun = 4495
+    set system = $s
+    
+    create Object, "Moon"
+    set kind = Kind.Satelite
+    set system = $s
+}
+
+@start
+rule star_dies {
+    pick $sun: type=Object, kind = Kind.Star, dead = false
+    var $s = $sun.system
+    each $p: type=Object, system = $s {
+        set $p.dead = true
+        
+    }
+}
