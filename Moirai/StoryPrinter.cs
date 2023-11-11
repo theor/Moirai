@@ -34,12 +34,9 @@ public class StoryPrinter
         {
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
-            sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name}{string.Join("", action.Tags.Select(t => $" {_database.GetTagName(t)}"))} {{");
-            foreach (var when in action.Whens)
-            {
-                sb.AppendLine($"  when ${when.VariableIndex}: {Print(when.Value)}");
-
-            }
+            sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
+            foreach (var when in action.WhenTags) sb.AppendLine($"  when {_database.GetTagName(when)}");
+            foreach (var when in action.Whens) sb.AppendLine($"  when ${when.VariableIndex}: {Print(when.Value)}");
             foreach (var effect in action.Effects)
             {
                 PrintEffect(effect, sb, 1);

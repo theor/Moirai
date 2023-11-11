@@ -5,9 +5,7 @@ entity Link {}
 entity Country {}
 entity God {}
 
-tag #war
 tag #death
-tag #items
 
 enum Job { Smith, Farmer, Painter, Sculptor, Writer, Wizard, Soldier }
 enum Age { Child, Young, Adult, Old }
@@ -68,7 +66,8 @@ rule create_time {
     call create_god, 10
 }
 
-event inherit #death #items {
+event inherit death items {
+    when #death
     when $p: type = Person, alive = false
     set $p.deathdate = #Time.year
     each $i: type = Item, owner = $p {
@@ -80,7 +79,8 @@ event inherit #death #items {
     }
 }
 
-event buries_children #death {
+event buries_children death {
+    when #death
     when $p: type = Person, alive = false
     
     each $l: type = Link, $l.child = $p {
@@ -192,7 +192,7 @@ rule char_migrates {
     record '{$p.name} moves to {$c.name}'
 }
 @1 per 4 year
-rule country_war_start #war {
+rule country_war_start war {
     pick $x: type = Country, war_with = null
     pick $y: type = Country, id != $x, war_with = null
     set $x.war_with = $y
@@ -200,7 +200,7 @@ rule country_war_start #war {
     record '{$x.name} and {$y.name} start a war'
 }
 @1 per 1 year
-rule soldier_war_distinction #war {
+rule soldier_war_distinction war {
     each $c: type = Country, war_with != null {
         pick $s: type = Person, alive, job = Job.Soldier, place = $c
         var $o = $c.war_with
@@ -209,7 +209,7 @@ rule soldier_war_distinction #war {
     }
 }
 @1 per 1 year
-rule soldier_war_death #war {
+rule soldier_war_death war {
     each $c: type = Country, war_with != null {
         pick $s: type = Person, alive, job = Job.Soldier, place = $c
         var $o = $c.war_with
@@ -219,7 +219,7 @@ rule soldier_war_death #war {
     }
 }
 @1 per 10 year
-rule country_war_peace #war {
+rule country_war_peace war {
     pick $x: type = Country, war_with != null
     var $y = $x.war_with
     set $x.war_with = null
@@ -227,7 +227,7 @@ rule country_war_peace #war {
     record '{$x.name} and {$y.name} sign a peace treaty, ending the war'
 }
 @1 per 10 year
-rule country_war_win #war {
+rule country_war_win war {
     pick $x: type = Country, war_with != null
     var $y = $x.war_with
     set $x.war_with = null
@@ -260,7 +260,7 @@ rule couple_has_child {
     record '{$x.name} and {$y.name} have a child, {$c.name}'
 }
 @1 per 2 year
-rule make_item #items {
+rule make_item items {
     pick $p: type=Person, alive = true, job=Job.Smith, age > Age.Child
     create $i: Item, '{random item} of {random name}'
     set $i.item_type = ItemType.Forged
@@ -268,7 +268,7 @@ rule make_item #items {
     record '{$p.name} crafts the {$i.name}'
 }
 @1 per 2 year
-rule paint_item #items {
+rule paint_item items {
     pick $p: type=Person, alive = true, job=Job.Painter, age > Age.Child
     pick $t: type=Person, alive = true, id != $p
     create $i: Item, 'Portrait of {$t.name}'
@@ -277,7 +277,7 @@ rule paint_item #items {
     record '{$p.name} paints the {$i.name}'
 }
 @1 per 8 year
-rule item_lost #items {
+rule item_lost items {
     pick $i: type=Item, owner != null
     pick $p: id = $i.owner, alive
     var $prev = $i.owner
@@ -285,14 +285,14 @@ rule item_lost #items {
     record '{$prev.name} lost the {$i.name}'
 }
 @1 per 20 year
-rule item_found #items {
+rule item_found items {
     pick $p: type=Person, alive = true
     pick $i: type=Item, owner = null
     set $i.owner = $p
     record '{$p.name} obtains the {$i.name}'
 }
 @1 per 10 year
-rule item_sold #items {
+rule item_sold items {
     pick $i: type=Item, owner != null
     pick $s: id = $i.owner, type=Person, alive
     pick $p: type=Person, alive, id != $s

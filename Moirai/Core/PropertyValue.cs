@@ -31,6 +31,21 @@ public struct TagId
         return $"#{Id}";
     }
 }
+public struct CategoryId
+{
+    public static readonly CategoryId Null = default;
+    public readonly bool IsNull => Id == 0;
+    public readonly ulong Id;
+    public CategoryId(ulong id)
+    {
+        Id = id;
+    }
+
+    public override string ToString()
+    {
+        return $"{Id}";
+    }
+}
 
 public struct PropertyValue : IEquatable<PropertyValue>
 {

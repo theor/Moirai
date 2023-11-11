@@ -115,9 +115,9 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         var id = context.ID();
         PushSymbol(context.RULE().Symbol, SemanticTokenType.Keyword);
-        foreach (var tag in context.TAG_ID())
+        foreach (var cat in context.categories().ID())
         {
-            PushSymbol(tag.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
+            PushSymbol(cat.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
             
         }
         PushSymbol(id.Symbol, SemanticTokenType.Class, SemanticTokenModifier.Definition);
@@ -126,9 +126,9 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     public override object? VisitEvent(MoiraiParser.EventContext context)
     {
         var id = context.ID();
-        foreach (var tag in context.TAG_ID())
+        foreach (var cat in context.categories().ID())
         {
-            PushSymbol(tag.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
+            PushSymbol(cat.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
             
         }
         PushSymbol(context.EVENT().Symbol, SemanticTokenType.Keyword);

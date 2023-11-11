@@ -359,6 +359,7 @@ rule foreach {
     {
         var s = @"
 entity Person {}
+tag #death
 prop alive: bool
 prop test: bool
 rule born {
@@ -374,6 +375,7 @@ rule die {
 }
 
 event on_death {
+    when #death
     when alive = false
 
     set test = true
@@ -404,12 +406,14 @@ event on_death {
 entity Person {}
 entity Item {}
 entity Link {}
+tag #death
 prop alive: bool
 prop child: ref
 prop parent: ref
 prop owner: ref
 
 event inherit {
+    when #death
     when $p: type = Person, alive = false
     each $i: type = Item, owner = $p {
         pick $l: type = Link, $l.parent = $p 
@@ -472,6 +476,8 @@ entity Item {}
 entity Faction {}
 entity Link {}
 
+tag #death
+
 enum Job { Smith, Farmer, Painter, Sculptor }
 enum Age { Child, Young, Adult, Old }
 enum ItemType { Forged, Painted, Sculpted }
@@ -491,6 +497,7 @@ prop child: ref
 prop owner: ref
 
 event inherit {
+    when #death
     when $p: type = Person, alive = false
     record '## {$p} {$p.name} died, inheriting'
     each $i: type = Item, owner = $p {
@@ -513,6 +520,7 @@ rule olds_dies {
 
         var db = StoryParser.Parse(script, out var error);
         db.Deserialize(json);
+        db.Init();
         db.Printer.PrintDb(db);
         db.Ctx.PassYears(1, true);
         // db.PrintDb();
@@ -769,7 +777,7 @@ rule create_faction {
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
-        db.Printer.PrintChangeset(db.History.Changesets[0], false);
+        Console.WriteLine(db.Records[0]);
         
         
         Console.WriteLine(db.Records[0].Text);

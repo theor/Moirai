@@ -5,3 +5,4 @@ obj/
 Moirai.Parser/gen/moirai_lexer.cs
 Moirai.Parser/gen/MoiraiParserBaseListener.cs
 Moirai.Parser/gen/MoiraiParserListener.cs
+MoiraiCli/hello.db

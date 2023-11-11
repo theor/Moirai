@@ -87,6 +87,16 @@ public class MainWindow : Toplevel
             // ShortcutAction = () => ActionList.SetFocus(),
             Visible = false,
         };
+        CatList = new CatListView(this)
+        {
+
+            Height = Dim.Fill(),
+            Width = Dim.Fill(),
+            // Shortcut = Key.CtrlMask | Key.D1,
+            CanFocus = true,
+            // ShortcutAction = () => ActionList.SetFocus(),
+            Visible = false,
+        };
         ActionList = new ActionListView(this)
         {
             Height = Dim.Fill(),
@@ -151,6 +161,8 @@ public class MainWindow : Toplevel
                     else if (LeftPane.SelectedTab.View == ActionList)
                         LeftPane.SelectedTab = LeftPane.Tabs.ElementAt(2);
                     else if (LeftPane.SelectedTab.View == TagList)
+                        LeftPane.SelectedTab = LeftPane.Tabs.ElementAt(3);
+                    else if (LeftPane.SelectedTab.View == CatList)
                         LeftPane.SelectedTab = LeftPane.Tabs.ElementAt(0);
                     // ActionList.Visible = !ActionList.Visible;
                     // EntityDetails.Visible = !ActionList.Visible;
@@ -166,6 +178,7 @@ public class MainWindow : Toplevel
         LeftPane.AddTab(new TabView.Tab( "Entities", EntityDetails), false);
         LeftPane.AddTab(new TabView.Tab( "Actions", ActionList), false);
         LeftPane.AddTab(new TabView.Tab( "Tags", TagList), false);
+        LeftPane.AddTab(new TabView.Tab( "Categories", CatList), false);
         // LeftPane.Add(EntityDetails);
         // LeftPane.Add(ActionList);
         Add(MenuBar);
@@ -220,6 +233,7 @@ public class MainWindow : Toplevel
 
     public ActionListView ActionList { get; set; }
     public TagListView TagList { get; set; }
+    public CatListView CatList { get; set; }
     public EntityDetailsView EntityDetails { get; set; }
     public EntityList EntityList { get; set; }
     public WorldHistoryView WorldHistory { get; set; }
@@ -341,6 +355,7 @@ public class MainWindow : Toplevel
         ActionList.Load();
         EntityList.Load();
         TagList.Load();
+        CatList.Load();
         UpdateDb();
     }
 
@@ -349,10 +364,12 @@ public class MainWindow : Toplevel
         None,
         Entity,
         Action,
-        Tag
+        Tag,
+        Category
     }
 
     private FilteringMode _mode;
+
     public void SetFiltering(FilteringMode filtering)
     {
         _mode = filtering;
@@ -368,4 +385,9 @@ public class MainWindow : Toplevel
         CurrentTag = tagId;
     }
 
+    public CategoryId CurrentCategory;
+    public void SelectCategory(CategoryId categoryId)
+    {
+        CurrentCategory = categoryId;
+    }
 }

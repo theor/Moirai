@@ -169,12 +169,19 @@ public class WorldHistoryView : View
                 case MainWindow.FilteringMode.Action:
                     _filtered = _w.Database.Records.Where(cs => cs.ActionId == _w.CurrentAction.Id).ToList();
                     break;
+                case MainWindow.FilteringMode.Category:
+                    if (_w.CurrentTag.IsNull)
+                        _filtered = _w.Database.Records;
+                    else
+                        _filtered = _w.Database.Records.Where(r =>
+                            (r.Categories & (1ul << (int)(_w.CurrentCategory.Id - 1))) != 0).ToList();
+                    break;
                 case MainWindow.FilteringMode.Tag:
                     if (_w.CurrentTag.IsNull)
                         _filtered = _w.Database.Records;
                     else
-                        _filtered = _w.Database.Records.Where(cs =>
-                            (cs.Tags & (1ul << (int)(_w.CurrentTag.Id - 1))) != 0).ToList();
+                        _filtered = _w.Database.Records.Where(r =>
+                            (r.Categories & (1ul << (int)(_w.CurrentTag.Id - 1))) != 0).ToList();
                     break;
                     
             }

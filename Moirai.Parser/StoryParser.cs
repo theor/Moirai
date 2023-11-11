@@ -226,9 +226,9 @@ public static class StoryParser
             }
 
 
-            var tags = ParseTags(context.TAG_ID());
+            var cats = ParseCategories(context.categories());
 
-            var action = new Action(_database.Actions.Count+1, actionId, false, f, tags);
+            var action = new Action(_database.Actions.Count+1, actionId, false, f, cats);
             foreach (MoiraiParser.EffectContext effectContext in context.effect())
             {
                 if(effectContext.comment() != null)
@@ -245,15 +245,14 @@ public static class StoryParser
             return null;
         }
 
-        private TagId[] ParseTags(ITerminalNode[] tagIds)
+        private CategoryId[] ParseCategories(MoiraiParser.CategoriesContext tagIds)
         {
-            TagId[] tags = new TagId[tagIds.Length];
+            CategoryId[] tags = new CategoryId[tagIds.ID().Length];
             var nodes = tagIds;
-            for (var index = 0; index < nodes.Length; index++)
+            for (var index = 0; index < nodes.ID().Length; index++)
             {
-                var tag = nodes[index];
-                if (!_database.GetTagId(tag.GetText(), out tags[index]))
-                    AddError(ErrorCode.UnknownTag, tag, tag.GetText());
+                var cat = tagIds.ID(index);
+                   tags[index] = _database.GetCategoryId(cat.GetText());
             }
 
             return tags;
@@ -263,9 +262,15 @@ public static class StoryParser
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
-            var tags = ParseTags(context.TAG_ID());
-            var action = new Action(_database.Events.Count +1, actionId, true, null, tags);
+            var categories = ParseCategories(context.categories());
+            var action = new Action(_database.Events.Count +1, actionId, true, null, categories);
             _variables.Clear();
+            foreach (var whenTag in context.when_tag())
+            {
+                if (!_database.GetTagId(whenTag.TAG_ID()?.GetText(), out var tagId))
+                    AddError(ErrorCode.UnknownTag, whenTag.TAG_ID(), whenTag.TAG_ID().GetText());
+                action.WhenTags.Add(tagId);
+            }
             foreach (var whenContext in context.when())
             {
                 action.Whens.Add(ParseWhen(whenContext));

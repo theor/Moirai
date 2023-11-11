@@ -171,7 +171,7 @@ public class PredicateContext
     public void PassYears(int years, bool offset) => PassYears(years, CancellationToken.None, null, offset);
     public void PassYears(long years, CancellationToken token, IProgress<int>? progress, bool offset)
     {
-        Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue, Array.Empty<TagId>());
+        Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue, Array.Empty<CategoryId>());
         var timeType = Database.GetEntityType("Time");
         var timeId = this.GetSingletonId(timeType.Id);
         var yearsProp = Database.GetPropertyId("year");

@@ -29,7 +29,7 @@ public class FormatAction : IInstruction
     }
     public bool Execute(PredicateContext ctx)
     {
-        ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year, ctx.Database.CurrentChangeset.Tags);
+        ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year, ctx.Database.CurrentChangeset.Categories);
         return true;
     }
 }

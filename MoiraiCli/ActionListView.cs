@@ -84,10 +84,10 @@ public class ActionListView : FrameView
             var a = _w.Database.Actions[item];
             driver.AddStr(a.Name);
             driver.SetAttribute(container.GetHotNormalColor());
-            foreach (var tagId in a.Tags)
+            foreach (var catId in a.Categories)
             {
                 driver.AddRune(' ');
-                driver.AddStr(_w.Database.GetTagName(tagId));
+                driver.AddStr(_w.Database.GetCategoryName(catId));
             }
             driver.SetAttribute(container.GetNormalColor());
 

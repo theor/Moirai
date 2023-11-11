@@ -1,6 +1,4 @@
 ﻿TODO
-- [ ] events description not in history ??
-- [ ] action tags
 - [ ] flag enum properties - `flag F { A,B,C }` `set_flag $x.f, F.B` `remove_flag $x.f, F.B` `has_flag $x.f, F.B `?
 - [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
 - [ ] parse types props init `type person { alive = true }`
@@ -17,6 +15,8 @@ FEATURES
   - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?`
 - [ ] tags ? are they arrays, bitflags, links, their own thing ?
 - [ ] arrays ? are links good enough ?
+- [x] events description not in history ??
+- [x] action tags
 - [x] time passing
 - [x] parse types ? either an enum or `type person { alive, age, job }
 - [x] probabilities ?

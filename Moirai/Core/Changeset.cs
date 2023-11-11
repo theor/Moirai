@@ -19,13 +19,13 @@ public class History
     }
 }
 
-public struct Changeset(int id, string actionName, long year, TagId[] tags)
+public struct Changeset(int id, string actionName, long year, CategoryId[] cats)
 {
     public readonly int Id = id;
     public readonly string ActionName = actionName;
     public readonly long Year = year;
     public readonly List<Change> Changes = new();
-    public ulong Tags = tags.Aggregate(0ul, (x, y) => x | (1ul<< (int)(y.Id - 1)));
+    public ulong Categories = cats.Aggregate(0ul, (x, y) => x | (1ul<< (int)(y.Id - 1)));
     // public string? Description { get; private set; } = null;
     // public bool HasDescription => !String.IsNullOrEmpty(Description);
 

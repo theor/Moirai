@@ -260,7 +260,7 @@ WHERE id = $id;";
     public bool RunAction(Action action)
     {
         // Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, action.Name, _ctx.Year, action.Tags);
+        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, action.Name, _ctx.Year, action.Categories);
         _currentActionId = action.Id;
         _ctx.ClearValueStack();
         // _ctx.Values.Clear();
@@ -308,7 +308,7 @@ WHERE id = $id;";
                     if (@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                     {
                         // Console.WriteLine("  @ " + @event.Name);
-                        CurrentChangeset = new(CurrentChangeset.Id, @event.Name, _ctx.Year, @event.Tags);
+                        CurrentChangeset = new(CurrentChangeset.Id, @event.Name, _ctx.Year, @event.Categories);
                         // using (var s2 = _ctx.RunScope())
                         {
                             foreach (var e in @event.Effects)
@@ -431,6 +431,7 @@ SELECT id FROM entity WHERE " + sql;
     }
 
     public List<string> Tags = new List<string> { null! }; 
+    public List<string> Categories = new List<string> { null! }; 
     public bool DeclareTag(string tag)
     {
         if (Tags.IndexOf(tag) != -1)
@@ -440,6 +441,23 @@ SELECT id FROM entity WHERE " + sql;
 
         Tags.Add(tag);
         return true;
+    }
+
+    public CategoryId GetCategoryId(string cat)
+    {
+        int index = Categories.IndexOf(cat);
+        if (index == -1)
+        {
+            Categories.Add(cat);
+            return new CategoryId((ulong)(Categories.Count - 1));
+        }
+
+        
+        return new CategoryId((ulong)index);
+    }
+    public string GetCategoryName(CategoryId tagId)
+    {
+        return Categories[(int)tagId.Id];
     }
     public bool GetTagId(string tag,out TagId id)
     {
@@ -465,24 +483,24 @@ SELECT id FROM entity WHERE " + sql;
         public readonly int ChangesetId;
         public readonly int ActionId;
         public readonly long Year;
-        public readonly ulong Tags;
+        public readonly ulong Categories;
 
-        public Record(string text, long year, ulong tags, int changesetId, int actionId)
+        public Record(string text, long year, ulong categories, int changesetId, int actionId)
         {
             Text = text;
             Year = year;
             ChangesetId = changesetId;
             ActionId = actionId;
-            Tags = tags;
+            Categories = categories;
         }
     }
 
     public List<Record> Records = new();
     private int _currentActionId;
 
-    public void AppendRecord(string text, long year, ulong tags)
+    public void AppendRecord(string text, long year, ulong categories)
     {
-        Records.Add(new (text, year, tags, CurrentChangeset.Id, _currentActionId));
+        Records.Add(new (text, year, categories, CurrentChangeset.Id, _currentActionId));
     }
 }
 
