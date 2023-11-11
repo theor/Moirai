@@ -226,16 +226,9 @@ public static class StoryParser
             }
 
 
-            TagId[] tags = new TagId[context.TAG_ID().Length];
-            var nodes = context.TAG_ID();
-            for (var index = 0; index < nodes.Length; index++)
-            {
-                var tag = nodes[index];
-                if (!_database.GetTagId(tag.GetText(), out tags[index]))
-                    AddError(ErrorCode.UnknownTag, tag, tag.GetText());
-            }
-          
-            var action = new Action(actionId, false, f, tags);
+            var tags = ParseTags(context.TAG_ID());
+
+            var action = new Action(_database.Actions.Count+1, actionId, false, f, tags);
             foreach (MoiraiParser.EffectContext effectContext in context.effect())
             {
                 if(effectContext.comment() != null)
@@ -251,11 +244,27 @@ public static class StoryParser
             _database.Actions.Add(action);
             return null;
         }
+
+        private TagId[] ParseTags(ITerminalNode[] tagIds)
+        {
+            TagId[] tags = new TagId[tagIds.Length];
+            var nodes = tagIds;
+            for (var index = 0; index < nodes.Length; index++)
+            {
+                var tag = nodes[index];
+                if (!_database.GetTagId(tag.GetText(), out tags[index]))
+                    AddError(ErrorCode.UnknownTag, tag, tag.GetText());
+            }
+
+            return tags;
+        }
+
         public override object? VisitEvent(MoiraiParser.EventContext context)
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
-            var action = new Action(actionId, true, null);
+            var tags = ParseTags(context.TAG_ID());
+            var action = new Action(_database.Events.Count +1, actionId, true, null, tags);
             _variables.Clear();
             foreach (var whenContext in context.when())
             {

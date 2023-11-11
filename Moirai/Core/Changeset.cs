@@ -19,25 +19,27 @@ public class History
     }
 }
 
-public struct Changeset(string actionName, long year)
+public struct Changeset(int id, string actionName, long year, TagId[] tags)
 {
+    public readonly int Id = id;
     public readonly string ActionName = actionName;
     public readonly long Year = year;
     public readonly List<Change> Changes = new();
-    public string? Description { get; private set; } = null;
-    public bool HasDescription => !String.IsNullOrEmpty(Description);
+    public ulong Tags = tags.Aggregate(0ul, (x, y) => x | (1ul<< (int)(y.Id - 1)));
+    // public string? Description { get; private set; } = null;
+    // public bool HasDescription => !String.IsNullOrEmpty(Description);
 
-    public void AppendDescription(string? desc)
-    {
-        if (!String.IsNullOrEmpty(desc))
-        {
-            if (!String.IsNullOrEmpty(this.Description))
-                this.Description += "\n";
-            // else
-            //     CurrentChangeset.Description = $"{Year}\n";
-            this.Description += desc;
-        }
-    }
+    // public void AppendDescription(string? desc)
+    // {
+    //     if (!String.IsNullOrEmpty(desc))
+    //     {
+    //         if (!String.IsNullOrEmpty(this.Description))
+    //             this.Description += "\n";
+    //         // else
+    //         //     CurrentChangeset.Description = $"{Year}\n";
+    //         this.Description += desc;
+    //     }
+    // }
     public void GetAffectedEntities(HashSet<EntityId> changedEntities)
     {
         foreach (var change in this.Changes)

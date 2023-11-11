@@ -68,7 +68,7 @@ public class ActionListView : FrameView
     {
         _listView.Source = new ActionSource(_w);
     }
-    
+
     class ActionSource : IListDataSource
     {
         private readonly MainWindow _w;

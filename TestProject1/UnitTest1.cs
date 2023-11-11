@@ -351,7 +351,6 @@ rule foreach {
         foreach (var changeset in db.History.Changesets)
         {
             db.Printer.PrintChangeset(changeset);
-            Console.WriteLine(changeset.Description);
             
         }
     }
@@ -370,6 +369,7 @@ rule born {
 rule die {
     each $p: type=Person, alive = true {
         set alive = false
+        record '{$p} dies'
     }
 }
 
@@ -377,8 +377,10 @@ event on_death {
     when alive = false
 
     set test = true
+    record 'event on {$0}'
 }";
         var db  = Run(s, out _, 0);
+        db.History = new();
         Assert.AreEqual(1, db.Events.Count);
 
         db.RunAction(db.Actions[0]);
@@ -388,6 +390,11 @@ event on_death {
         Entity e = db.Entities.First();
         PropertyId propTest = db.GetPropertyId("test");
         Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
+        foreach (var historyChangeset in db.History.Changesets)
+        {
+            Console.WriteLine(historyChangeset.ActionName);
+            db.Printer.PrintChangeset(historyChangeset);
+        }
     }
     
     [Test]
@@ -510,7 +517,7 @@ rule olds_dies {
         db.Ctx.PassYears(1, true);
         // db.PrintDb();
         db.Printer.PrintChangeset(db.CurrentChangeset, false);
-        Console.WriteLine(db.CurrentChangeset.Description);
+        Console.WriteLine(db.Records.Last().Text);
         
     }
 
@@ -734,9 +741,8 @@ rule create_faction {
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
-        db.Printer.PrintChangeset(db.History.Changesets[0], false);
-        Console.WriteLine(db.History.Changesets[0].Description);
-        Assert.AreEqual("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>", db.History.Changesets[0].Description);
+        Console.WriteLine(db.Records.Last().Text);
+        Assert.AreEqual("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>", db.Records.Last().Text);
     }
     [Test]
     public void Format_TwoRandomNames()
@@ -764,8 +770,10 @@ rule create_faction {
         db.History = new();
         db.RunAction(db.Actions[0]);
         db.Printer.PrintChangeset(db.History.Changesets[0], false);
-        Console.WriteLine(db.History.Changesets[0].Description);
-        Assert.AreEqual("res 42 > 16 = true", db.History.Changesets[0].Description);
+        
+        
+        Console.WriteLine(db.Records[0].Text);
+        Assert.AreEqual("res 42 > 16 = true", db.Records[0].Text);
     }
     
     [Test]

@@ -16,6 +16,11 @@ public class StoryPrinter
             sb.AppendLine($"entity {type.Name} {{ }}");
 
         }
+        foreach (string en in _database.Tags.Skip(1))
+        {
+            sb.AppendLine($"tag {en}");
+
+        }
         foreach (EnumDefinition en in _database.Enums.Skip(1))
         {
             sb.AppendLine($"enum {en.Name} {{ {string.Join(", ", en.Values)} }}");
@@ -29,7 +34,7 @@ public class StoryPrinter
         {
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
-            sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name} {{");
+            sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name}{string.Join("", action.Tags.Select(t => $" {_database.GetTagName(t)}"))} {{");
             foreach (var when in action.Whens)
             {
                 sb.AppendLine($"  when ${when.VariableIndex}: {Print(when.Value)}");

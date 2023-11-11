@@ -175,17 +175,17 @@ internal class Program
             {
                 printHistory = false;
                 long year = -1;
-                foreach (var cs in db.History.Changesets)
+                foreach (var cs in db.Records)
                 {
-                    if (cs.Year != year && cs.Changes.Any())
+                    if (cs.Year != year)
                     {
                         Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine(cs.Year);
                         Console.ResetColor();
                         year = cs.Year;
                     }
-                    if (!string.IsNullOrEmpty(cs.Description))
-                        Console.WriteLine( /*cs.Year + ": " +*/ cs.Description);
+                    if (!string.IsNullOrEmpty(cs.Text))
+                        Console.WriteLine( /*cs.Year + ": " +*/ cs.Text);
                 }
             }
             else if (line == "")

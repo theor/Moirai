@@ -1,4 +1,7 @@
 ﻿TODO
+- [ ] events description not in history ??
+- [ ] action tags
+- [ ] flag enum properties - `flag F { A,B,C }` `set_flag $x.f, F.B` `remove_flag $x.f, F.B` `has_flag $x.f, F.B `?
 - [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
 - [ ] parse types props init `type person { alive = true }`
 - [ ] restrict props to type ? `type person { alive: number = true }` would allow overlap of prop indices across types and to index them directly

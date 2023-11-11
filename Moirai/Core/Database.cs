@@ -260,7 +260,8 @@ WHERE id = $id;";
     public bool RunAction(Action action)
     {
         // Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(action.Name, _ctx.Year);
+        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, action.Name, _ctx.Year, action.Tags);
+        _currentActionId = action.Id;
         _ctx.ClearValueStack();
         // _ctx.Values.Clear();
 
@@ -274,17 +275,17 @@ WHERE id = $id;";
             if (!e.Execute(_ctx))
             {
                 // Console.WriteLine($"  ABORT [{action.Name}]");
+                History?.Changesets.Add(CurrentChangeset);
                 if (CurrentChangeset.Changes.Count != 0)
                 {
                     Console.Error.WriteLine("Action failed but left changes:");
-                    History?.Changesets.Add(CurrentChangeset);
                 }
                 return false;
             }
         }
         _changedEntities.Clear();
         CurrentChangeset.GetAffectedEntities(_changedEntities);
-        if (!String.IsNullOrEmpty(CurrentChangeset.Description) || CurrentChangeset.Changes.Any())
+        if (CurrentChangeset.Changes.Any())
             History?.Changesets.Add(CurrentChangeset);
 
         RunEvents(_changedEntities);
@@ -307,7 +308,7 @@ WHERE id = $id;";
                     if (@event.Whens.All(p => p.Value.IsTrue(_ctx)))
                     {
                         // Console.WriteLine("  @ " + @event.Name);
-                        CurrentChangeset = new(@event.Name, _ctx.Year);
+                        CurrentChangeset = new(CurrentChangeset.Id, @event.Name, _ctx.Year, @event.Tags);
                         // using (var s2 = _ctx.RunScope())
                         {
                             foreach (var e in @event.Effects)
@@ -319,7 +320,7 @@ WHERE id = $id;";
                                 }
                             }
                         }
-                        if (CurrentChangeset.Changes.Any() || CurrentChangeset.HasDescription)
+                        if (CurrentChangeset.Changes.Any())
                             History?.Changesets?.Add(CurrentChangeset);
                     }
                 }
@@ -449,13 +450,39 @@ SELECT id FROM entity WHERE " + sql;
             return false;
         }
 
-        id = new TagId(index);
+        id = new TagId((ulong)index);
         return true;
     }
 
     public string GetTagName(TagId tagId)
     {
         return Tags[(int)tagId.Id];
+    }
+
+    public struct Record
+    {
+        public readonly string Text;
+        public readonly int ChangesetId;
+        public readonly int ActionId;
+        public readonly long Year;
+        public readonly ulong Tags;
+
+        public Record(string text, long year, ulong tags, int changesetId, int actionId)
+        {
+            Text = text;
+            Year = year;
+            ChangesetId = changesetId;
+            ActionId = actionId;
+            Tags = tags;
+        }
+    }
+
+    public List<Record> Records = new();
+    private int _currentActionId;
+
+    public void AppendRecord(string text, long year, ulong tags)
+    {
+        Records.Add(new (text, year, tags, CurrentChangeset.Id, _currentActionId));
     }
 }
 

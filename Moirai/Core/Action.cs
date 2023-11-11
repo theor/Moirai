@@ -1,7 +1,8 @@
 ﻿using Moirai.Core;
 
-public struct Action(string name, bool isEvent,IFilter? filter, TagId[]? tags = null)
+public struct Action(int id, string name, bool isEvent,IFilter? filter, TagId[]? tags = null)
 {
+    public readonly int Id = id;
     public readonly string Name = name;
     public readonly bool IsEvent = isEvent;
 

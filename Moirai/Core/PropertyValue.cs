@@ -20,8 +20,8 @@ public struct TagId
 {
     public static readonly TagId Null = default;
     public readonly bool IsNull => Id == 0;
-    public readonly long Id;
-    public TagId(long id)
+    public readonly ulong Id;
+    public TagId(ulong id)
     {
         Id = id;
     }

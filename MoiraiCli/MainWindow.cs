@@ -9,11 +9,13 @@ public class MainWindow : Toplevel
 {
     public Database Database;
     public StatusItem FileStatus, YearStatus, MessageStatus;
-    private View LeftPane;
+    private TabView LeftPane;
     private List<EntityId> _history = new();
     private int _historyIndex = -1;
-    public EntityId Current => _historyIndex < _history.Count ? _history[_historyIndex] : default;
+    public EntityId Current => _historyIndex >= 0 && _historyIndex < _history.Count ? _history[_historyIndex] : default;
     public Action CurrentAction;
+    public TagId CurrentTag;
+
     
     interface IMessage{}
 
@@ -68,12 +70,22 @@ public class MainWindow : Toplevel
         //     return true;
         // });
         // AddKeyBinding(Key.AltMask | Key.CursorRight, Command.PageRight);
-        LeftPane = new View()
+        LeftPane = new TabView()
         {
             X = 0,
             Y = 1,
             Height = Dim.Fill(1),
             Width =  Dim.Percent(20),
+        };
+        TagList = new TagListView(this)
+        {
+
+            Height = Dim.Fill(),
+            Width = Dim.Fill(),
+            // Shortcut = Key.CtrlMask | Key.D1,
+            CanFocus = true,
+            // ShortcutAction = () => ActionList.SetFocus(),
+            Visible = false,
         };
         ActionList = new ActionListView(this)
         {
@@ -134,8 +146,14 @@ public class MainWindow : Toplevel
                 YearStatus,
                 new StatusItem( Key.F1, "Actions/Details", () =>
                 {
-                    ActionList.Visible = !ActionList.Visible;
-                    EntityDetails.Visible = !ActionList.Visible;
+                    if (LeftPane.SelectedTab.View == EntityDetails)
+                        LeftPane.SelectedTab = LeftPane.Tabs.ElementAt(1);
+                    else if (LeftPane.SelectedTab.View == ActionList)
+                        LeftPane.SelectedTab = LeftPane.Tabs.ElementAt(2);
+                    else if (LeftPane.SelectedTab.View == TagList)
+                        LeftPane.SelectedTab = LeftPane.Tabs.ElementAt(0);
+                    // ActionList.Visible = !ActionList.Visible;
+                    // EntityDetails.Visible = !ActionList.Visible;
                 }),
                 new StatusItem(Key.F2, "Entities/History", () =>
                 {
@@ -145,8 +163,11 @@ public class MainWindow : Toplevel
                 MessageStatus,
             }
         };
-        LeftPane.Add(EntityDetails);
-        LeftPane.Add(ActionList);
+        LeftPane.AddTab(new TabView.Tab( "Entities", EntityDetails), false);
+        LeftPane.AddTab(new TabView.Tab( "Actions", ActionList), false);
+        LeftPane.AddTab(new TabView.Tab( "Tags", TagList), false);
+        // LeftPane.Add(EntityDetails);
+        // LeftPane.Add(ActionList);
         Add(MenuBar);
         Add(LeftPane);
         Add(EntityList);
@@ -198,6 +219,7 @@ public class MainWindow : Toplevel
     }
 
     public ActionListView ActionList { get; set; }
+    public TagListView TagList { get; set; }
     public EntityDetailsView EntityDetails { get; set; }
     public EntityList EntityList { get; set; }
     public WorldHistoryView WorldHistory { get; set; }
@@ -318,6 +340,7 @@ public class MainWindow : Toplevel
         FileStatus.Title = "Loaded";
         ActionList.Load();
         EntityList.Load();
+        TagList.Load();
         UpdateDb();
     }
 
@@ -326,6 +349,7 @@ public class MainWindow : Toplevel
         None,
         Entity,
         Action,
+        Tag
     }
 
     private FilteringMode _mode;
@@ -338,4 +362,10 @@ public class MainWindow : Toplevel
     {
         EntityList.SetPropertyColumn(id, displayed);
     }
+
+    public void SelectTag(TagId tagId)
+    {
+        CurrentTag = tagId;
+    }
+
 }

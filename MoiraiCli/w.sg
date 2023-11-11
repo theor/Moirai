@@ -7,6 +7,7 @@ entity God {}
 
 tag #war
 tag #death
+tag #items
 
 enum Job { Smith, Farmer, Painter, Sculptor, Writer, Wizard, Soldier }
 enum Age { Child, Young, Adult, Old }
@@ -67,7 +68,7 @@ rule create_time {
     call create_god, 10
 }
 
-event inherit {
+event inherit #death #items {
     when $p: type = Person, alive = false
     set $p.deathdate = #Time.year
     each $i: type = Item, owner = $p {
@@ -79,7 +80,7 @@ event inherit {
     }
 }
 
-event buries_children {
+event buries_children #death {
     when $p: type = Person, alive = false
     
     each $l: type = Link, $l.child = $p {
@@ -259,7 +260,7 @@ rule couple_has_child {
     record '{$x.name} and {$y.name} have a child, {$c.name}'
 }
 @1 per 2 year
-rule make_item {
+rule make_item #items {
     pick $p: type=Person, alive = true, job=Job.Smith, age > Age.Child
     create $i: Item, '{random item} of {random name}'
     set $i.item_type = ItemType.Forged
@@ -267,7 +268,7 @@ rule make_item {
     record '{$p.name} crafts the {$i.name}'
 }
 @1 per 2 year
-rule paint_item {
+rule paint_item #items {
     pick $p: type=Person, alive = true, job=Job.Painter, age > Age.Child
     pick $t: type=Person, alive = true, id != $p
     create $i: Item, 'Portrait of {$t.name}'
@@ -276,7 +277,7 @@ rule paint_item {
     record '{$p.name} paints the {$i.name}'
 }
 @1 per 8 year
-rule item_lost {
+rule item_lost #items {
     pick $i: type=Item, owner != null
     pick $p: id = $i.owner, alive
     var $prev = $i.owner
@@ -284,14 +285,14 @@ rule item_lost {
     record '{$prev.name} lost the {$i.name}'
 }
 @1 per 20 year
-rule item_found {
+rule item_found #items {
     pick $p: type=Person, alive = true
     pick $i: type=Item, owner = null
     set $i.owner = $p
     record '{$p.name} obtains the {$i.name}'
 }
 @1 per 10 year
-rule item_sold {
+rule item_sold #items {
     pick $i: type=Item, owner != null
     pick $s: id = $i.owner, type=Person, alive
     pick $p: type=Person, alive, id != $s
