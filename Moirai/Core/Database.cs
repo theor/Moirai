@@ -365,15 +365,22 @@ WHERE id = $id;";
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.Open();
         var cmd = _connection.CreateCommand();
+
+        string indices = @"CREATE INDEX types ON entity (type);";
+        if (Properties.Any(p => p.Name == "owner"))
+            indices += @"
+CREATE INDEX owners ON entity (owner) WHERE type = 3;";
+        if (Properties.Any(p => p.Name == "alive"))
+            indices += @"
+CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
+        
         cmd.CommandText = $@"
 CREATE TABLE entity (
     id INTEGER PRIMARY KEY,
     type INTEGER NOT NULL,
     {string.Join(",\n  ", Properties.Skip(3).Select(p => $@"{p.Name} {ToSqlType(p.Type)}"))}
 );
-CREATE INDEX types ON entity (type);
-CREATE INDEX owners ON entity (owner) WHERE type = 3;
-CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;
+{indices}
 ";
         cmd.ExecuteNonQuery();
         Profiler.Init(this);
@@ -390,7 +397,7 @@ CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;
     }
     public void Commit()
     {
-        var path = "../../../hello.db";
+        var path = "hello.db";
         try
         {
             File.Delete(path);
@@ -420,6 +427,35 @@ SELECT id FROM entity WHERE " + sql;
             while(r.Read())
                 results.Add(new EntityId(r.GetInt64(0)));
             return true;
+    }
+
+    public List<string> Tags = new List<string> { null! }; 
+    public bool DeclareTag(string tag)
+    {
+        if (Tags.IndexOf(tag) != -1)
+        {
+            return false;
+        }
+
+        Tags.Add(tag);
+        return true;
+    }
+    public bool GetTagId(string tag,out TagId id)
+    {
+        int index = Tags.IndexOf(tag);
+        if (index == -1)
+        {
+            id = default;
+            return false;
+        }
+
+        id = new TagId(index);
+        return true;
+    }
+
+    public string GetTagName(TagId tagId)
+    {
+        return Tags[(int)tagId.Id];
     }
 }
 

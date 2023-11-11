@@ -7,10 +7,10 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: (COMMENT | LINE_BREAK)* (comment|action|event|prop_definition|enum_definition|type_definition)+ EOF;
+r: (COMMENT | LINE_BREAK)* (comment|action|event|prop_definition|enum_definition|type_definition|tag_definition)+ EOF;
 comment: COMMENT ;
 filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
-action: filter? RULE  ID SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
+action: filter? RULE  ID tags=TAG_ID* SCOPE_OPEN LINE_BREAK effect+ SCOPE_CLOSE LINE_BREAK*;
 event: EVENT ID SCOPE_OPEN LINE_BREAK when+ effect+ SCOPE_CLOSE LINE_BREAK*;
 when: WHEN (VAR_ID COLON)? expr (COMMA expr)* SPACE* LINE_BREAK+;
 effect: (comment|set | var | call_assign) SPACE* LINE_BREAK+;
@@ -28,6 +28,8 @@ expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     | value
     ;
+
+tag_definition: TAG TAG_ID LINE_BREAK+ ;
 
 type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 

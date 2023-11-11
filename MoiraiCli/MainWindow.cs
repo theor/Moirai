@@ -13,7 +13,7 @@ public class MainWindow : Toplevel
     private List<EntityId> _history = new();
     private int _historyIndex = -1;
     public EntityId Current => _historyIndex < _history.Count ? _history[_historyIndex] : default;
-    public string CurrentAction;
+    public Action CurrentAction;
     
     interface IMessage{}
 
@@ -53,7 +53,7 @@ public class MainWindow : Toplevel
     public MainWindow()
     {
         var args = Environment.GetCommandLineArgs();
-        string path = args.Length > 1 ? args[1] : @"C:\Users\theor\StoryGen\MoiraiCli\w.sg";
+        string path = args.Length > 1 ? args[1] : @"w.sg";
 
         ColorScheme = Colors.TopLevel;
         // AddCommand(Command.PageLeft, () =>
@@ -73,7 +73,7 @@ public class MainWindow : Toplevel
             X = 0,
             Y = 1,
             Height = Dim.Fill(1),
-            Width =  Dim.Sized(30),
+            Width =  Dim.Percent(20),
         };
         ActionList = new ActionListView(this)
         {
@@ -132,12 +132,12 @@ public class MainWindow : Toplevel
             {
                 FileStatus,
                 YearStatus,
-                new StatusItem(Key.CtrlMask | Key.ShiftMask | Key.D1, "Actions/Details", () =>
+                new StatusItem( Key.F1, "Actions/Details", () =>
                 {
                     ActionList.Visible = !ActionList.Visible;
                     EntityDetails.Visible = !ActionList.Visible;
                 }),
-                new StatusItem(Key.CtrlMask | Key.ShiftMask | Key.D2, "Entities/History", () =>
+                new StatusItem(Key.F2, "Entities/History", () =>
                 {
                     EntityList.Visible = !EntityList.Visible;
                     WorldHistory.Visible = !EntityList.Visible;
@@ -202,7 +202,7 @@ public class MainWindow : Toplevel
     public EntityList EntityList { get; set; }
     public WorldHistoryView WorldHistory { get; set; }
 
-    public void SelectAction(string a)
+    public void SelectAction(Action a)
     {
         CurrentAction = a;
         if(_mode == FilteringMode.Action)

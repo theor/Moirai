@@ -161,7 +161,7 @@ public class WorldHistoryView : View
                     return _changed.Contains(_w.Current);
                 }).ToList();
             else if (filtering == MainWindow.FilteringMode.Action)
-                _filtered = _w.Database.History.Changesets.Where(cs => cs.ActionName == _w.CurrentAction).ToList();
+                _filtered = _w.Database.History.Changesets.Where(cs => cs.ActionName == _w.CurrentAction.Name).ToList();
         }
     }
 

@@ -16,6 +16,22 @@ public struct EntityId
     }
 }
 
+public struct TagId
+{
+    public static readonly TagId Null = default;
+    public readonly bool IsNull => Id == 0;
+    public readonly long Id;
+    public TagId(long id)
+    {
+        Id = id;
+    }
+
+    public override string ToString()
+    {
+        return $"#{Id}";
+    }
+}
+
 public struct PropertyValue : IEquatable<PropertyValue>
 {
     public string? Value;

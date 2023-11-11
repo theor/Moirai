@@ -115,6 +115,11 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         var id = context.ID();
         PushSymbol(context.RULE().Symbol, SemanticTokenType.Keyword);
+        foreach (var tag in context.TAG_ID())
+        {
+            PushSymbol(id.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
+            
+        }
         PushSymbol(id.Symbol, SemanticTokenType.Class, SemanticTokenModifier.Definition);
         return base.VisitAction(context);
     }
@@ -137,6 +142,14 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         PushSymbol(context.TYPE_ID().Symbol, SemanticTokenType.Type);
         return base.VisitType_definition(context);
     }
+
+    public override object? VisitTag_definition(MoiraiParser.Tag_definitionContext context)
+    {
+        PushSymbol(context.TAG().Symbol, SemanticTokenType.Keyword);
+        PushSymbol(context.TAG_ID().Symbol, SemanticTokenType.Type);
+        return null;
+    }
+
     public override object? VisitEnum_definition(MoiraiParser.Enum_definitionContext context)
     {
         PushSymbol(context.ENUM().Symbol, SemanticTokenType.Keyword);

@@ -3,6 +3,7 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
+import { copyFileSync } from 'fs';
 import * as path from 'path';
 import { workspace, ExtensionContext } from 'vscode';
 
@@ -18,9 +19,10 @@ let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
 	// The server is implemented in node
-	let serverCommand = context.asAbsolutePath(path.join('client','server', 'Server.exe'));
+	let serverCommandOrig = context.asAbsolutePath(path.join('client','server', 'Server.exe'));
+	let serverCommand = context.asAbsolutePath(path.join('client','server', 'Server2.exe'));
 	let commandOptions: ExecutableOptions = {  detached: false };
-	
+	copyFileSync(serverCommandOrig, serverCommand)
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
@@ -34,7 +36,7 @@ export function activate(context: ExtensionContext) {
 	// Options to control the language client
 	const clientOptions: LanguageClientOptions = {
 		// Register the server for plain text documents
-		documentSelector: [{ scheme: 'file', language: 'plaintext' }],
+		documentSelector: [{ scheme: 'file', language: 'moirai' }],
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')

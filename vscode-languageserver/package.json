@@ -23,14 +23,13 @@
 	"contributes": {
 		"languages": [
 			{
-			  "id": "moirai",
-			  "extensions": [
-				".sg"
-			  ],
-			  
-			  "configuration": "./language-configuration.json"
+				"id": "moirai",
+				"extensions": [
+					".sg"
+				],
+				"configuration": "./language-configuration.json"
 			}
-		  ],
+		],
 		"configuration": {
 			"type": "object",
 			"title": "Example configuration",

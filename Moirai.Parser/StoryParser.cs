@@ -28,7 +28,9 @@ public static class StoryParser
         MissingArgument,
         UnknownRule,
         UnknownEntityType,
-        Exception
+        Exception,
+        UnknownTag,
+        DuplicateTagDefinition
     }
 
     public struct Error
@@ -133,6 +135,13 @@ public static class StoryParser
             _database = database;
         }
 
+        public override object? VisitTag_definition(MoiraiParser.Tag_definitionContext context)
+        {
+            if (!_database.DeclareTag(context.TAG_ID().GetText()))
+                AddError(ErrorCode.DuplicateTagDefinition, context.TAG_ID(), context.TAG_ID().GetText());
+            return base.VisitTag_definition(context);
+        }
+
         public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
         {
             if (context.TYPE_ID() == null)
@@ -215,7 +224,18 @@ public static class StoryParser
                     }
                 }
             }
-            var action = new Action(actionId, false, f);
+
+
+            TagId[] tags = new TagId[context.TAG_ID().Length];
+            var nodes = context.TAG_ID();
+            for (var index = 0; index < nodes.Length; index++)
+            {
+                var tag = nodes[index];
+                if (!_database.GetTagId(tag.GetText(), out tags[index]))
+                    AddError(ErrorCode.UnknownTag, tag, tag.GetText());
+            }
+          
+            var action = new Action(actionId, false, f, tags);
             foreach (MoiraiParser.EffectContext effectContext in context.effect())
             {
                 if(effectContext.comment() != null)

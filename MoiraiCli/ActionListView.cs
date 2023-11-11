@@ -1,4 +1,5 @@
-﻿using Terminal.Gui;
+﻿using System.Collections;
+using Terminal.Gui;
 
 namespace Moirai;
 
@@ -20,11 +21,11 @@ public class ActionListView : FrameView
         };
         _listView.SelectedItemChanged += e =>
         {
-            _w.SelectAction((string)e.Value);
+            _w.SelectAction((Action)e.Value);
         };
         _listView.OpenSelectedItem += e =>
         {
-            if (_w.CurrentAction == (string)e.Value)
+            if (_w.CurrentAction.Name == ((Action)e.Value).Name)
             {
                 // _w.SelectAction(null);
                 _w.SetFiltering(MainWindow.FilteringMode.None);
@@ -65,6 +66,46 @@ public class ActionListView : FrameView
     }
     public void Load()
     {
-        _listView.SetSource(_w.Database.Actions.Select(a => a.Name).ToList());
+        _listView.Source = new ActionSource(_w);
+    }
+    
+    class ActionSource : IListDataSource
+    {
+        private readonly MainWindow _w;
+
+        public ActionSource(MainWindow w)
+        {
+            _w = w;
+        }
+
+        public void Render(ListView container, ConsoleDriver driver, bool selected, int item, int col, int line, int width,
+            int start = 0)
+        {
+            var a = _w.Database.Actions[item];
+            driver.AddStr(a.Name);
+            driver.SetAttribute(container.GetHotNormalColor());
+            foreach (var tagId in a.Tags)
+            {
+                driver.AddRune(' ');
+                driver.AddStr(_w.Database.GetTagName(tagId));
+            }
+            driver.SetAttribute(container.GetNormalColor());
+
+        }
+
+        public bool IsMarked(int item)
+        {
+            return false;
+        }
+
+        public void SetMark(int item, bool value)
+        {
+           
+        }
+
+        public IList ToList() => _w.Database.Actions;
+
+        public int Count => _w.Database.Actions.Count;
+        public int Length => 100;
     }
 }
