@@ -89,6 +89,24 @@ public interface IMoiraiParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitEffect([NotNull] MoiraiParser.EffectContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="MoiraiParser.if"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitIf([NotNull] MoiraiParser.IfContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MoiraiParser.match"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMatch([NotNull] MoiraiParser.MatchContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MoiraiParser.match_case"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMatch_case([NotNull] MoiraiParser.Match_caseContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.set"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

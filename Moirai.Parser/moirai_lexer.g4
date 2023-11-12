@@ -23,7 +23,11 @@ ENUM: 'enum';
 WHEN: 'when';
 SET: 'set';
 VAR: 'var';
+MATCH: 'match';
 COMMA: ',';
+ARROW: '=>';
+IF: 'if';
+ELSE: 'else';
 
 TRUE: 'true';
 FALSE: 'false';

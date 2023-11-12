@@ -77,15 +77,19 @@ event country_prosperity_increase country_events {
     when #prosperity_increase
     when $c: type = Country, prosperity < 10
     set $c.prosperity = $c.prosperity + 1
-    set $c.health = ($c.prosperity + 1) / 2
-    record '+ {$c.name} p {$c.prosperity} h {$c.health}'
 }
 event country_prosperity_decrease country_events {
     when #prosperity_decrease
     when $c: type = Country, prosperity > 1
     set $c.prosperity = $c.prosperity - 1
-    set $c.health = ($c.prosperity + 1) / 2
-    record '- {$c.name} p {$c.prosperity} h {$c.health}'
+}
+
+@ 1 per 5 years
+rule update_country_health country_events {
+    each $c: type = Country {
+        set $c.health = ($c.prosperity + 1) / 2
+        record '+ {$c.name} p {$c.prosperity} h {$c.health}'
+    }
 }
 
 @ 1 per 10 years

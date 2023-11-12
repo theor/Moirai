@@ -1,5 +1,94 @@
 namespace TestProject1;
 
+public class IfTests : TestsBase
+{
+    [Test]
+    public void IfTrue()
+    {
+        var db = Run(@"
+entity T {}
+prop p: number
+rule r {
+    create $t: T
+    if true {
+        set $t.p = 1
+    }
+}", out _);
+        db.RunAction("r");
+        Assert.AreEqual(1, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+    [Test]
+    public void IfFalse()
+    {
+        var db = Run(@"
+entity T {}
+prop p: number
+rule r {
+    create $t: T
+    if false {
+        set $t.p = 1
+    } else {
+        set $t.p = 2
+    }
+}", out _);
+        db.RunAction("r");
+        Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+}
+public class MatchTests : TestsBase
+{
+    [Test]
+    public void MatchAnyValue()
+    {
+        var db = Run(@"
+entity T {}
+prop p: number
+rule r {
+    create $t: T
+    match 2 {
+        _ => set $t.p = 20
+        2 => set $t.p = 30
+    }
+}", out _);
+        db.RunAction("r");
+        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+    [Test]
+    public void MatchOneValue()
+    {
+        var db = Run(@"
+entity T {}
+prop p: number
+rule r {
+    create $t: T
+    match 2 {
+        1 => set $t.p = 10
+        2 => set $t.p = 20
+        3 => set $t.p = 30
+    }
+}", out _);
+        db.RunAction("r");
+        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+    [Test]
+    public void MatchTwoValue()
+    {
+        var db = Run(@"
+entity T {}
+prop p: number
+rule r {
+    create $t: T
+    match 2,(3>4) {
+        1,true => set $t.p = 10
+        2,true => set $t.p = 20
+        2,false => set $t.p = 30
+    }
+}", out _);
+        db.RunAction("r");
+        Assert.AreEqual(30, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+    
+}
 public class TestsBase
 {
     public static Database Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)

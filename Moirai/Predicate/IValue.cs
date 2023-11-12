@@ -8,6 +8,25 @@ public interface IValue
     string ToSql(PredicateContext ctx);
 }
 
+public class MatchAnyValue : IValue
+{
+    private MatchAnyValue(){}
+    public static MatchAnyValue Instance = new();
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool HasTypeFilter(out EntityTypeId type)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+}
 public class IsOfType : IValue
 {
     public readonly IValue Entity;

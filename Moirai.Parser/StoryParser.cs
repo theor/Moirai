@@ -1,4 +1,6 @@
-﻿using Antlr4.Runtime;
+﻿using System.Reflection.Metadata;
+using Antlr4.Runtime;
+using Antlr4.Runtime.Atn;
 using Antlr4.Runtime.Tree;
 using Moirai.Parser;
 public static class StoryParser
@@ -293,10 +295,43 @@ public static class StoryParser
                 return ParseVar(effectContext.var());
             if(effectContext.set() != null)
                 return ParseSet(effectContext.set());
+            if (effectContext.@if() != null)
+                return ParseIf(effectContext.@if());
+            if (effectContext.match() != null)
+                return ParseMatch(effectContext.match());
 
             AddError(ErrorCode.Exception, effectContext, "NULL");
             return new SetProperty(default, null, false, default);
         }
+
+        private bool _parsingMatchCase = false;
+        private Match ParseMatch(MoiraiParser.MatchContext match)
+        {
+            var values = match.expr().Select(ParseExpr).ToArray();
+            var cases = new (IValue?[], IInstruction[])[match.match_case().Length];
+            for (int i = 0; i < match.match_case().Length; i++)
+            {
+                var caseCtx = match.match_case(i);
+                _parsingMatchCase = true;
+                IValue[] caseValues;
+                try
+                {
+                    caseValues = caseCtx.value().Select(ParseValue).ToArray();
+                }
+                finally
+                {
+                    _parsingMatchCase = false;
+                }
+                cases[i] = (caseValues, caseCtx.scope() == null ? new IInstruction[]{ParseEffect(caseCtx.effect())} : ParseScope(caseCtx.scope()));
+            }
+            return new Match(values, cases);
+        }
+
+        private If ParseIf(MoiraiParser.IfContext @if)
+        {
+            return new If(ParseExpr(@if.cond), ParseScope(@if.then), @if.@else == null ? Array.Empty<IInstruction>() : ParseScope(@if.@else));
+        }
+
         private AssignPick ParseWhen(MoiraiParser.WhenContext context)
         {
             var exprs = context.expr();
@@ -337,8 +372,12 @@ public static class StoryParser
             var right = ParseExpr(context.expr()); //, left.Property);
             return new SetProperty(left, right, false, default);
         }
+
         private IValue ParseValue(MoiraiParser.ValueContext value)
         {
+
+            if (_parsingMatchCase && value.path()?.GetText() == "_")
+                return MatchAnyValue.Instance;
             if (value.TYPE_ID() != null)
             {
                 var type = _database.GetEntityType(value.TYPE_ID().GetText());
@@ -465,7 +504,7 @@ public static class StoryParser
                             ? ParseExpr(exprs[0])!
                             : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
                         CallType.Each,
-                        context.scope().effect().Where(e => e.comment() == null).Select(ParseEffect).ToArray());
+                        ParseScope(context.scope()));
                     // _variables[variableIndex] = "";
                     return assignPick;
                 }
@@ -501,6 +540,14 @@ public static class StoryParser
 
             return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IInstruction)!;
         }
+
+        private IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext)
+        {
+            if (scopeContext == null)
+                return Array.Empty<IInstruction>();
+            return scopeContext.effect().Where(e => e.comment() == null).Select(ParseEffect).ToArray();
+        }
+
         private InterpolatedString ParseInterpolatedString(string str)
         {
             List<IValue> paths = new();

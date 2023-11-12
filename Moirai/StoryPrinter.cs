@@ -87,7 +87,7 @@ public class StoryPrinter
     }
     private void PrintEffect(IInstruction instruction, StringBuilder sb, int indent)
     {
-        string indentStr = new string(' ', indent * 4);
+        string indentStr = MakeIndent(indent);
         switch (instruction)
         {
             case CreateEntity createEntity:
@@ -137,10 +137,58 @@ public class StoryPrinter
                         throw new ArgumentOutOfRangeException();
                 }
                 break;
+            case If @if:
+                sb.AppendLine($"{indentStr}if {Print(@if.Condition)} {{");
+                foreach (var nestedEffect in @if.IfTrue)
+                {
+                    PrintEffect(nestedEffect, sb, indent + 1);
+                }
+                if (@if.IfFalse.Length > 0)
+                {
+                    sb.AppendLine($"}} {indentStr}else {{");
+                    foreach (var nestedEffect in @if.IfFalse)
+                    {
+                        PrintEffect(nestedEffect, sb, indent + 1);
+                    }
+                    sb.AppendLine($"{indentStr}}}");
+                    
+                }
+                else
+                {
+                    sb.AppendLine($"{indentStr}}}");
+                    
+                }
+                break;
+            case Match match:
+                sb.AppendLine($"{indentStr}match {String.Join(", ", match.Values.Select(Print))} {{");
+                var caseIndent = MakeIndent(indent + 1);
+                foreach (var matchCase in match.Cases)
+                {
+                    sb.Append($"{caseIndent}{String.Join(", ", matchCase.Item1.Select(Print))} => ");
+                    if(matchCase.Item2.Length == 0)
+                        sb.AppendLine("{ }");
+                    else
+                    {
+                        sb.AppendLine("{");
+                        foreach (var instruction1 in matchCase.Item2)
+                        {
+                            PrintEffect(instruction1, sb, indent + 2);
+                        }
+                        sb.AppendLine($"{caseIndent}}}");
+                    }
+                }
+                sb.AppendLine($"{indentStr}}}");
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(instruction), $"instr: '{instruction}'");
         }
     }
+
+    private static string MakeIndent(int indent)
+    {
+        return new string(' ', indent * 4);
+    }
+
     private string GetPropertyName(PropertyId p)
     {
         if (p.IsValid && p.Id < _database.Properties.Count)
@@ -230,6 +278,7 @@ public class StoryPrinter
                 return $"({Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)})";
             case IsOfType ofType :
                 return $"({Print(ofType.Entity)} = {Print(ofType.ValueTypeId)})";
+            case MatchAnyValue _: return "_";
             // case True @true:
             // break;
             default:
