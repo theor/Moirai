@@ -150,6 +150,8 @@ public class WorldHistoryView : View
         private MainWindow.FilteringMode _filtering;
         private List<Database.Record> _filtered = new();
         private HashSet<EntityId> _changed = new();
+        private List<(EntityId, TagId)> _tagged = new();
+
         public void SetFiltering(MainWindow.FilteringMode filtering)
         {
             _filtering = filtering;
@@ -170,18 +172,22 @@ public class WorldHistoryView : View
                     _filtered = _w.Database.Records.Where(cs => cs.ActionId == _w.CurrentAction.Id).ToList();
                     break;
                 case MainWindow.FilteringMode.Category:
-                    if (_w.CurrentTag.IsNull)
+                    if (_w.CurrentCategory.IsNull)
                         _filtered = _w.Database.Records;
                     else
                         _filtered = _w.Database.Records.Where(r =>
                             (r.Categories & (1ul << (int)(_w.CurrentCategory.Id - 1))) != 0).ToList();
                     break;
                 case MainWindow.FilteringMode.Tag:
-                    if (_w.CurrentTag.IsNull)
-                        _filtered = _w.Database.Records;
-                    else
-                        _filtered = _w.Database.Records.Where(r =>
-                            (r.Categories & (1ul << (int)(_w.CurrentTag.Id - 1))) != 0).ToList();
+                    _filtered = _w.Database.Records.Where(r =>
+                    {
+                        if (r.ChangesetId == -1)
+                            return false;
+                        _tagged.Clear();
+                        var cs = _w.Database.History.Changesets[r.ChangesetId];
+                        cs.GetTaggedEntities(_tagged);
+                        return _tagged.Any(et => et.Item2.Id == _w.CurrentTag.Id);
+                    }).ToList();
                     break;
                     
             }

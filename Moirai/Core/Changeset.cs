@@ -51,6 +51,15 @@ public struct Changeset(int id, string actionName, long year, CategoryId[] cats)
                 changedEntities.Add(change.NewValue.Id);
         }
     }
+
+    public void GetTaggedEntities(List<(EntityId, TagId)> taggedEntities)
+    {
+        foreach (var change in Changes)
+        {
+            if(change.Type == Change.ChangeType.AddTag)
+                taggedEntities.Add((change.EntityId, change.Tag));
+        }
+    }
 }
 
 public struct Change
@@ -59,6 +68,7 @@ public struct Change
     {
         Create,
         Set,
+        AddTag,
     }
 
     public readonly ChangeType Type;
@@ -66,21 +76,27 @@ public struct Change
     public readonly PropertyId Property;
     public readonly PropertyValue PrevValue;
     public readonly PropertyValue NewValue;
-    private Change(ChangeType type, EntityId entityId, PropertyId property, PropertyValue prevValue, PropertyValue newValue)
+    public readonly TagId Tag;
+    private Change(ChangeType type, EntityId entityId, PropertyId property, PropertyValue prevValue, PropertyValue newValue, TagId tag)
     {
         Type = type;
         EntityId = entityId;
         PrevValue = prevValue;
         NewValue = newValue;
         Property = property;
+        Tag = tag;
     }
     public static Change Set(EntityId entityId, PropertyId propertyType, PropertyValue prevValue, PropertyValue newValue)
     {
-        return new Change(ChangeType.Set, entityId, propertyType, prevValue, newValue);
+        return new Change(ChangeType.Set, entityId, propertyType, prevValue, newValue, default);
     }
     public static Change Create(EntityId entityId, EntityTypeId type, string? name = null)
     {
-        return new Change(ChangeType.Create, entityId, Database.PropId, name!, type.Id);
+        return new Change(ChangeType.Create, entityId, Database.PropId, name!, type.Id, default);
+    }
+    public static Change AddTag(EntityId entityId, TagId tag)
+    {
+        return new Change(ChangeType.AddTag, entityId, default, default, default, tag);
     }
 
     public string ToString(Database db)
@@ -92,6 +108,8 @@ public struct Change
                 return $"CREATE {PrevValue.Value} {db.GetEntityTypeName(NewValue.TypeId)} {EntityId}";
             case ChangeType.Set:
                 return $"SET {EntityId}.{db.GetPropertyName(Property)}: {db.Printer.Print(PrevValue)} -> {db.Printer.Print(NewValue)}";
+            case ChangeType.AddTag:
+                return $"ADD TAG {EntityId} {db.GetTagName(Tag)}";
             default:
                 throw new ArgumentOutOfRangeException();
         }

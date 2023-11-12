@@ -29,6 +29,7 @@ expr
     | left=expr op=(ADD | SUB) right=expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     | value
+    | TAG_ID
     ;
 
 tag_definition: TAG TAG_ID LINE_BREAK+ ;

@@ -30,6 +30,21 @@ public struct TagId
     {
         return $"#{Id}";
     }
+
+    public bool Equals(TagId other)
+    {
+        return Id == other.Id;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is TagId other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode();
+    }
 }
 public struct CategoryId
 {

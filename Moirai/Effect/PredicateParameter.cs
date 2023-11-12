@@ -49,7 +49,7 @@ public struct PropertyPath : IValue
     }
     public bool Nested => false;
 
-    public PropertyValue Compute(PredicateContext ctx)
+    public readonly PropertyValue Compute(PredicateContext ctx)
     {
         if (Mode == PropertyPathMode.Singleton)
         {

@@ -491,6 +491,12 @@ public static class StoryParser
                     var stringContext = context.expr(0).value().@string();
                     var interpolatedString = ParseInterpolatedString(stringContext.GetString());
                     return new FormatAction(interpolatedString);
+                case "add_tag":
+                    var path = ParsePath(context.expr(0).value().path());
+                    var tag = context.expr(1).TAG_ID();
+                    if(!_database.GetTagId(tag.GetText(), out var tagId))
+                        return ((IInstruction)AddError(ErrorCode.UnknownTag,  context.expr(0), $"'{tag.GetText()}'"))!;
+                    return new TagEntity(path, tagId);
             }
 
             return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IInstruction)!;

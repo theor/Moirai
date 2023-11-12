@@ -6,10 +6,13 @@ entity Country {}
 entity God {}
 
 tag #death
+tag #prosperity_increase
+tag #prosperity_decrease
 
 enum Job { Smith, Farmer, Painter, Sculptor, Writer, Wizard, Soldier }
 enum Age { Child, Young, Adult, Old }
 enum ItemType { Forged, Painted, Sculpted }
+enum CountryHealth { Disarray, Recession, Neutral, Emerging, Prosperous }
 
 prop age: Age
 prop first_name: string
@@ -25,6 +28,8 @@ prop birthplace: ref
 prop place: ref
 prop job: Job
 prop item_type: ItemType
+prop prosperity: number
+prop health : CountryHealth
 
 prop parent: ref
 prop child: ref
@@ -49,9 +54,11 @@ enum GodTypes {
     Death,
 }
 
-rule create_country  {
+rule create_country country {
     create Country, '{random CountryName} {random name}'
-    record "The {name} is created"
+    set prosperity = 5
+    set health = CountryHealth.Neutral
+    record "{name} is created"
 }
 
 rule create_god  {
@@ -66,10 +73,39 @@ rule create_time {
     call create_god, 10
 }
 
+event country_prosperity_increase country_events {
+    when #prosperity_increase
+    when $c: type = Country, prosperity < 10
+    set $c.prosperity = $c.prosperity + 1
+    set $c.health = ($c.prosperity + 1) / 2
+    record '+ {$c.name} p {$c.prosperity} h {$c.health}'
+}
+event country_prosperity_decrease country_events {
+    when #prosperity_decrease
+    when $c: type = Country, prosperity > 1
+    set $c.prosperity = $c.prosperity - 1
+    set $c.health = ($c.prosperity + 1) / 2
+    record '- {$c.name} p {$c.prosperity} h {$c.health}'
+}
+
+@ 1 per 10 years
+rule country_coup country_events {
+    pick $c: type = Country, health = CountryHealth.Disarray
+    record 'The governement of {$c.name} disappears in a coup'
+}
+
+@ 1 per 10 years
+rule country_prosperity country_events {
+    pick $c: type = Country, prosperity >= 8
+    record '{$c.name} enters a phase of prosperity'
+}
+
 event inherit death items {
     when #death
-    when $p: type = Person, alive = false
+    when $p: type = Person
+    record '{$p.name} died'
     set $p.deathdate = #Time.year
+    set alive = false
     each $i: type = Item, owner = $p {
         pick $l: type = Link, $l.parent = $p
         pick $child: type=Person, id = $l.child, alive
@@ -81,7 +117,7 @@ event inherit death items {
 
 event buries_children death {
     when #death
-    when $p: type = Person, alive = false
+    when $p: type = Person
     
     each $l: type = Link, $l.child = $p {
         pick $parent: type=Person, alive, id = $l.parent
@@ -102,11 +138,7 @@ rule char_born {
     set $p.place = $loc
     record '{$p.name} is born in {$loc.name}'
 }
-rule char_dies {
-    pick $p: type = Person, alive = true
-    set $p.alive = false 
-    record '{$p.name} dies'
-}
+
 
 @1 every 1 year
 rule children_grow {
@@ -136,7 +168,7 @@ rule adults_grow {
 @1 every 1 year
 rule olds_dies {
     each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
-        set $p.alive = false
+        add_tag $p, #death
         record '{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}'
     }
 }
@@ -185,11 +217,12 @@ rule murder {
     record '{$x} {$x.name} murders {$y} {$y.name}'
 } 
 @1 per 4 year
-rule char_migrates {
+rule char_migrates country {
     pick $p: type = Person, alive, partner = null
     pick $c: type = Country, id != $p.place
     set $p.place = $c
     record '{$p.name} moves to {$c.name}'
+    add_tag $c, #prosperity_increase
 }
 @1 per 4 year
 rule country_war_start war {
@@ -198,9 +231,11 @@ rule country_war_start war {
     set $x.war_with = $y
     set $y.war_with = $x
     record '{$x.name} and {$y.name} start a war'
+    // add_tag $x, #prosperity_decrease
+    // add_tag $y, #prosperity_decrease
 }
 @1 per 1 year
-rule soldier_war_distinction war {
+rule soldier_war_distinction war country {
     each $c: type = Country, war_with != null {
         pick $s: type = Person, alive, job = Job.Soldier, place = $c
         var $o = $c.war_with
@@ -213,26 +248,31 @@ rule soldier_war_death war {
     each $c: type = Country, war_with != null {
         pick $s: type = Person, alive, job = Job.Soldier, place = $c
         var $o = $c.war_with
-        set $s.alive = false
+        add_tag $s, #death
         record '{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}'
+        add_tag $c, #prosperity_decrease
 
     }
 }
 @1 per 10 year
-rule country_war_peace war {
+rule country_war_peace war country {
     pick $x: type = Country, war_with != null
     var $y = $x.war_with
     set $x.war_with = null
     set $y.war_with = null
     record '{$x.name} and {$y.name} sign a peace treaty, ending the war'
+    add_tag $x, #prosperity_increase
+    add_tag $y, #prosperity_increase
 }
 @1 per 10 year
-rule country_war_win war {
+rule country_war_win war country {
     pick $x: type = Country, war_with != null
     var $y = $x.war_with
     set $x.war_with = null
     set $y.war_with = null
     record '{$x.name} wins the war against {$y.name}'
+    add_tag $x, #prosperity_increase
+    add_tag $y, #prosperity_decrease
 }
 @4 per 1 year
 rule couple_has_child {

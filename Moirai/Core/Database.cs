@@ -11,23 +11,23 @@ public class Database
     public static readonly PropertyId PropType = new(2);
     public static readonly PropertyId PropName = new(3);
     public static readonly PropertyId PropYear = new(4);
-    
+
     public static Database? Instance;
 
     public readonly List<EnumDefinition> Enums = new() { default };
     public readonly List<EntityType> Types;
     public readonly List<PropertyDefinition> Properties = DefaultProperties();
     public readonly int BuiltinTypes;
-    
+
     public readonly List<Action> Actions;
     public readonly List<Action> Events;
-    
+
     public readonly StoryPrinter Printer;
     public History? History;
     public Changeset CurrentChangeset;
-    
+
     private PredicateContext _ctx;
-    
+
     private List<Entity> _entities = new() { default };
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
@@ -56,10 +56,10 @@ public class Database
     };
 
     private HashSet<EntityId> _changedEntities = new();
+    private List<(EntityId, TagId)> _taggedEntities = new();
 
     public static List<PropertyDefinition> DefaultProperties()
     {
-
         return new()
         {
             default!,
@@ -69,6 +69,7 @@ public class Database
             new PropertyDefinition("year", PropYear.Id, PropertyValue.TypeString),
         };
     }
+
     public Database(ulong seed = 42)
     {
         Types = new List<EntityType> { default, new("Time", 1) };
@@ -79,6 +80,7 @@ public class Database
         Printer = new StoryPrinter(this);
         Instance = this;
     }
+
     public void SetSeed(ulong seed)
     {
         _ctx.Rnd = new Pcg32(seed, seed);
@@ -92,9 +94,10 @@ public class Database
         e.Type = entityType;
         if (!String.IsNullOrEmpty(name))
         {
-            e.Properties[PropName.Id].Id  = PropName;
-            e.Properties[PropName.Id].Value= name;
+            e.Properties[PropName.Id].Id = PropName;
+            e.Properties[PropName.Id].Value = name;
         }
+
         e.Id = new EntityId(_entities.Count);
         _entities.Add(e);
         // PerTypeIndices[(int)entityType.Id].Add(e.Id);
@@ -110,6 +113,7 @@ public class Database
         // Console.WriteLine($"Result: " + cmd.ExecuteScalar());
         return e.Id;
     }
+
     // public List<EntityId>[] PerTypeIndices;
     public bool TryGetEntity(EntityId entityId, out Entity entity)
     {
@@ -118,6 +122,7 @@ public class Database
             entity = default;
             return false;
         }
+
         entity = _entities[(int)entityId.Id];
         return true;
     }
@@ -136,13 +141,15 @@ public class Database
             value = default;
             return false;
         }
+
         return entity.TryGetProperty(property, out value);
     }
+
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
         var cmd = _connection.CreateCommand();
         cmd.CommandText = $@"UPDATE entity
-SET {GetPropertyName(property)} = {(value.Type.BaseType == PropertyValue.ValueBaseType.String ? ("'"+value.Value+"'") : (int)value.IntValue)}
+SET {GetPropertyName(property)} = {(value.Type.BaseType == PropertyValue.ValueBaseType.String ? ("'" + value.Value + "'") : (int)value.IntValue)}
 WHERE id = $id;";
         // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
         cmd.Parameters.AddWithValue("$id", entityId.Id);
@@ -170,6 +177,7 @@ WHERE id = $id;";
                 value = new PropertyValue { Type = Enums[type.Index].ValueType, IntValue = value.IntValue };
             }
         }
+
         var p = entity.Properties[property.Id];
         var prev = p.Value;
         p.Id = property;
@@ -193,6 +201,7 @@ WHERE id = $id;";
         // entity.Properties.Add(new Property(property, value));
         return true;
     }
+
     public PropertyId GetPropertyId(string name)
     {
         for (var index = 1; index < Properties.Count; index++)
@@ -201,12 +210,15 @@ WHERE id = $id;";
             if (string.Equals(property.Name, name, StringComparison.InvariantCultureIgnoreCase))
                 return new PropertyId((uint)index);
         }
+
         return PropertyId.Null;
     }
+
     public string GetPropertyName(PropertyId prop)
     {
         return Properties[(int)prop.Id].Name;
     }
+
     public EntityType GetEntityType(string typeName)
     {
         for (uint i = 1; i < Types.Count; i++)
@@ -214,12 +226,15 @@ WHERE id = $id;";
             if (Types[(int)i].Name == typeName)
                 return Types[(int)i];
         }
+
         return default;
     }
+
     public string GetEntityTypeName(EntityTypeId typeId)
     {
         return Types[(int)typeId.Id].Name;
     }
+
     public bool GetEnumDefinition(string name, out EnumDefinition enumDefinition)
     {
         foreach (var definition in Enums)
@@ -230,9 +245,11 @@ WHERE id = $id;";
                 return true;
             }
         }
+
         enumDefinition = default;
         return false;
     }
+
     public bool GetPropertyType(PropertyId pid, out PropertyValue.ValueType valueType)
     {
         if (!pid.IsValid || pid.Id >= Properties.Count)
@@ -240,11 +257,12 @@ WHERE id = $id;";
             valueType = default;
             return false;
         }
+
         valueType = Properties[(int)pid.Id].Type;
         return true;
     }
-    
-    
+
+
     public bool RunAction(string actionName)
     {
         // Console.WriteLine($"[{actionName}]");
@@ -255,8 +273,10 @@ WHERE id = $id;";
                 return RunAction(a);
             }
         }
+
         return false;
     }
+
     public bool RunAction(Action action)
     {
         // Console.WriteLine($"[{action.Name}]");
@@ -280,28 +300,34 @@ WHERE id = $id;";
                 {
                     Console.Error.WriteLine("Action failed but left changes:");
                 }
+
                 return false;
             }
         }
-        _changedEntities.Clear();
-        CurrentChangeset.GetAffectedEntities(_changedEntities);
+
+        // _changedEntities.Clear();
+        // CurrentChangeset.GetAffectedEntities(_changedEntities);
+        _taggedEntities.Clear();
+        CurrentChangeset.GetTaggedEntities(_taggedEntities);
         if (CurrentChangeset.Changes.Any())
             History?.Changesets.Add(CurrentChangeset);
 
-        RunEvents(_changedEntities);
+        RunEvents(_taggedEntities);
 
         return true;
     }
-    private void RunEvents(HashSet<EntityId> changedEntities)
+
+    private void RunEvents(List<(EntityId, TagId)> changedEntities)
     {
-        foreach (var entity in changedEntities)
+        foreach (var (entity, tag) in changedEntities)
         {
             // Console.ForegroundColor = ConsoleColor.Yellow;
             // Console.WriteLine("Event entity: " + entity);
             // Console.ResetColor();
             foreach (var @event in Events)
             {
-
+                if (!@event.WhenTags.Contains(tag))
+                    continue;
                 using (var s = _ctx.RunScope())
                 {
                     _ctx.SetArgument(0, entity);
@@ -327,12 +353,13 @@ WHERE id = $id;";
             }
             // break;
         }
-
     }
+
     public string Serialize()
     {
         return JsonSerializer.Serialize(Entities, JsonSerializerOptions);
     }
+
     public void Deserialize(string json)
     {
         List<Entity> entities = JsonSerializer.Deserialize<List<Entity>>(json, JsonSerializerOptions);
@@ -340,6 +367,7 @@ WHERE id = $id;";
         _entities = new() { default };
         _entities.AddRange(entities);
     }
+
     private SqliteConnection _connection;
 
     public static string ToSqlType(PropertyValue.ValueType t)
@@ -360,6 +388,7 @@ WHERE id = $id;";
                 throw new ArgumentOutOfRangeException();
         }
     }
+
     public void Init()
     {
         Console.WriteLine(Path.GetFullPath("."));
@@ -374,7 +403,7 @@ CREATE INDEX owners ON entity (owner) WHERE type = 3;";
         if (Properties.Any(p => p.Name == "alive"))
             indices += @"
 CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
-        
+
         cmd.CommandText = $@"
 CREATE TABLE entity (
     id INTEGER PRIMARY KEY,
@@ -388,7 +417,7 @@ CREATE TABLE entity (
         // PerTypeIndices = new List<EntityId>[Types.Count];
         // for (var i = 0; i < PerTypeIndices.Length; i++)
         // {
-            // PerTypeIndices[i] = new List<EntityId>(100);
+        // PerTypeIndices[i] = new List<EntityId>(100);
         // }
         foreach (Action a in Actions)
         {
@@ -396,6 +425,7 @@ CREATE TABLE entity (
                 RunAction(a);
         }
     }
+
     public void Commit()
     {
         var path = "hello.db";
@@ -407,31 +437,34 @@ CREATE TABLE entity (
         {
             Console.WriteLine(e);
         }
-        using(var _backup = new SqliteConnection("Data Source=" + path))
+
+        using (var _backup = new SqliteConnection("Data Source=" + path))
             _connection.BackupDatabase(_backup);
     }
+
     public bool FindAll(IValue? predicate, ref List<EntityId> results)
     {
-            results.Clear();
-            if (predicate == null)
-            {
-                return false;
-            }
+        results.Clear();
+        if (predicate == null)
+        {
+            return false;
+        }
 
-            string sql = predicate.ToSql(_ctx);
-            // Console.WriteLine(sql);
-            var cmd = _connection.CreateCommand();
-            cmd.CommandText = @"
+        string sql = predicate.ToSql(_ctx);
+        // Console.WriteLine(sql);
+        var cmd = _connection.CreateCommand();
+        cmd.CommandText = @"
 SELECT id FROM entity WHERE " + sql;
-            // Console.WriteLine(cmd.CommandText);
-            var r = cmd.ExecuteReader();
-            while(r.Read())
-                results.Add(new EntityId(r.GetInt64(0)));
-            return true;
+        // Console.WriteLine(cmd.CommandText);
+        var r = cmd.ExecuteReader();
+        while (r.Read())
+            results.Add(new EntityId(r.GetInt64(0)));
+        return true;
     }
 
-    public List<string> Tags = new List<string> { null! }; 
-    public List<string> Categories = new List<string> { null! }; 
+    public List<string> Tags = new List<string> { null! };
+    public List<string> Categories = new List<string> { null! };
+
     public bool DeclareTag(string tag)
     {
         if (Tags.IndexOf(tag) != -1)
@@ -452,14 +485,16 @@ SELECT id FROM entity WHERE " + sql;
             return new CategoryId((ulong)(Categories.Count - 1));
         }
 
-        
+
         return new CategoryId((ulong)index);
     }
+
     public string GetCategoryName(CategoryId tagId)
     {
         return Categories[(int)tagId.Id];
     }
-    public bool GetTagId(string tag,out TagId id)
+
+    public bool GetTagId(string tag, out TagId id)
     {
         int index = Tags.IndexOf(tag);
         if (index == -1)
@@ -500,7 +535,6 @@ SELECT id FROM entity WHERE " + sql;
 
     public void AppendRecord(string text, long year, ulong categories)
     {
-        Records.Add(new (text, year, categories, CurrentChangeset.Id, _currentActionId));
+        Records.Add(new(text, year, categories, CurrentChangeset.Id, _currentActionId));
     }
 }
-

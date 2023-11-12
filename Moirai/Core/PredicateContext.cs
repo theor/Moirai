@@ -201,4 +201,9 @@ public class PredicateContext
         }
         Profiler.Dump();
     }
+
+    public void TagEntity(EntityId id, TagId tagId)
+    {
+        Database.CurrentChangeset.Changes.Add(Change.AddTag(id, tagId));
+    }
 }

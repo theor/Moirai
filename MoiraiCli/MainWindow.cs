@@ -72,10 +72,12 @@ public class MainWindow : Toplevel
         // AddKeyBinding(Key.AltMask | Key.CursorRight, Command.PageRight);
         LeftPane = new TabView()
         {
+            
             X = 0,
             Y = 1,
             Height = Dim.Fill(1),
             Width =  Dim.Percent(20),
+            Style = new TabView.TabStyle{TabsOnBottom = false}
         };
         TagList = new TagListView(this)
         {
