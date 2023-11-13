@@ -142,7 +142,7 @@ internal class Program
             {
                 var ids = line.Substring(1).Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-                db.Printer.PrintDb(db);
+                db.Printer.PrintDb();
             }
             else if (line.StartsWith("p"))
             {

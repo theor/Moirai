@@ -17,6 +17,7 @@ rule r {
         db.RunAction("r");
         Assert.AreEqual(1, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
     }
+
     [Test]
     public void IfFalse()
     {
@@ -35,6 +36,7 @@ rule r {
         Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
     }
 }
+
 public class MatchTests : TestsBase
 {
     [Test]
@@ -53,6 +55,7 @@ rule r {
         db.RunAction("r");
         Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
     }
+
     [Test]
     public void MatchOneValue()
     {
@@ -70,6 +73,7 @@ rule r {
         db.RunAction("r");
         Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
     }
+
     [Test]
     public void MatchTwoValue()
     {
@@ -87,15 +91,128 @@ rule r {
         db.RunAction("r");
         Assert.AreEqual(30, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
     }
-    
+
+    [Test]
+    public void RandomWeighted()
+    {
+        var db = Run(@"
+entity T {}
+prop x: number
+prop y: number
+prop z: number
+@start
+rule create {
+    create $t: T
 }
+rule r {
+    random_weighted 10 {
+        1 => set #T.x = #T.x + 1
+        4 => set #T.y = #T.y + 1
+        5 => set #T.z = #T.z + 1
+    }
+}", out _);
+        for (int i = 0; i < 1000; i++)
+        {
+            db.RunAction("r");
+        }
+
+        db.Printer.PrintDb();
+        // Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+
+    [Test]
+    public void RandomWeighted_AnyValue()
+    {
+        var db = Run(@"
+entity T {}
+prop x: number
+prop y: number
+prop z: number
+@start
+rule create {
+    create $t: T
+}
+rule r {
+    random_weighted 10 {
+        1 => set #T.x = #T.x + 1
+        4 => set #T.y = #T.y + 1
+        _ => set #T.z = #T.z + 1
+    }
+}", out _);
+        for (int i = 0; i < 1000; i++)
+        {
+            db.RunAction("r");
+        }
+
+        db.Printer.PrintDb();
+        // Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+
+    [Test]
+    public void RandomWeighted_Create()
+    {
+        var db = Run(@"
+entity Asteroid {}
+entity Star {}
+entity Planet {}
+entity Satelite {}
+rule create {
+    random_weighted 10 {
+        1 => create Star
+        6 => create Asteroid
+        2 => create Planet
+        1 => create Satelite
+    }
+}", out _);
+        for (int i = 0; i < 100; i++)
+        {
+            db.RunAction("create");
+        }
+
+        db.Printer.PrintDb();
+        Console.WriteLine(String.Join("\n", db.Entities.GroupBy(e => e.Type).Select(g => (db.GetEntityTypeName(g.Key), g.Count()))));
+        // Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+
+    [Test]
+    public void RandomWeighted_Enum()
+    {
+        var db = Run(@"
+entity Person {}
+enum Job {
+    Farmer,
+    Smith,
+    Soldier,
+    King,
+}
+prop job: Job
+rule create {
+    create Person
+    random_weighted 10 {
+        6 => set job = Job.Farmer
+        1 => set job = Job.Smith
+        _ => set job = Job.Soldier
+    }
+}", out _);
+        for (int i = 0; i < 100; i++)
+        {
+            db.RunAction("create");
+        }
+
+        db.Printer.PrintDb();
+        var p = db.GetPropertyId("job");
+        Console.WriteLine(String.Join("\n", db.Entities.GroupBy(e => e.GetProperty(p)).Select(g => (db.Printer.Print(g.Key), g.Count()))));
+        // Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+}
+
 public class TestsBase
 {
     public static Database Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)
     {
         Console.WriteLine(s);
         var db = StoryParser.Parse(s, out errors);
-        
+
         var printed = db.Printer.Print();
         Console.WriteLine("### REPRINT");
         Console.WriteLine(printed);
@@ -109,9 +226,11 @@ public class TestsBase
             // Console.WriteLine(print2);
             Assert.AreEqual(printed, print2);
         }
+
         db.Init();
         return db;
     }
+
     protected void AssertInstruction(System.Action a)
     {
         try
@@ -123,8 +242,10 @@ public class TestsBase
             Console.WriteLine(e.Message);
             return;
         }
+
         Assert.Fail("Should have thrown");
     }
+
     protected void NoAssertInstruction(System.Action a)
     {
         a();
@@ -133,8 +254,6 @@ public class TestsBase
 
 public class FilterTests : TestsBase
 {
-    
-   
     [Test]
     public void Filter_Start()
     {
@@ -149,8 +268,8 @@ rule char_dies {
 
         Run(s, out _);
     }
-    
-   
+
+
     [Test]
     public void Filter_Every()
     {
@@ -165,7 +284,7 @@ rule char_dies {
 
         Run(s, out _);
     }
-   
+
     [Test]
     public void Filter_Frequency()
     {
@@ -181,6 +300,7 @@ rule char_dies {
         Run(s, out _);
     }
 }
+
 public class Tests : TestsBase
 {
     [SetUp]
@@ -209,7 +329,7 @@ rule rr {
         var db = Run(s, out var errors);
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
 
     [Test]
@@ -233,7 +353,7 @@ rule r {
     assert_eq $0.f, 14
 }
 ");
-   
+
 
     static void RunAssert(string s, string? actionName = null)
     {
@@ -242,9 +362,9 @@ rule r {
             db.RunAction(actionName);
         else
             db.RunAction(db.Actions[0]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
-    
+
     [Test]
     public void Int_FromEnum()
     {
@@ -263,7 +383,7 @@ rule r {
 
         var db = Run(s, out var errors);
         db.RunAction(db.Actions[0]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
 
     [Test]
@@ -281,7 +401,7 @@ rule r {
 
         var db = Run(s, out var errors);
         db.RunAction(db.Actions[0]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
 
     [Test]
@@ -300,8 +420,9 @@ rule r {
 
         var db = Run(s, out var errors);
         db.RunAction(db.Actions[0]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
+
     [Test]
     public void Test1()
     {
@@ -314,25 +435,25 @@ rule born_char {
     assert $0.alive = true
 }
 ";
-        
+
         var db = Run(s, out var errors);
-        
+
         Assert.AreEqual(1, db.Actions.Count);
         var action = db.Actions[0];
         Assert.AreEqual("born_char", action.Name);
         Assert.AreEqual(3, action.Effects.Count);
-        
+
         Assert.IsInstanceOf<SetProperty>(action.Effects[1]);
-        
+
 
         PropertyId propId = db.GetPropertyId("alive");
         Assert.IsTrue(propId.IsValid);
         db.RunAction(action.Name);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         // db.Commit();
         Assert.AreEqual(1, db.Entities.Count());
     }
-    
+
     [Test]
     public void FilterByType()
     {
@@ -351,17 +472,17 @@ rule r {
     }
 }
 ";
-        
+
         var db = Run(s, out var errors);
 
         // db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         // db.Commit();
         Assert.AreEqual(10, db.Entities.Count());
         Assert.AreEqual(2, db.Entities.Last().GetProperty(db.GetPropertyId("alive")).IntValue);
     }
-    
+
     [Test]
     public void TypeQuery()
     {
@@ -373,7 +494,7 @@ rule r {
     set alive = true
 }
 ";
-        
+
         var db = Run(s, out var errors);
 
         EntityTypeId typePerson = db.GetEntityType("Person").Id;
@@ -384,12 +505,12 @@ rule r {
         PropertyId propId = db.GetPropertyId("alive");
         Assert.IsTrue(propId.IsValid);
         db.RunAction(action.Name);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.Commit();
         Assert.AreEqual(1, db.Entities.Count());
         Assert.AreEqual(true, db.Entities.Single().GetProperty(propId).BoolValue);
     }
-    
+
     [Test]
     public void Test2()
     {
@@ -401,12 +522,13 @@ rule char_dies {
     set $p.alive = false
 }";
         var db = Run(s, out var errors);
-        
+
         Assert.AreEqual(1, db.Actions.Count);
         var action = db.Actions[0];
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
     }
+
     [Test]
     public void Each()
     {
@@ -419,30 +541,32 @@ rule foreach {
         record '{$x.name} {$x.test}'
     }
 }";
-        var db  =Run(s, out var errors);
+        var db = Run(s, out var errors);
         db.History = new();
         var propId = db.GetPropertyId("test");
         var typePerson = db.GetEntityType("Person");
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         foreach (var entity in db.Entities)
         {
             Assert.IsFalse(entity.TryGetProperty(propId, out var val));
         }
+
         db.RunAction(db.Actions[0]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         foreach (var entity in db.Entities)
         {
             Assert.IsTrue(entity.TryGetProperty(propId, out var val));
             Assert.AreEqual(true, val.BoolValue);
         }
+
         foreach (var changeset in db.History.Changesets)
         {
             db.Printer.PrintChangeset(changeset);
-            
         }
     }
+
     [Test]
     public void Event()
     {
@@ -471,14 +595,14 @@ event on_death {
     set test = true
     record 'event on {$0}'
 }";
-        var db  = Run(s, out _, 0);
+        var db = Run(s, out _, 0);
         db.History = new();
         Assert.AreEqual(1, db.Events.Count);
 
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         Entity e = db.Entities.First();
         PropertyId propTest = db.GetPropertyId("test");
         Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
@@ -488,7 +612,7 @@ event on_death {
             db.Printer.PrintChangeset(historyChangeset);
         }
     }
-    
+
     [Test]
     public void Event2()
     {
@@ -512,15 +636,16 @@ event inherit {
             record ""{$c.name} inherits the {$i.name} from {$p.name}""
     }
 }";
-        var db  = Run(s, out _, 0);
+        var db = Run(s, out _, 0);
         Assert.AreEqual(1, db.Events.Count);
 
         // db.RunAction(db.Events[0]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         // Entity e = db.Entities.Single();
         // PropertyId propTest = db.GetProperty("test");
         // Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
     }
+
     [Test]
     public void Test3()
     {
@@ -530,9 +655,9 @@ rule char_dies {
     pick $x: alive = true
     pick $y: id != $x
 }";
-       
+
         var db = Run(s, out var errors);
-        
+
         Assert.AreEqual(1, db.Actions.Count);
         var action = db.Actions[0];
         Assert.AreEqual("char_dies", action.Name);
@@ -540,26 +665,26 @@ rule char_dies {
         var e1 = action.Effects[0];
         var e2 = action.Effects[1];
         Assert.IsInstanceOf<AssignPick>(e1);
-        
+
         Assert.IsInstanceOf<AssignPick>(e2);
-        
+
         var pe1 = (AssignPick)e1;
         var pe2 = (AssignPick)e2;
 
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
         // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
-        
+
         Assert.NotNull(pe1.Value);
         Assert.IsInstanceOf<BinaryOperator>(pe1.Value);
         Assert.NotNull(pe2.Value);
         Assert.IsInstanceOf<BinaryOperator>(pe2.Value);
-
     }
 
     [Test, Ignore("obsolete json...")]
     public void Bug_Inherit()
     {
-        string json = "[{\"Id\":1,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"time\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":4,\"Value\":{\"Value\":null,\"IntValue\":844,\"Type\":[3,0]}}]},{\"Id\":2,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Lowenna Tarian\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Lowenna\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":764,\"Type\":[3,0]}},{\"Type\":11,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[5,1]}},{\"Type\":9,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[2,0]}}]},{\"Id\":3,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Aeron\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":784,\"Type\":[3,0]}},{\"Type\":11,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[5,1]}},{\"Type\":9,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":4,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"ring of Lowenna Tarian\",\"IntValue\":-2147483648,\"Type\":[1,0]}}]},{\"Id\":5,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Portrait of Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":12,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,3]}},{\"Type\":15,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":6,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Portrait of Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":12,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,3]}},{\"Type\":15,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":7,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Auberon Lowennason\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Auberon\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":0,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":804,\"Type\":[3,0]}}]},{\"Id\":8,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":5,\"Type\":[6,0]}},{\"Type\":13,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}},{\"Type\":14,\"Value\":{\"Value\":null,\"IntValue\":7,\"Type\":[2,0]}}]},{\"Id\":9,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":5,\"Type\":[6,0]}},{\"Type\":13,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[2,0]}},{\"Type\":14,\"Value\":{\"Value\":null,\"IntValue\":7,\"Type\":[2,0]}}]}]";
+        string json =
+            "[{\"Id\":1,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"time\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":4,\"Value\":{\"Value\":null,\"IntValue\":844,\"Type\":[3,0]}}]},{\"Id\":2,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Lowenna Tarian\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Lowenna\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":764,\"Type\":[3,0]}},{\"Type\":11,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[5,1]}},{\"Type\":9,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[2,0]}}]},{\"Id\":3,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Aeron\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":784,\"Type\":[3,0]}},{\"Type\":11,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[5,1]}},{\"Type\":9,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":4,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"ring of Lowenna Tarian\",\"IntValue\":-2147483648,\"Type\":[1,0]}}]},{\"Id\":5,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Portrait of Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":12,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,3]}},{\"Type\":15,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":6,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Portrait of Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":12,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,3]}},{\"Type\":15,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":7,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Auberon Lowennason\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Auberon\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":0,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":804,\"Type\":[3,0]}}]},{\"Id\":8,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":5,\"Type\":[6,0]}},{\"Type\":13,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}},{\"Type\":14,\"Value\":{\"Value\":null,\"IntValue\":7,\"Type\":[2,0]}}]},{\"Id\":9,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":5,\"Type\":[6,0]}},{\"Type\":13,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[2,0]}},{\"Type\":14,\"Value\":{\"Value\":null,\"IntValue\":7,\"Type\":[2,0]}}]}]";
         string script = @"
 entity Person {}
 entity Item {}
@@ -611,12 +736,11 @@ rule olds_dies {
         var db = StoryParser.Parse(script, out var error);
         db.Deserialize(json);
         db.Init();
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.Ctx.PassYears(1, true);
         // db.PrintDb();
         db.Printer.PrintChangeset(db.CurrentChangeset, false);
         Console.WriteLine(db.Records.Last().Text);
-        
     }
 
     [Test]
@@ -636,8 +760,9 @@ rule olds_dies {
         Assert.AreEqual(0, errors2.Count, string.Join(", ", errors2));
         db.Init();
         db.Ctx.PassYears(100, true);
- db.Commit();
+        db.Commit();
     }
+
     [Test]
     public void DuplicateVarNoError()
     {
@@ -649,11 +774,10 @@ rule char_dies {
     pick $p: type=Person, alive = true
     set $p.alive = false
 }";
-       
+
         var db = Run(s, out var errors, 0);
-       
     }
-    
+
     [Test, Ignore("Nested property paths not implemented yet")]
     public void PropertyPath_Nested()
     {
@@ -672,9 +796,9 @@ rule create {
 ";
         var db = Run(s, out var errors);
         db.RunAction("create");
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
-    
+
     [Test]
     public void PropertyPath_Var()
     {
@@ -694,10 +818,10 @@ rule create {
 ";
         var db = Run(s, out var errors);
         db.RunAction("create");
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
 
-    
+
     [Test]
     public void Enum_Set()
     {
@@ -713,7 +837,7 @@ rule create {
 ";
         var db = Run(s, out var errors);
         db.RunAction("create");
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetPropertyId("job");
         var value = e.GetProperty(jobProp);
@@ -722,7 +846,7 @@ rule create {
         Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
         Assert.AreEqual(2, value.IntValue);
     }
-    
+
     [Test]
     public void Enum_Set_CastInt()
     {
@@ -738,7 +862,7 @@ rule create {
 ";
         var db = Run(s, out var errors);
         db.RunAction("create");
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetPropertyId("job");
         var value = e.GetProperty(jobProp);
@@ -747,7 +871,7 @@ rule create {
         Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
         Assert.AreEqual(1, value.IntValue);
     }
-    
+
     [Test]
     public void Prop_WrongEnum()
     {
@@ -763,12 +887,12 @@ rule create {
 ";
         var db = Run(s, out var errors, 1);
         db.RunAction("create");
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetPropertyId("job");
         var value = e.GetProperty(jobProp);
     }
-    
+
     [Test]
     public void AssignRandomEnum()
     {
@@ -788,9 +912,9 @@ rule create {
         for (int i = 0; i < count; i++)
         {
             db.RunAction("create");
-
         }
-        db.Printer.PrintDb(db);
+
+        db.Printer.PrintDb();
         var e = db.Entities.First();
         PropertyId jobProp = db.GetPropertyId("job");
         var value = e.GetProperty(jobProp);
@@ -799,6 +923,7 @@ rule create {
         Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
         Assert.AreEqual(3, value.IntValue);
     }
+
     [Test]
     public void AssignCreate()
     {
@@ -815,8 +940,8 @@ rule create_faction {
 }";
         var db = Run(s, out var errors);
         Assert.AreEqual(4, db.Actions[0].Effects.Count);
-       
     }
+
     [Test]
     public void Format()
     {
@@ -840,8 +965,10 @@ rule create_faction {
         db.History = new();
         db.RunAction(db.Actions[0]);
         Console.WriteLine(db.Records.Last().Text);
-        Assert.AreEqual("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>", db.Records.Last().Text);
+        Assert.AreEqual("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>",
+            db.Records.Last().Text);
     }
+
     [Test]
     public void Format_TwoRandomNames()
     {
@@ -857,6 +984,7 @@ rule create_faction {
         db.History = new();
         db.RunAction(db.Actions[0]);
     }
+
     [Test]
     public void FormatLiteral()
     {
@@ -868,12 +996,12 @@ rule create_faction {
         db.History = new();
         db.RunAction(db.Actions[0]);
         Console.WriteLine(db.Records[0]);
-        
-        
+
+
         Console.WriteLine(db.Records[0].Text);
         Assert.AreEqual("res 42 > 16 = true", db.Records[0].Text);
     }
-    
+
     [Test]
     public void CallRule()
     {
@@ -888,8 +1016,9 @@ rule call {
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[1]);
-       Assert.AreEqual(1, db.Entities.Count());
+        Assert.AreEqual(1, db.Entities.Count());
     }
+
     [Test]
     public void CallRuleReturnValue()
     {
@@ -910,9 +1039,10 @@ rule call {
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[1]);
-        db.Printer.PrintDb(db);
-       Assert.AreEqual(2, db.Entities.Count());
+        db.Printer.PrintDb();
+        Assert.AreEqual(2, db.Entities.Count());
     }
+
     [Test]
     public void SetLiteral()
     {
@@ -929,8 +1059,9 @@ rule call {
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
+
     [Test]
     public void Singleton()
     {
@@ -942,12 +1073,12 @@ rule create {
 rule read {
     assert_eq #Time.year, 1000
 }";
-        
+
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
 
     [Test]
@@ -970,7 +1101,7 @@ rule born {
         db.RunAction("init");
 
         db.Ctx.PassYears(10, true);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         Console.WriteLine("Born: " + (db.Entities.Count() - 1));
     }
 
@@ -1014,21 +1145,21 @@ rule pass_15_years {
         db.History = new();
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.RunAction(db.Actions[1]);
         db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
-        db.RunAction(db.Actions[1]);
-        db.RunAction(db.Actions[2]);
-        db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.RunAction(db.Actions[1]);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.RunAction(db.Actions[1]);
         db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
+        db.RunAction(db.Actions[2]);
+        db.Printer.PrintDb();
+        db.RunAction(db.Actions[1]);
+        db.RunAction(db.Actions[2]);
+        db.Printer.PrintDb();
     }
 
     [Test]
@@ -1058,7 +1189,7 @@ rule born {
 }";
         Run(s, out _);
     }
-    
+
     [Test]
     public void Time2()
     {
@@ -1096,19 +1227,19 @@ rule pass_15_years {
         db.History = new();
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.Commit();
         Assert.AreEqual(1000, db.Entities.Last().GetProperty(db.GetPropertyId("birthdate")).IntValue);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
         db.Printer.PrintHistory(db);
     }
 
@@ -1121,10 +1252,11 @@ rule r {
 }";
         var db = Run(s, out var errors);
         db.History = new();
-        
+
         AssertInstruction(() => db.RunAction(db.Actions[0]));
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
+
     [Test]
     public void TestAssertEq()
     {
@@ -1134,10 +1266,11 @@ rule r {
 }";
         var db = Run(s, out var errors);
         db.History = new();
-        
+
         AssertInstruction(() => db.RunAction(db.Actions[0]));
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
+
     [Test]
     public void TestAssertTrue()
     {
@@ -1147,8 +1280,8 @@ rule r {
 }";
         var db = Run(s, out var errors);
         db.History = new();
-        
+
         NoAssertInstruction(() => db.RunAction(db.Actions[0]));
-        db.Printer.PrintDb(db);
+        db.Printer.PrintDb();
     }
 }

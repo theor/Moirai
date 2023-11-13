@@ -6,10 +6,19 @@ entity Country {}
 entity God {}
 
 tag #death
+tag #born
 tag #prosperity_increase
 tag #prosperity_decrease
 
-enum Job { Smith, Farmer, Painter, Sculptor, Writer, Wizard, Soldier }
+enum Job {
+    Farmer, Fisher, Hunter,
+    Painter, Sculptor, Bard,
+    Merchant, Smith, 
+    Wizard,
+    Soldier,
+    Monk,
+    Prince, King,
+}
 enum Age { Child, Young, Adult, Old }
 enum ItemType { Forged, Painted, Sculpted }
 enum CountryHealth { Disarray, Recession, Neutral, Emerging, Prosperous }
@@ -129,18 +138,25 @@ event buries_children death {
     }
 }
 
-@1 per 2 year
-rule char_born {
-    var $fname = '{random name}'
-    pick $loc: type = Country
-    create $p: Person, '{$fname} {random name}'
-    set $p.first_name = $fname
+event born {
+    when #born
+    when $p: type = Person
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = #Time.year
+    set $p.place = $p.birthplace
+
+}
+
+@1 per 2 year
+rule char_born {
+    var $fname = '{random name}'
+    create $p: Person, '{$fname} {random name}'
+    pick $loc: type = Country
+    set $p.first_name = $fname
     set $p.birthplace = $loc
-    set $p.place = $loc
     record '{$p.name} is born in {$loc.name}'
+    add_tag $p, #born
 }
 
 
@@ -148,7 +164,23 @@ rule char_born {
 rule children_grow {
     each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
         set $p.age = Age.Young
-        set $p.job = random Job
+        random_weighted 100 {
+            5 => set $p.job = Job.Smith
+            10 => set $p.job = Job.Merchant
+            10 => set $p.job = Job.Monk
+            25 => set $p.job = Job.Soldier
+
+            5 => set $p.job = Job.Painter
+            5 => set $p.job = Job.Sculptor
+
+            5 => set $p.job = Job.Bard
+            5 => set $p.job = Job.Wizard
+
+            10 => set $p.job = Job.Hunter
+            10 => set $p.job = Job.Fisher
+            _ => set $p.job = Job.Farmer
+        }
+       
         record '{$p.name} becomes a {$p.job}'
     }
 }
@@ -287,11 +319,8 @@ rule couple_has_child {
     
     var $fname = '{random name}'
     create $c: Person, '{$fname} {$x.first_name}son'
+        add_tag $c, #born
         set $c.first_name = $fname
-        set $c.alive = true
-        set $c.age = Age.Child
-        set $c.birthdate = #Time.year
-        set $c.place = $x.place
         set $c.birthplace = $x.place
         set $c.god = $x.god
     create $l1: Link

@@ -43,6 +43,38 @@ public class TagEntity : IInstruction
     }
 }
 
+public class MatchWeight : IInstruction
+{
+    public readonly IValue Value;
+    public readonly (int,IInstruction[])[] CumulativeWeights;
+
+    public MatchWeight(IValue value, (int, IInstruction[])[] cumulativeWeights)
+    {
+        Value = value;
+        CumulativeWeights = cumulativeWeights;
+    }
+
+    public bool Execute(PredicateContext ctx)
+    {
+        var v = Value.Compute(ctx).IntValue;
+        var r = ctx.Rnd.GenerateNext((uint)v);
+        for (int i = 0; i < CumulativeWeights.Length; i++)
+        {
+            if(CumulativeWeights[i].Item1 == -1 || r < CumulativeWeights[i].Item1)
+            {
+                foreach (var instr in @CumulativeWeights[i].Item2)
+                {
+                    if (!instr.Execute(ctx))
+                        break;
+                }
+                break;
+            }
+        }
+
+        return true;
+    }
+}
+
 public class Match : IInstruction
 {
     public readonly IValue[] Values;

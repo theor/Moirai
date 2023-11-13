@@ -132,10 +132,10 @@ public struct AssertInstr : IInstruction
     }
 }
 
-public struct RandomCall : IValue
+public struct RandomEnum : IValue
 {
     public readonly ushort EnumID;
-    public RandomCall(ushort enumId)
+    public RandomEnum(ushort enumId)
     {
         EnumID = enumId;
     }

@@ -17,7 +17,7 @@ when: WHEN (VAR_ID COLON)? expr (COMMA expr)* SPACE* LINE_BREAK+;
 when_tag: WHEN TAG_ID  SPACE* LINE_BREAK+;
 effect: (comment|set | var | call_assign|if|match) SPACE* LINE_BREAK*;
 if: IF cond=expr then=scope (ELSE LINE_BREAK*  else=scope)? ;
-match: MATCH expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
+match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
 match_case: value (COMMA value)* ARROW ((effect LINE_BREAK+)|scope) ;
 set: SET  path EQ expr;
 var: VAR  VAR_ID (COLON (ID|TYPE_ID))? EQ expr;

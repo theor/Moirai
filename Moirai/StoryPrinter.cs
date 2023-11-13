@@ -160,12 +160,13 @@ public class StoryPrinter
                 }
                 break;
             case Match match:
+            {
                 sb.AppendLine($"{indentStr}match {String.Join(", ", match.Values.Select(Print))} {{");
                 var caseIndent = MakeIndent(indent + 1);
                 foreach (var matchCase in match.Cases)
                 {
                     sb.Append($"{caseIndent}{String.Join(", ", matchCase.Item1.Select(Print))} => ");
-                    if(matchCase.Item2.Length == 0)
+                    if (matchCase.Item2.Length == 0)
                         sb.AppendLine("{ }");
                     else
                     {
@@ -174,11 +175,42 @@ public class StoryPrinter
                         {
                             PrintEffect(instruction1, sb, indent + 2);
                         }
+
+                        sb.AppendLine($"{caseIndent}}}");
+                    }
+                }
+
+                sb.AppendLine($"{indentStr}}}");
+                break;
+            }
+            case MatchWeight match:
+            {
+                sb.AppendLine($"{indentStr}random_weighted {Print(match.Value)} {{");
+                var caseIndent = MakeIndent(indent + 1);
+                int accWeight = 0;
+                foreach (var matchCase in match.CumulativeWeights)
+                {
+                    
+                    var w = matchCase.Item1 == -1 ? -1 : (matchCase.Item1 - accWeight);
+                    accWeight = matchCase.Item1;
+                    sb.Append($"{caseIndent}{(w == -1 ? "_" : w.ToString())} => ");
+                    if (matchCase.Item2.Length == 0)
+                        sb.AppendLine("{ }");
+                    else
+                    {
+                        sb.AppendLine("{");
+                        foreach (var instruction1 in matchCase.Item2)
+                        {
+                            PrintEffect(instruction1, sb, indent + 2);
+                        }
+
                         sb.AppendLine($"{caseIndent}}}");
                     }
                 }
                 sb.AppendLine($"{indentStr}}}");
+
                 break;
+            }
             default:
                 throw new ArgumentOutOfRangeException(nameof(instruction), $"instr: '{instruction}'");
         }
@@ -251,7 +283,7 @@ public class StoryPrinter
                 return Print(literal.Value);
             case PropertyPath path:
                 return Print(path);
-            case RandomCall rnd:
+            case RandomEnum rnd:
                 return "random " + _database.Enums[rnd.EnumID].Name;
             case RandomName rnd:
                 return "random " + rnd.Type.ToString().ToLowerInvariant();
@@ -327,11 +359,11 @@ public class StoryPrinter
             }
     }
     private static readonly ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
-    public void PrintDb(Database database)
+    public void PrintDb()
     {
         // Console.WriteLine("[DB]");
         bool any = false;
-        foreach (var e in database.Entities)
+        foreach (var e in _database.Entities)
         {
             any = true;
             this.PrintEntity(e);

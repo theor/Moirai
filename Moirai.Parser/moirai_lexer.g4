@@ -24,6 +24,7 @@ WHEN: 'when';
 SET: 'set';
 VAR: 'var';
 MATCH: 'match';
+MATCH_WEIGHT: 'random_weighted';
 COMMA: ',';
 ARROW: '=>';
 IF: 'if';
