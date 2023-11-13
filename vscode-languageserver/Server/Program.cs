@@ -134,6 +134,7 @@ internal class Program
                     .WithHandler<MyWorkspaceSymbolsHandler>()
                     .WithHandler<SemanticTokensHandler>()
                     .WithHandler<MyDeclarationHandler>()
+                    .WithHandler<MyHoverHandler>()
             ).ConfigureAwait(false);
 
             await server.WaitForExit.ConfigureAwait(false);
@@ -183,6 +184,11 @@ public class MoiraiCache {
             Uri = _current.DocumentUri, Version = _current.Version,
         });
     }
+
+    // public string GetRange(Range r)
+    // {
+    //     
+    // }
     public string GetContent(DocumentUri textDocumentUri)
     {
         if (textDocumentUri != _current.DocumentUri)
@@ -208,6 +214,20 @@ public class MoiraiCache {
             return
                 new LocationOrLocationLink(new Location{Range =  loc, Uri = requestTextDocument.Uri});
         return default;
+    }
+
+    public string GetRange(Range locationRange)
+    {
+        var lines = _current.Content.Split('\n');
+        return string.Join("\n",
+            lines.Skip(locationRange.Start.Line).Take(1+ locationRange.Start.Line - locationRange.End.Line));
+    }
+    public Range? GetDefinitionRange(Range locationRange)
+    {
+         var loc = _current.Locations.FirstOrDefault(x => x.Item1.Contains(locationRange)).Item2;
+         if (loc != null)
+             return loc;
+         return default;
     }
 }
 
