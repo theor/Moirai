@@ -87,6 +87,8 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 {
     private readonly ILogger _logger;
     public readonly List<(Range range, SemanticTokenType type, string[] modifiers)> Symbols = new();
+    public readonly Dictionary<string, Range> Definitions = new();
+    public readonly List<(Range, Range)> Locations = new();
     public List<StoryParser.Error> Errors { get; } = new();
     public TokenVisitor(ILogger logger)
     {
@@ -96,10 +98,16 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     private void PushSymbol(IToken symbol, SemanticTokenType tokenType, params string[] keyword)
     {
         Symbols.Add((
-            new Range(symbol.Line - 1, symbol.Column, symbol.Line - 1, symbol.Column + symbol.Text.Length),
+            GetRange(symbol),
             tokenType,
             keyword));
     }
+
+    public static Range GetRange(IToken symbol)
+    {
+        return new Range(symbol.Line - 1, symbol.Column, symbol.Line - 1, symbol.Column + symbol.Text.Length);
+    }
+
     private void PushSymbol(ParserRuleContext symbol, SemanticTokenType tokenType, params string[] keyword)
     {
         Symbols.Add((
@@ -126,23 +134,30 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     public override object? VisitEvent(MoiraiParser.EventContext context)
     {
         var id = context.ID();
+        PushSymbol(context.EVENT().Symbol, SemanticTokenType.Keyword);
+        PushSymbol(id.Symbol, SemanticTokenType.Class, SemanticTokenModifier.Definition);
         foreach (var cat in context.categories().ID())
         {
             PushSymbol(cat.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
             
         }
-        PushSymbol(context.EVENT().Symbol, SemanticTokenType.Keyword);
-        PushSymbol(id.Symbol, SemanticTokenType.Class, SemanticTokenModifier.Definition);
         return base.VisitEvent(context);
     }
 
     public override object? VisitProp_definition(MoiraiParser.Prop_definitionContext context)
     {
         PushSymbol(context.PROP().Symbol, SemanticTokenType.Keyword);
+        PushSymbol(context.ID(0).Symbol, SemanticTokenType.Property);
+        Definitions.Add( context.ID(0).GetText(), TokenVisitor.GetRange(context.ID(0).Symbol));
+        if(context.TYPE_ID() != null)
+            PushSymbol(context.TYPE_ID().Symbol, SemanticTokenType.Type);
+        else
+            PushSymbol(context.ID(1).Symbol, SemanticTokenType.Type);
         return base.VisitProp_definition(context);
     }
     public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
     {
+        Definitions.Add( context.TYPE_ID().GetText(), TokenVisitor.GetRange(context.TYPE_ID().Symbol));
         PushSymbol(context.ENTITY().Symbol, SemanticTokenType.Keyword);
         PushSymbol(context.TYPE_ID().Symbol, SemanticTokenType.Type);
         return base.VisitType_definition(context);
@@ -150,22 +165,37 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 
     public override object? VisitTag_definition(MoiraiParser.Tag_definitionContext context)
     {
+        Definitions.Add( context.TAG_ID().GetText(),  TokenVisitor.GetRange(context.TAG_ID().Symbol));
         PushSymbol(context.TAG().Symbol, SemanticTokenType.Keyword);
-        PushSymbol(context.TAG_ID().Symbol, SemanticTokenType.Type);
+        PushSymbol(context.TAG_ID().Symbol, SemanticTokenType.Event);
         return null;
     }
 
     public override object? VisitEnum_definition(MoiraiParser.Enum_definitionContext context)
     {
+        Definitions.Add( context.TYPE_ID(0).GetText(),  TokenVisitor.GetRange(context.TYPE_ID(0).Symbol));
         PushSymbol(context.ENUM().Symbol, SemanticTokenType.Keyword);
 
-        PushSymbol(context.TYPE_ID(0).Symbol, SemanticTokenType.Type);
+        PushSymbol(context.TYPE_ID(0).Symbol, SemanticTokenType.Enum);
         foreach (var member in context.TYPE_ID().Skip(1))
         {
             PushSymbol(member.Symbol, SemanticTokenType.EnumMember);
+            Definitions.Add($"{context.TYPE_ID(0).GetText()}.{member.GetText()}", TokenVisitor.GetRange(member.Symbol));
         }        
         return base.VisitEnum_definition(context);
     }
+
+    public override object? VisitEnum_value(MoiraiParser.Enum_valueContext context)
+    {
+        PushSymbol(context.TYPE_ID(0).Symbol, SemanticTokenType.Enum);
+        PushSymbol(context.TYPE_ID(1).Symbol, SemanticTokenType.EnumMember);
+        if (Definitions.TryGetValue(context.TYPE_ID(0).GetText(), out var loc))
+            Locations.Add((GetRange(context.TYPE_ID(0).Symbol), loc));
+        if (Definitions.TryGetValue(context.GetText(), out var loc2))
+            Locations.Add((GetRange(context.TYPE_ID(1).Symbol), loc2));
+        return base.VisitEnum_value(context);
+    }
+    
     public override object? VisitCall(MoiraiParser.CallContext context)
     {
         PushSymbol(context.ID().Symbol, SemanticTokenType.Function);
@@ -178,6 +208,23 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             PushSymbol(context.VAR_ID().Symbol, SemanticTokenType.Variable);
         return base.VisitCall_assign(context);
     }
+
+    public override object? VisitWhen(MoiraiParser.WhenContext context)
+    {
+        PushSymbol(context.WHEN().Symbol, SemanticTokenType.Keyword);
+        return base.VisitWhen(context);
+    }
+
+    public override object? VisitWhen_tag(MoiraiParser.When_tagContext context)
+    {
+        PushSymbol(context.WHEN().Symbol, SemanticTokenType.Keyword);
+        PushSymbol(context.TAG_ID().Symbol, SemanticTokenType.Event);
+        if (Definitions.TryGetValue(context.TAG_ID().GetText(), out var loc))
+            Locations.Add((GetRange(context.TAG_ID().Symbol), loc));
+        
+        return base.VisitWhen_tag(context);
+    }
+
     public override object? VisitTerminal(ITerminalNode node)
     {
 
@@ -204,6 +251,12 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     }
     public override object? VisitPath(MoiraiParser.PathContext context)
     {
+        if (context.ID(0) != null)
+        {
+            PushSymbol(context.ID(0).Symbol, SemanticTokenType.Property);
+            if (Definitions.TryGetValue(context.ID(0).GetText(), out var loc))
+                Locations.Add((GetRange(context.ID(0).Symbol), loc));
+        }
         if (context.VAR_ID() != null)
         {
             PushSymbol(context.VAR_ID().Symbol, SemanticTokenType.Variable);
@@ -212,6 +265,13 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     }
     public override object? VisitExpr(MoiraiParser.ExprContext context)
     {
+        if (context.TAG_ID() != null)
+        {
+            PushSymbol(context.TAG_ID().Symbol, SemanticTokenType.Event);
+            
+            if (Definitions.TryGetValue(context.TAG_ID().GetText(), out var loc))
+                Locations.Add((GetRange(context.TAG_ID().Symbol), loc));
+        }
         if (context.value() != null)
             return context.value().Accept(this);
         if (context.paren_expr != null)
@@ -226,7 +286,11 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     public override object? VisitValue(MoiraiParser.ValueContext context)
     {
         if (context.TYPE_ID() != null)
+        {
             PushSymbol(context.Start, SemanticTokenType.Type);
+            if (Definitions.TryGetValue(context.TYPE_ID().GetText(), out var loc))
+                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc));
+        }
         else if (context.@string() != null)
             PushSymbol(context.Start, SemanticTokenType.String);
         else if (context.@bool() != null || context.number() != null || context.NULL() != null)

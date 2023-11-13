@@ -6,6 +6,26 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Server.WorkDone;
 using OmniSharp.Extensions.LanguageServer.Protocol.Workspace;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
+// internal class MyDocumentLinkHandler : IDocumentLinkHandler
+// {
+//     public async Task<DocumentLinkContainer?> Handle(DocumentLinkParams request, CancellationToken cancellationToken)
+//     {
+//         request.
+//         List<DocumentLink> links = new();
+//         links.Add(new DocumentLink{});
+//         return new DocumentLinkContainer(links);
+//     }
+//
+//     public DocumentLinkRegistrationOptions GetRegistrationOptions(DocumentLinkCapability capability,
+//         ClientCapabilities clientCapabilities)
+//     {
+//         return new DocumentLinkRegistrationOptions
+//         {
+//             
+//         };
+//     }
+// }
+
 internal class MyWorkspaceSymbolsHandler : IWorkspaceSymbolsHandler
 {
     private readonly IServerWorkDoneManager _serverWorkDoneManager;

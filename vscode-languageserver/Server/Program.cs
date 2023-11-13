@@ -55,7 +55,7 @@ internal class Program
                         x => x
                             .AddSerilog(Log.Logger)
                             .AddLanguageProtocolLogging()
-                            .SetMinimumLevel(LogLevel.Debug)
+                            .SetMinimumLevel(LogLevel.Trace)
                     )
                     .WithServices(x => x.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)))
                     // .WithServices(x => x.AddLogging())
@@ -133,6 +133,7 @@ internal class Program
                     // .WithHandler<DocumentDiagnosticHandler>()
                     .WithHandler<MyWorkspaceSymbolsHandler>()
                     .WithHandler<SemanticTokensHandler>()
+                    .WithHandler<MyDeclarationHandler>()
             ).ConfigureAwait(false);
 
             await server.WaitForExit.ConfigureAwait(false);
@@ -198,6 +199,16 @@ public class MoiraiCache {
           
         }
     }
+
+    public LocationOrLocationLink? GetLocations(TextDocumentIdentifier requestTextDocument,
+        Position requestPosition)
+    {
+        var loc = _current.Locations.FirstOrDefault(x => x.Item1.Contains(requestPosition)).Item2;
+        if (loc != null)
+            return
+                new LocationOrLocationLink(new Location{Range =  loc, Uri = requestTextDocument.Uri});
+        return default;
+    }
 }
 
 internal class MoiraiDocument
@@ -208,6 +219,8 @@ internal class MoiraiDocument
     public int Version;
     public List<(Range range, SemanticTokenType type, string[] modifiers)> Symbols { get; set; } = new();
     public List<StoryParser.Error> Errors = new();
+    public List<(Range, Range)> Locations = new();
+
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
     {
         DocumentUri = documentUri;
@@ -233,6 +246,8 @@ internal class MoiraiDocument
             r.Accept(visitor);
             Errors = visitor.Errors;
             Symbols = visitor.Symbols;
+            Locations = visitor.Locations;
+       
             var db = new Database();
             var astVisitor = new StoryParser.AstVisitor(db);
             r.Accept(astVisitor);
