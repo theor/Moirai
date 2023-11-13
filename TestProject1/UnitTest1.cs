@@ -35,6 +35,25 @@ rule r {
         db.RunAction("r");
         Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
     }
+    
+    [Test]
+    public void IfElseScopes()
+    {
+        var db = Run(@"
+entity T {}
+entity U {}
+prop p: number
+rule r {
+    if false {
+        create T
+    } else {
+        create U
+    }
+    set p = 2
+}", out _);
+        db.RunAction("r");
+        Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
 }
 
 public class MatchTests : TestsBase

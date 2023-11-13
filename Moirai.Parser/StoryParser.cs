@@ -248,8 +248,8 @@ public static class StoryParser
             var action = new Action(_database.Actions.Count + 1, actionId, false, f, cats);
             foreach (MoiraiParser.EffectContext effectContext in context.effect())
             {
-                if (effectContext.comment() != null)
-                    continue;
+                // if (effectContext.comment() != null)
+                //     continue;
                 var effect = ParseEffect(effectContext);
                 if (effect == null)
                 {
@@ -299,10 +299,11 @@ public static class StoryParser
             _database.Events.Add(action);
             foreach (var effectContext in context.effect())
             {
-                if (effectContext.comment() != null)
-                    continue;
+                // if (effectContext.comment() != null)
+                    // continue;
                 var effect = ParseEffect(effectContext);
-                action.Effects.Add(effect);
+                if(effect != null)
+                    action.Effects.Add(effect);
             }
 
             return null;
@@ -362,7 +363,7 @@ public static class StoryParser
                 using var _ = new VariableDeclarationScope(this, true);
                 var instrs = caseCtx.scope() == null
                     ? new IInstruction[] { ParseEffect(caseCtx.effect()) }
-                    : ParseScope(caseCtx.scope());
+                    : ParseScope(caseCtx.scope(), false);
                 if (weight)
                 {
                     int w;
@@ -394,8 +395,8 @@ public static class StoryParser
 
         private If ParseIf(MoiraiParser.IfContext @if)
         {
-            return new If(ParseExpr(@if.cond), ParseScope(@if.then),
-                @if.@else == null ? Array.Empty<IInstruction>() : ParseScope(@if.@else));
+            return new If(ParseExpr(@if.cond), ParseScope(@if.then, true),
+                @if.@else == null ? Array.Empty<IInstruction>() : ParseScope(@if.@else, true));
         }
 
         private AssignPick ParseWhen(MoiraiParser.WhenContext context)
@@ -645,7 +646,7 @@ public static class StoryParser
                                 ? ParseExpr(exprs[0])!
                                 : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
                             CallType.Each,
-                            ParseScope(context.scope()));
+                            ParseScope(context.scope(), false));
                         // _variables[variableIndex] = "";
                         {
                             return assignPick;
@@ -684,11 +685,12 @@ public static class StoryParser
             }
         }
 
-        private IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext)
+        private IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext, bool autoCleanupVariableDeclarations)
         {
+            using var vs = new VariableDeclarationScope(this, autoCleanupVariableDeclarations);
             if (scopeContext == null)
                 return Array.Empty<IInstruction>();
-            return scopeContext.effect().Where(e => e.comment() == null).Select(ParseEffect).ToArray();
+            return scopeContext.effect().Select(ParseEffect).Where(e => e != null).ToArray();
         }
 
         private InterpolatedString ParseInterpolatedString(string str)

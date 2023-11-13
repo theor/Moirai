@@ -60,7 +60,7 @@ NUMBER=46
 'set'=18
 'var'=19
 'match'=20
-'match_weight'=21
+'random_weighted'=21
 ','=22
 '=>'=23
 'if'=24

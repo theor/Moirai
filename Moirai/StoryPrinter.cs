@@ -145,19 +145,15 @@ public class StoryPrinter
                 }
                 if (@if.IfFalse.Length > 0)
                 {
-                    sb.AppendLine($"}} {indentStr}else {{");
+                    sb.AppendLine($"{indentStr}}} else {{");
                     foreach (var nestedEffect in @if.IfFalse)
                     {
                         PrintEffect(nestedEffect, sb, indent + 1);
                     }
-                    sb.AppendLine($"{indentStr}}}");
                     
                 }
-                else
-                {
-                    sb.AppendLine($"{indentStr}}}");
-                    
-                }
+                sb.AppendLine($"{indentStr}}}");
+
                 break;
             case Match match:
             {

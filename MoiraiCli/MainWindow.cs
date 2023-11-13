@@ -218,12 +218,32 @@ public class MainWindow : Toplevel
         };
 
     }
+
+    private Dialog? errorDialog;
     public async Task ReloadFile(string path)
     {
+        if (errorDialog != null)
+        {
+            errorDialog.RequestStop();
+            errorDialog = null;
+        }
         Debug.WriteLine("Reloading " + path);
         var targetYear = Database?.Ctx?.Year ?? 0;
         string content = File.ReadAllText(path);
         var db = StoryParser.Parse(content, out var errors);
+
+        if (errors.Count != 0)
+        {
+            errorDialog = new Dialog("Errors"){Modal = false};
+            errorDialog.Add(new Label(string.Join("\n", errors))
+            {
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+            });
+            Application.Run(errorDialog);
+            return;
+        }
+        
         db.FilePath = path;
         db.History = new();
 

@@ -27,6 +27,7 @@ prop age: Age
 prop first_name: string
 prop alive: bool
 prop birthdate: number
+prop prestige: number
 prop deathdate: number
 prop children_count: number
 prop partner: ref
@@ -270,26 +271,45 @@ rule country_war_start war {
     // add_tag $x, #prosperity_decrease
     // add_tag $y, #prosperity_decrease
 }
-@1 per 1 year
+@5 per 1 year
 rule soldier_war_distinction war country {
     each $c: type = Country, war_with != null {
         pick $s: type = Person, alive, job = Job.Soldier, place = $c
         var $o = $c.war_with
-        record '{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}'
+        random_weighted 100 {
+            10 => {
+                set $s.prestige = $s.prestige + 1
+                record '{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}'
+            }
+            10 => {
+                add_tag $s, #death
+                record '{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}'
+            }
+        }
 
     }
 }
-@1 per 1 year
-rule soldier_war_death war {
-    each $c: type = Country, war_with != null {
-        pick $s: type = Person, alive, job = Job.Soldier, place = $c
-        var $o = $c.war_with
-        add_tag $s, #death
-        record '{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}'
-        add_tag $c, #prosperity_decrease
 
-    }
-}
+// @1 per 1 year
+// rule soldier_war_distinction war country {
+//     each $c: type = Country, war_with != null {
+//         pick $s: type = Person, alive, job = Job.Soldier, place = $c
+//         var $o = $c.war_with
+//         record '{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}'
+
+//     }
+// }
+// @1 per 1 year
+// rule soldier_war_death war {
+//     each $c: type = Country, war_with != null {
+//         pick $s: type = Person, alive, job = Job.Soldier, place = $c
+//         var $o = $c.war_with
+//         add_tag $s, #death
+//         record '{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}'
+//         add_tag $c, #prosperity_decrease
+
+//     }
+// }
 @1 per 10 year
 rule country_war_peace war country {
     pick $x: type = Country, war_with != null
