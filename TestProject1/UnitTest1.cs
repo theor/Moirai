@@ -208,6 +208,19 @@ rule create {
 
 public class TestsBase
 {
+    public static Database Run(string s, out List<StoryParser.Error> errors, Action<string> assertReprintedCode)
+    {
+        Console.WriteLine(s);
+        var db = StoryParser.Parse(s, out errors);
+
+        var printed = db.Printer.Print();
+        Console.WriteLine("### REPRINT");
+        Console.WriteLine(printed);
+        Assert.AreEqual(0, errors.Count, string.Join("\n", errors));
+        assertReprintedCode(printed);
+        db.Init();
+        return db;
+    }
     public static Database Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)
     {
         Console.WriteLine(s);
@@ -558,6 +571,90 @@ rule foreach {
         foreach (var entity in db.Entities)
         {
             Assert.IsTrue(entity.TryGetProperty(propId, out var val));
+            Assert.AreEqual(true, val.BoolValue);
+        }
+
+        foreach (var changeset in db.History.Changesets)
+        {
+            db.Printer.PrintChangeset(changeset);
+        }
+    }
+    
+    [Test]
+    public void Each_Multiple()
+    {
+        var s = @"
+entity Person {}
+prop x: bool
+prop y: bool
+rule foreach {
+    each $x: type=Person {
+        set $x.x = true
+        record '{$x.name} {$x.x}'
+    }
+    each $x: type=Person {
+        set $x.y = true
+        record '{$x.name} {$x.y}'
+    }
+}";
+        var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
+        db.History = new();
+        var propX = db.GetPropertyId("x");
+        var propY = db.GetPropertyId("y");
+        var typePerson = db.GetEntityType("Person");
+        db.AllocateEntity(typePerson.Id, "A");
+        db.AllocateEntity(typePerson.Id, "B");
+        db.Printer.PrintDb();
+       
+        db.RunAction(db.Actions[0]);
+        db.Printer.PrintDb();
+        foreach (var entity in db.Entities)
+        {
+            Assert.IsTrue(entity.TryGetProperty(propX, out var val));
+            Assert.AreEqual(true, val.BoolValue);
+            Assert.IsTrue(entity.TryGetProperty(propY, out  val));
+            Assert.AreEqual(true, val.BoolValue);
+        }
+
+        foreach (var changeset in db.History.Changesets)
+        {
+            db.Printer.PrintChangeset(changeset);
+        }
+    }
+    
+    [Test]
+    public void Each_Multiple_Unnamed()
+    {
+        var s = @"
+entity Person {}
+prop x: bool
+prop y: bool
+rule foreach {
+    each type=Person {
+        set x = true
+        record '{name} {x}'
+    }
+    each type=Person {
+        set y = true
+        record '{name} {y}'
+    }
+}";
+        var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
+        db.History = new();
+        var propX = db.GetPropertyId("x");
+        var propY = db.GetPropertyId("y");
+        var typePerson = db.GetEntityType("Person");
+        db.AllocateEntity(typePerson.Id, "A");
+        db.AllocateEntity(typePerson.Id, "B");
+        db.Printer.PrintDb();
+       
+        db.RunAction(db.Actions[0]);
+        db.Printer.PrintDb();
+        foreach (var entity in db.Entities)
+        {
+            Assert.IsTrue(entity.TryGetProperty(propX, out var val));
+            Assert.AreEqual(true, val.BoolValue);
+            Assert.IsTrue(entity.TryGetProperty(propY, out  val));
             Assert.AreEqual(true, val.BoolValue);
         }
 

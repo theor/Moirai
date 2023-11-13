@@ -359,6 +359,7 @@ public static class StoryParser
                     _parsingMatchCase = false;
                 }
 
+                using var _ = new VariableDeclarationScope(this, true);
                 var instrs = caseCtx.scope() == null
                     ? new IInstruction[] { ParseEffect(caseCtx.effect()) }
                     : ParseScope(caseCtx.scope());
@@ -535,21 +536,56 @@ public static class StoryParser
             return true;
         }
 
+        struct VariableDeclarationScope : IDisposable
+        {
+            private readonly AstVisitor _astVisitor;
+            private readonly bool _autoCleanup;
+            private readonly int _count;
+
+            public VariableDeclarationScope(AstVisitor astVisitor, bool autoCleanup)
+            {
+                _astVisitor = astVisitor;
+                _autoCleanup = autoCleanup;
+                _count = astVisitor._variables.Count;
+            }
+
+            public void Dispose()
+            {
+                if(_autoCleanup)
+                    Cleanup();
+            }
+
+            public void Cleanup()
+            {
+                _astVisitor._variables.RemoveRange(_count, _astVisitor._variables.Count - _count);
+            }
+        }
+
         private IInstruction ParseCall(MoiraiParser.Call_assignContext context)
         {
             var funcName = context.ID().GetText();
-            if (funcName == "assert")
+            // functions that do not declare a value
+            switch (funcName)
             {
-                return new AssertInstr(ParseExpr(context.expr(0)), context.expr(0).GetText());
-            }
-
-            if (funcName == "assert_eq")
-            {
-                return new AssertInstr(ParseExpr(context.expr(0)), ParseExpr(context.expr(1)),
-                    context.expr(0).GetText() + " = " + context.expr(1).GetText());
+                case "assert":
+                    return new AssertInstr(ParseExpr(context.expr(0)), context.expr(0).GetText());
+                case "assert_eq":
+                    return new AssertInstr(ParseExpr(context.expr(0)), ParseExpr(context.expr(1)),
+                        context.expr(0).GetText() + " = " + context.expr(1).GetText());
+                case "record":
+                    var stringContext = context.expr(0).value().@string();
+                    var interpolatedString = ParseInterpolatedString(stringContext.GetString());
+                    return new FormatAction(interpolatedString);
+                case "add_tag":
+                    var path = ParsePath(context.expr(0).value().path());
+                    var tag = context.expr(1).TAG_ID();
+                    if (!_database.GetTagId(tag.GetText(), out var tagId))
+                        return ((IInstruction)AddError(ErrorCode.UnknownTag, context.expr(0), $"'{tag.GetText()}'")!)!;
+                    return new TagEntity(path, tagId);
             }
 
             int variableIndex = Math.Max(0, _variables.Count);
+            using var varScope = new VariableDeclarationScope(this, false);
             if (context.VAR_ID() != null)
             {
                 if (!DeclareVar(context.VAR_ID().GetText(), context.Start, out variableIndex))
@@ -561,72 +597,91 @@ public static class StoryParser
                     return null;
             }
 
-            switch (funcName)
+            var instr = MakeInstruction(out var isScoped);
+            if (isScoped)
+                varScope.Cleanup();
+            return instr;
+
+            IInstruction MakeInstruction(out bool isScoped)
             {
-                case "call":
+                instr = null!;
+                switch (funcName)
                 {
-                    var arg = context.expr(0);
-                    string? ruleName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
-                    if (ruleName == null)
-                        return (AddError(ErrorCode.MissingArgument, context, "rule name") as IInstruction)!;
-                    var ruleIndex = _database.Actions.FindIndex(r => r.Name == ruleName);
-                    if (ruleIndex == -1)
-                        return (AddError(ErrorCode.UnknownRule, arg, ruleName) as IInstruction)!;
-
-                    int count = 1;
-                    if (context.expr(1) != null)
+                    case "call":
                     {
-                        count = int.Parse(context.expr(1).GetText());
+                        isScoped = false;
+                        var arg = context.expr(0);
+                        string? ruleName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
+                        if (ruleName == null)
+                        {
+                            return (AddError(ErrorCode.MissingArgument, context, "rule name") as IInstruction)!;
+                        }
+
+                        var ruleIndex = _database.Actions.FindIndex(r => r.Name == ruleName);
+                        if (ruleIndex == -1)
+                        {
+                            return (AddError(ErrorCode.UnknownRule, arg, ruleName) as IInstruction)!;
+                        }
+
+                        int count = 1;
+                        if (context.expr(1) != null)
+                        {
+                            count = int.Parse(context.expr(1).GetText());
+                        }
+
+                        {
+                            return new CallRule(variableIndex, ruleIndex, count);
+                        }
                     }
+                    case "each":
+                    {
+                        isScoped = true;
+                        if (context.scope() == null)
+                            AddError(ErrorCode.MissingEachScope, context, "Missing scope in foreach");
+                        var exprs = context.expr();
+                        var assignPick = new AssignPick(
+                            variableIndex,
+                            exprs.Length == 1
+                                ? ParseExpr(exprs[0])!
+                                : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
+                            CallType.Each,
+                            ParseScope(context.scope()));
+                        // _variables[variableIndex] = "";
+                        {
+                            return assignPick;
+                        }
+                    }
+                    case "pick":
+                    {
+                        isScoped = false;
+                        var exprs = context.expr();
+                        {
+                            return new AssignPick(
+                                variableIndex,
+                                exprs.Length == 1
+                                    ? ParseExpr(exprs[0])!
+                                    : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
+                                CallType.Pick);
+                        }
+                    }
+                    case "create":
+                        isScoped = false;
+                        var type = context.expr(0).GetText().TrimQuotes();
+                        var typeId = _database.GetEntityType(type);
+                        if (typeId.Id == EntityTypeId.Null)
+                        {
+                            return ((IInstruction)AddError(ErrorCode.UnknownEntityType, context.expr(0), $"'{type}'"))!;
+                        }
 
-                    return new CallRule(variableIndex, ruleIndex, count);
+                        var name = ParseInterpolatedString(context.expr(1)?.GetText().TrimQuotes() ?? "");
+                    {
+                        return new CreateEntity(variableIndex, typeId.Id, name);
+                    }
+                    default:
+                        isScoped = false;
+                        return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IInstruction)!;
                 }
-                case "each":
-                {
-                    if (context.scope() == null)
-                        AddError(ErrorCode.MissingEachScope, context, "Missing scope in foreach");
-                    var exprs = context.expr();
-                    var assignPick = new AssignPick(
-                        variableIndex,
-                        exprs.Length == 1
-                            ? ParseExpr(exprs[0])!
-                            : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
-                        CallType.Each,
-                        ParseScope(context.scope()));
-                    // _variables[variableIndex] = "";
-                    return assignPick;
-                }
-                case "pick":
-                {
-                    var exprs = context.expr();
-                    return new AssignPick(
-                        variableIndex,
-                        exprs.Length == 1
-                            ? ParseExpr(exprs[0])!
-                            : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
-                        CallType.Pick);
-                }
-                case "create":
-                    var type = context.expr(0).GetText().TrimQuotes();
-                    var typeId = _database.GetEntityType(type);
-                    if (typeId.Id == EntityTypeId.Null)
-                        return ((IInstruction)AddError(ErrorCode.UnknownEntityType, context.expr(0), $"'{type}'"))!;
-
-                    var name = ParseInterpolatedString(context.expr(1)?.GetText().TrimQuotes() ?? "");
-                    return new CreateEntity(variableIndex, typeId.Id, name);
-                case "record":
-                    var stringContext = context.expr(0).value().@string();
-                    var interpolatedString = ParseInterpolatedString(stringContext.GetString());
-                    return new FormatAction(interpolatedString);
-                case "add_tag":
-                    var path = ParsePath(context.expr(0).value().path());
-                    var tag = context.expr(1).TAG_ID();
-                    if (!_database.GetTagId(tag.GetText(), out var tagId))
-                        return ((IInstruction)AddError(ErrorCode.UnknownTag, context.expr(0), $"'{tag.GetText()}'"))!;
-                    return new TagEntity(path, tagId);
             }
-
-            return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IInstruction)!;
         }
 
         private IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext)
@@ -737,15 +792,11 @@ public static class StoryParser
             return new BinaryOperator(pop, leftPath, rightValue);
         }
 
-        // private object? AddError(ErrorCode code, IToken loc, string msg)
-        // {
-        //     Errors.Add(new Error(code, loc, msg));
-        //     return null;
-        // }
-        private object? AddError(ErrorCode code, ParserRuleContext loc, string msg)
+        private object AddError(ErrorCode code, ParserRuleContext loc, string msg)
         {
             Errors.Add(new Error(code, loc, msg));
-            return null;
+            // to avoid warnings in a case where the parsing is already compromised
+            return null!;
         }
 
         private object? AddError(ErrorCode code, ITerminalNode loc, string msg)
