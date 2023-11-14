@@ -3,7 +3,7 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
-import { copyFileSync } from 'fs';
+import { copyFileSync, cpSync } from 'fs';
 import * as path from 'path';
 import { workspace, ExtensionContext } from 'vscode';
 
@@ -19,10 +19,12 @@ let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
 	// The server is implemented in node
-	let serverCommandOrig = context.asAbsolutePath(path.join('client','server', 'Server.exe'));
-	let serverCommand = context.asAbsolutePath(path.join('client','server', 'Server2.exe'));
+	const exe = 'Server.exe';
+	let dirOrig = context.asAbsolutePath(path.join('client','server'));
+	let dirTarget = context.asAbsolutePath(path.join('client','serverCopy'));
+	let serverCommand = path.join(dirTarget, exe);
 	let commandOptions: ExecutableOptions = {  detached: false };
-	copyFileSync(serverCommandOrig, serverCommand)
+	cpSync(dirOrig, dirTarget, {errorOnExist: false, force: true, recursive: true})
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
 	const serverOptions: ServerOptions = {
