@@ -32,7 +32,10 @@ public class MyHoverHandler : HoverHandlerBase
         // _logger.LogCritical($"LINK {request.TextDocument} {request.Position}");
         var res = _moiraiCache.GetLocations(request.TextDocument, request.Position);
         if(res != null)
-            return new Hover{ Range = res.Location.Range, Contents = new MarkedStringsOrMarkupContent(new MarkedString("moirai", _moiraiCache.GetRange(res.Location.Range)))};
+            return new Hover{ Range = res.Location.Range,
+                Contents = new MarkedStringsOrMarkupContent(
+                    new MarkedString("moirai", 
+                        _moiraiCache.GetRange(request.TextDocument.Uri, res.Location.Range)))};
         return null;
     }
 }

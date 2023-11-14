@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Net;
+using System.Text;
 using System.Threading.Channels;
 using Moirai.Core;
 using Terminal.Gui;
@@ -145,6 +147,10 @@ public class MainWindow : Toplevel
                 new MenuItem("Go to _Previous", "Select the previous entity", GoBack, null, null, Key.AltMask | Key.CursorLeft),
                 new MenuItem("Go to _Next", "Select the next entity", GoForward, null, null, Key.AltMask | Key.CursorRight),
             }),
+            new MenuBarItem("_Generate", new MenuItem[]
+            {
+               new MenuItem("Family _Tree", "generate a graphviz family tree", GenerateFamilyTree, null, null, Key.F6), 
+            }),
         });
         FileStatus = new StatusItem(Key.CharMask, "Driver:", null);
         YearStatus = MakeYearsStatus();
@@ -217,6 +223,61 @@ public class MainWindow : Toplevel
             }
         };
 
+    }
+
+    private void GenerateFamilyTree()
+    {
+        List<EntityId> pool = new();
+        Database.FindAll(new IsOfType(new PropertyPath(0), Database.GetEntityType("Link").Id), ref pool);
+        var parentProp = Database.GetPropertyId("parent");
+        var childProp = Database.GetPropertyId("child");
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("digraph G {\n  graph [splines=ortho];\n  node [shape=box];");
+        // Dictionary<EntityId, (EntityId, EntityId)> ids = new();
+        HashSet<EntityId> ids = new();
+        foreach (var linkId in pool)
+        {
+            Database.GetProperty(linkId, parentProp, out var parent);
+            Database.GetProperty(linkId, childProp, out var child);
+            sb.AppendLine($"{parent.IntValue} -> {child.IntValue}");
+            ids.Add(parent.Id);
+            ids.Add(child.Id);
+
+        }
+        // foreach (var linkId in pool)
+        // {
+        //     Database.GetProperty(linkId, parentProp, out var parent);
+        //     Database.GetProperty(linkId, childProp, out var child);
+        //     if(!ids.TryGetValue(child.Id, out var existing))
+        //         ids.Add(child.Id, (parent.Id, EntityId.Null));
+        //     else
+        //     {
+        //         ids[child.Id] = (existing.Item1, parent.Id);
+        //         var (a, b) = (existing.Item1.Id, parent.IntValue);
+        //         sb.AppendLine($"n{Math.Min(a,b)}_{Math.Max(a,b)} -> {child.IntValue}");
+        //     }
+        // }
+        //
+        // foreach (var (a,b) in ids.Values.Distinct())
+        // {
+        //     var n = $"n{Math.Min(a.Id, b.Id)}_{Math.Max(a.Id, b.Id)}";
+        //     sb.AppendLine($"{n}[label=\"\" shape=circle]");
+        //     // sb.AppendLine($"{{ rank = same;");
+        //     sb.AppendLine($"{a.Id} -> {n}");
+        //     sb.AppendLine($"{b.Id} -> {n}");
+        //     // sb.AppendLine("}");
+        // }
+        foreach (var eid in ids)
+        {
+            Database.GetProperty(eid, Database.PropName, out var name);
+            sb.AppendLine($"{eid.Id}[label=\"{name.Value}\"]");
+        }
+       
+        sb.AppendLine("}");
+        
+        File.WriteAllText(@"C:\Users\theor\Moirai\MoiraiCli\g.dot", sb.ToString());
+
+       // Process.Start(new  ProcessStartInfo("https://edotor.net/?engine=dot#" + Uri.EscapeDataString(sb.ToString())){UseShellExecute = true});
     }
 
     private Dialog? errorDialog;

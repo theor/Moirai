@@ -5,8 +5,7 @@ NULL: 'null';
 SPACE: [ \t]+ -> skip;
 LINE_BREAK: ('\r\n' | '\r' | '\n');
 COMMENT
-  :  '//' ~( '\r' | '\n' )*
-  ;
+  :  '//' ~( '\r' | '\n')*;
 
 COLON: ':';
 SCOPE_OPEN: '{';

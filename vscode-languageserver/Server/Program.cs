@@ -143,8 +143,8 @@ internal class Program
 
 public class MoiraiCache {
     private readonly ILogger<MoiraiCache> _logger;
-    private MoiraiDocument? _current;
-
+    // private MoiraiDocument? _current;
+    private Dictionary<DocumentUri, MoiraiDocument> _cache = new();
     public MoiraiCache(ILogger<MoiraiCache> logger)
     {
         logger.LogInformation("inside ctor");
@@ -152,36 +152,45 @@ public class MoiraiCache {
     }
     public async Task OnOpen(DidOpenTextDocumentParams notification)
     {
-        _current = new MoiraiDocument(notification.TextDocument.Uri, notification.TextDocument);
+        var _current = new MoiraiDocument(notification.TextDocument.Uri, notification.TextDocument);
+        _cache[_current.DocumentUri] = _current;
         await _current.Process(_logger);
     }
     public async Task OnChange(DidChangeTextDocumentParams notification)
     {
-        _current.Apply(notification.ContentChanges, notification.TextDocument.Version);
-        await _current.Process(_logger);
+        if (_cache.TryGetValue(notification.TextDocument.Uri, out var doc))
+        {
+            doc.Apply(notification.ContentChanges, notification.TextDocument.Version);
+            await doc.Process(_logger);
+        }
     }
-    public void PublishDiagnostics(ITextDocumentLanguageServer facadeTextDocument)
+    public void PublishDiagnostics(DocumentUri textDocumentUri, ITextDocumentLanguageServer facadeTextDocument)
     {
-
+        int version = 0;
         var diagnostics = ImmutableArray<Diagnostic>.Empty.ToBuilder();
-        if (_current.Errors != null)
-            foreach (var error in _current.Errors)
-            {
-                diagnostics.Add(new Diagnostic()
+        if (_cache.TryGetValue(textDocumentUri, out var doc))
+        {
+            version = doc.Version;
+            if (doc.Errors != null)
+                foreach (var error in doc.Errors)
                 {
-                    Code = "MR" + (int)error.Code,
-                    Severity = DiagnosticSeverity.Error,
-                    Message = error.Code + ": " + error.Message,
-                    Range = new Range(error.Line - 1, error.Col, error.LineEnd - 1, error.ColEnd),
-                    Source = "Moirai",
+                    diagnostics.Add(new Diagnostic()
+                    {
+                        Code = "MR" + (int)error.Code,
+                        Severity = DiagnosticSeverity.Error,
+                        Message = error.Code + ": " + error.Message,
+                        Range = new Range(error.Line - 1, error.Col, error.LineEnd - 1, error.ColEnd),
+                        Source = "Moirai",
 
-                });
-            }
+                    });
+                }
+        }
+        
 
         facadeTextDocument.PublishDiagnostics(new PublishDiagnosticsParams()
         {
             Diagnostics = new Container<Diagnostic>(diagnostics.ToArray()),
-            Uri = _current.DocumentUri, Version = _current.Version,
+            Uri = textDocumentUri, Version = version,
         });
     }
 
@@ -191,43 +200,62 @@ public class MoiraiCache {
     // }
     public string GetContent(DocumentUri textDocumentUri)
     {
-        if (textDocumentUri != _current.DocumentUri)
+        if (_cache.TryGetValue(textDocumentUri, out var doc))
         {
-            _logger.LogCritical("GetContent: NOT SAME URI");
+            return doc.Content;
         }
-        return _current.Content;
+        _logger.LogCritical("GetContent: NOT SAME URI");
+            return "";
     }
     public void GetSymbols(DocumentUri uri, SemanticTokensBuilder builder)
     {
-        foreach (var symbol in _current.Symbols)
-        {
-            builder.Push(symbol.range, symbol.type, symbol.modifiers);
+        if (_cache.TryGetValue(uri, out var doc))
+            foreach (var symbol in doc.Symbols)
+            {
+                builder.Push(symbol.range, symbol.type, symbol.modifiers);
           
-        }
+            }
     }
 
     public LocationOrLocationLink? GetLocations(TextDocumentIdentifier requestTextDocument,
         Position requestPosition)
     {
-        var loc = _current.Locations.FirstOrDefault(x => x.Item1.Contains(requestPosition)).Item2;
-        if (loc != null)
-            return
-                new LocationOrLocationLink(new Location{Range =  loc, Uri = requestTextDocument.Uri});
+        if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
+        {
+            var loc = doc.Locations.FirstOrDefault(x => x.Item1.Contains(requestPosition)).Item2;
+            if (loc != null)
+                return
+                    new LocationOrLocationLink(new Location{Range =  loc, Uri = requestTextDocument.Uri});
+        }
         return default;
     }
 
-    public string GetRange(Range locationRange)
+    public string GetRange(DocumentUri uri, Range locationRange)
     {
-        var lines = _current.Content.Split('\n');
-        return string.Join("\n",
-            lines.Skip(locationRange.Start.Line).Take(1+ locationRange.Start.Line - locationRange.End.Line));
+        if (_cache.TryGetValue(uri, out var doc))
+        {
+            var lines = doc.Content.Split('\n');
+            return string.Join("\n",
+                lines.Skip(locationRange.Start.Line).Take(1 + locationRange.Start.Line - locationRange.End.Line));
+        }
+
+        return "";
     }
-    public Range? GetDefinitionRange(Range locationRange)
+    public Range? GetDefinitionRange(DocumentUri uri,Range locationRange)
     {
-         var loc = _current.Locations.FirstOrDefault(x => x.Item1.Contains(locationRange)).Item2;
-         if (loc != null)
-             return loc;
-         return default;
+        if (_cache.TryGetValue(uri, out var doc))
+        {
+            var loc = doc.Locations.FirstOrDefault(x => x.Item1.Contains(locationRange)).Item2;
+            if (loc != null)
+                return loc;
+        }
+
+        return default;
+    }
+
+    public void OnClose(DidCloseTextDocumentParams notification)
+    {
+        _cache.Remove(notification.TextDocument.Uri);
     }
 }
 

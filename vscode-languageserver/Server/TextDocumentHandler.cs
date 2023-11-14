@@ -14,13 +14,7 @@ internal class TextDocumentHandler : TextDocumentSyncHandlerBase
     private readonly ILogger<TextDocumentHandler> _logger;
     private readonly ILanguageServerConfiguration _configuration;
 
-    private readonly TextDocumentSelector _textDocumentSelector = new TextDocumentSelector(
-        new TextDocumentFilter
-        {
-            Scheme = "file", 
-            Pattern = "**/*.sg",
-        }
-    );
+    private readonly TextDocumentSelector _textDocumentSelector = MoiraiLanguage.Selector;
 
     private readonly ILanguageServerFacade _facade;
     private readonly MoiraiCache _moiraiCache;
@@ -40,7 +34,7 @@ internal class TextDocumentHandler : TextDocumentSyncHandlerBase
     {
         _logger.LogCritical("DidChangeTextDocumentParams ");
         await _moiraiCache.OnChange(notification);
-        _moiraiCache.PublishDiagnostics(_facade.TextDocument);
+        _moiraiCache.PublishDiagnostics(notification.TextDocument.Uri, _facade.TextDocument);
 
         return Unit.Value;
     }
@@ -52,7 +46,7 @@ internal class TextDocumentHandler : TextDocumentSyncHandlerBase
         await _moiraiCache.OnOpen(notification);
         // await _configuration.GetScopedConfiguration(notification.TextDocument.Uri, token).ConfigureAwait(false);
 
-        _moiraiCache.PublishDiagnostics(_facade.TextDocument);
+        _moiraiCache.PublishDiagnostics(notification.TextDocument.Uri, _facade.TextDocument);
 
 
         return Unit.Value;
@@ -64,7 +58,7 @@ internal class TextDocumentHandler : TextDocumentSyncHandlerBase
         {
             disposable.Dispose();
         }
-
+        _moiraiCache.OnClose(notification);
         return Unit.Task;
     }
 

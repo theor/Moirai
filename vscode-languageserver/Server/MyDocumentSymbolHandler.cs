@@ -1,18 +1,28 @@
-﻿using OmniSharp.Extensions.LanguageServer.Protocol;
+﻿using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
-{
+{ private readonly ILogger _logger;
+    private readonly MoiraiCache _moiraiCache;
+
+    
+    public MyDocumentSymbolHandler(ILogger<MyDeclarationHandler> logger, MoiraiCache moiraiCache)
+    {
+        _logger = logger;
+        _moiraiCache = moiraiCache;
+    }
     public async Task<SymbolInformationOrDocumentSymbolContainer?> Handle(
         DocumentSymbolParams request,
         CancellationToken cancellationToken
     )
     {
+        return null;
         // you would normally get this from a common source that is managed by current open editor, current active editor, etc.
-        var content = await File.ReadAllTextAsync(DocumentUri.GetFileSystemPath(request)!, cancellationToken).ConfigureAwait(false);
+        var content = _moiraiCache.GetContent(request.TextDocument.Uri);
         var lines = content.Split('\n');
         var symbols = new List<SymbolInformationOrDocumentSymbol>();
         for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
@@ -28,13 +38,13 @@ internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
                         Kind = SymbolKind.Class,
                         // Tags = new[] { SymbolTag.Deprecated },
                         Range = new Range(
-                            new Position(lineIndex, 0),
-                            new Position(lineIndex, end)
+                            new Position(lineIndex+1, 0),
+                            new Position(lineIndex+1, end)
                         ),
                         SelectionRange =
                             new Range(
-                                new Position(lineIndex, 0),
-                                new Position(lineIndex, end)
+                                new Position(lineIndex+1, 0),
+                                new Position(lineIndex+1, end)
                             ),
                         Name = line.Substring(5, end - 5)
                     }
@@ -47,6 +57,6 @@ internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
     }
 
     public DocumentSymbolRegistrationOptions GetRegistrationOptions(DocumentSymbolCapability capability, ClientCapabilities clientCapabilities) => new DocumentSymbolRegistrationOptions {
-        DocumentSelector = TextDocumentSelector.ForLanguage("moirai")
+        DocumentSelector = MoiraiLanguage.Selector
     };
 }

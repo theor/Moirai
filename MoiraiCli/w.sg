@@ -7,8 +7,7 @@ entity God {}
 
 tag #death
 tag #born
-tag #prosperity_increase
-tag #prosperity_decrease
+tag #prosperity_change
 
 enum Job {
     Farmer, Fisher, Hunter,
@@ -84,21 +83,31 @@ rule create_time {
 }
 
 event country_prosperity_increase country_events {
-    when #prosperity_increase
-    when $c: type = Country, prosperity < 10
-    set $c.prosperity = $c.prosperity + 1
+    when #prosperity_change
+    when $c: type = Country, prosperity >= 10
+    set $c.prosperity = 10
 }
 event country_prosperity_decrease country_events {
-    when #prosperity_decrease
-    when $c: type = Country, prosperity > 1
-    set $c.prosperity = $c.prosperity - 1
+    when #prosperity_change
+    when $c: type = Country, prosperity < 1
+    set $c.prosperity = 1
 }
 
-@ 1 per 5 years
+@ 1 per 15 years
 rule update_country_health country_events {
     each $c: type = Country {
         set $c.health = ($c.prosperity + 1) / 2
-        record '+ {$c.name} p {$c.prosperity} h {$c.health}'
+        // record '+ {$c.name} p {$c.prosperity} h {$c.health}'
+        if $c.health = CountryHealth.Disarray {
+            random_weighted 100 {
+                3 => {
+                    record 'The governement of {$c.name} disappears in a coup'
+                    set $c.health = CountryHealth.Neutral
+                    set $c.prosperity = 5
+                }
+            }
+             
+        }
     }
 }
 
@@ -106,6 +115,7 @@ rule update_country_health country_events {
 rule country_coup country_events {
     pick $c: type = Country, health = CountryHealth.Disarray
     record 'The governement of {$c.name} disappears in a coup'
+    set $c.health = CountryHealth.Recession
 }
 
 @ 1 per 10 years
@@ -259,7 +269,6 @@ rule char_migrates country {
     pick $c: type = Country, id != $p.place
     set $p.place = $c
     record '{$p.name} moves to {$c.name}'
-    add_tag $c, #prosperity_increase
 }
 @1 per 4 year
 rule country_war_start war {
@@ -268,8 +277,10 @@ rule country_war_start war {
     set $x.war_with = $y
     set $y.war_with = $x
     record '{$x.name} and {$y.name} start a war'
-    // add_tag $x, #prosperity_decrease
-    // add_tag $y, #prosperity_decrease
+    set $x.prosperity =  $x.prosperity - 1
+    set $y.prosperity =  $y.prosperity - 1
+    add_tag $x, #prosperity_change
+    add_tag $y, #prosperity_change
 }
 @5 per 1 year
 rule soldier_war_distinction war country {
@@ -317,8 +328,10 @@ rule country_war_peace war country {
     set $x.war_with = null
     set $y.war_with = null
     record '{$x.name} and {$y.name} sign a peace treaty, ending the war'
-    add_tag $x, #prosperity_increase
-    add_tag $y, #prosperity_increase
+    set $x.prosperity =  $x.prosperity + 1
+    set $y.prosperity =  $y.prosperity + 1
+    add_tag $x, #prosperity_change
+    add_tag $y, #prosperity_change
 }
 @1 per 10 year
 rule country_war_win war country {
@@ -327,8 +340,11 @@ rule country_war_win war country {
     set $x.war_with = null
     set $y.war_with = null
     record '{$x.name} wins the war against {$y.name}'
-    add_tag $x, #prosperity_increase
-    add_tag $y, #prosperity_decrease
+
+    set $x.prosperity =  $x.prosperity + 3
+    set $y.prosperity =  $y.prosperity - 1
+    add_tag $x, #prosperity_change
+    add_tag $y, #prosperity_change
 }
 @4 per 1 year
 rule couple_has_child {
@@ -403,7 +419,7 @@ rule create_faction {
 }
 @1 per 2 year
 rule char_joins_faction {
-pick $p: type=Person, alive, faction = null, age > Age.Child
+    pick $p: type=Person, alive, faction = null, age > Age.Child
     pick $f: type=Faction
     set $p.faction = $f
     record '{$p.name} joins the {$f.name}'
