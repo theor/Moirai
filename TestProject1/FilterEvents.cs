@@ -3,7 +3,7 @@ using Moirai.Core;
 
 namespace TestProject1;
 
-public class Events
+public class FilterEvents
 {
 
     [Test]
