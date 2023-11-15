@@ -150,13 +150,6 @@ public static class StoryParser
             _database = database;
         }
 
-        public override object? VisitTag_definition(MoiraiParser.Tag_definitionContext context)
-        {
-            if (!_database.DeclareTag(context.TAG_ID().GetText()))
-                AddError(ErrorCode.DuplicateTagDefinition, context.TAG_ID(), context.TAG_ID().GetText());
-            return base.VisitTag_definition(context);
-        }
-
         public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
         {
             if (context.TYPE_ID() == null)
@@ -567,12 +560,6 @@ public static class StoryParser
                     var stringContext = context.expr(0).value().@string();
                     var interpolatedString = ParseInterpolatedString(stringContext.GetString());
                     return new FormatAction(interpolatedString);
-                case "add_tag":
-                    var path = ParsePath(context.expr(0).value().path());
-                    var tag = context.expr(1).TAG_ID();
-                    if (!_database.GetTagId(tag.GetText(), out var tagId))
-                        return ((IInstruction)AddError(ErrorCode.UnknownTag, context.expr(0), $"'{tag.GetText()}'")!)!;
-                    return new TagEntity(path, tagId);
             }
 
             int variableIndex = Math.Max(0, _variables.Count);

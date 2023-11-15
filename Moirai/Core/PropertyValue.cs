@@ -16,36 +16,6 @@ public struct EntityId
     }
 }
 
-public struct TagId
-{
-    public static readonly TagId Null = default;
-    public readonly bool IsNull => Id == 0;
-    public readonly ulong Id;
-    public TagId(ulong id)
-    {
-        Id = id;
-    }
-
-    public override string ToString()
-    {
-        return $"#{Id}";
-    }
-
-    public bool Equals(TagId other)
-    {
-        return Id == other.Id;
-    }
-
-    public override bool Equals(object? obj)
-    {
-        return obj is TagId other && Equals(other);
-    }
-
-    public override int GetHashCode()
-    {
-        return Id.GetHashCode();
-    }
-}
 public struct CategoryId
 {
     public static readonly CategoryId Null = default;

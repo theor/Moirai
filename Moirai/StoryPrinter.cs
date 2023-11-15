@@ -119,9 +119,6 @@ public class StoryPrinter
             case CallRule call:
                 sb.AppendLine( $"{indentStr}call ${call.VariableIndex}: " + _database.Actions[call.RuleIndex].Name);
                 break;
-            case TagEntity tag:
-                sb.AppendLine($"{indentStr}add_tag {Print(tag.Path)}, {_database.GetTagName(tag.TagId)}");
-                break;
             case AssertInstr assert:
                 switch (assert.Mode)
                 {

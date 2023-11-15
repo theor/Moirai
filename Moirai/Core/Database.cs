@@ -56,7 +56,6 @@ public class Database
     };
 
     private HashSet<EntityId> _changedEntities = new();
-    private List<(EntityId, TagId)> _taggedEntities = new();
 
     public static List<PropertyDefinition> DefaultProperties()
     {
@@ -503,24 +502,6 @@ SELECT id FROM entity WHERE " + sql;
     public string GetCategoryName(CategoryId tagId)
     {
         return Categories[(int)tagId.Id];
-    }
-
-    public bool GetTagId(string tag, out TagId id)
-    {
-        int index = Tags.IndexOf(tag);
-        if (index == -1)
-        {
-            id = default;
-            return false;
-        }
-
-        id = new TagId((ulong)index);
-        return true;
-    }
-
-    public string GetTagName(TagId tagId)
-    {
-        return Tags[(int)tagId.Id];
     }
 
     public struct Record

@@ -194,14 +194,6 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         return base.VisitType_definition(context);
     }
 
-    public override object? VisitTag_definition(MoiraiParser.Tag_definitionContext context)
-    {
-        Definitions.Add( context.TAG_ID().GetText(),  new Definition(context.TAG_ID().Symbol, context));
-        PushSymbol(context.TAG().Symbol, SemanticTokenType.Keyword);
-        PushSymbol(context.TAG_ID().Symbol, SemanticTokenType.Event);
-        return null;
-    }
-
     public override object? VisitEnum_definition(MoiraiParser.Enum_definitionContext context)
     {
         Definitions.Add( context.TYPE_ID(0).GetText(),  new Definition(context.TYPE_ID(0).Symbol, context));
@@ -300,13 +292,6 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     }
     public override object? VisitExpr(MoiraiParser.ExprContext context)
     {
-        if (context.TAG_ID() != null)
-        {
-            PushSymbol(context.TAG_ID().Symbol, SemanticTokenType.Event);
-            
-            if (Definitions.TryGetValue(context.TAG_ID().GetText(), out var loc))
-                Locations.Add((GetRange(context.TAG_ID().Symbol), loc.Symbol));
-        }
         if (context.value() != null)
             return context.value().Accept(this);
         if (context.paren_expr != null)

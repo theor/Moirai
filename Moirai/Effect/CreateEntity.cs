@@ -25,23 +25,6 @@ public class InterpolatedString : IValue
     public string ToSql(PredicateContext ctx) => $"'{Compute(ctx)}'";
 }
 
-public class TagEntity : IInstruction
-{
-    public readonly PropertyPath Path;
-    public readonly TagId TagId;
-
-    public TagEntity(PropertyPath path, TagId tagId)
-    {
-        Path = path;
-        TagId = tagId;
-    }
-
-    public bool Execute(PredicateContext ctx)
-    {
-        return true;
-    }
-}
-
 public class MatchWeight : IInstruction
 {
     public readonly IValue Value;

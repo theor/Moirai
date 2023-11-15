@@ -150,8 +150,6 @@ public class WorldHistoryView : View
         private MainWindow.FilteringMode _filtering;
         private List<Database.Record> _filtered = new();
         private HashSet<EntityId> _changed = new();
-        private List<(EntityId, TagId)> _tagged = new();
-
         public void SetFiltering(MainWindow.FilteringMode filtering)
         {
             _filtering = filtering;
@@ -177,18 +175,6 @@ public class WorldHistoryView : View
                         _filtered = _w.Database.Records.Where(r =>
                             (r.Categories & (1ul << (int)(_w.CurrentCategory.Id - 1))) != 0).ToList();
                     break;
-                case MainWindow.FilteringMode.Tag:
-                    _filtered = _w.Database.Records.Where(r =>
-                    {
-                        if (r.ChangesetId == -1)
-                            return false;
-                        _tagged.Clear();
-                        var cs = _w.Database.History.Changesets[r.ChangesetId];
-                        // cs.GetTaggedEntities(_tagged);
-                        return _tagged.Any(et => et.Item2.Id == _w.CurrentTag.Id);
-                    }).ToList();
-                    break;
-                    
             }
         }
     }

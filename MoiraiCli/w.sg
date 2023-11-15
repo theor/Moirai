@@ -5,10 +5,6 @@ entity Link {}
 entity Country {}
 entity God {}
 
-tag #death
-tag #born
-tag #prosperity_change
-
 enum Job {
     Farmer, Fisher, Hunter,
     Painter, Sculptor, Bard,
@@ -343,7 +339,6 @@ rule couple_has_child {
     
     var $fname = '{random name}'
     create $c: Person, '{$fname} {$x.first_name}son'
-        add_tag $c, #born
         set $c.first_name = $fname
         set $c.birthplace = $x.place
         set $c.god = $x.god

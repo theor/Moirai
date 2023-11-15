@@ -17,7 +17,6 @@ ENTITY: 'entity';
 EVENT: 'event';
 //NAME: 'name';
 PROP: 'prop';
-TAG: 'tag';
 ENUM: 'enum';
 WHEN: 'when';
 SET: 'set';
@@ -44,7 +43,6 @@ GT: '>';
 LT: '<';
 
 SINGLETON_ID: '#' (ALPHA_UPPER)(ALPHA|'_')*;
-TAG_ID: '#' (ALPHA_LOWER)(ALPHA|DIGIT|'_')*;
 VAR_ID: '$' (ALPHA|DIGIT)(ALPHA|DIGIT|'_')*;
 PROP_ID: '%' [a-z][a-z_]*;
 

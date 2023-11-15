@@ -7,14 +7,13 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: COMMENT* (comment|action|event|prop_definition|enum_definition|type_definition|tag_definition|LINE_BREAK)+ EOF;
+r: COMMENT* (comment|action|event|prop_definition|enum_definition|type_definition|LINE_BREAK)+ EOF;
 comment: COMMENT LINE_BREAK;
 filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
 action: filter? RULE  ID categories SCOPE_OPEN LINE_BREAK (effect|comment)+ SCOPE_CLOSE LINE_BREAK*;
 categories: ID* ;
 event: EVENT ID categories SCOPE_OPEN LINE_BREAK when+ (effect|comment)+ SCOPE_CLOSE LINE_BREAK*;
 when: WHEN expr (COMMA expr)* SPACE* LINE_BREAK+;
-//when_tag: WHEN TAG_ID  SPACE* LINE_BREAK+;
 effect: (set | var | call_assign|if|match) SPACE* (comment|LINE_BREAK)* LINE_BREAK+;
 if: IF cond=expr then=scope (ELSE LINE_BREAK*  else=scope)? ;
 match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
@@ -31,10 +30,7 @@ expr
     | left=expr op=(ADD | SUB) right=expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     | value
-    | TAG_ID
     ;
-
-tag_definition: TAG TAG_ID LINE_BREAK+ ;
 
 type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 
