@@ -189,7 +189,9 @@ public static class StoryParser
                 default:
                     if (_database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
                         return PropertyValue.TypeEnum(enumDefinition.Index);
-
+                    var entityType = _database.GetEntityType(id.GetText());
+                    if (entityType.Id.IsValid)
+                        return entityType.RefType;
                     AddError(ErrorCode.UnknownPropertyType, id, id.GetText());
                     return default;
             }

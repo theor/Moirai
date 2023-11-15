@@ -102,8 +102,8 @@ entity Person {}
 entity Item {}
 entity Link {}
 prop alive: bool
-prop child: ref
-prop parent: ref
+prop child: Person
+prop parent: Person
 prop owner: ref
 
 event inherit {

@@ -7,4 +7,6 @@ public readonly struct EntityType
         Name = name;
         Id = new EntityTypeId(id);
     }
+    public PropertyValue.ValueType RefType =>
+        new PropertyValue.ValueType(PropertyValue.ValueBaseType.Ref, (ushort)Id.Id);
 }

@@ -65,9 +65,12 @@ public class StoryPrinter
         switch (propertyType.BaseType)
         {
 
+            case PropertyValue.ValueBaseType.Ref:
+                return propertyType.Index == 0
+                    ? propertyType.BaseType.ToString().ToLowerInvariant()
+                    : _database.GetEntityType(propertyType).Name;
             case PropertyValue.ValueBaseType.None:
             case PropertyValue.ValueBaseType.String:
-            case PropertyValue.ValueBaseType.Ref:
             case PropertyValue.ValueBaseType.Number:
             case PropertyValue.ValueBaseType.Bool:
                 return propertyType.BaseType.ToString().ToLowerInvariant();

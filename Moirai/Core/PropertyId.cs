@@ -27,6 +27,9 @@ public readonly struct PropertyId : IEquatable<PropertyId>
     {
         Id = id;
     }
+
+    public static explicit operator int(PropertyId p) => (int)p.Id;
+
     public override string ToString()
     {
         if (Database.Instance != null)

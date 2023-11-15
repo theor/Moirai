@@ -1,7 +1,7 @@
 public readonly struct PropertyDefinition
 {
     public readonly string Name;
-    public readonly uint Id;
+    private readonly uint Id;
     public readonly PropertyValue.ValueType Type;
     public PropertyDefinition(string name, uint id, PropertyValue.ValueType type)
     {
@@ -9,4 +9,5 @@ public readonly struct PropertyDefinition
         Id = id;
         Type = type;
     }
+    public PropertyId PropertyId => new PropertyId(Id);
 }

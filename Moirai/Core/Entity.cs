@@ -121,7 +121,7 @@ public static class Profiler
     [Conditional("DEBUG")]
     public static void Dump()
     {
-        foreach (var property in _db.Properties.Select(p => (p, Hits[p.Id])).OrderByDescending(x => x.Item2.Get))
+        foreach (var property in _db.Properties.Select(p => (p, Hits[(int)p.PropertyId])).OrderByDescending(x => x.Item2.Get))
         {
             Debug.WriteLine($"{property.p.Name ?? ""}: get {property.Item2.Get} / set {property.Item2.Set}");
         }

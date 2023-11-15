@@ -218,6 +218,13 @@ WHERE id = $id;";
         return Properties[(int)prop.Id].Name;
     }
 
+    
+    public EntityType GetEntityType(PropertyValue.ValueType type)
+    {
+        if (type.BaseType != PropertyValue.ValueBaseType.EntityType && type.BaseType != PropertyValue.ValueBaseType.Ref)
+            return default;
+        return Types[type.Index];
+    }
     public EntityType GetEntityType(string typeName)
     {
         for (uint i = 1; i < Types.Count; i++)

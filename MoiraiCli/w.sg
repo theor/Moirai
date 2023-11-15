@@ -25,21 +25,21 @@ prop birthdate: number
 prop prestige: number
 prop deathdate: number
 prop children_count: number
-prop partner: ref
-prop war_with: ref
-prop god: ref
-prop faction: ref
-prop birthplace: ref
-prop place: ref
+prop partner: Person
+prop war_with: Country
+prop god: God
+prop faction: Faction
+prop birthplace: Country
+prop place: Country
 prop job: Job
 prop item_type: ItemType
 prop prosperity: number
 prop health : CountryHealth
 
-prop parent: ref
-prop child: ref
+prop parent: Person
+prop child: Person
 
-prop owner: ref
+prop owner: Person
  
 enum CountryName {
     The_Land_of,
