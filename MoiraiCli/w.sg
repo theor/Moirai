@@ -120,7 +120,7 @@ rule country_prosperity country_events {
 
 event inherit death items {
     when type = Person, alive = false
-    record '{$new.name} died'
+    // record '{$new.name} died'
     set $new.deathdate = #Time.year
     each $i: type = Item, owner = $new {
         pick $l: type = Link, $l.parent = $new
@@ -154,6 +154,7 @@ rule char_born {
     var $fname = '{random name}'
     create $p: Person, '{$fname} {random name}'
     pick $loc: type = Country
+    set $p.alive = true
     set $p.first_name = $fname
     set $p.birthplace = $loc
     record '{$p.name} is born in {$loc.name}'
@@ -339,6 +340,7 @@ rule couple_has_child {
     
     var $fname = '{random name}'
     create $c: Person, '{$fname} {$x.first_name}son'
+        set $c.alive = true
         set $c.first_name = $fname
         set $c.birthplace = $x.place
         set $c.god = $x.god
