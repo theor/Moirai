@@ -86,3 +86,7 @@ sqlite indexed:
 
 CREATE INDEX types_alive ON entity (type,alive);
 3000 16s
+
+
+pre-event old/new refactor: 1000 events, 7500ms
+after: 8500ms

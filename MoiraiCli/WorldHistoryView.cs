@@ -164,8 +164,7 @@ public class WorldHistoryView : View
                             return false;
                         _changed.Clear();
                         var cs = _w.Database.History.Changesets[r.ChangesetId];
-                        cs.GetAffectedEntities(_changed);
-                        return _changed.Contains(_w.Current);
+                        return cs.Changes.Any(c => c.New.Id.Id == _w.Current.Id);
                     }).ToList();
                     break;
                 case MainWindow.FilteringMode.Action:
@@ -185,7 +184,7 @@ public class WorldHistoryView : View
                             return false;
                         _tagged.Clear();
                         var cs = _w.Database.History.Changesets[r.ChangesetId];
-                        cs.GetTaggedEntities(_tagged);
+                        // cs.GetTaggedEntities(_tagged);
                         return _tagged.Any(et => et.Item2.Id == _w.CurrentTag.Id);
                     }).ToList();
                     break;

@@ -83,14 +83,12 @@ rule create_time {
 }
 
 event country_prosperity_increase country_events {
-    when #prosperity_change
-    when $c: type = Country, prosperity >= 10
-    set $c.prosperity = 10
+    when type = Country, prosperity >= 10
+    set $new.prosperity = 10
 }
 event country_prosperity_decrease country_events {
-    when #prosperity_change
-    when $c: type = Country, prosperity < 1
-    set $c.prosperity = 1
+    when type = Country, prosperity < 1
+    set $new.prosperity = 1
 }
 
 @ 1 per 15 years
@@ -125,37 +123,33 @@ rule country_prosperity country_events {
 }
 
 event inherit death items {
-    when #death
-    when $p: type = Person
-    record '{$p.name} died'
-    set $p.deathdate = #Time.year
-    set alive = false
-    each $i: type = Item, owner = $p {
-        pick $l: type = Link, $l.parent = $p
+    when type = Person, alive = false
+    record '{$new.name} died'
+    set $new.deathdate = #Time.year
+    each $i: type = Item, owner = $new {
+        pick $l: type = Link, $l.parent = $new
         pick $child: type=Person, id = $l.child, alive
         set $i.owner = $l.child
         var $c = $l.child
-        record '{$c.name} inherits the {$i.name} from {$p.name}'
+        record '{$c.name} inherits the {$i.name} from {$new.name}'
     }
 }
 
 event buries_children death {
-    when #death
-    when $p: type = Person
+    when type = Person, alive = false
     
-    each $l: type = Link, $l.child = $p {
+    each $l: type = Link, $l.child = $new {
         pick $parent: type=Person, alive, id = $l.parent
-        record '++ {$parent.name} buries their child, {$p.name}'
+        record '++ {$parent.name} buries their child, {$new.name}'
     }
 }
 
 event born {
-    when #born
-    when $p: type = Person
-    set $p.alive = true
-    set $p.age = Age.Child
-    set $p.birthdate = #Time.year
-    set $p.place = $p.birthplace
+    when type = Person, $old = null
+    set $new.alive = true
+    set $new.age = Age.Child
+    set $new.birthdate = #Time.year
+    set $new.place = $new.birthplace
 
 }
 
@@ -167,7 +161,6 @@ rule char_born {
     set $p.first_name = $fname
     set $p.birthplace = $loc
     record '{$p.name} is born in {$loc.name}'
-    add_tag $p, #born
 }
 
 
@@ -215,7 +208,7 @@ rule adults_grow {
 @1 every 1 year
 rule olds_dies {
     each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
-        add_tag $p, #death
+        set $p.alive = false
         record '{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}'
     }
 }
@@ -279,8 +272,6 @@ rule country_war_start war {
     record '{$x.name} and {$y.name} start a war'
     set $x.prosperity =  $x.prosperity - 1
     set $y.prosperity =  $y.prosperity - 1
-    add_tag $x, #prosperity_change
-    add_tag $y, #prosperity_change
 }
 @5 per 1 year
 rule soldier_war_distinction war country {
@@ -293,7 +284,8 @@ rule soldier_war_distinction war country {
                 record '{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}'
             }
             10 => {
-                add_tag $s, #death
+                set $s.alive = false
+                
                 record '{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}'
             }
         }
@@ -330,8 +322,6 @@ rule country_war_peace war country {
     record '{$x.name} and {$y.name} sign a peace treaty, ending the war'
     set $x.prosperity =  $x.prosperity + 1
     set $y.prosperity =  $y.prosperity + 1
-    add_tag $x, #prosperity_change
-    add_tag $y, #prosperity_change
 }
 @1 per 10 year
 rule country_war_win war country {
@@ -343,8 +333,6 @@ rule country_war_win war country {
 
     set $x.prosperity =  $x.prosperity + 3
     set $y.prosperity =  $y.prosperity - 1
-    add_tag $x, #prosperity_change
-    add_tag $y, #prosperity_change
 }
 @4 per 1 year
 rule couple_has_child {

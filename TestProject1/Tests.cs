@@ -227,6 +227,41 @@ rule char_dies {
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
     }
+    
+    [Test]
+    public void Test3()
+    {
+        var s = @"
+prop alive: bool
+rule char_dies {
+    pick $x: alive = true
+    pick $y: id != $x
+}";
+
+        var db = Run(s, out var errors);
+
+        Assert.AreEqual(1, db.Actions.Count);
+        var action = db.Actions[0];
+        Assert.AreEqual("char_dies", action.Name);
+        Assert.AreEqual(2, action.Effects.Count);
+        var e1 = action.Effects[0];
+        var e2 = action.Effects[1];
+        Assert.IsInstanceOf<AssignPick>(e1);
+
+        Assert.IsInstanceOf<AssignPick>(e2);
+
+        var pe1 = (AssignPick)e1;
+        var pe2 = (AssignPick)e2;
+
+        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
+        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
+
+        Assert.NotNull(pe1.Value);
+        Assert.IsInstanceOf<BinaryOperator>(pe1.Value);
+        Assert.NotNull(pe2.Value);
+        Assert.IsInstanceOf<BinaryOperator>(pe2.Value);
+    }
+
 
     [Test]
     public void Each()

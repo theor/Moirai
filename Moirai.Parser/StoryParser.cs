@@ -284,13 +284,10 @@ public static class StoryParser
             var categories = ParseCategories(context.categories());
             var action = new Action(_database.Events.Count + 1, actionId, true, null, categories);
             _variables.Clear();
-            foreach (var whenTag in context.when_tag())
-            {
-                if (!_database.GetTagId(whenTag.TAG_ID()?.GetText(), out var tagId))
-                    AddError(ErrorCode.UnknownTag, whenTag.TAG_ID(), whenTag.TAG_ID().GetText());
-                action.WhenTags.Add(tagId);
-            }
 
+            using (new VariableDeclarationScope(this, true)) ;
+            DeclareVar("$old", null, out var oldIndex);
+            DeclareVar("$new", null, out var newIndex);
             foreach (var whenContext in context.when())
             {
                 action.Whens.Add(ParseWhen(whenContext));
@@ -399,20 +396,13 @@ public static class StoryParser
                 @if.@else == null ? Array.Empty<IInstruction>() : ParseScope(@if.@else, true));
         }
 
-        private AssignPick ParseWhen(MoiraiParser.WhenContext context)
+        private IValue ParseWhen(MoiraiParser.WhenContext context)
         {
             var exprs = context.expr();
             var predicate = exprs.Length == 1
                 ? ParseExpr(exprs[0])!
                 : new And(exprs.Select(x => ParseExpr(x)).Where(e => e != null).Cast<IValue>().ToList());
-            var variableIndex = 0;
-            {
-                var variable = context.VAR_ID()?.GetText() ?? _variables.Count.ToString();
-                if (!DeclareVar(variable, context.VAR_ID()?.Symbol ?? context.Start, out variableIndex))
-                {
-                }
-            }
-            return new AssignPick(variableIndex, predicate, CallType.When);
+            return predicate;
         }
 
         public override object? VisitWhen(MoiraiParser.WhenContext context)
@@ -863,7 +853,7 @@ public static class StoryParser
                     variableIndex = _variables.IndexOf(varId.GetText());
                     if (variableIndex == -1)
                     {
-                        AddError(ErrorCode.VariableNotDeclared, varId, varId.GetText());
+                        AddError(ErrorCode.VariableNotDeclared, context, varId.GetText());
                         return new PropertyPath();
                     }
                 }

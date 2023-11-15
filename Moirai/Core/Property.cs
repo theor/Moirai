@@ -21,7 +21,7 @@ public class PropertyProxy
     {
         Name = Database.Instance?.GetPropertyName(p.Id);
         Id = p.Id;
-        Value = Value.ToString();
+        Value = p.Value.Value ?? p.Value.IntValue.ToString();
     }
 }
 //

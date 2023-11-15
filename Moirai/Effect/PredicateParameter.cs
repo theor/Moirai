@@ -65,7 +65,13 @@ public struct PropertyPath : IValue
         if (varValue.Type != PropertyValue.TypeRef)
             return varValue;
         if (!ctx.Database.TryGetEntity(varValue.Id, out var e))
+        {
+            if (varValue.Id.Id == Database.ChangePrevEntityId.Id)
+            {
+                return ctx.GetPrevEntityProperty(Property);
+            }
             return default;
+        }
         if (Property == PropertyId.Null)
             return varValue;
 
@@ -189,7 +195,6 @@ public enum CallType
     None,
     Pick,
     Each,
-    When
 }
 
 public struct CallRule : IInstruction

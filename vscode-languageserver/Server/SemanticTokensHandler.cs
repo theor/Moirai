@@ -166,8 +166,6 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             
         }
         
-        foreach (var comment in context.when_tag())
-            comment.Accept(this);
         foreach (var comment in context.when())
             comment.Accept(this);
         foreach (var comment in context.comment())
@@ -260,15 +258,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         return base.VisitWhen(context);
     }
 
-    public override object? VisitWhen_tag(MoiraiParser.When_tagContext context)
-    {
-        PushSymbol(context.WHEN().Symbol, SemanticTokenType.Keyword);
-        PushSymbol(context.TAG_ID().Symbol, SemanticTokenType.Event);
-        if (Definitions.TryGetValue(context.TAG_ID().GetText(), out var loc))
-            Locations.Add((GetRange(context.TAG_ID().Symbol), loc.Symbol));
-        
-        return base.VisitWhen_tag(context);
-    }
+    
 
     public override object? VisitTerminal(ITerminalNode node)
     {

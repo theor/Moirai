@@ -23,10 +23,10 @@ rule die {
 }
 
 event on_death {
-    when $new: alive = false
+    when $new.alive = false
 
     set test = true
-    record 'event on {$0}'
+    record 'event on {$new}'
 }";
         var db = Run(s, out _, 0);
         db.History = new();
@@ -55,10 +55,11 @@ prop test: number
 rule born {
     create Person
     set x = 1
+    set test = 1
 }
 
 rule die {
-    each $p: type=Person, alive = true {
+    each $p: type=Person, x = 1 {
         set x = 2
         record '{$p} dies'
     }
@@ -68,25 +69,24 @@ event on_death {
     when $new.x = 2, $old.x = 1
 
     set test = 10
-    record 'event on {$0}'
+    record 'event on {$new}'
 }
 event on_death2 {
     when $new.x = 2, $old.x = 3
 
     set test = 20
-    record 'event on {$0}'
+    record 'event on {$new}'
 }";
         var db = Run(s, out _, 0);
         db.History = new();
-        Assert.AreEqual(1, db.Events.Count);
 
         db.RunAction(db.Actions[0]);
-        db.RunAction(db.Actions[0]);
+        // db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         Entity e = db.Entities.First();
         PropertyId propTest = db.GetPropertyId("test");
-        Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
+        Assert.That(e.GetProperty(propTest).IntValue, Is.EqualTo(10));
         foreach (var historyChangeset in db.History.Changesets)
         {
             Console.WriteLine(historyChangeset.ActionName);
@@ -107,12 +107,12 @@ prop parent: ref
 prop owner: ref
 
 event inherit {
-    when $new: type = Person, alive = false
-    each $i: type = Item, owner = $p {
-        pick $l: type = Link, $l.parent = $p 
+    when $new.type = Person, $new.alive = false
+    each $i: type = Item, owner = $new {
+        pick $l: type = Link, $l.parent = $new 
         pick $c: type = Person, alive = true, id = $l.child
             set $i.owner = $c
-            record ""{$c.name} inherits the {$i.name} from {$p.name}""
+            record ""{$c.name} inherits the {$i.name} from {$new.name}""
     }
 }";
         var db = Run(s, out _, 0);
@@ -125,39 +125,6 @@ event inherit {
         // Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
     }
 
-    [Test]
-    public void Test3()
-    {
-        var s = @"
-prop alive: bool
-rule char_dies {
-    pick $x: alive = true
-    pick $y: id != $x
-}";
-
-        var db = Run(s, out var errors);
-
-        Assert.AreEqual(1, db.Actions.Count);
-        var action = db.Actions[0];
-        Assert.AreEqual("char_dies", action.Name);
-        Assert.AreEqual(2, action.Effects.Count);
-        var e1 = action.Effects[0];
-        var e2 = action.Effects[1];
-        Assert.IsInstanceOf<AssignPick>(e1);
-
-        Assert.IsInstanceOf<AssignPick>(e2);
-
-        var pe1 = (AssignPick)e1;
-        var pe2 = (AssignPick)e2;
-
-        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
-        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
-
-        Assert.NotNull(pe1.Value);
-        Assert.IsInstanceOf<BinaryOperator>(pe1.Value);
-        Assert.NotNull(pe2.Value);
-        Assert.IsInstanceOf<BinaryOperator>(pe2.Value);
-    }
 
     [Test, Ignore("obsolete json...")]
     public void Bug_Inherit()

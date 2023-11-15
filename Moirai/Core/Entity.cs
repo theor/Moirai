@@ -10,10 +10,21 @@ public struct Entity
     }
 
     public PropertyValue _type;
-    public Property[] Properties;
+    public IReadOnlyCollection<Property> Properties => _properties;
+    private Property[] _properties;
     public Entity(Database db) : this()
     {
-        Properties = new Property[db.Properties.Count];
+        _properties = new Property[db.Properties.Count];
+    }
+
+    internal void Reset()
+    {
+        Id = default;
+        _type = default;
+        for (int i = 0; i < _properties.Length; i++)
+        {
+            _properties[i] = default;
+        }
     }
     public bool TryGetProperty(PropertyId property, out PropertyValue value)
     {
@@ -30,18 +41,28 @@ public struct Entity
         }
         if(!property.IsValid)
             throw new System.NotImplementedException("Null property");
-        if (Properties == null)
+        if (_properties == null)
         {
             value = default;
             return false;
         }
-        value = Properties[property.Id].Value;
-        return Properties[property.Id].Id.IsValid;
+        value = _properties[property.Id].Value;
+        return _properties[property.Id].Id.IsValid;
     }
     public PropertyValue GetProperty(PropertyId property)
     {
         TryGetProperty(property, out var val);
         return val;
+    }
+
+    public PropertyValue SetProperty(PropertyId propertyId, PropertyValue value)
+    {
+        
+        ref var p = ref _properties[propertyId.Id];
+        var prev = p.Value;
+        p.Id = propertyId;
+        p.Value = value;
+        return prev;
     }
 }
 
@@ -114,5 +135,6 @@ public static class Profiler
             var (total, success) = HitsOfType[index];
             Debug.WriteLine($"{_db.Types[index].Name,10}: {100 * success / (float)total}% {success} / {total}");
         }
+        Debug.WriteLine($"Events: {Database.EventAttemptSuccess} / {Database.EventAttemptCount} = {100f*Database.EventAttemptSuccess/Database.EventAttemptCount}%");
     }
 }

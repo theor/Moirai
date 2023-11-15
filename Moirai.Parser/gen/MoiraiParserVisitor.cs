@@ -77,12 +77,6 @@ public interface IMoiraiParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitWhen([NotNull] MoiraiParser.WhenContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="MoiraiParser.when_tag"/>.
-	/// </summary>
-	/// <param name="context">The parse tree.</param>
-	/// <return>The visitor result.</return>
-	Result VisitWhen_tag([NotNull] MoiraiParser.When_tagContext context);
-	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.effect"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

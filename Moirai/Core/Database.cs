@@ -94,14 +94,15 @@ public class Database
         e.Type = entityType;
         if (!String.IsNullOrEmpty(name))
         {
-            e.Properties[PropName.Id].Id = PropName;
-            e.Properties[PropName.Id].Value = name;
+            e.SetProperty(PropName, name);
         }
 
         e.Id = new EntityId(_entities.Count);
         _entities.Add(e);
         // PerTypeIndices[(int)entityType.Id].Add(e.Id);
-        CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
+        // TODO CS
+        CurrentChangeset.RecordCreate(e);
+        // CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
 
         var cmd = _connection.CreateCommand();
         cmd.CommandText = @"INSERT INTO entity (name, type)
@@ -178,12 +179,11 @@ WHERE id = $id;";
             }
         }
 
-        var p = entity.Properties[property.Id];
-        var prev = p.Value;
-        p.Id = property;
-        p.Value = value;
-        CurrentChangeset.Changes.Add(Change.Set(entityId, property, prev, value));
-        entity.Properties[property.Id] = p;
+        PropertyValue prev = entity.SetProperty(property, value);
+        
+        // TODO CS
+        CurrentChangeset.RecordSet(entity, property, prev);
+        // CurrentChangeset.Changes.Add(Change.Set(entityId, property, prev, value));
         // for (var index = 0; index < entity.Properties.Count; index++)
         // {
         //     var entityProperty = entity.Properties[index];
@@ -304,35 +304,44 @@ WHERE id = $id;";
                 return false;
             }
         }
-
-        // _changedEntities.Clear();
-        // CurrentChangeset.GetAffectedEntities(_changedEntities);
-        _taggedEntities.Clear();
-        CurrentChangeset.GetTaggedEntities(_taggedEntities);
         if (CurrentChangeset.Changes.Any())
             History?.Changesets.Add(CurrentChangeset);
 
-        RunEvents(_taggedEntities);
+       
+        // _taggedEntities.Clear();
+        // CurrentChangeset.GetTaggedEntities(_taggedEntities);
+
+        RunEvents(CurrentChangeset);
 
         return true;
     }
 
-    private void RunEvents(List<(EntityId, TagId)> changedEntities)
+    internal static readonly EntityId ChangePrevEntityId = new EntityId(Int64.MaxValue - 1);
+    internal static int EventAttemptCount;
+    internal static int EventAttemptSuccess;
+    private void RunEvents(Changeset cs)
     {
-        foreach (var (entity, tag) in changedEntities)
+        foreach (var changed in cs.Changes)
         {
+            _ctx.PrevEntity = changed.Prev;
             // Console.ForegroundColor = ConsoleColor.Yellow;
             // Console.WriteLine("Event entity: " + entity);
             // Console.ResetColor();
             foreach (var @event in Events)
             {
-                if (!@event.WhenTags.Contains(tag))
-                    continue;
+                // if (!@event.WhenTags.Contains(tag))
+                //     continue;
+                EventAttemptCount++;
                 using (var s = _ctx.RunScope())
                 {
-                    _ctx.SetArgument(0, entity);
-                    if (@event.Whens.All(p => p.Value.IsTrue(_ctx)))
+                    // $old value
+                    _ctx.SetArgument(0, ChangePrevEntityId);
+                    // $new value
+                    _ctx.SetArgument(1, changed.New.Id);
+                    
+                    if (@event.Whens.All(p => p.IsTrue(_ctx)))
                     {
+                        EventAttemptSuccess++;
                         // Console.WriteLine("  @ " + @event.Name);
                         CurrentChangeset = new(CurrentChangeset.Id, @event.Name, _ctx.Year, @event.Categories);
                         // using (var s2 = _ctx.RunScope())
@@ -353,6 +362,8 @@ WHERE id = $id;";
             }
             // break;
         }
+
+        _ctx.PrevEntity = default;
     }
 
     public string Serialize()

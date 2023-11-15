@@ -199,11 +199,21 @@ public class PredicateContext
                 }
             }
         }
+        
         Profiler.Dump();
     }
 
-    public void TagEntity(EntityId id, TagId tagId)
+    // public void TagEntity(EntityId id, TagId tagId)
+    // {
+    //     Database.CurrentChangeset.Changes.Add(Change.AddTag(id, tagId));
+    // }
+    public Entity PrevEntity;
+    internal PropertyValue GetPrevEntityProperty(PropertyId property)
     {
-        Database.CurrentChangeset.Changes.Add(Change.AddTag(id, tagId));
+        if (!property.IsValid)
+            return PrevEntity.Id;
+        if (PrevEntity.Id.IsNull)
+            throw new InvalidOperationException("Null prev entity access");
+        return PrevEntity.GetProperty(property);
     }
 }

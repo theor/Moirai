@@ -38,7 +38,6 @@ public class TagEntity : IInstruction
 
     public bool Execute(PredicateContext ctx)
     {
-        ctx.TagEntity(Path.Compute(ctx).Id, TagId);
         return true;
     }
 }
