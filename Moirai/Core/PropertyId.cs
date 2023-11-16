@@ -23,16 +23,18 @@ public readonly struct PropertyId : IEquatable<PropertyId>
     public static readonly PropertyId Null = new PropertyId();
     public bool IsValid => Id != 0;
     public readonly uint Id;
-    public PropertyId(uint id)
+    public readonly EntityTypeId TypeId;
+    public PropertyId(uint id, EntityTypeId typeId)
     {
         Id = id;
+        TypeId = typeId;
     }
     public override string ToString()
     {
-        if (Database.Instance != null)
-        {
-            return $"p{Id}:{Database.Instance.Properties[(int)Id].Name}";
-        }
+        // if (Database.Instance != null)
+        // {
+        //     return $"p{Id}:{Database.Instance.Properties[(int)Id].Name}";
+        // }
         return $"p{Id}";
     }
 }

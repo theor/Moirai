@@ -174,7 +174,7 @@ public class PredicateContext
         Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue, Array.Empty<CategoryId>());
         var timeType = Database.GetEntityType("Time");
         var timeId = this.GetSingletonId(timeType.Id);
-        var yearsProp = Database.GetPropertyId("year");
+        var yearsProp =timeType.GetPropertyId("year");
         if (!Database.TryGetEntity(timeId, out var time))
             throw new NotImplementedException("missing Time entity");
 

@@ -12,4 +12,5 @@ public struct Action(int id, string name, bool isEvent,IFilter? filter, Category
 
     public IFilter? Filter = filter;
     // public List<TagId> WhenTags = new();
+    public PropertyValue.ValueType WhenType { get; set; }
 }

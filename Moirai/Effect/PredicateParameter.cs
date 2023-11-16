@@ -231,12 +231,14 @@ public struct AssignPick : IInstruction
 {
     public readonly int VariableIndex;
     public readonly IValue Value;
+    public readonly EntityTypeId EntityType;
     public readonly CallType CallType;
     public readonly IInstruction[]? ScopeEffects;
     private List<EntityId>? _pool;
-    public AssignPick(int variableIndex, IValue value, CallType callType, IInstruction[]? scopeEffects = null)
+    public AssignPick(int variableIndex, EntityTypeId entityType, IValue value, CallType callType, IInstruction[]? scopeEffects = null)
     {
         VariableIndex = variableIndex;
+        EntityType = entityType;
         Value = value;
         CallType = callType;
         ScopeEffects = scopeEffects;

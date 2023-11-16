@@ -213,23 +213,24 @@ public class MainWindow : Toplevel
 
     private void GenerateFamilyTree()
     {
-        List<EntityId> pool = new();
-        Database.FindAll(new IsOfType(new PropertyPath(0), Database.GetEntityType("Link").Id), ref pool);
-        var parentProp = Database.GetPropertyId("parent");
-        var childProp = Database.GetPropertyId("child");
-        StringBuilder sb = new StringBuilder();
-        sb.AppendLine("digraph G {\n  graph [splines=ortho];\n  node [shape=box];");
-        // Dictionary<EntityId, (EntityId, EntityId)> ids = new();
-        HashSet<EntityId> ids = new();
-        foreach (var linkId in pool)
-        {
-            Database.GetProperty(linkId, parentProp, out var parent);
-            Database.GetProperty(linkId, childProp, out var child);
-            sb.AppendLine($"{parent.IntValue} -> {child.IntValue}");
-            ids.Add(parent.Id);
-            ids.Add(child.Id);
-
-        }
+        throw new NotImplementedException();
+        // List<EntityId> pool = new();
+        // Database.FindAll(new IsOfType(new PropertyPath(0), Database.GetEntityType("Link").Id), ref pool);
+        // var parentProp = Database.GetPropertyId("parent");
+        // var childProp = Database.GetPropertyId("child");
+        // StringBuilder sb = new StringBuilder();
+        // sb.AppendLine("digraph G {\n  graph [splines=ortho];\n  node [shape=box];");
+        // // Dictionary<EntityId, (EntityId, EntityId)> ids = new();
+        // HashSet<EntityId> ids = new();
+        // foreach (var linkId in pool)
+        // {
+        //     Database.GetProperty(linkId, parentProp, out var parent);
+        //     Database.GetProperty(linkId, childProp, out var child);
+        //     sb.AppendLine($"{parent.IntValue} -> {child.IntValue}");
+        //     ids.Add(parent.Id);
+        //     ids.Add(child.Id);
+        //
+        // }
         // foreach (var linkId in pool)
         // {
         //     Database.GetProperty(linkId, parentProp, out var parent);
@@ -253,15 +254,16 @@ public class MainWindow : Toplevel
         //     sb.AppendLine($"{b.Id} -> {n}");
         //     // sb.AppendLine("}");
         // }
-        foreach (var eid in ids)
-        {
-            Database.GetProperty(eid, Database.PropName, out var name);
-            sb.AppendLine($"{eid.Id}[label=\"{name.Value}\"]");
-        }
-       
-        sb.AppendLine("}");
         
-        File.WriteAllText(@"C:\Users\theor\Moirai\MoiraiCli\g.dot", sb.ToString());
+        // foreach (var eid in ids)
+        // {
+        //     Database.GetProperty(eid, Database.PropName, out var name);
+        //     sb.AppendLine($"{eid.Id}[label=\"{name.Value}\"]");
+        // }
+        //
+        // sb.AppendLine("}");
+        //
+        // File.WriteAllText(@"C:\Users\theor\Moirai\MoiraiCli\g.dot", sb.ToString());
 
        // Process.Start(new  ProcessStartInfo("https://edotor.net/?engine=dot#" + Uri.EscapeDataString(sb.ToString())){UseShellExecute = true});
     }

@@ -7,16 +7,16 @@ using Moirai.Core;
 
 public class Database
 {
-    public static readonly PropertyId PropId = new(1);
-    public static readonly PropertyId PropType = new(2);
-    public static readonly PropertyId PropName = new(3);
-    public static readonly PropertyId PropYear = new(4);
+    public static readonly PropertyId PropId = new(1, default);
+    public static readonly PropertyId PropType = new(2, default);
+    public static readonly PropertyId PropName = new(3, default);
+    public static readonly PropertyId PropYear = new(4, default);
 
     public static Database? Instance;
 
     public readonly List<EnumDefinition> Enums = new() { default };
     public readonly List<EntityType> Types;
-    public readonly List<PropertyDefinition> Properties = DefaultProperties();
+    // public readonly List<PropertyDefinition> Properties = DefaultProperties();
     public readonly int BuiltinTypes;
 
     public readonly List<Action> Actions;
@@ -62,16 +62,20 @@ public class Database
         return new()
         {
             default!,
-            new("id", PropId.Id, PropertyValue.TypeRef),
-            new("type", PropType.Id, PropertyValue.TypeEntityType),
-            new PropertyDefinition("name", PropName.Id, PropertyValue.TypeString),
-            new PropertyDefinition("year", PropYear.Id, PropertyValue.TypeString),
+            new("id", PropId.Id, PropertyValue.TypeRef, default),
+            new("type", PropType.Id, PropertyValue.TypeEntityType, default),
+            new PropertyDefinition("name", PropName.Id, PropertyValue.TypeString, default),
         };
     }
 
     public Database(ulong seed = 42)
     {
-        Types = new List<EntityType> { default, new("Time", 1) };
+        Types = new List<EntityType>
+        {
+            default,
+            new("Time", 1,
+                new[] { new PropertyDefinition("year", PropYear.Id, PropertyValue.TypeString, new EntityTypeId(1)) })
+        };
         BuiltinTypes = Types.Count;
         _ctx = new PredicateContext(this, seed);
         Actions = new();
@@ -88,7 +92,7 @@ public class Database
 
     public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
     {
-        Entity e = new(this);
+        Entity e = new(this, entityType);
 
         e.Type = entityType;
         if (!String.IsNullOrEmpty(name))
@@ -201,13 +205,14 @@ WHERE id = $id;";
         return true;
     }
 
-    public PropertyId GetPropertyId(string name)
+    public PropertyId GetPropertyId(string typeName, string name)
     {
-        for (var index = 1; index < Properties.Count; index++)
+        var type = GetEntityType(typeName);
+        for (var index = 1; index < type.Properties.Count; index++)
         {
-            var property = Properties[index];
+            var property = type.Properties[index];
             if (string.Equals(property.Name, name, StringComparison.InvariantCultureIgnoreCase))
-                return new PropertyId((uint)index);
+                return new PropertyId((uint)index, type.Id);
         }
 
         return PropertyId.Null;
@@ -215,7 +220,7 @@ WHERE id = $id;";
 
     public string GetPropertyName(PropertyId prop)
     {
-        return Properties[(int)prop.Id].Name;
+        return Types[(int)prop.TypeId.Id].GetPropertyName(prop);
     }
 
     public EntityType GetEntityType(string typeName)
@@ -249,15 +254,15 @@ WHERE id = $id;";
         return false;
     }
 
+    EntityType GetTypeFromProperty(PropertyId pid) => Types[(int)pid.TypeId.Id];
+    PropertyDefinition GetPropertyDefinition(PropertyId pid)
+    {
+        var t = GetTypeFromProperty(pid);
+        return t.Properties[(int)pid.Id];
+    }
     public bool GetPropertyType(PropertyId pid, out PropertyValue.ValueType valueType)
     {
-        if (!pid.IsValid || pid.Id >= Properties.Count)
-        {
-            valueType = default;
-            return false;
-        }
-
-        valueType = Properties[(int)pid.Id].Type;
+        valueType = GetPropertyDefinition(pid).Type;
         return true;
     }
 
@@ -406,11 +411,15 @@ WHERE id = $id;";
         _connection.Open();
         var cmd = _connection.CreateCommand();
 
+        // TODO deduplicate
+        var defaultPropertyCount = DefaultProperties().Count;
+        var properties = Types.Skip(1).SelectMany(t => t.Properties.Skip(defaultPropertyCount)).ToArray();
+
         string indices = @"CREATE INDEX types ON entity (type);";
-        if (Properties.Any(p => p.Name == "owner"))
+        if (properties.Any(p => p.Name == "owner"))
             indices += @"
 CREATE INDEX owners ON entity (owner) WHERE type = 3;";
-        if (Properties.Any(p => p.Name == "alive"))
+        if (properties.Any(p => p.Name == "alive"))
             indices += @"
 CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
 
@@ -418,10 +427,12 @@ CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
 CREATE TABLE entity (
     id INTEGER PRIMARY KEY,
     type INTEGER NOT NULL,
-    {string.Join(",\n  ", Properties.Skip(3).Select(p => $@"{p.Name} {ToSqlType(p.Type)}"))}
+    name STRING,
+    {string.Join(",\n    ", properties.Select(p => $@"{p.Name} {ToSqlType(p.Type)}"))}
 );
 {indices}
 ";
+        Console.WriteLine(cmd.CommandText);
         cmd.ExecuteNonQuery();
         Profiler.Init(this);
         // PerTypeIndices = new List<EntityId>[Types.Count];
@@ -528,5 +539,12 @@ SELECT id FROM entity WHERE " + sql;
     public void AppendRecord(string text, long year, ulong categories)
     {
         Records.Add(new(text, year, categories, CurrentChangeset.Id, _currentActionId));
+    }
+
+    public EntityType GetEntityType(PropertyValue.ValueType type)
+    {
+        if (type.BaseType != PropertyValue.ValueBaseType.EntityType && type.BaseType != PropertyValue.ValueBaseType.Ref)
+            return default;
+        return Types[type.Index];
     }
 }

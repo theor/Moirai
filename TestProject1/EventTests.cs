@@ -7,27 +7,29 @@ public class EventTests : TestsBase
     public void Event()
     {
         var s = @"
-entity Person {}
-prop alive: bool
-prop test: bool
+entity Person {
+    prop alive: bool
+    prop test: bool
+}
 rule born {
     create Person
     set alive = true
 }
 
 rule die {
-    each $p: type=Person, alive = true {
+    each Person $p: alive = true {
         set alive = false
         record '{$p} dies'
     }
 }
 
 event on_death {
-    when $new.alive = false
+    when Person, $new.alive = false
 
     set test = true
     record 'event on {$new}'
-}";
+}
+";
         var db = Run(s, out _, 0);
         db.History = new();
         Assert.AreEqual(1, db.Events.Count);
@@ -37,7 +39,7 @@ event on_death {
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         Entity e = db.Entities.First();
-        PropertyId propTest = db.GetPropertyId("test");
+        PropertyId propTest = db.GetPropertyId("Person","test");
         Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
         foreach (var historyChangeset in db.History.Changesets)
         {
@@ -85,7 +87,7 @@ event on_death2 {
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         Entity e = db.Entities.First();
-        PropertyId propTest = db.GetPropertyId("test");
+        PropertyId propTest = db.GetPropertyId("Person","test");
         Assert.That(e.GetProperty(propTest).IntValue, Is.EqualTo(10));
         foreach (var historyChangeset in db.History.Changesets)
         {
@@ -98,19 +100,23 @@ event on_death2 {
     public void Event2()
     {
         var s = @"
-entity Person {}
-entity Item {}
-entity Link {}
-prop alive: bool
-prop child: ref
-prop parent: ref
-prop owner: ref
+entity Person {
+    prop alive: bool
+}
+entity Item {
+    prop owner: Person
+}
+entity Link {
+    prop child: Person
+    prop parent: Person
+}
+
 
 event inherit {
-    when $new.type = Person, $new.alive = false
-    each $i: type = Item, owner = $new {
-        pick $l: type = Link, $l.parent = $new 
-        pick $c: type = Person, alive = true, id = $l.child
+    when Person, $new.alive = false
+    each Item $i: owner = $new {
+        pick Link $l: $l.parent = $new 
+        pick Person $c: alive = true, id = $l.child
             set $i.owner = $c
             record ""{$c.name} inherits the {$i.name} from {$new.name}""
     }

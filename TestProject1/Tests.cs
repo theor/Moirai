@@ -145,7 +145,7 @@ rule born_char {
         Assert.IsInstanceOf<SetProperty>(action.Effects[1]);
 
 
-        PropertyId propId = db.GetPropertyId("alive");
+        PropertyId propId = db.GetPropertyId("Person","alive");
         Assert.IsTrue(propId.IsValid);
         db.RunAction(action.Name);
         db.Printer.PrintDb();
@@ -179,7 +179,7 @@ rule r {
         db.Printer.PrintDb();
         // db.Commit();
         Assert.AreEqual(10, db.Entities.Count());
-        Assert.AreEqual(2, db.Entities.Last().GetProperty(db.GetPropertyId("alive")).IntValue);
+        Assert.AreEqual(2, db.Entities.Last().GetProperty(db.GetPropertyId("Person","alive")).IntValue);
     }
 
     [Test]
@@ -201,7 +201,7 @@ rule r {
         Assert.AreEqual(1, db.Actions.Count);
         var action = db.Actions[0];
 
-        PropertyId propId = db.GetPropertyId("alive");
+        PropertyId propId = db.GetPropertyId("Person","alive");
         Assert.IsTrue(propId.IsValid);
         db.RunAction(action.Name);
         db.Printer.PrintDb();
@@ -267,17 +267,18 @@ rule char_dies {
     public void Each()
     {
         var s = @"
-entity Person {}
-prop test: bool
+entity Person { prop test: bool
+}
+
 rule foreach {
-    each $x: type=Person {
+    each Person $x: {
         set $x.test = true
         record '{$x.name} {$x.test}'
     }
 }";
         var db = Run(s, out var errors);
         db.History = new();
-        var propId = db.GetPropertyId("test");
+        var propId = db.GetPropertyId("Person","test");
         var typePerson = db.GetEntityType("Person");
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
@@ -320,8 +321,8 @@ rule foreach {
 }";
         var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
         db.History = new();
-        var propX = db.GetPropertyId("x");
-        var propY = db.GetPropertyId("y");
+        var propX = db.GetPropertyId("Person","x");
+        var propY = db.GetPropertyId("Person","y");
         var typePerson = db.GetEntityType("Person");
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
@@ -362,8 +363,8 @@ rule foreach {
 }";
         var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
         db.History = new();
-        var propX = db.GetPropertyId("x");
-        var propY = db.GetPropertyId("y");
+        var propX = db.GetPropertyId("Person","x");
+        var propY = db.GetPropertyId("Person","y");
         var typePerson = db.GetEntityType("Person");
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
@@ -481,7 +482,7 @@ rule create {
         db.RunAction("create");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
-        PropertyId jobProp = db.GetPropertyId("job");
+        PropertyId jobProp = db.GetPropertyId("Person","job");
         var value = e.GetProperty(jobProp);
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
@@ -506,7 +507,7 @@ rule create {
         db.RunAction("create");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
-        PropertyId jobProp = db.GetPropertyId("job");
+        PropertyId jobProp = db.GetPropertyId("Person","job");
         var value = e.GetProperty(jobProp);
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
@@ -531,7 +532,7 @@ rule create {
         db.RunAction("create");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
-        PropertyId jobProp = db.GetPropertyId("job");
+        PropertyId jobProp = db.GetPropertyId("Person","job");
         var value = e.GetProperty(jobProp);
     }
 
@@ -558,7 +559,7 @@ rule create {
 
         db.Printer.PrintDb();
         var e = db.Entities.First();
-        PropertyId jobProp = db.GetPropertyId("job");
+        PropertyId jobProp = db.GetPropertyId("Person","job");
         var value = e.GetProperty(jobProp);
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
@@ -570,10 +571,13 @@ rule create {
     public void AssignCreate()
     {
         var s = @"
-entity Person {}
-entity Faction {}
-prop faction: ref
-prop owner: ref
+entity Person {
+    prop faction: Faction
+}
+entity Faction {
+    prop owner: Person
+}
+prop owner: Person
 rule create_faction {
     pick $p: type=Person, faction = null
     create $f: Faction
@@ -871,7 +875,7 @@ rule pass_15_years {
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         db.Commit();
-        Assert.AreEqual(1000, db.Entities.Last().GetProperty(db.GetPropertyId("birthdate")).IntValue);
+        Assert.AreEqual(1000, db.Entities.Last().GetProperty(db.GetPropertyId("Person","birthdate")).IntValue);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
         db.Printer.PrintDb();

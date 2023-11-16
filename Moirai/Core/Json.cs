@@ -18,7 +18,7 @@ internal class PropertyIdConverter : JsonConverter<PropertyId>
 {
     public override PropertyId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        return new PropertyId(reader.GetUInt32());
+        return new PropertyId(reader.GetUInt32(), JsonSerializer.Deserialize<EntityTypeId>(ref reader, options));
     }
     public override void Write(Utf8JsonWriter writer, PropertyId value, JsonSerializerOptions options)
     {

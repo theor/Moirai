@@ -130,12 +130,6 @@ public partial class MoiraiParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public EventContext @event(int i) {
 			return GetRuleContext<EventContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext[] prop_definition() {
-			return GetRuleContexts<Prop_definitionContext>();
-		}
-		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext prop_definition(int i) {
-			return GetRuleContext<Prop_definitionContext>(i);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public Enum_definitionContext[] enum_definition() {
 			return GetRuleContexts<Enum_definitionContext>();
 		}
@@ -200,12 +194,12 @@ public partial class MoiraiParser : Parser {
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,0,Context);
 			}
-			State = 65;
+			State = 64;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
-				State = 65;
+				State = 64;
 				ErrorHandler.Sync(this);
 				switch (TokenStream.LA(1)) {
 				case COMMENT:
@@ -227,27 +221,21 @@ public partial class MoiraiParser : Parser {
 					@event();
 					}
 					break;
-				case PROP:
-					{
-					State = 61;
-					prop_definition();
-					}
-					break;
 				case ENUM:
 					{
-					State = 62;
+					State = 61;
 					enum_definition();
 					}
 					break;
 				case ENTITY:
 					{
-					State = 63;
+					State = 62;
 					type_definition();
 					}
 					break;
 				case LINE_BREAK:
 					{
-					State = 64;
+					State = 63;
 					Match(LINE_BREAK);
 					}
 					break;
@@ -255,11 +243,11 @@ public partial class MoiraiParser : Parser {
 					throw new NoViableAltException(this);
 				}
 				}
-				State = 67;
+				State = 66;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 2199023319088L) != 0) );
-			State = 69;
+			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 2199023302704L) != 0) );
+			State = 68;
 			Match(Eof);
 			}
 		}
@@ -307,9 +295,9 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 71;
+			State = 70;
 			Match(COMMENT);
-			State = 72;
+			State = 71;
 			Match(LINE_BREAK);
 			}
 		}
@@ -368,30 +356,30 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 74;
+			State = 73;
 			Match(AT);
-			State = 78;
+			State = 77;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==NUMBER) {
 				{
-				State = 75;
+				State = 74;
 				_localctx.occurence = Match(NUMBER);
-				State = 76;
+				State = 75;
 				Match(ID);
-				State = 77;
+				State = 76;
 				_localctx.years = Match(NUMBER);
 				}
 			}
 
-			State = 80;
+			State = 79;
 			Match(ID);
-			State = 82;
+			State = 81;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==LINE_BREAK) {
 				{
-				State = 81;
+				State = 80;
 				Match(LINE_BREAK);
 				}
 			}
@@ -468,32 +456,32 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 85;
+			State = 84;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==AT) {
 				{
-				State = 84;
+				State = 83;
 				filter();
 				}
 			}
 
-			State = 87;
+			State = 86;
 			Match(RULE);
-			State = 88;
+			State = 87;
 			Match(ID);
-			State = 89;
+			State = 88;
 			categories();
-			State = 90;
+			State = 89;
 			Match(SCOPE_OPEN);
-			State = 91;
+			State = 90;
 			Match(LINE_BREAK);
-			State = 94;
+			State = 93;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
-				State = 94;
+				State = 93;
 				ErrorHandler.Sync(this);
 				switch (TokenStream.LA(1)) {
 				case SET:
@@ -503,13 +491,13 @@ public partial class MoiraiParser : Parser {
 				case IF:
 				case ID:
 					{
-					State = 92;
+					State = 91;
 					effect();
 					}
 					break;
 				case COMMENT:
 					{
-					State = 93;
+					State = 92;
 					comment();
 					}
 					break;
@@ -517,25 +505,25 @@ public partial class MoiraiParser : Parser {
 					throw new NoViableAltException(this);
 				}
 				}
-				State = 96;
+				State = 95;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 8796103376928L) != 0) );
-			State = 98;
+			State = 97;
 			Match(SCOPE_CLOSE);
-			State = 102;
+			State = 101;
 			ErrorHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(TokenStream,8,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 99;
+					State = 98;
 					Match(LINE_BREAK);
 					}
 					} 
 				}
-				State = 104;
+				State = 103;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,8,Context);
 			}
@@ -588,17 +576,17 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 108;
+			State = 107;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==ID) {
 				{
 				{
-				State = 105;
+				State = 104;
 				Match(ID);
 				}
 				}
-				State = 110;
+				State = 109;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
@@ -626,13 +614,10 @@ public partial class MoiraiParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
 			return GetToken(MoiraiParser.LINE_BREAK, i);
 		}
+		[System.Diagnostics.DebuggerNonUserCode] public WhenContext when() {
+			return GetRuleContext<WhenContext>(0);
+		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(MoiraiParser.SCOPE_CLOSE, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public WhenContext[] when() {
-			return GetRuleContexts<WhenContext>();
-		}
-		[System.Diagnostics.DebuggerNonUserCode] public WhenContext when(int i) {
-			return GetRuleContext<WhenContext>(i);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public EffectContext[] effect() {
 			return GetRuleContexts<EffectContext>();
 		}
@@ -677,36 +662,24 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 111;
+			State = 110;
 			Match(EVENT);
-			State = 112;
+			State = 111;
 			Match(ID);
-			State = 113;
+			State = 112;
 			categories();
-			State = 114;
+			State = 113;
 			Match(SCOPE_OPEN);
-			State = 115;
+			State = 114;
 			Match(LINE_BREAK);
-			State = 117;
+			State = 115;
+			when();
+			State = 118;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
-				{
-				State = 116;
-				when();
-				}
-				}
-				State = 119;
-				ErrorHandler.Sync(this);
-				_la = TokenStream.LA(1);
-			} while ( _la==WHEN );
-			State = 123;
-			ErrorHandler.Sync(this);
-			_la = TokenStream.LA(1);
-			do {
-				{
-				State = 123;
+				State = 118;
 				ErrorHandler.Sync(this);
 				switch (TokenStream.LA(1)) {
 				case SET:
@@ -716,13 +689,13 @@ public partial class MoiraiParser : Parser {
 				case IF:
 				case ID:
 					{
-					State = 121;
+					State = 116;
 					effect();
 					}
 					break;
 				case COMMENT:
 					{
-					State = 122;
+					State = 117;
 					comment();
 					}
 					break;
@@ -730,27 +703,27 @@ public partial class MoiraiParser : Parser {
 					throw new NoViableAltException(this);
 				}
 				}
-				State = 125;
+				State = 120;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 8796103376928L) != 0) );
-			State = 127;
+			State = 122;
 			Match(SCOPE_CLOSE);
-			State = 131;
+			State = 126;
 			ErrorHandler.Sync(this);
-			_alt = Interpreter.AdaptivePredict(TokenStream,13,Context);
+			_alt = Interpreter.AdaptivePredict(TokenStream,12,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 128;
+					State = 123;
 					Match(LINE_BREAK);
 					}
 					} 
 				}
-				State = 133;
+				State = 128;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,13,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,12,Context);
 			}
 			}
 		}
@@ -767,15 +740,16 @@ public partial class MoiraiParser : Parser {
 
 	public partial class WhenContext : ParserRuleContext {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode WHEN() { return GetToken(MoiraiParser.WHEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(MoiraiParser.TYPE_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(MoiraiParser.COMMA); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COMMA(int i) {
+			return GetToken(MoiraiParser.COMMA, i);
+		}
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext[] expr() {
 			return GetRuleContexts<ExprContext>();
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext expr(int i) {
 			return GetRuleContext<ExprContext>(i);
-		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] COMMA() { return GetTokens(MoiraiParser.COMMA); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COMMA(int i) {
-			return GetToken(MoiraiParser.COMMA, i);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] SPACE() { return GetTokens(MoiraiParser.SPACE); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SPACE(int i) {
@@ -816,51 +790,51 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 134;
+			State = 129;
 			Match(WHEN);
+			State = 130;
+			Match(TYPE_ID);
 			State = 135;
-			expr(0);
-			State = 140;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 136;
+				State = 131;
 				Match(COMMA);
-				State = 137;
+				State = 132;
 				expr(0);
 				}
 				}
-				State = 142;
+				State = 137;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 146;
+			State = 141;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==SPACE) {
 				{
 				{
-				State = 143;
+				State = 138;
 				Match(SPACE);
 				}
 				}
-				State = 148;
+				State = 143;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 150;
+			State = 145;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
 				{
-				State = 149;
+				State = 144;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 152;
+				State = 147;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( _la==LINE_BREAK );
@@ -939,75 +913,75 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 159;
+			State = 154;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case SET:
 				{
-				State = 154;
+				State = 149;
 				set();
 				}
 				break;
 			case VAR:
 				{
-				State = 155;
+				State = 150;
 				var();
 				}
 				break;
 			case ID:
 				{
-				State = 156;
+				State = 151;
 				call_assign();
 				}
 				break;
 			case IF:
 				{
-				State = 157;
+				State = 152;
 				@if();
 				}
 				break;
 			case MATCH:
 			case MATCH_WEIGHT:
 				{
-				State = 158;
+				State = 153;
 				match();
 				}
 				break;
 			default:
 				throw new NoViableAltException(this);
 			}
-			State = 164;
+			State = 159;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==SPACE) {
 				{
 				{
-				State = 161;
+				State = 156;
 				Match(SPACE);
 				}
 				}
-				State = 166;
+				State = 161;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 171;
+			State = 166;
 			ErrorHandler.Sync(this);
-			_alt = Interpreter.AdaptivePredict(TokenStream,20,Context);
+			_alt = Interpreter.AdaptivePredict(TokenStream,19,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
-					State = 169;
+					State = 164;
 					ErrorHandler.Sync(this);
 					switch (TokenStream.LA(1)) {
 					case COMMENT:
 						{
-						State = 167;
+						State = 162;
 						comment();
 						}
 						break;
 					case LINE_BREAK:
 						{
-						State = 168;
+						State = 163;
 						Match(LINE_BREAK);
 						}
 						break;
@@ -1016,21 +990,21 @@ public partial class MoiraiParser : Parser {
 					}
 					} 
 				}
-				State = 173;
+				State = 168;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,20,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,19,Context);
 			}
-			State = 175;
+			State = 170;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
 				{
-				State = 174;
+				State = 169;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 177;
+				State = 172;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( _la==LINE_BREAK );
@@ -1097,34 +1071,34 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 179;
+			State = 174;
 			Match(IF);
-			State = 180;
+			State = 175;
 			_localctx.cond = expr(0);
-			State = 181;
+			State = 176;
 			_localctx.then = scope();
-			State = 190;
+			State = 185;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==ELSE) {
 				{
-				State = 182;
+				State = 177;
 				Match(ELSE);
-				State = 186;
+				State = 181;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 				while (_la==LINE_BREAK) {
 					{
 					{
-					State = 183;
+					State = 178;
 					Match(LINE_BREAK);
 					}
 					}
-					State = 188;
+					State = 183;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 				}
-				State = 189;
+				State = 184;
 				_localctx.@else = scope();
 				}
 			}
@@ -1199,7 +1173,7 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 192;
+			State = 187;
 			_la = TokenStream.LA(1);
 			if ( !(_la==MATCH || _la==MATCH_WEIGHT) ) {
 			ErrorHandler.RecoverInline(this);
@@ -1208,71 +1182,71 @@ public partial class MoiraiParser : Parser {
 				ErrorHandler.ReportMatch(this);
 			    Consume();
 			}
-			State = 193;
+			State = 188;
 			expr(0);
-			State = 198;
+			State = 193;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 194;
+				State = 189;
 				Match(COMMA);
-				State = 195;
+				State = 190;
 				expr(0);
 				}
 				}
-				State = 200;
+				State = 195;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 201;
+			State = 196;
 			Match(SCOPE_OPEN);
-			State = 205;
+			State = 200;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 202;
+				State = 197;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 207;
+				State = 202;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 209;
+			State = 204;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
 				{
-				State = 208;
+				State = 203;
 				match_case();
 				}
 				}
-				State = 211;
+				State = 206;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 31611059961862L) != 0) );
-			State = 213;
+			State = 208;
 			Match(SCOPE_CLOSE);
-			State = 217;
+			State = 212;
 			ErrorHandler.Sync(this);
-			_alt = Interpreter.AdaptivePredict(TokenStream,27,Context);
+			_alt = Interpreter.AdaptivePredict(TokenStream,26,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 214;
+					State = 209;
 					Match(LINE_BREAK);
 					}
 					} 
 				}
-				State = 219;
+				State = 214;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,27,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,26,Context);
 			}
 			}
 		}
@@ -1336,27 +1310,27 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 220;
+			State = 215;
 			value();
-			State = 225;
+			State = 220;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 221;
+				State = 216;
 				Match(COMMA);
-				State = 222;
+				State = 217;
 				value();
 				}
 				}
-				State = 227;
+				State = 222;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 228;
+			State = 223;
 			Match(ARROW);
-			State = 231;
+			State = 226;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case SET:
@@ -1366,13 +1340,13 @@ public partial class MoiraiParser : Parser {
 			case IF:
 			case ID:
 				{
-				State = 229;
+				State = 224;
 				effect();
 				}
 				break;
 			case SCOPE_OPEN:
 				{
-				State = 230;
+				State = 225;
 				scope();
 				}
 				break;
@@ -1431,13 +1405,13 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 233;
+			State = 228;
 			Match(SET);
-			State = 234;
+			State = 229;
 			path();
-			State = 235;
+			State = 230;
 			Match(EQ);
-			State = 236;
+			State = 231;
 			expr(0);
 			}
 		}
@@ -1493,18 +1467,18 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 238;
+			State = 233;
 			Match(VAR);
-			State = 239;
+			State = 234;
 			Match(VAR_ID);
-			State = 242;
+			State = 237;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==COLON) {
 				{
-				State = 240;
+				State = 235;
 				Match(COLON);
-				State = 241;
+				State = 236;
 				_la = TokenStream.LA(1);
 				if ( !(_la==TYPE_ID || _la==ID) ) {
 				ErrorHandler.RecoverInline(this);
@@ -1516,9 +1490,9 @@ public partial class MoiraiParser : Parser {
 				}
 			}
 
-			State = 244;
+			State = 239;
 			Match(EQ);
-			State = 245;
+			State = 240;
 			expr(0);
 			}
 		}
@@ -1535,6 +1509,7 @@ public partial class MoiraiParser : Parser {
 
 	public partial class Call_assignContext : ParserRuleContext {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(MoiraiParser.ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(MoiraiParser.TYPE_ID, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode VAR_ID() { return GetToken(MoiraiParser.VAR_ID, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode COLON() { return GetToken(MoiraiParser.COLON, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ScopeContext scope() {
@@ -1581,42 +1556,58 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 247;
+			State = 242;
 			Match(ID);
-			State = 250;
+			State = 244;
+			ErrorHandler.Sync(this);
+			switch ( Interpreter.AdaptivePredict(TokenStream,30,Context) ) {
+			case 1:
+				{
+				State = 243;
+				Match(TYPE_ID);
+				}
+				break;
+			}
+			State = 248;
 			ErrorHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(TokenStream,31,Context) ) {
 			case 1:
 				{
-				State = 248;
+				State = 246;
 				Match(VAR_ID);
-				State = 249;
+				State = 247;
 				Match(COLON);
 				}
 				break;
 			}
-			{
-			{
-			State = 252;
-			expr(0);
-			State = 257;
+			State = 258;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			while (_la==COMMA) {
+			if ((((_la) & ~0x3f) == 0 && ((1L << _la) & 31611059962374L) != 0)) {
 				{
 				{
-				State = 253;
-				Match(COMMA);
-				State = 254;
+				State = 250;
 				expr(0);
-				}
-				}
-				State = 259;
+				State = 255;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
+				while (_la==COMMA) {
+					{
+					{
+					State = 251;
+					Match(COMMA);
+					State = 252;
+					expr(0);
+					}
+					}
+					State = 257;
+					ErrorHandler.Sync(this);
+					_la = TokenStream.LA(1);
+				}
+				}
+				}
 			}
-			}
-			}
+
 			State = 261;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
@@ -1694,7 +1685,7 @@ public partial class MoiraiParser : Parser {
 			expr(0);
 			State = 269;
 			ErrorHandler.Sync(this);
-			_alt = Interpreter.AdaptivePredict(TokenStream,34,Context);
+			_alt = Interpreter.AdaptivePredict(TokenStream,35,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
@@ -1708,13 +1699,13 @@ public partial class MoiraiParser : Parser {
 				}
 				State = 271;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,34,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,35,Context);
 			}
 			}
 			}
 			State = 273;
 			ErrorHandler.Sync(this);
-			switch ( Interpreter.AdaptivePredict(TokenStream,35,Context) ) {
+			switch ( Interpreter.AdaptivePredict(TokenStream,36,Context) ) {
 			case 1:
 				{
 				State = 272;
@@ -1839,7 +1830,7 @@ public partial class MoiraiParser : Parser {
 			Match(SCOPE_CLOSE);
 			State = 293;
 			ErrorHandler.Sync(this);
-			_alt = Interpreter.AdaptivePredict(TokenStream,39,Context);
+			_alt = Interpreter.AdaptivePredict(TokenStream,40,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
@@ -1851,7 +1842,7 @@ public partial class MoiraiParser : Parser {
 				}
 				State = 295;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,39,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,40,Context);
 			}
 			}
 		}
@@ -1917,7 +1908,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			State = 304;
 			ErrorHandler.Sync(this);
-			switch ( Interpreter.AdaptivePredict(TokenStream,40,Context) ) {
+			switch ( Interpreter.AdaptivePredict(TokenStream,41,Context) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
@@ -2088,7 +2079,7 @@ public partial class MoiraiParser : Parser {
 			Context.Stop = TokenStream.LT(-1);
 			State = 325;
 			ErrorHandler.Sync(this);
-			_alt = Interpreter.AdaptivePredict(TokenStream,43,Context);
+			_alt = Interpreter.AdaptivePredict(TokenStream,44,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					if ( ParseListeners!=null )
@@ -2097,7 +2088,7 @@ public partial class MoiraiParser : Parser {
 					{
 					State = 323;
 					ErrorHandler.Sync(this);
-					switch ( Interpreter.AdaptivePredict(TokenStream,42,Context) ) {
+					switch ( Interpreter.AdaptivePredict(TokenStream,43,Context) ) {
 					case 1:
 						{
 						_localctx = new ExprContext(_parentctx, _parentState);
@@ -2166,7 +2157,7 @@ public partial class MoiraiParser : Parser {
 				}
 				State = 327;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,43,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,44,Context);
 			}
 			}
 		}
@@ -2189,6 +2180,12 @@ public partial class MoiraiParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
 			return GetToken(MoiraiParser.LINE_BREAK, i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext[] prop_definition() {
+			return GetRuleContexts<Prop_definitionContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext prop_definition(int i) {
+			return GetRuleContext<Prop_definitionContext>(i);
 		}
 		public Type_definitionContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
@@ -2242,9 +2239,23 @@ public partial class MoiraiParser : Parser {
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 337;
+			State = 340;
+			ErrorHandler.Sync(this);
+			_la = TokenStream.LA(1);
+			while (_la==PROP) {
+				{
+				{
+				State = 337;
+				prop_definition();
+				}
+				}
+				State = 342;
+				ErrorHandler.Sync(this);
+				_la = TokenStream.LA(1);
+			}
+			State = 343;
 			Match(SCOPE_CLOSE);
-			State = 339;
+			State = 345;
 			ErrorHandler.Sync(this);
 			_alt = 1;
 			do {
@@ -2252,7 +2263,7 @@ public partial class MoiraiParser : Parser {
 				case 1:
 					{
 					{
-					State = 338;
+					State = 344;
 					Match(LINE_BREAK);
 					}
 					}
@@ -2260,9 +2271,9 @@ public partial class MoiraiParser : Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				State = 341;
+				State = 347;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,45,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,47,Context);
 			} while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
 			}
 		}
@@ -2318,16 +2329,15 @@ public partial class MoiraiParser : Parser {
 		EnterRule(_localctx, 38, RULE_prop_definition);
 		int _la;
 		try {
-			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 343;
+			State = 349;
 			Match(PROP);
-			State = 344;
+			State = 350;
 			Match(ID);
-			State = 345;
+			State = 351;
 			Match(COLON);
-			State = 346;
+			State = 352;
 			_la = TokenStream.LA(1);
 			if ( !(_la==TYPE_ID || _la==ID) ) {
 			ErrorHandler.RecoverInline(this);
@@ -2336,26 +2346,20 @@ public partial class MoiraiParser : Parser {
 				ErrorHandler.ReportMatch(this);
 			    Consume();
 			}
-			State = 348;
+			State = 354;
 			ErrorHandler.Sync(this);
-			_alt = 1;
+			_la = TokenStream.LA(1);
 			do {
-				switch (_alt) {
-				case 1:
-					{
-					{
-					State = 347;
-					Match(LINE_BREAK);
-					}
-					}
-					break;
-				default:
-					throw new NoViableAltException(this);
+				{
+				{
+				State = 353;
+				Match(LINE_BREAK);
 				}
-				State = 350;
+				}
+				State = 356;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,46,Context);
-			} while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
+				_la = TokenStream.LA(1);
+			} while ( _la==LINE_BREAK );
 			}
 		}
 		catch (RecognitionException re) {
@@ -2417,87 +2421,87 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 352;
-			Match(ENUM);
-			State = 353;
-			Match(TYPE_ID);
-			State = 354;
-			Match(SCOPE_OPEN);
 			State = 358;
+			Match(ENUM);
+			State = 359;
+			Match(TYPE_ID);
+			State = 360;
+			Match(SCOPE_OPEN);
+			State = 364;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 355;
+				State = 361;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 360;
+				State = 366;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 361;
+			State = 367;
 			Match(TYPE_ID);
-			State = 372;
+			State = 378;
 			ErrorHandler.Sync(this);
-			_alt = Interpreter.AdaptivePredict(TokenStream,49,Context);
+			_alt = Interpreter.AdaptivePredict(TokenStream,51,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 362;
+					State = 368;
 					Match(COMMA);
-					State = 366;
+					State = 372;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 					while (_la==LINE_BREAK) {
 						{
 						{
-						State = 363;
+						State = 369;
 						Match(LINE_BREAK);
 						}
 						}
-						State = 368;
+						State = 374;
 						ErrorHandler.Sync(this);
 						_la = TokenStream.LA(1);
 					}
-					State = 369;
+					State = 375;
 					Match(TYPE_ID);
 					}
 					} 
 				}
-				State = 374;
+				State = 380;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,49,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,51,Context);
 			}
-			State = 376;
+			State = 382;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==COMMA) {
 				{
-				State = 375;
+				State = 381;
 				Match(COMMA);
 				}
 			}
 
-			State = 381;
+			State = 387;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 378;
+				State = 384;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 383;
+				State = 389;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 384;
+			State = 390;
 			Match(SCOPE_CLOSE);
-			State = 386;
+			State = 392;
 			ErrorHandler.Sync(this);
 			_alt = 1;
 			do {
@@ -2505,7 +2509,7 @@ public partial class MoiraiParser : Parser {
 				case 1:
 					{
 					{
-					State = 385;
+					State = 391;
 					Match(LINE_BREAK);
 					}
 					}
@@ -2513,9 +2517,9 @@ public partial class MoiraiParser : Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				State = 388;
+				State = 394;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,52,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,54,Context);
 			} while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
 			}
 		}
@@ -2562,7 +2566,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 390;
+			State = 396;
 			Match(STRING);
 			}
 		}
@@ -2611,7 +2615,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 392;
+			State = 398;
 			_la = TokenStream.LA(1);
 			if ( !(_la==TRUE || _la==FALSE) ) {
 			ErrorHandler.RecoverInline(this);
@@ -2674,14 +2678,14 @@ public partial class MoiraiParser : Parser {
 		int _la;
 		try {
 			int _alt;
-			State = 403;
+			State = 409;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case SINGLETON_ID:
 			case VAR_ID:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 394;
+				State = 400;
 				_la = TokenStream.LA(1);
 				if ( !(_la==SINGLETON_ID || _la==VAR_ID) ) {
 				ErrorHandler.RecoverInline(this);
@@ -2690,30 +2694,30 @@ public partial class MoiraiParser : Parser {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 399;
+				State = 405;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,53,Context);
+				_alt = Interpreter.AdaptivePredict(TokenStream,55,Context);
 				while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 					if ( _alt==1 ) {
 						{
 						{
-						State = 395;
+						State = 401;
 						Match(DOT);
-						State = 396;
+						State = 402;
 						Match(ID);
 						}
 						} 
 					}
-					State = 401;
+					State = 407;
 					ErrorHandler.Sync(this);
-					_alt = Interpreter.AdaptivePredict(TokenStream,53,Context);
+					_alt = Interpreter.AdaptivePredict(TokenStream,55,Context);
 				}
 				}
 				break;
 			case ID:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 402;
+				State = 408;
 				Match(ID);
 				}
 				break;
@@ -2768,11 +2772,11 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 405;
+			State = 411;
 			Match(TYPE_ID);
-			State = 406;
+			State = 412;
 			Match(DOT);
-			State = 407;
+			State = 413;
 			Match(TYPE_ID);
 			}
 		}
@@ -2819,7 +2823,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 409;
+			State = 415;
 			Match(NUMBER);
 			}
 		}
@@ -2850,146 +2854,149 @@ public partial class MoiraiParser : Parser {
 	}
 
 	private static int[] _serializedATN = {
-		4,1,44,412,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
+		4,1,44,418,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
 		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,
 		2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,21,
 		2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,1,0,5,0,54,8,0,10,0,12,0,57,9,
-		0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,4,0,66,8,0,11,0,12,0,67,1,0,1,0,1,1,1,1,
-		1,1,1,2,1,2,1,2,1,2,3,2,79,8,2,1,2,1,2,3,2,83,8,2,1,3,3,3,86,8,3,1,3,1,
-		3,1,3,1,3,1,3,1,3,1,3,4,3,95,8,3,11,3,12,3,96,1,3,1,3,5,3,101,8,3,10,3,
-		12,3,104,9,3,1,4,5,4,107,8,4,10,4,12,4,110,9,4,1,5,1,5,1,5,1,5,1,5,1,5,
-		4,5,118,8,5,11,5,12,5,119,1,5,1,5,4,5,124,8,5,11,5,12,5,125,1,5,1,5,5,
-		5,130,8,5,10,5,12,5,133,9,5,1,6,1,6,1,6,1,6,5,6,139,8,6,10,6,12,6,142,
-		9,6,1,6,5,6,145,8,6,10,6,12,6,148,9,6,1,6,4,6,151,8,6,11,6,12,6,152,1,
-		7,1,7,1,7,1,7,1,7,3,7,160,8,7,1,7,5,7,163,8,7,10,7,12,7,166,9,7,1,7,1,
-		7,5,7,170,8,7,10,7,12,7,173,9,7,1,7,4,7,176,8,7,11,7,12,7,177,1,8,1,8,
-		1,8,1,8,1,8,5,8,185,8,8,10,8,12,8,188,9,8,1,8,3,8,191,8,8,1,9,1,9,1,9,
-		1,9,5,9,197,8,9,10,9,12,9,200,9,9,1,9,1,9,5,9,204,8,9,10,9,12,9,207,9,
-		9,1,9,4,9,210,8,9,11,9,12,9,211,1,9,1,9,5,9,216,8,9,10,9,12,9,219,9,9,
-		1,10,1,10,1,10,5,10,224,8,10,10,10,12,10,227,9,10,1,10,1,10,1,10,3,10,
-		232,8,10,1,11,1,11,1,11,1,11,1,11,1,12,1,12,1,12,1,12,3,12,243,8,12,1,
-		12,1,12,1,12,1,13,1,13,1,13,3,13,251,8,13,1,13,1,13,1,13,5,13,256,8,13,
-		10,13,12,13,259,9,13,1,13,3,13,262,8,13,1,14,1,14,1,14,1,14,5,14,268,8,
-		14,10,14,12,14,271,9,14,1,14,3,14,274,8,14,1,15,1,15,5,15,278,8,15,10,
-		15,12,15,281,9,15,1,15,1,15,5,15,285,8,15,10,15,12,15,288,9,15,1,15,1,
-		15,5,15,292,8,15,10,15,12,15,295,9,15,1,16,1,16,1,16,1,16,1,16,1,16,1,
-		16,1,16,3,16,305,8,16,1,17,1,17,1,17,1,17,1,17,1,17,3,17,313,8,17,1,17,
-		1,17,1,17,1,17,1,17,1,17,1,17,1,17,1,17,5,17,324,8,17,10,17,12,17,327,
-		9,17,1,18,1,18,1,18,1,18,5,18,333,8,18,10,18,12,18,336,9,18,1,18,1,18,
-		4,18,340,8,18,11,18,12,18,341,1,19,1,19,1,19,1,19,1,19,4,19,349,8,19,11,
-		19,12,19,350,1,20,1,20,1,20,1,20,5,20,357,8,20,10,20,12,20,360,9,20,1,
-		20,1,20,1,20,5,20,365,8,20,10,20,12,20,368,9,20,1,20,5,20,371,8,20,10,
-		20,12,20,374,9,20,1,20,3,20,377,8,20,1,20,5,20,380,8,20,10,20,12,20,383,
-		9,20,1,20,1,20,4,20,387,8,20,11,20,12,20,388,1,21,1,21,1,22,1,22,1,23,
-		1,23,1,23,5,23,398,8,23,10,23,12,23,401,9,23,1,23,3,23,404,8,23,1,24,1,
-		24,1,24,1,24,1,25,1,25,1,25,0,1,34,26,0,2,4,6,8,10,12,14,16,18,20,22,24,
-		26,28,30,32,34,36,38,40,42,44,46,48,50,0,7,1,0,19,20,1,0,42,43,2,0,28,
-		29,34,37,1,0,32,33,1,0,30,31,1,0,25,26,1,0,38,39,455,0,55,1,0,0,0,2,71,
-		1,0,0,0,4,74,1,0,0,0,6,85,1,0,0,0,8,108,1,0,0,0,10,111,1,0,0,0,12,134,
-		1,0,0,0,14,159,1,0,0,0,16,179,1,0,0,0,18,192,1,0,0,0,20,220,1,0,0,0,22,
-		233,1,0,0,0,24,238,1,0,0,0,26,247,1,0,0,0,28,263,1,0,0,0,30,275,1,0,0,
-		0,32,304,1,0,0,0,34,312,1,0,0,0,36,328,1,0,0,0,38,343,1,0,0,0,40,352,1,
-		0,0,0,42,390,1,0,0,0,44,392,1,0,0,0,46,403,1,0,0,0,48,405,1,0,0,0,50,409,
-		1,0,0,0,52,54,5,5,0,0,53,52,1,0,0,0,54,57,1,0,0,0,55,53,1,0,0,0,55,56,
-		1,0,0,0,56,65,1,0,0,0,57,55,1,0,0,0,58,66,3,2,1,0,59,66,3,6,3,0,60,66,
-		3,10,5,0,61,66,3,38,19,0,62,66,3,40,20,0,63,66,3,36,18,0,64,66,5,4,0,0,
-		65,58,1,0,0,0,65,59,1,0,0,0,65,60,1,0,0,0,65,61,1,0,0,0,65,62,1,0,0,0,
-		65,63,1,0,0,0,65,64,1,0,0,0,66,67,1,0,0,0,67,65,1,0,0,0,67,68,1,0,0,0,
-		68,69,1,0,0,0,69,70,5,0,0,1,70,1,1,0,0,0,71,72,5,5,0,0,72,73,5,4,0,0,73,
-		3,1,0,0,0,74,78,5,41,0,0,75,76,5,44,0,0,76,77,5,43,0,0,77,79,5,44,0,0,
-		78,75,1,0,0,0,78,79,1,0,0,0,79,80,1,0,0,0,80,82,5,43,0,0,81,83,5,4,0,0,
-		82,81,1,0,0,0,82,83,1,0,0,0,83,5,1,0,0,0,84,86,3,4,2,0,85,84,1,0,0,0,85,
-		86,1,0,0,0,86,87,1,0,0,0,87,88,5,11,0,0,88,89,5,43,0,0,89,90,3,8,4,0,90,
-		91,5,7,0,0,91,94,5,4,0,0,92,95,3,14,7,0,93,95,3,2,1,0,94,92,1,0,0,0,94,
-		93,1,0,0,0,95,96,1,0,0,0,96,94,1,0,0,0,96,97,1,0,0,0,97,98,1,0,0,0,98,
-		102,5,8,0,0,99,101,5,4,0,0,100,99,1,0,0,0,101,104,1,0,0,0,102,100,1,0,
-		0,0,102,103,1,0,0,0,103,7,1,0,0,0,104,102,1,0,0,0,105,107,5,43,0,0,106,
-		105,1,0,0,0,107,110,1,0,0,0,108,106,1,0,0,0,108,109,1,0,0,0,109,9,1,0,
-		0,0,110,108,1,0,0,0,111,112,5,13,0,0,112,113,5,43,0,0,113,114,3,8,4,0,
-		114,115,5,7,0,0,115,117,5,4,0,0,116,118,3,12,6,0,117,116,1,0,0,0,118,119,
-		1,0,0,0,119,117,1,0,0,0,119,120,1,0,0,0,120,123,1,0,0,0,121,124,3,14,7,
-		0,122,124,3,2,1,0,123,121,1,0,0,0,123,122,1,0,0,0,124,125,1,0,0,0,125,
-		123,1,0,0,0,125,126,1,0,0,0,126,127,1,0,0,0,127,131,5,8,0,0,128,130,5,
-		4,0,0,129,128,1,0,0,0,130,133,1,0,0,0,131,129,1,0,0,0,131,132,1,0,0,0,
-		132,11,1,0,0,0,133,131,1,0,0,0,134,135,5,16,0,0,135,140,3,34,17,0,136,
-		137,5,21,0,0,137,139,3,34,17,0,138,136,1,0,0,0,139,142,1,0,0,0,140,138,
-		1,0,0,0,140,141,1,0,0,0,141,146,1,0,0,0,142,140,1,0,0,0,143,145,5,3,0,
-		0,144,143,1,0,0,0,145,148,1,0,0,0,146,144,1,0,0,0,146,147,1,0,0,0,147,
-		150,1,0,0,0,148,146,1,0,0,0,149,151,5,4,0,0,150,149,1,0,0,0,151,152,1,
-		0,0,0,152,150,1,0,0,0,152,153,1,0,0,0,153,13,1,0,0,0,154,160,3,22,11,0,
-		155,160,3,24,12,0,156,160,3,26,13,0,157,160,3,16,8,0,158,160,3,18,9,0,
-		159,154,1,0,0,0,159,155,1,0,0,0,159,156,1,0,0,0,159,157,1,0,0,0,159,158,
-		1,0,0,0,160,164,1,0,0,0,161,163,5,3,0,0,162,161,1,0,0,0,163,166,1,0,0,
-		0,164,162,1,0,0,0,164,165,1,0,0,0,165,171,1,0,0,0,166,164,1,0,0,0,167,
-		170,3,2,1,0,168,170,5,4,0,0,169,167,1,0,0,0,169,168,1,0,0,0,170,173,1,
-		0,0,0,171,169,1,0,0,0,171,172,1,0,0,0,172,175,1,0,0,0,173,171,1,0,0,0,
-		174,176,5,4,0,0,175,174,1,0,0,0,176,177,1,0,0,0,177,175,1,0,0,0,177,178,
-		1,0,0,0,178,15,1,0,0,0,179,180,5,23,0,0,180,181,3,34,17,0,181,190,3,30,
-		15,0,182,186,5,24,0,0,183,185,5,4,0,0,184,183,1,0,0,0,185,188,1,0,0,0,
-		186,184,1,0,0,0,186,187,1,0,0,0,187,189,1,0,0,0,188,186,1,0,0,0,189,191,
-		3,30,15,0,190,182,1,0,0,0,190,191,1,0,0,0,191,17,1,0,0,0,192,193,7,0,0,
-		0,193,198,3,34,17,0,194,195,5,21,0,0,195,197,3,34,17,0,196,194,1,0,0,0,
-		197,200,1,0,0,0,198,196,1,0,0,0,198,199,1,0,0,0,199,201,1,0,0,0,200,198,
-		1,0,0,0,201,205,5,7,0,0,202,204,5,4,0,0,203,202,1,0,0,0,204,207,1,0,0,
-		0,205,203,1,0,0,0,205,206,1,0,0,0,206,209,1,0,0,0,207,205,1,0,0,0,208,
-		210,3,20,10,0,209,208,1,0,0,0,210,211,1,0,0,0,211,209,1,0,0,0,211,212,
-		1,0,0,0,212,213,1,0,0,0,213,217,5,8,0,0,214,216,5,4,0,0,215,214,1,0,0,
-		0,216,219,1,0,0,0,217,215,1,0,0,0,217,218,1,0,0,0,218,19,1,0,0,0,219,217,
-		1,0,0,0,220,225,3,32,16,0,221,222,5,21,0,0,222,224,3,32,16,0,223,221,1,
-		0,0,0,224,227,1,0,0,0,225,223,1,0,0,0,225,226,1,0,0,0,226,228,1,0,0,0,
-		227,225,1,0,0,0,228,231,5,22,0,0,229,232,3,14,7,0,230,232,3,30,15,0,231,
-		229,1,0,0,0,231,230,1,0,0,0,232,21,1,0,0,0,233,234,5,17,0,0,234,235,3,
-		46,23,0,235,236,5,29,0,0,236,237,3,34,17,0,237,23,1,0,0,0,238,239,5,18,
-		0,0,239,242,5,39,0,0,240,241,5,6,0,0,241,243,7,1,0,0,242,240,1,0,0,0,242,
-		243,1,0,0,0,243,244,1,0,0,0,244,245,5,29,0,0,245,246,3,34,17,0,246,25,
-		1,0,0,0,247,250,5,43,0,0,248,249,5,39,0,0,249,251,5,6,0,0,250,248,1,0,
-		0,0,250,251,1,0,0,0,251,252,1,0,0,0,252,257,3,34,17,0,253,254,5,21,0,0,
-		254,256,3,34,17,0,255,253,1,0,0,0,256,259,1,0,0,0,257,255,1,0,0,0,257,
-		258,1,0,0,0,258,261,1,0,0,0,259,257,1,0,0,0,260,262,3,30,15,0,261,260,
-		1,0,0,0,261,262,1,0,0,0,262,27,1,0,0,0,263,264,5,43,0,0,264,269,3,34,17,
-		0,265,266,5,21,0,0,266,268,3,34,17,0,267,265,1,0,0,0,268,271,1,0,0,0,269,
-		267,1,0,0,0,269,270,1,0,0,0,270,273,1,0,0,0,271,269,1,0,0,0,272,274,3,
-		30,15,0,273,272,1,0,0,0,273,274,1,0,0,0,274,29,1,0,0,0,275,279,5,7,0,0,
-		276,278,5,4,0,0,277,276,1,0,0,0,278,281,1,0,0,0,279,277,1,0,0,0,279,280,
-		1,0,0,0,280,286,1,0,0,0,281,279,1,0,0,0,282,285,3,14,7,0,283,285,3,2,1,
-		0,284,282,1,0,0,0,284,283,1,0,0,0,285,288,1,0,0,0,286,284,1,0,0,0,286,
-		287,1,0,0,0,287,289,1,0,0,0,288,286,1,0,0,0,289,293,5,8,0,0,290,292,5,
-		4,0,0,291,290,1,0,0,0,292,295,1,0,0,0,293,291,1,0,0,0,293,294,1,0,0,0,
-		294,31,1,0,0,0,295,293,1,0,0,0,296,305,3,28,14,0,297,305,3,42,21,0,298,
-		305,3,48,24,0,299,305,5,42,0,0,300,305,3,46,23,0,301,305,3,44,22,0,302,
-		305,3,50,25,0,303,305,5,2,0,0,304,296,1,0,0,0,304,297,1,0,0,0,304,298,
-		1,0,0,0,304,299,1,0,0,0,304,300,1,0,0,0,304,301,1,0,0,0,304,302,1,0,0,
-		0,304,303,1,0,0,0,305,33,1,0,0,0,306,307,6,17,-1,0,307,308,5,9,0,0,308,
-		309,3,34,17,0,309,310,5,10,0,0,310,313,1,0,0,0,311,313,3,32,16,0,312,306,
-		1,0,0,0,312,311,1,0,0,0,313,325,1,0,0,0,314,315,10,5,0,0,315,316,7,2,0,
-		0,316,324,3,34,17,6,317,318,10,4,0,0,318,319,7,3,0,0,319,324,3,34,17,5,
-		320,321,10,3,0,0,321,322,7,4,0,0,322,324,3,34,17,4,323,314,1,0,0,0,323,
-		317,1,0,0,0,323,320,1,0,0,0,324,327,1,0,0,0,325,323,1,0,0,0,325,326,1,
-		0,0,0,326,35,1,0,0,0,327,325,1,0,0,0,328,329,5,12,0,0,329,330,5,42,0,0,
-		330,334,5,7,0,0,331,333,5,4,0,0,332,331,1,0,0,0,333,336,1,0,0,0,334,332,
-		1,0,0,0,334,335,1,0,0,0,335,337,1,0,0,0,336,334,1,0,0,0,337,339,5,8,0,
-		0,338,340,5,4,0,0,339,338,1,0,0,0,340,341,1,0,0,0,341,339,1,0,0,0,341,
-		342,1,0,0,0,342,37,1,0,0,0,343,344,5,14,0,0,344,345,5,43,0,0,345,346,5,
-		6,0,0,346,348,7,1,0,0,347,349,5,4,0,0,348,347,1,0,0,0,349,350,1,0,0,0,
-		350,348,1,0,0,0,350,351,1,0,0,0,351,39,1,0,0,0,352,353,5,15,0,0,353,354,
-		5,42,0,0,354,358,5,7,0,0,355,357,5,4,0,0,356,355,1,0,0,0,357,360,1,0,0,
-		0,358,356,1,0,0,0,358,359,1,0,0,0,359,361,1,0,0,0,360,358,1,0,0,0,361,
-		372,5,42,0,0,362,366,5,21,0,0,363,365,5,4,0,0,364,363,1,0,0,0,365,368,
-		1,0,0,0,366,364,1,0,0,0,366,367,1,0,0,0,367,369,1,0,0,0,368,366,1,0,0,
-		0,369,371,5,42,0,0,370,362,1,0,0,0,371,374,1,0,0,0,372,370,1,0,0,0,372,
-		373,1,0,0,0,373,376,1,0,0,0,374,372,1,0,0,0,375,377,5,21,0,0,376,375,1,
-		0,0,0,376,377,1,0,0,0,377,381,1,0,0,0,378,380,5,4,0,0,379,378,1,0,0,0,
-		380,383,1,0,0,0,381,379,1,0,0,0,381,382,1,0,0,0,382,384,1,0,0,0,383,381,
-		1,0,0,0,384,386,5,8,0,0,385,387,5,4,0,0,386,385,1,0,0,0,387,388,1,0,0,
-		0,388,386,1,0,0,0,388,389,1,0,0,0,389,41,1,0,0,0,390,391,5,1,0,0,391,43,
-		1,0,0,0,392,393,7,5,0,0,393,45,1,0,0,0,394,399,7,6,0,0,395,396,5,27,0,
-		0,396,398,5,43,0,0,397,395,1,0,0,0,398,401,1,0,0,0,399,397,1,0,0,0,399,
-		400,1,0,0,0,400,404,1,0,0,0,401,399,1,0,0,0,402,404,5,43,0,0,403,394,1,
-		0,0,0,403,402,1,0,0,0,404,47,1,0,0,0,405,406,5,42,0,0,406,407,5,27,0,0,
-		407,408,5,42,0,0,408,49,1,0,0,0,409,410,5,44,0,0,410,51,1,0,0,0,55,55,
-		65,67,78,82,85,94,96,102,108,119,123,125,131,140,146,152,159,164,169,171,
-		177,186,190,198,205,211,217,225,231,242,250,257,261,269,273,279,284,286,
-		293,304,312,323,325,334,341,350,358,366,372,376,381,388,399,403
+		0,1,0,1,0,1,0,1,0,1,0,1,0,4,0,65,8,0,11,0,12,0,66,1,0,1,0,1,1,1,1,1,1,
+		1,2,1,2,1,2,1,2,3,2,78,8,2,1,2,1,2,3,2,82,8,2,1,3,3,3,85,8,3,1,3,1,3,1,
+		3,1,3,1,3,1,3,1,3,4,3,94,8,3,11,3,12,3,95,1,3,1,3,5,3,100,8,3,10,3,12,
+		3,103,9,3,1,4,5,4,106,8,4,10,4,12,4,109,9,4,1,5,1,5,1,5,1,5,1,5,1,5,1,
+		5,1,5,4,5,119,8,5,11,5,12,5,120,1,5,1,5,5,5,125,8,5,10,5,12,5,128,9,5,
+		1,6,1,6,1,6,1,6,5,6,134,8,6,10,6,12,6,137,9,6,1,6,5,6,140,8,6,10,6,12,
+		6,143,9,6,1,6,4,6,146,8,6,11,6,12,6,147,1,7,1,7,1,7,1,7,1,7,3,7,155,8,
+		7,1,7,5,7,158,8,7,10,7,12,7,161,9,7,1,7,1,7,5,7,165,8,7,10,7,12,7,168,
+		9,7,1,7,4,7,171,8,7,11,7,12,7,172,1,8,1,8,1,8,1,8,1,8,5,8,180,8,8,10,8,
+		12,8,183,9,8,1,8,3,8,186,8,8,1,9,1,9,1,9,1,9,5,9,192,8,9,10,9,12,9,195,
+		9,9,1,9,1,9,5,9,199,8,9,10,9,12,9,202,9,9,1,9,4,9,205,8,9,11,9,12,9,206,
+		1,9,1,9,5,9,211,8,9,10,9,12,9,214,9,9,1,10,1,10,1,10,5,10,219,8,10,10,
+		10,12,10,222,9,10,1,10,1,10,1,10,3,10,227,8,10,1,11,1,11,1,11,1,11,1,11,
+		1,12,1,12,1,12,1,12,3,12,238,8,12,1,12,1,12,1,12,1,13,1,13,3,13,245,8,
+		13,1,13,1,13,3,13,249,8,13,1,13,1,13,1,13,5,13,254,8,13,10,13,12,13,257,
+		9,13,3,13,259,8,13,1,13,3,13,262,8,13,1,14,1,14,1,14,1,14,5,14,268,8,14,
+		10,14,12,14,271,9,14,1,14,3,14,274,8,14,1,15,1,15,5,15,278,8,15,10,15,
+		12,15,281,9,15,1,15,1,15,5,15,285,8,15,10,15,12,15,288,9,15,1,15,1,15,
+		5,15,292,8,15,10,15,12,15,295,9,15,1,16,1,16,1,16,1,16,1,16,1,16,1,16,
+		1,16,3,16,305,8,16,1,17,1,17,1,17,1,17,1,17,1,17,3,17,313,8,17,1,17,1,
+		17,1,17,1,17,1,17,1,17,1,17,1,17,1,17,5,17,324,8,17,10,17,12,17,327,9,
+		17,1,18,1,18,1,18,1,18,5,18,333,8,18,10,18,12,18,336,9,18,1,18,5,18,339,
+		8,18,10,18,12,18,342,9,18,1,18,1,18,4,18,346,8,18,11,18,12,18,347,1,19,
+		1,19,1,19,1,19,1,19,4,19,355,8,19,11,19,12,19,356,1,20,1,20,1,20,1,20,
+		5,20,363,8,20,10,20,12,20,366,9,20,1,20,1,20,1,20,5,20,371,8,20,10,20,
+		12,20,374,9,20,1,20,5,20,377,8,20,10,20,12,20,380,9,20,1,20,3,20,383,8,
+		20,1,20,5,20,386,8,20,10,20,12,20,389,9,20,1,20,1,20,4,20,393,8,20,11,
+		20,12,20,394,1,21,1,21,1,22,1,22,1,23,1,23,1,23,5,23,404,8,23,10,23,12,
+		23,407,9,23,1,23,3,23,410,8,23,1,24,1,24,1,24,1,24,1,25,1,25,1,25,0,1,
+		34,26,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,
+		46,48,50,0,7,1,0,19,20,1,0,42,43,2,0,28,29,34,37,1,0,32,33,1,0,30,31,1,
+		0,25,26,1,0,38,39,462,0,55,1,0,0,0,2,70,1,0,0,0,4,73,1,0,0,0,6,84,1,0,
+		0,0,8,107,1,0,0,0,10,110,1,0,0,0,12,129,1,0,0,0,14,154,1,0,0,0,16,174,
+		1,0,0,0,18,187,1,0,0,0,20,215,1,0,0,0,22,228,1,0,0,0,24,233,1,0,0,0,26,
+		242,1,0,0,0,28,263,1,0,0,0,30,275,1,0,0,0,32,304,1,0,0,0,34,312,1,0,0,
+		0,36,328,1,0,0,0,38,349,1,0,0,0,40,358,1,0,0,0,42,396,1,0,0,0,44,398,1,
+		0,0,0,46,409,1,0,0,0,48,411,1,0,0,0,50,415,1,0,0,0,52,54,5,5,0,0,53,52,
+		1,0,0,0,54,57,1,0,0,0,55,53,1,0,0,0,55,56,1,0,0,0,56,64,1,0,0,0,57,55,
+		1,0,0,0,58,65,3,2,1,0,59,65,3,6,3,0,60,65,3,10,5,0,61,65,3,40,20,0,62,
+		65,3,36,18,0,63,65,5,4,0,0,64,58,1,0,0,0,64,59,1,0,0,0,64,60,1,0,0,0,64,
+		61,1,0,0,0,64,62,1,0,0,0,64,63,1,0,0,0,65,66,1,0,0,0,66,64,1,0,0,0,66,
+		67,1,0,0,0,67,68,1,0,0,0,68,69,5,0,0,1,69,1,1,0,0,0,70,71,5,5,0,0,71,72,
+		5,4,0,0,72,3,1,0,0,0,73,77,5,41,0,0,74,75,5,44,0,0,75,76,5,43,0,0,76,78,
+		5,44,0,0,77,74,1,0,0,0,77,78,1,0,0,0,78,79,1,0,0,0,79,81,5,43,0,0,80,82,
+		5,4,0,0,81,80,1,0,0,0,81,82,1,0,0,0,82,5,1,0,0,0,83,85,3,4,2,0,84,83,1,
+		0,0,0,84,85,1,0,0,0,85,86,1,0,0,0,86,87,5,11,0,0,87,88,5,43,0,0,88,89,
+		3,8,4,0,89,90,5,7,0,0,90,93,5,4,0,0,91,94,3,14,7,0,92,94,3,2,1,0,93,91,
+		1,0,0,0,93,92,1,0,0,0,94,95,1,0,0,0,95,93,1,0,0,0,95,96,1,0,0,0,96,97,
+		1,0,0,0,97,101,5,8,0,0,98,100,5,4,0,0,99,98,1,0,0,0,100,103,1,0,0,0,101,
+		99,1,0,0,0,101,102,1,0,0,0,102,7,1,0,0,0,103,101,1,0,0,0,104,106,5,43,
+		0,0,105,104,1,0,0,0,106,109,1,0,0,0,107,105,1,0,0,0,107,108,1,0,0,0,108,
+		9,1,0,0,0,109,107,1,0,0,0,110,111,5,13,0,0,111,112,5,43,0,0,112,113,3,
+		8,4,0,113,114,5,7,0,0,114,115,5,4,0,0,115,118,3,12,6,0,116,119,3,14,7,
+		0,117,119,3,2,1,0,118,116,1,0,0,0,118,117,1,0,0,0,119,120,1,0,0,0,120,
+		118,1,0,0,0,120,121,1,0,0,0,121,122,1,0,0,0,122,126,5,8,0,0,123,125,5,
+		4,0,0,124,123,1,0,0,0,125,128,1,0,0,0,126,124,1,0,0,0,126,127,1,0,0,0,
+		127,11,1,0,0,0,128,126,1,0,0,0,129,130,5,16,0,0,130,135,5,42,0,0,131,132,
+		5,21,0,0,132,134,3,34,17,0,133,131,1,0,0,0,134,137,1,0,0,0,135,133,1,0,
+		0,0,135,136,1,0,0,0,136,141,1,0,0,0,137,135,1,0,0,0,138,140,5,3,0,0,139,
+		138,1,0,0,0,140,143,1,0,0,0,141,139,1,0,0,0,141,142,1,0,0,0,142,145,1,
+		0,0,0,143,141,1,0,0,0,144,146,5,4,0,0,145,144,1,0,0,0,146,147,1,0,0,0,
+		147,145,1,0,0,0,147,148,1,0,0,0,148,13,1,0,0,0,149,155,3,22,11,0,150,155,
+		3,24,12,0,151,155,3,26,13,0,152,155,3,16,8,0,153,155,3,18,9,0,154,149,
+		1,0,0,0,154,150,1,0,0,0,154,151,1,0,0,0,154,152,1,0,0,0,154,153,1,0,0,
+		0,155,159,1,0,0,0,156,158,5,3,0,0,157,156,1,0,0,0,158,161,1,0,0,0,159,
+		157,1,0,0,0,159,160,1,0,0,0,160,166,1,0,0,0,161,159,1,0,0,0,162,165,3,
+		2,1,0,163,165,5,4,0,0,164,162,1,0,0,0,164,163,1,0,0,0,165,168,1,0,0,0,
+		166,164,1,0,0,0,166,167,1,0,0,0,167,170,1,0,0,0,168,166,1,0,0,0,169,171,
+		5,4,0,0,170,169,1,0,0,0,171,172,1,0,0,0,172,170,1,0,0,0,172,173,1,0,0,
+		0,173,15,1,0,0,0,174,175,5,23,0,0,175,176,3,34,17,0,176,185,3,30,15,0,
+		177,181,5,24,0,0,178,180,5,4,0,0,179,178,1,0,0,0,180,183,1,0,0,0,181,179,
+		1,0,0,0,181,182,1,0,0,0,182,184,1,0,0,0,183,181,1,0,0,0,184,186,3,30,15,
+		0,185,177,1,0,0,0,185,186,1,0,0,0,186,17,1,0,0,0,187,188,7,0,0,0,188,193,
+		3,34,17,0,189,190,5,21,0,0,190,192,3,34,17,0,191,189,1,0,0,0,192,195,1,
+		0,0,0,193,191,1,0,0,0,193,194,1,0,0,0,194,196,1,0,0,0,195,193,1,0,0,0,
+		196,200,5,7,0,0,197,199,5,4,0,0,198,197,1,0,0,0,199,202,1,0,0,0,200,198,
+		1,0,0,0,200,201,1,0,0,0,201,204,1,0,0,0,202,200,1,0,0,0,203,205,3,20,10,
+		0,204,203,1,0,0,0,205,206,1,0,0,0,206,204,1,0,0,0,206,207,1,0,0,0,207,
+		208,1,0,0,0,208,212,5,8,0,0,209,211,5,4,0,0,210,209,1,0,0,0,211,214,1,
+		0,0,0,212,210,1,0,0,0,212,213,1,0,0,0,213,19,1,0,0,0,214,212,1,0,0,0,215,
+		220,3,32,16,0,216,217,5,21,0,0,217,219,3,32,16,0,218,216,1,0,0,0,219,222,
+		1,0,0,0,220,218,1,0,0,0,220,221,1,0,0,0,221,223,1,0,0,0,222,220,1,0,0,
+		0,223,226,5,22,0,0,224,227,3,14,7,0,225,227,3,30,15,0,226,224,1,0,0,0,
+		226,225,1,0,0,0,227,21,1,0,0,0,228,229,5,17,0,0,229,230,3,46,23,0,230,
+		231,5,29,0,0,231,232,3,34,17,0,232,23,1,0,0,0,233,234,5,18,0,0,234,237,
+		5,39,0,0,235,236,5,6,0,0,236,238,7,1,0,0,237,235,1,0,0,0,237,238,1,0,0,
+		0,238,239,1,0,0,0,239,240,5,29,0,0,240,241,3,34,17,0,241,25,1,0,0,0,242,
+		244,5,43,0,0,243,245,5,42,0,0,244,243,1,0,0,0,244,245,1,0,0,0,245,248,
+		1,0,0,0,246,247,5,39,0,0,247,249,5,6,0,0,248,246,1,0,0,0,248,249,1,0,0,
+		0,249,258,1,0,0,0,250,255,3,34,17,0,251,252,5,21,0,0,252,254,3,34,17,0,
+		253,251,1,0,0,0,254,257,1,0,0,0,255,253,1,0,0,0,255,256,1,0,0,0,256,259,
+		1,0,0,0,257,255,1,0,0,0,258,250,1,0,0,0,258,259,1,0,0,0,259,261,1,0,0,
+		0,260,262,3,30,15,0,261,260,1,0,0,0,261,262,1,0,0,0,262,27,1,0,0,0,263,
+		264,5,43,0,0,264,269,3,34,17,0,265,266,5,21,0,0,266,268,3,34,17,0,267,
+		265,1,0,0,0,268,271,1,0,0,0,269,267,1,0,0,0,269,270,1,0,0,0,270,273,1,
+		0,0,0,271,269,1,0,0,0,272,274,3,30,15,0,273,272,1,0,0,0,273,274,1,0,0,
+		0,274,29,1,0,0,0,275,279,5,7,0,0,276,278,5,4,0,0,277,276,1,0,0,0,278,281,
+		1,0,0,0,279,277,1,0,0,0,279,280,1,0,0,0,280,286,1,0,0,0,281,279,1,0,0,
+		0,282,285,3,14,7,0,283,285,3,2,1,0,284,282,1,0,0,0,284,283,1,0,0,0,285,
+		288,1,0,0,0,286,284,1,0,0,0,286,287,1,0,0,0,287,289,1,0,0,0,288,286,1,
+		0,0,0,289,293,5,8,0,0,290,292,5,4,0,0,291,290,1,0,0,0,292,295,1,0,0,0,
+		293,291,1,0,0,0,293,294,1,0,0,0,294,31,1,0,0,0,295,293,1,0,0,0,296,305,
+		3,28,14,0,297,305,3,42,21,0,298,305,3,48,24,0,299,305,5,42,0,0,300,305,
+		3,46,23,0,301,305,3,44,22,0,302,305,3,50,25,0,303,305,5,2,0,0,304,296,
+		1,0,0,0,304,297,1,0,0,0,304,298,1,0,0,0,304,299,1,0,0,0,304,300,1,0,0,
+		0,304,301,1,0,0,0,304,302,1,0,0,0,304,303,1,0,0,0,305,33,1,0,0,0,306,307,
+		6,17,-1,0,307,308,5,9,0,0,308,309,3,34,17,0,309,310,5,10,0,0,310,313,1,
+		0,0,0,311,313,3,32,16,0,312,306,1,0,0,0,312,311,1,0,0,0,313,325,1,0,0,
+		0,314,315,10,5,0,0,315,316,7,2,0,0,316,324,3,34,17,6,317,318,10,4,0,0,
+		318,319,7,3,0,0,319,324,3,34,17,5,320,321,10,3,0,0,321,322,7,4,0,0,322,
+		324,3,34,17,4,323,314,1,0,0,0,323,317,1,0,0,0,323,320,1,0,0,0,324,327,
+		1,0,0,0,325,323,1,0,0,0,325,326,1,0,0,0,326,35,1,0,0,0,327,325,1,0,0,0,
+		328,329,5,12,0,0,329,330,5,42,0,0,330,334,5,7,0,0,331,333,5,4,0,0,332,
+		331,1,0,0,0,333,336,1,0,0,0,334,332,1,0,0,0,334,335,1,0,0,0,335,340,1,
+		0,0,0,336,334,1,0,0,0,337,339,3,38,19,0,338,337,1,0,0,0,339,342,1,0,0,
+		0,340,338,1,0,0,0,340,341,1,0,0,0,341,343,1,0,0,0,342,340,1,0,0,0,343,
+		345,5,8,0,0,344,346,5,4,0,0,345,344,1,0,0,0,346,347,1,0,0,0,347,345,1,
+		0,0,0,347,348,1,0,0,0,348,37,1,0,0,0,349,350,5,14,0,0,350,351,5,43,0,0,
+		351,352,5,6,0,0,352,354,7,1,0,0,353,355,5,4,0,0,354,353,1,0,0,0,355,356,
+		1,0,0,0,356,354,1,0,0,0,356,357,1,0,0,0,357,39,1,0,0,0,358,359,5,15,0,
+		0,359,360,5,42,0,0,360,364,5,7,0,0,361,363,5,4,0,0,362,361,1,0,0,0,363,
+		366,1,0,0,0,364,362,1,0,0,0,364,365,1,0,0,0,365,367,1,0,0,0,366,364,1,
+		0,0,0,367,378,5,42,0,0,368,372,5,21,0,0,369,371,5,4,0,0,370,369,1,0,0,
+		0,371,374,1,0,0,0,372,370,1,0,0,0,372,373,1,0,0,0,373,375,1,0,0,0,374,
+		372,1,0,0,0,375,377,5,42,0,0,376,368,1,0,0,0,377,380,1,0,0,0,378,376,1,
+		0,0,0,378,379,1,0,0,0,379,382,1,0,0,0,380,378,1,0,0,0,381,383,5,21,0,0,
+		382,381,1,0,0,0,382,383,1,0,0,0,383,387,1,0,0,0,384,386,5,4,0,0,385,384,
+		1,0,0,0,386,389,1,0,0,0,387,385,1,0,0,0,387,388,1,0,0,0,388,390,1,0,0,
+		0,389,387,1,0,0,0,390,392,5,8,0,0,391,393,5,4,0,0,392,391,1,0,0,0,393,
+		394,1,0,0,0,394,392,1,0,0,0,394,395,1,0,0,0,395,41,1,0,0,0,396,397,5,1,
+		0,0,397,43,1,0,0,0,398,399,7,5,0,0,399,45,1,0,0,0,400,405,7,6,0,0,401,
+		402,5,27,0,0,402,404,5,43,0,0,403,401,1,0,0,0,404,407,1,0,0,0,405,403,
+		1,0,0,0,405,406,1,0,0,0,406,410,1,0,0,0,407,405,1,0,0,0,408,410,5,43,0,
+		0,409,400,1,0,0,0,409,408,1,0,0,0,410,47,1,0,0,0,411,412,5,42,0,0,412,
+		413,5,27,0,0,413,414,5,42,0,0,414,49,1,0,0,0,415,416,5,44,0,0,416,51,1,
+		0,0,0,57,55,64,66,77,81,84,93,95,101,107,118,120,126,135,141,147,154,159,
+		164,166,172,181,185,193,200,206,212,220,226,237,244,248,255,258,261,269,
+		273,279,284,286,293,304,312,323,325,334,340,347,356,364,372,378,382,387,
+		394,405,409
 	};
 
 	public static readonly ATN _ATN =

@@ -7,20 +7,20 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: COMMENT* (comment|action|event|prop_definition|enum_definition|type_definition|LINE_BREAK)+ EOF;
+r: COMMENT* (comment|action|event|enum_definition|type_definition|LINE_BREAK)+ EOF;
 comment: COMMENT LINE_BREAK;
 filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
 action: filter? RULE  ID categories SCOPE_OPEN LINE_BREAK (effect|comment)+ SCOPE_CLOSE LINE_BREAK*;
 categories: ID* ;
-event: EVENT ID categories SCOPE_OPEN LINE_BREAK when+ (effect|comment)+ SCOPE_CLOSE LINE_BREAK*;
-when: WHEN expr (COMMA expr)* SPACE* LINE_BREAK+;
+event: EVENT ID categories SCOPE_OPEN LINE_BREAK when (effect|comment)+ SCOPE_CLOSE LINE_BREAK*;
+when: WHEN TYPE_ID (COMMA expr)* SPACE* LINE_BREAK+;
 effect: (set | var | call_assign|if|match) SPACE* (comment|LINE_BREAK)* LINE_BREAK+;
 if: IF cond=expr then=scope (ELSE LINE_BREAK*  else=scope)? ;
 match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
 match_case: value (COMMA value)* ARROW (effect|scope) ;
 set: SET  path EQ expr;
 var: VAR  VAR_ID (COLON (ID|TYPE_ID))? EQ expr;
-call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
+call_assign : ID TYPE_ID? (VAR_ID COLON)?  ((expr (COMMA expr)* ))? scope?;
 call : ID ((expr (COMMA expr)* )) scope?;
 scope: SCOPE_OPEN LINE_BREAK* (effect|comment)* SCOPE_CLOSE LINE_BREAK*;
 value: call | string | enum_value | TYPE_ID | path | bool | number | NULL;
@@ -32,7 +32,7 @@ expr
     | value
     ;
 
-type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
+type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* prop_definition* SCOPE_CLOSE LINE_BREAK+ ;
 
 prop_definition: PROP ID COLON (ID|TYPE_ID) LINE_BREAK+ ;
 

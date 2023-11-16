@@ -13,7 +13,12 @@ public class StoryPrinter
         StringBuilder sb = new();
         foreach (EntityType type in _database.Types.Skip(_database.BuiltinTypes))
         {
-            sb.AppendLine($"entity {type.Name} {{ }}");
+            sb.AppendLine($"entity {type.Name} {{");
+            foreach (var property in type.Properties.Skip(Database.DefaultProperties().Count))
+            {
+                sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
+            }
+            sb.AppendLine("}");
 
         }
         foreach (string en in _database.Tags.Skip(1))
@@ -26,16 +31,16 @@ public class StoryPrinter
             sb.AppendLine($"enum {en.Name} {{ {string.Join(", ", en.Values)} }}");
 
         }
-        foreach (var property in _database.Properties.Skip(Database.DefaultProperties().Count))
-        {
-            sb.AppendLine($"prop {property.Name}: {Print(property.Type)}");
-        }
+        // foreach (var property in _database.Properties.Skip(Database.DefaultProperties().Count))
+        // {
+        //     sb.AppendLine($"prop {property.Name}: {Print(property.Type)}");
+        // }
         foreach (var action in _database.Actions.Concat(_database.Events))
         {
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
-            foreach (var when in action.Whens) sb.AppendLine($"  when {Print(when)}");
+            foreach (var when in action.Whens) sb.AppendLine($"  when {Print(action.WhenType)}, {Print(when)}");
             foreach (var effect in action.Effects)
             {
                 PrintEffect(effect, sb, 1);
@@ -64,16 +69,19 @@ public class StoryPrinter
     {
         switch (propertyType.BaseType)
         {
-
+            case PropertyValue.ValueBaseType.Ref:
+                return propertyType.Index == 0
+                    ? propertyType.BaseType.ToString().ToLowerInvariant()
+                    : _database.GetEntityType(propertyType).Name;
             case PropertyValue.ValueBaseType.None:
             case PropertyValue.ValueBaseType.String:
-            case PropertyValue.ValueBaseType.Ref:
             case PropertyValue.ValueBaseType.Number:
             case PropertyValue.ValueBaseType.Bool:
                 return propertyType.BaseType.ToString().ToLowerInvariant();
             case PropertyValue.ValueBaseType.Enum:
                 return _database.Enums[propertyType.Index].Name;
             case PropertyValue.ValueBaseType.EntityType:
+                return _database.GetEntityType(propertyType).Name;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -90,12 +98,12 @@ public class StoryPrinter
         switch (instruction)
         {
             case CreateEntity createEntity:
-                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {_database.GetEntityTypeName(createEntity.Type)}, {Print(createEntity.Name)}");
+                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}:  {_database.GetEntityTypeName(createEntity.Type)}, {Print(createEntity.Name)}");
                 break;
             // case NameEntity nameEntity:
             case AssignPick predicateParameter:
                 sb.Append(
-                    $"{indentStr}{predicateParameter.CallType.ToString().ToLowerInvariant()} ${predicateParameter.VariableIndex}: {Print(predicateParameter.Value)}");
+                    $"{indentStr}{predicateParameter.CallType.ToString().ToLowerInvariant()} {_database.GetEntityTypeName(predicateParameter.EntityType)} ${predicateParameter.VariableIndex}: {Print(predicateParameter.Value)}");
                 if (predicateParameter.ScopeEffects != null)
                 {
                     sb.AppendLine($"{indentStr}{{");
@@ -213,20 +221,14 @@ public class StoryPrinter
         return new string(' ', indent * 4);
     }
 
-    private string GetPropertyName(PropertyId p)
-    {
-        if (p.IsValid && p.Id < _database.Properties.Count)
-            return _database.Properties[(int)p.Id].Name;
-
-        return "<??>";
-    }
+    
     private string Print(PropertyPath path)
     {
         if(path.Mode == PropertyPath.PropertyPathMode.Singleton)
-            return $"#{_database.GetEntityTypeName(path.SingletonType)}.{GetPropertyName(path.Property)}";
+            return $"#{_database.GetEntityTypeName(path.SingletonType)}.{_database.GetPropertyName(path.Property)}";
         if (path.VariableIndex == -1)
-            return GetPropertyName(path.Property);
-        return path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
+            return _database.GetPropertyName(path.Property);
+        return path.Property != PropertyId.Null ? $"${path.VariableIndex}.{_database.GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
     }
 
     public string Print(PropertyValue value, History.HistoryMode storyMode = History.HistoryMode.Default)
@@ -338,18 +340,18 @@ public class StoryPrinter
         Console.ForegroundColor = Colors[e.GetProperty(Database.PropType).IntValue % Colors.Length];
         Console.WriteLine($"{e.Id} {type} {name}");
         Console.ResetColor();
-        if (e.Properties != null)
-            foreach (var property in e.Properties)
-            {
-                if (property.Id == Database.PropType || property.Id == Database.PropName || !property.Id.IsValid)
-                    continue;
-
-                Console.Write($"  {_database.Properties[(int)property.Id.Id].Name}: {Print(property.Value)}");
-                if (property.Value.Type == PropertyValue.TypeRef && _database.TryGetEntity(property.Value.Id, out var other) &&
-                    other.TryGetProperty(Database.PropName, out var otherName))
-                    Console.Write(" " + otherName.Value);
-                Console.WriteLine();
-            }
+        // if (e.Properties != null)
+        //     foreach (var property in e.Properties)
+        //     {
+        //         if (property.Id == Database.PropType || property.Id == Database.PropName || !property.Id.IsValid)
+        //             continue;
+        //
+        //         Console.Write($"  {_database.Properties[(int)property.Id.Id].Name}: {Print(property.Value)}");
+        //         if (property.Value.Type == PropertyValue.TypeRef && _database.TryGetEntity(property.Value.Id, out var other) &&
+        //             other.TryGetProperty(Database.PropName, out var otherName))
+        //             Console.Write(" " + otherName.Value);
+        //         Console.WriteLine();
+        //     }
     }
     private static readonly ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
     public void PrintDb()

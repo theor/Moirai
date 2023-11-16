@@ -53,8 +53,8 @@ public struct PropertyValue : IEquatable<PropertyValue>
             BaseType = baseType;
             if(baseType == ValueBaseType.Enum && index == 0)
                 throw new System.NotImplementedException();
-            else if(baseType != ValueBaseType.Enum && index != 0)
-                throw new System.NotImplementedException();
+            else if(baseType != ValueBaseType.Enum && baseType != ValueBaseType.Ref && index != 0)
+                throw new System.NotImplementedException(baseType.ToString());
             Index = index;
         }
         public bool Equals(ValueType other)

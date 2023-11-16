@@ -15,7 +15,7 @@ rule r {
     }
 }", out _);
         db.RunAction("r");
-        Assert.AreEqual(1, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+        Assert.AreEqual(1, db.Entities.Single().GetProperty(db.GetPropertyId("T","p")).IntValue);
     }
 
     [Test]
@@ -33,7 +33,7 @@ rule r {
     }
 }", out _);
         db.RunAction("r");
-        Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+        Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("T","p")).IntValue);
     }
     
     [Test]
@@ -52,6 +52,6 @@ rule r {
     set p = 2
 }", out _);
         db.RunAction("r");
-        Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+        Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("T","p")).IntValue);
     }
 }

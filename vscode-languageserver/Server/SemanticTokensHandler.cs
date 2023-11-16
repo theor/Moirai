@@ -166,8 +166,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             
         }
         
-        foreach (var comment in context.when())
-            comment.Accept(this);
+        context.when().Accept(this);
         foreach (var comment in context.comment())
             comment.Accept(this);
         foreach (var effect in context.effect())

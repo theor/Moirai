@@ -58,3 +58,17 @@ public class TestsBase
         a();
     }
 }
+
+class EntityDefinitionTests : TestsBase
+{
+    [Test]
+    public void ParseDef()
+    {
+        Run(@"
+entity E {
+    prop x: number
+    prop y: bool
+}
+", out _);
+    }
+}
