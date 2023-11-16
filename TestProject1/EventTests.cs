@@ -11,7 +11,7 @@ entity Person {}
 prop alive: bool
 prop test: bool
 rule born {
-    create Person
+    create $p: Person
     set alive = true
 }
 
@@ -53,7 +53,7 @@ entity Person {}
 prop x: number
 prop test: number
 rule born {
-    create Person
+    create $p: Person
     set x = 1
     set test = 1
 }

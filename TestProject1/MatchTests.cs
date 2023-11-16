@@ -121,10 +121,10 @@ entity Planet {}
 entity Satelite {}
 rule create {
     random_weighted 10 {
-        1 => create Star
-        6 => create Asteroid
-        2 => create Planet
-        1 => create Satelite
+        1 => create $x: Star
+        6 => create $x: Asteroid
+        2 => create $x: Planet
+        1 => create $x: Satelite
     }
 }", out _);
         for (int i = 0; i < 100; i++)
@@ -150,7 +150,7 @@ enum Job {
 }
 prop job: Job
 rule create {
-    create Person
+    create $p: Person
     random_weighted 10 {
         6 => set job = Job.Farmer
         1 => set job = Job.Smith

@@ -14,18 +14,20 @@ action: filter? RULE  ID categories SCOPE_OPEN LINE_BREAK (effect|comment)+ SCOP
 categories: ID* ;
 event: EVENT ID categories SCOPE_OPEN LINE_BREAK when+ (effect|comment)+ SCOPE_CLOSE LINE_BREAK*;
 when: WHEN expr (COMMA expr)* SPACE* LINE_BREAK+;
-effect: (set | var | call_assign|if|match) SPACE* (comment|LINE_BREAK)* LINE_BREAK+;
+effect: (set | var | expr) SPACE* (comment|LINE_BREAK)* LINE_BREAK+;
 if: IF cond=expr then=scope (ELSE LINE_BREAK*  else=scope)? ;
 match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
 match_case: value (COMMA value)* ARROW (effect|scope) ;
 set: SET  path EQ expr;
-var: VAR  VAR_ID (COLON (ID|TYPE_ID))? EQ expr;
-call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
-call : ID ((expr (COMMA expr)* )) scope?;
+var: VAR  VAR_ID COLON expr;
+//call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
+call : ID (VAR_ID COLON)? ((expr (COMMA expr)* )) scope?;
 scope: SCOPE_OPEN LINE_BREAK* (effect|comment)* SCOPE_CLOSE LINE_BREAK*;
 value: call | string | enum_value | TYPE_ID | path | bool | number | NULL;
 expr
-    : left=expr op=(EQ | NEQ | GE | LE | GT | LT) right=expr
+    : if
+    | match
+    | left=expr op=(EQ | NEQ | GE | LE | GT | LT) right=expr
     | left=expr op=(MUL | DIV) right=expr
     | left=expr op=(ADD | SUB) right=expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)

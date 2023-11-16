@@ -125,7 +125,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
         IntValue = b ? 1 : 0,
         Type = TypeBool,
     };
-    public bool BoolValue => IntValue == 1;
+    public bool BoolValue => IntValue!= 0;
     public EntityId Id => new EntityId(IntValue);
     public EntityTypeId TypeId => new EntityTypeId((uint)IntValue);
 

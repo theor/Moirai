@@ -295,7 +295,7 @@ WHERE id = $id;";
         for (var index = 0; index < action.Effects.Count; index++)
         {
             var e = action.Effects[index];
-            if (e is AssignPick { VariableIndex: -1 })
+            if (e is CallInstruction{ Value:  AssignPick { VariableIndex: -1 }})
                 throw new NotImplementedException("Arg index -1 on p " + index);
 
             if (!e.Execute(_ctx))

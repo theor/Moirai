@@ -25,7 +25,7 @@ public class InterpolatedString : IValue
     public string ToSql(PredicateContext ctx) => $"'{Compute(ctx)}'";
 }
 
-public class MatchWeight : IInstruction
+public class MatchWeight : IValue
 {
     public readonly IValue Value;
     public readonly (int,IInstruction[])[] CumulativeWeights;
@@ -36,7 +36,7 @@ public class MatchWeight : IInstruction
         CumulativeWeights = cumulativeWeights;
     }
 
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         var v = Value.Compute(ctx).IntValue;
         var r = ctx.Rnd.GenerateNext((uint)v);
@@ -57,7 +57,7 @@ public class MatchWeight : IInstruction
     }
 }
 
-public class Match : IInstruction
+public class Match : IValue
 {
     public readonly IValue[] Values;
     public readonly (IValue?[], IInstruction[])[] Cases;
@@ -69,7 +69,7 @@ public class Match : IInstruction
     }
 
     private PropertyValue[] _values = Array.Empty<PropertyValue>();
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         if ( _values.Length < Values.Length)
             _values = new PropertyValue[Values.Length];
@@ -114,7 +114,7 @@ public class Match : IInstruction
     }
 }
 
-public class If : IInstruction
+public class If : IValue
 {
     public readonly IValue Condition;
     public readonly IInstruction[]? IfTrue;
@@ -127,7 +127,7 @@ public class If : IInstruction
         IfFalse = ifFalse;
     }
 
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         var scope = Condition.Compute(ctx).BoolValue ? IfTrue : IfFalse;
         foreach (var instr in scope)
@@ -140,16 +140,16 @@ public class If : IInstruction
     }
 }
 
-public class FormatAction : IInstruction
+public class Record : IValue
 {
     public InterpolatedString String;
 
-    public FormatAction(InterpolatedString str)
+    public Record(InterpolatedString str)
     {
         String = str;
     }
 
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year,
             ctx.Database.CurrentChangeset.Categories);
@@ -157,7 +157,7 @@ public class FormatAction : IInstruction
     }
 }
 
-public class CreateEntity : IInstruction
+public class CreateEntity : IValue
 {
     public readonly int VariableIndex;
     public readonly EntityTypeId Type;
@@ -170,7 +170,7 @@ public class CreateEntity : IInstruction
         Name = name;
     }
 
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         // if (!ctx.Database.EntityExists(ctx.EntityId))
         string? name = null;
@@ -181,6 +181,6 @@ public class CreateEntity : IInstruction
 
         var entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
-        return true;
+        return entity;
     }
 }

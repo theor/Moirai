@@ -14,14 +14,14 @@ public class Tests : TestsBase
 entity Person {}
 prop f: number
 rule r {
-    create Person
-    set f = 42
-    assert $0.f = 42
+    create $p: Person
+    set $p.f = 42
+    assert $p.f = 42
 }
 rule rr {
-    pick Person
-    set f = 43
-    assert $0.f = 43
+    pick $p: Person
+    set $p.f = 43
+    assert $p.f = 43
 }
 ";
 
@@ -36,9 +36,9 @@ rule rr {
 entity Person {}
 prop f: number
 rule r {
-    create Person
-    set f = 2 + 3
-    assert $0.f = 5
+    create $p: Person
+    set $p.f = 2 + 3
+    assert $p.f = 5
 }
 ");
 
@@ -47,7 +47,7 @@ rule r {
 entity Person {}
 prop f: number
 rule r {
-    create Person
+    create $p: Person
     set f = 2 + 3 * 4
     assert_eq $0.f, 14
 }
@@ -72,7 +72,7 @@ entity Person {}
 enum E { A, B, C }
 prop f: number
 rule r {
-    create Person
+    create $p: Person
     set f = E.B
     assert $0.f = 2
     set f = E.C * 2
@@ -92,7 +92,7 @@ rule r {
 entity Person {}
 prop f: number
 rule r {
-    create Person
+    create $p: Person
     set f = 42 > 4
     assert $0.f
 }
@@ -110,7 +110,7 @@ rule r {
 entity Person {}
 prop f: number
 rule r {
-    create Person
+    create $p: Person
     set f = 42
     set f = f + 1
     assert $0.f = 43
@@ -129,9 +129,9 @@ rule r {
 entity Person {}
 prop alive: bool
 rule born_char {
-    create Person, '{random name}'
-    set alive = true
-    assert $0.alive = true
+    create $p: Person, '{random name}'
+    set $p.alive = true
+    assert $p.alive = true
 }
 ";
 
@@ -160,14 +160,14 @@ rule born_char {
 entity Person {}
 prop alive: number
 rule born_char {
-    create Person, '{random name}'
+    create $p: Person, '{random name}'
 }
 @start rule init {
-call born_char, 10
+    call born_char, 10
 }
 rule r {
-    each type=Person {
-        set alive = 2
+    each $p: type=Person {
+        set $p.alive = 2
     }
 }
 ";
@@ -189,8 +189,8 @@ rule r {
 entity Person {}
 prop alive: bool
 rule r {
-    pick type = Person
-    set alive = true
+    pick $p: type = Person
+    set $p.alive = true
 }
 ";
 
@@ -244,22 +244,7 @@ rule char_dies {
         var action = db.Actions[0];
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
-        var e1 = action.Effects[0];
-        var e2 = action.Effects[1];
-        Assert.IsInstanceOf<AssignPick>(e1);
 
-        Assert.IsInstanceOf<AssignPick>(e2);
-
-        var pe1 = (AssignPick)e1;
-        var pe2 = (AssignPick)e2;
-
-        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe1.Predicate);
-        // Assert.AreEqual(Assign.PredicateParameterType.Predicate, pe2.Type);
-
-        Assert.NotNull(pe1.Value);
-        Assert.IsInstanceOf<BinaryOperator>(pe1.Value);
-        Assert.NotNull(pe2.Value);
-        Assert.IsInstanceOf<BinaryOperator>(pe2.Value);
     }
 
 
@@ -351,13 +336,13 @@ entity Person {}
 prop x: bool
 prop y: bool
 rule foreach {
-    each type=Person {
-        set x = true
-        record '{name} {x}'
+    each $p: type=Person {
+        set $p.x = true
+        record '{$p.name} {$p.x}'
     }
-    each type=Person {
-        set y = true
-        record '{name} {y}'
+    each $p: type=Person {
+        set $p.y = true
+        record '{$p.name} {$p.y}'
     }
 }";
         var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
@@ -397,9 +382,9 @@ rule foreach {
         Console.WriteLine("------------------");
         var record = db.Printer.Print();
         Console.WriteLine(record);
-        Assert.AreEqual(0, errors.Count, string.Join(", ", errors));
+        Assert.AreEqual(0, errors.Count, string.Join("\n", errors));
         var db2 = StoryParser.Parse(record, out var errors2);
-        Assert.AreEqual(0, errors2.Count, string.Join(", ", errors2));
+        Assert.AreEqual(0, errors2.Count, string.Join("\n", errors2));
         db.Init();
         db.Ctx.PassYears(100, true);
         db.Commit();
@@ -454,7 +439,7 @@ rule create {
     create $p2: Person
     set $p.link = $p2
     set $p2.x = 33
-    var $tmp = $p.link
+    var $tmp: $p.link
     assert_eq 33, $tmp.x
 }
 ";
@@ -473,8 +458,8 @@ enum Job { None, Farmer, Smith }
 prop job: Job
 
 rule create {
-    create Person
-    set job = Job.Farmer
+    create $p: Person
+    set $p.job = Job.Farmer
 }
 ";
         var db = Run(s, out var errors);
@@ -498,8 +483,8 @@ enum Job { None, Farmer, Smith }
 prop job: Job
 
 rule create {
-    create Person
-    set job = 1
+    create $p: Person
+    set $p.job = 1
 }
 ";
         var db = Run(s, out var errors);
@@ -523,7 +508,7 @@ enum Job { None, Farmer, Smith }
 prop job: Job
 
 rule create {
-    create Person
+    create $p: Person
     set job = Asd
 }
 ";
@@ -544,8 +529,8 @@ enum Job { Farmer, Smith, Mayor }
 prop job: Job
 
 rule create {
-    create Person
-    set job = random Job
+    create $p: Person
+    set $p.job = random Job
 }
 ";
         var db = Run(s, out var errors);
@@ -650,7 +635,7 @@ rule create_faction {
         var s = @"
 entity E {}
 rule called {
-    create E
+    create $e: E
 }
 rule call {
     call called
@@ -668,11 +653,11 @@ rule call {
 entity E {}
 prop x: number
 rule called {
-    create E
+    create $x: E
 }
 rule call {
-    call $x: called
-    call $y: called
+    var $x: call called
+    var $y: call called
     
     set $y.x = 42
     assert_eq $x, 1
@@ -693,8 +678,8 @@ entity E {}
 prop x: number
 
 rule call {
-    var $w = 42
-    var $g: number = 43
+    var $w:  42
+    var $g: 43
     assert_eq $w, 42
     assert_eq $g, 43
 }";
@@ -709,7 +694,7 @@ rule call {
     {
         var s = @"
 rule create {
-    create Time, 'time'
+    create $t: Time, 'time'
     set year = 1000
 }
 rule read {
@@ -730,12 +715,12 @@ rule read {
 entity Person {}
 
 rule init {
-    create Time, 'time'
-    set year = 345
+    create $t: Time, 'time'
+    set $t.year = 345
 }
 @4 per 1 years
 rule born {
-    create Person
+    create $p: Person
 }
 ";
         var db = Run(s, out _);
@@ -757,8 +742,8 @@ prop alive: bool
 prop birthdate: number
 prop age: Age
 rule create_time {
-    create Time, 'time'
-    set year = 1000
+    create $t: Time, 'time'
+    set $t.year = 1000
 }
 rule born {
     create $p: Person
@@ -826,7 +811,7 @@ entity Person {}
 prop birthdate: number
 rule born {
     pick $t: type=Time
-    create Person
+    create $p: Person
     set birthdate = $t.year
 }";
         Run(s, out _);
@@ -842,8 +827,8 @@ prop alive: bool
 prop birthdate: number
 prop age: Age
 rule create_time {
-    create Time, 'time'
-    set year = 1000
+    create $t: Time, 'time'
+    set $t.year = 1000
 }
 rule born {
     pick $t: type=Time

@@ -94,7 +94,7 @@ public struct PropertyPath : IValue
 }
 
 
-public struct AssertInstr : IInstruction
+public struct AssertInstr : IValue
 {
     public enum AssertMode
     {
@@ -117,7 +117,7 @@ public struct AssertInstr : IInstruction
         Mode = AssertMode.Eq;
         Right = right;
     }
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         switch (Mode)
         {
@@ -197,19 +197,17 @@ public enum CallType
     Each,
 }
 
-public struct CallRule : IInstruction
+public struct CallRule : IValue
 {
-    public readonly int VariableIndex;
     public readonly int RuleIndex;
     public readonly int Count;
-    public CallRule(int variableIndex, int ruleIndex, int count)
+    public CallRule(int ruleIndex, int count)
     {
         RuleIndex = ruleIndex;
         Count = count;
-        VariableIndex = variableIndex;
 
     }
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         // DONE offset value stack
         // eg. if $0 $1 are used now, have called.$0 become $2
@@ -222,12 +220,26 @@ public struct CallRule : IInstruction
                 res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
                 ctxLastValue = ctx.LastValue;
             }
-        ctx.SetArgument(VariableIndex, ctxLastValue);
-        return res;
+        return ctxLastValue;
     }
 }
 
-public struct AssignPick : IInstruction
+public struct CallInstruction : IInstruction
+{
+    public readonly IValue Value;
+
+    public CallInstruction(IValue value)
+    {
+        Value = value;
+    }
+
+    public bool Execute(PredicateContext ctx)
+    {
+        return Value.Compute(ctx).BoolValue;
+    }
+}
+
+public struct AssignPick : IValue
 {
     public readonly int VariableIndex;
     public readonly IValue Value;
@@ -243,7 +255,7 @@ public struct AssignPick : IInstruction
         _pool = null;
     }
 
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx)
     {
         switch (CallType)
         {

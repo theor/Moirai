@@ -37,7 +37,7 @@ rule r {
     }
     
     [Test]
-    public void IfElseScopes()
+    public void VarDecl_IfElseScopes_Fails()
     {
         var db = Run(@"
 entity T {}
@@ -45,11 +45,27 @@ entity U {}
 prop p: number
 rule r {
     if false {
-        create T
+        create $x: T
     } else {
-        create U
+        create $x: U
     }
-    set p = 2
+    set $x.p = 2
+}", out _, 1);
+    }
+    [Test]
+    public void IfElseScopes()
+    {
+        var db = Run(@"
+entity T {}
+entity U {}
+prop p: number
+rule r {
+    var $x: if false {
+        create $x: T
+    } else {
+        create $x: U
+    }
+    set $x.p = 2
 }", out _);
         db.RunAction("r");
         Assert.AreEqual(2, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);

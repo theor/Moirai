@@ -96,6 +96,8 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     public readonly Dictionary<string, Definition> Definitions = new();
     public readonly List<(Range, Range)> Locations = new();
     public List<StoryParser.Error> Errors { get; } = new();
+    public MoiraiParser Parser { get; set; }
+
     public TokenVisitor(ILogger logger)
     {
         _logger = logger;
@@ -148,11 +150,6 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
                 c.Accept(this);
         }
         return null ;
-    }
-
-    public override object? VisitEffect(MoiraiParser.EffectContext context)
-    {
-        return base.VisitEffect(context);
     }
 
     public override object? VisitEvent(MoiraiParser.EventContext context)
@@ -223,10 +220,6 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         PushSymbol(context.VAR().Symbol, SemanticTokenType.Keyword);
         PushSymbol(context.VAR_ID().Symbol, SemanticTokenType.Variable);
-        if(context.ID() != null)
-            PushSymbol(context.ID().Symbol, SemanticTokenType.Type);
-        if(context.TYPE_ID() != null)
-            PushSymbol(context.TYPE_ID().Symbol, SemanticTokenType.Type);
             
         return context.expr().Accept(this);
     }
@@ -234,16 +227,11 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     public override object? VisitCall(MoiraiParser.CallContext context)
     {
         PushSymbol(context.ID().Symbol, SemanticTokenType.Function);
-        return base.VisitCall(context);
-    }
-    public override object? VisitCall_assign(MoiraiParser.Call_assignContext context)
-    {
-        PushSymbol(context.ID().Symbol, SemanticTokenType.Function);
         if (context.VAR_ID() != null)
             PushSymbol(context.VAR_ID().Symbol, SemanticTokenType.Variable);
-        return base.VisitCall_assign(context);
+        return base.VisitCall(context);
     }
-
+    
     public override object? VisitWhen(MoiraiParser.WhenContext context)
     {
         PushSymbol(context.WHEN().Symbol, SemanticTokenType.Keyword);

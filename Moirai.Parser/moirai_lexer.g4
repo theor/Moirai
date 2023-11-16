@@ -2,11 +2,12 @@ lexer grammar moirai_lexer;
 
 STRING : ('"' (~[\\"])* '"') | ('\''(~[\\'])*  '\'');
 NULL: 'null';
-SPACE: [ \t]+ -> skip;
+SPACE: [ \t]+ -> channel(HIDDEN);
 LINE_BREAK: ('\r\n' | '\r' | '\n');
 COMMENT
   :  '//' ~( '\r' | '\n')*;
 
+COLON_EQ: ':=';
 COLON: ':';
 SCOPE_OPEN: '{';
 SCOPE_CLOSE: '}';

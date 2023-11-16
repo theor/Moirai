@@ -3,9 +3,13 @@
 public interface IValue
 {
     PropertyValue Compute(PredicateContext ctx);
-    bool HasTypeFilter(out EntityTypeId type);
+
     bool IsTrue(PredicateContext ctx) => Compute(ctx).BoolValue;
-    string ToSql(PredicateContext ctx);
+
+    string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException(this.GetType().ToString());
+    }
 }
 
 public class MatchAnyValue : IValue

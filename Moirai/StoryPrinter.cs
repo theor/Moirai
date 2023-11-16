@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using Moirai.Core;
 
 public class StoryPrinter
@@ -41,7 +42,6 @@ public class StoryPrinter
                 PrintEffect(effect, sb, 1);
             }
             sb.AppendLine("}");
-
         }
         return sb.ToString();
     }
@@ -92,6 +92,82 @@ public class StoryPrinter
         string indentStr = MakeIndent(indent);
         switch (instruction)
         {
+            case CallInstruction call:
+                
+                sb.Append(Print(call.Value, indent));
+                break;
+            case SetProperty setProperty:
+                sb.AppendLine(
+                    $"{indentStr}{(setProperty.IsLocalVar ? "var" :"set")} {Print(setProperty.PropertySet)}{(setProperty.IsLocalVar ? ":" : " =")} {Print(setProperty.Parameter)}");
+                break;
+            
+            default:
+                throw new ArgumentOutOfRangeException(nameof(instruction), $"instr: '{instruction}'");
+        }
+    }
+
+    private static string MakeIndent(int indent)
+    {
+        return new string(' ', indent * 4);
+    }
+
+    private string GetPropertyName(PropertyId p)
+    {
+        if (p.IsValid && p.Id < _database.Properties.Count)
+            return _database.Properties[(int)p.Id].Name;
+
+        return "<??>";
+    }
+    private string Print(PropertyPath path)
+    {
+        if(path.Mode == PropertyPath.PropertyPathMode.Singleton)
+            return $"#{_database.GetEntityTypeName(path.SingletonType)}.{GetPropertyName(path.Property)}";
+        if (path.VariableIndex == -1)
+            return GetPropertyName(path.Property);
+        return path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
+    }
+
+    public string Print(PropertyValue value, History.HistoryMode storyMode = History.HistoryMode.Default)
+    {
+        var s = value.Value;
+        if (s != null)
+            return s;
+        
+
+        switch (value.Type.BaseType)
+        {
+            case PropertyValue.ValueBaseType.Enum:
+                var e = _database.Enums[value.Type.Index];
+                if (value.IntValue == 0) return "null";
+                return (storyMode & History.HistoryMode.Story) != 0 ? e.FormattedValues[(int)value.IntValue-1] : $"{e.Name}.{e.Values[(int)value.IntValue-1]}";
+            case PropertyValue.ValueBaseType.None:
+                return "null";
+            case PropertyValue.ValueBaseType.String:
+                return $"'{value.Value}'";
+            case PropertyValue.ValueBaseType.Ref:
+                if (value.IntValue == 0)
+                    return "null";
+                // if ((storyMode & History.HistoryMode.FormatEntityIds) != 0)
+                //     return $"%id{value.Id.Id}%";
+                return "#" + value.IntValue;
+            case PropertyValue.ValueBaseType.Number:
+                return value.IntValue.ToString();
+            case PropertyValue.ValueBaseType.Bool:
+                return value.BoolValue ? "true" : "false";
+            case PropertyValue.ValueBaseType.EntityType:
+                return _database.GetEntityTypeName(value.TypeId);
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        return value.IntValue.ToString();
+    }
+    
+    public string Print(IValue value, int indent = 0)
+    {
+        string indentStr = indent == 0 ? String.Empty : new string(' ', indent * 4);
+        StringBuilder sb = new StringBuilder();
+        switch (value)
+        {
             case CreateEntity createEntity:
                 sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {_database.GetEntityTypeName(createEntity.Type)}, {Print(createEntity.Name)}");
                 break;
@@ -112,15 +188,11 @@ public class StoryPrinter
                     sb.AppendLine();
                 break;
             // case Sequence sequence:
-            case SetProperty setProperty:
-                sb.AppendLine(
-                    $"{indentStr}{(setProperty.IsLocalVar ? "var" :"set")} {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
-                break;
-            case FormatAction formatAction:
+            case Record formatAction:
                 sb.AppendLine($"{indentStr}record {Print(formatAction.String)}");
                 break;
             case CallRule call:
-                sb.AppendLine( $"{indentStr}call ${call.VariableIndex}: " + _database.Actions[call.RuleIndex].Name);
+                sb.AppendLine( $"{indentStr}call " + _database.Actions[call.RuleIndex].Name);
                 break;
             case AssertInstr assert:
                 switch (assert.Mode)
@@ -206,71 +278,6 @@ public class StoryPrinter
 
                 break;
             }
-            default:
-                throw new ArgumentOutOfRangeException(nameof(instruction), $"instr: '{instruction}'");
-        }
-    }
-
-    private static string MakeIndent(int indent)
-    {
-        return new string(' ', indent * 4);
-    }
-
-    private string GetPropertyName(PropertyId p)
-    {
-        if (p.IsValid && p.Id < _database.Properties.Count)
-            return _database.Properties[(int)p.Id].Name;
-
-        return "<??>";
-    }
-    private string Print(PropertyPath path)
-    {
-        if(path.Mode == PropertyPath.PropertyPathMode.Singleton)
-            return $"#{_database.GetEntityTypeName(path.SingletonType)}.{GetPropertyName(path.Property)}";
-        if (path.VariableIndex == -1)
-            return GetPropertyName(path.Property);
-        return path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
-    }
-
-    public string Print(PropertyValue value, History.HistoryMode storyMode = History.HistoryMode.Default)
-    {
-        var s = value.Value;
-        if (s != null)
-            return s;
-        
-
-        switch (value.Type.BaseType)
-        {
-            case PropertyValue.ValueBaseType.Enum:
-                var e = _database.Enums[value.Type.Index];
-                if (value.IntValue == 0) return "null";
-                return (storyMode & History.HistoryMode.Story) != 0 ? e.FormattedValues[(int)value.IntValue-1] : $"{e.Name}.{e.Values[(int)value.IntValue-1]}";
-            case PropertyValue.ValueBaseType.None:
-                return "null";
-            case PropertyValue.ValueBaseType.String:
-                return $"'{value.Value}'";
-            case PropertyValue.ValueBaseType.Ref:
-                if (value.IntValue == 0)
-                    return "null";
-                // if ((storyMode & History.HistoryMode.FormatEntityIds) != 0)
-                //     return $"%id{value.Id.Id}%";
-                return "#" + value.IntValue;
-            case PropertyValue.ValueBaseType.Number:
-                return value.IntValue.ToString();
-            case PropertyValue.ValueBaseType.Bool:
-                return value.BoolValue ? "true" : "false";
-            case PropertyValue.ValueBaseType.EntityType:
-                return _database.GetEntityTypeName(value.TypeId);
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-        return value.IntValue.ToString();
-    }
-    
-    public string Print(IValue value)
-    {
-        switch (value)
-        {
             case InterpolatedString interpolatedString:
                 return
                     $"'{string.Format(interpolatedString.FormatString, interpolatedString.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}'";
@@ -312,6 +319,8 @@ public class StoryPrinter
                 throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
 
         }
+
+        return sb.ToString();
     }
 
     public void PrintChangeset(Changeset cs, bool oneLine = true)

@@ -2,15 +2,12 @@
 
 public class SetProperty : IInstruction
 {
-    // TODO use to cast
-    public PropertyValue.ValueType ValueType;
     public readonly bool IsLocalVar;
     public readonly PropertyPath PropertySet;
     public readonly IValue Parameter;
 
-    public SetProperty(PropertyPath property, IValue parameter, bool isLocalVar, PropertyValue.ValueType valueType)
+    public SetProperty(PropertyPath property, IValue parameter, bool isLocalVar)
     {
-        ValueType = valueType;
         IsLocalVar = isLocalVar;
         PropertySet = property;
         Parameter = parameter;

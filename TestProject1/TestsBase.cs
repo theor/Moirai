@@ -15,9 +15,12 @@ public class TestsBase
         db.Init();
         return db;
     }
+
     public static Database Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)
     {
-        Console.WriteLine(s);
+        Console.WriteLine(string.Join("\n", s.Split('\n').Select((s1, i) =>
+            $"{i,3} {s1}"
+        )));
         var db = StoryParser.Parse(s, out errors);
 
         var printed = db.Printer.Print();

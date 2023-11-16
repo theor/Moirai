@@ -9,6 +9,7 @@ public static class StoryParser
     public interface IVisitor
     {
         List<Error> Errors { get; }
+        MoiraiParser Parser { get; set; }
     }
 
     public enum ErrorCode
@@ -36,7 +37,8 @@ public static class StoryParser
         DuplicateTagDefinition,
         WeightMatchTakesOnlyOneValue,
         MatchNullWeight,
-        MatchAnyValueMustBeLast
+        MatchAnyValueMustBeLast,
+        MissingVariable
     }
 
     public struct Error
@@ -129,7 +131,9 @@ public static class StoryParser
     {
         var lexer = new moirai_lexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
         var tokens = new CommonTokenStream(lexer);
+        
         parser = new MoiraiParser(tokens);
+        visitor.Parser = parser;
         var listener = new Listener(visitor.Errors);
         lexer.AddErrorListener(listener);
         parser.AddErrorListener(listener);
@@ -140,6 +144,7 @@ public static class StoryParser
         private List<string> _variables = new();
         private List<Error> _errors = new();
         public List<Error> Errors => _errors;
+        public MoiraiParser Parser { get; set; }
         protected override object? DefaultResult => null;
 
         private readonly Database _database;
@@ -303,24 +308,26 @@ public static class StoryParser
 
         private IInstruction ParseEffect(MoiraiParser.EffectContext effectContext)
         {
-            if (effectContext.call_assign() != null)
-                return ParseCall(effectContext.call_assign());
+            if (effectContext.expr() != null)
+            {
+                var value = ParseExpr(effectContext.expr());
+                if(value != null)
+                    return new CallInstruction(value);
+            }
+
             if (effectContext.var() != null)
                 return ParseVar(effectContext.var());
             if (effectContext.set() != null)
                 return ParseSet(effectContext.set());
-            if (effectContext.@if() != null)
-                return ParseIf(effectContext.@if());
-            if (effectContext.match() != null)
-                return ParseMatch(effectContext.match());
+           
 
             AddError(ErrorCode.Exception, effectContext, "NULL");
-            return new SetProperty(default, null, false, default);
+            return new SetProperty(default, null, false);
         }
 
         private bool _parsingMatchCase = false;
 
-        private IInstruction ParseMatch(MoiraiParser.MatchContext match)
+        private IValue ParseMatch(MoiraiParser.MatchContext match)
         {
             bool weight = match.MATCH_WEIGHT() != null;
             var values = match.expr().Select(ParseExpr).ToArray();
@@ -416,18 +423,15 @@ public static class StoryParser
         {
             var name = context.VAR_ID();
             DeclareVar(name.GetText(), name.Symbol, out var varIndex);
-            PropertyValue.ValueType type = context.COLON() != null
-                ? ParseType(context.ID() ?? context.TYPE_ID())
-                : default;
             var expr = ParseExpr(context.expr());
-            return new SetProperty(new PropertyPath(varIndex), expr, true, type);
+            return new SetProperty(new PropertyPath(varIndex), expr, true);
         }
 
         private SetProperty ParseSet(MoiraiParser.SetContext context)
         {
             var left = ParsePath(context.path());
             var right = ParseExpr(context.expr()); //, left.Property);
-            return new SetProperty(left, right, false, default);
+            return new SetProperty(left, right, false);
         }
 
         private IValue ParseValue(MoiraiParser.ValueContext value)
@@ -444,36 +448,7 @@ public static class StoryParser
 
             if (value.call() != null)
             {
-                var call = value.call();
-                var funcName = call.ID()?.GetText();
-                switch (funcName)
-                {
-                    case "random":
-                    {
-                        var arg = call.expr(0);
-                        if (arg.value()?.path() != null)
-                        {
-                            if (Enum.TryParse(arg.GetText(), true, out RandomName.NameType nt))
-                                return new RandomName(nt);
-                        }
-                        if (arg.value()?.TYPE_ID() != null)
-                        {
-                            if (!_database.GetEnumDefinition(arg.GetText(), out var enumDef))
-                                return (AddError(ErrorCode.UnknownEnum, arg, arg.GetText()) as IValue)!;
-
-                            return new RandomEnum(enumDef.Index);
-                        }
-
-                        if (arg.value().number() != null)
-                        {
-                        }
-
-                        return (AddError(ErrorCode.MissingArgument, value.call(), value.GetText()) as IValue)!;
-                    }
-                    default:
-                        AddError(ErrorCode.UnknownCall, value, funcName);
-                        return default!;
-                }
+                return ParseCall(value.call());
             }
 
             if (value.path() != null)
@@ -547,12 +522,38 @@ public static class StoryParser
             }
         }
 
-        private IInstruction ParseCall(MoiraiParser.Call_assignContext context)
+        private IValue ParseCall(MoiraiParser.CallContext context)
         {
             var funcName = context.ID().GetText();
+            var varId = context.VAR_ID();
             // functions that do not declare a value
             switch (funcName)
             {
+                case "call":
+                {
+                    var arg = context.expr(0);
+                    string? ruleName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
+                    if (ruleName == null)
+                    {
+                        return (AddError(ErrorCode.MissingArgument, context, "rule name") as IValue)!;
+                    }
+
+                    var ruleIndex = _database.Actions.FindIndex(r => r.Name == ruleName);
+                    if (ruleIndex == -1)
+                    {
+                        return (AddError(ErrorCode.UnknownRule, arg, ruleName) as IValue)!;
+                    }
+
+                    int count = 1;
+                    if (context.expr(1) != null)
+                    {
+                        count = int.Parse(context.expr(1).GetText());
+                    }
+
+                    {
+                        return new CallRule(ruleIndex, count);
+                    }
+                }
                 case "assert":
                     return new AssertInstr(ParseExpr(context.expr(0)), context.expr(0).GetText());
                 case "assert_eq":
@@ -561,7 +562,29 @@ public static class StoryParser
                 case "record":
                     var stringContext = context.expr(0).value().@string();
                     var interpolatedString = ParseInterpolatedString(stringContext.GetString());
-                    return new FormatAction(interpolatedString);
+                    return new Record(interpolatedString);
+                case "random":
+                {
+                    var arg = context.expr(0);
+                    if (arg.value()?.path() != null)
+                    {
+                        if (Enum.TryParse(arg.GetText(), true, out RandomName.NameType nt))
+                            return new RandomName(nt);
+                    }
+                    if (arg.value()?.TYPE_ID() != null)
+                    {
+                        if (!_database.GetEnumDefinition(arg.GetText(), out var enumDef))
+                            return (AddError(ErrorCode.UnknownEnum, arg, arg.GetText()) as IValue)!;
+
+                        return new RandomEnum(enumDef.Index);
+                    }
+
+                    if (arg.value().number() != null)
+                    {
+                    }
+
+                    return (AddError(ErrorCode.MissingArgument, context, context.GetText()) as IValue)!;
+                }
             }
 
             int variableIndex = Math.Max(0, _variables.Count);
@@ -573,8 +596,9 @@ public static class StoryParser
             }
             else
             {
-                if (!DeclareVar('$' + variableIndex.ToString(), context.Start, out variableIndex))
-                    return null;
+                AddError(ErrorCode.MissingVariable, context, funcName);
+                // if (!DeclareVar('$' + variableIndex.ToString(), context.Start, out variableIndex))
+                    // return null;
             }
 
             var instr = MakeInstruction(out var isScoped);
@@ -582,37 +606,11 @@ public static class StoryParser
                 varScope.Cleanup();
             return instr;
 
-            IInstruction MakeInstruction(out bool isScoped)
+            IValue MakeInstruction(out bool isScoped)
             {
                 instr = null!;
                 switch (funcName)
                 {
-                    case "call":
-                    {
-                        isScoped = false;
-                        var arg = context.expr(0);
-                        string? ruleName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
-                        if (ruleName == null)
-                        {
-                            return (AddError(ErrorCode.MissingArgument, context, "rule name") as IInstruction)!;
-                        }
-
-                        var ruleIndex = _database.Actions.FindIndex(r => r.Name == ruleName);
-                        if (ruleIndex == -1)
-                        {
-                            return (AddError(ErrorCode.UnknownRule, arg, ruleName) as IInstruction)!;
-                        }
-
-                        int count = 1;
-                        if (context.expr(1) != null)
-                        {
-                            count = int.Parse(context.expr(1).GetText());
-                        }
-
-                        {
-                            return new CallRule(variableIndex, ruleIndex, count);
-                        }
-                    }
                     case "each":
                     {
                         isScoped = true;
@@ -650,7 +648,7 @@ public static class StoryParser
                         var typeId = _database.GetEntityType(type);
                         if (typeId.Id == EntityTypeId.Null)
                         {
-                            return ((IInstruction)AddError(ErrorCode.UnknownEntityType, context.expr(0), $"'{type}'"))!;
+                            return ((IValue)AddError(ErrorCode.UnknownEntityType, context.expr(0), $"'{type}'"))!;
                         }
 
                         var name = ParseInterpolatedString(context.expr(1)?.GetText().TrimQuotes() ?? "");
@@ -659,7 +657,7 @@ public static class StoryParser
                     }
                     default:
                         isScoped = false;
-                        return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IInstruction)!;
+                        return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
                 }
             }
         }
@@ -710,6 +708,10 @@ public static class StoryParser
 
         public IValue? ParseExpr(MoiraiParser.ExprContext context)
         {
+            if (context.@if() != null)
+                return ParseIf(context.@if());
+            if (context.match() != null)
+                return ParseMatch(context.match());
             if (context.value() != null)
             {
                 return ParseValue(context.value());
@@ -775,7 +777,7 @@ public static class StoryParser
 
         private object AddError(ErrorCode code, ParserRuleContext loc, string msg)
         {
-            Errors.Add(new Error(code, loc, msg));
+            Errors.Add(new Error(code, loc, Parser.TokenStream.GetText(loc) + ": "+ msg));
             // to avoid warnings in a case where the parsing is already compromised
             return null!;
         }

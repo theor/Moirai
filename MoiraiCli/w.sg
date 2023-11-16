@@ -60,20 +60,20 @@ enum GodTypes {
 }
 
 rule create_country country {
-    create Country, '{random CountryName} {random name}'
+    create $c: Country, '{random CountryName} {random name}'
     set prosperity = 5
     set health = CountryHealth.Neutral
     record "{name} is created"
 }
 
 rule create_god  {
-    create God, '{random name}, God of {random GodTypes}'
+    create $g: God, '{random name}, God of {random GodTypes}'
     record "{name} appears"
 }
 @start
 rule create_time {
-    create Time, 'time'
-    set year = 764
+    create $t: Time, 'time'
+    set $t.year = 764
     call create_country, 10
     call create_god, 10
 }
@@ -126,7 +126,7 @@ event inherit death items {
         pick $l: type = Link, $l.parent = $new
         pick $child: type=Person, id = $l.child, alive
         set $i.owner = $l.child
-        var $c = $l.child
+        var $c: $l.child
         record '{$c.name} inherits the {$i.name} from {$new.name}'
     }
 }
@@ -151,7 +151,7 @@ event born {
 
 @1 per 2 year
 rule char_born {
-    var $fname = '{random name}'
+    var $fname: '{random name}'
     create $p: Person, '{$fname} {random name}'
     pick $loc: type = Country
     set $p.alive = true
@@ -274,7 +274,7 @@ rule country_war_start war {
 rule soldier_war_distinction war country {
     each $c: type = Country, war_with != null {
         pick $s: type = Person, alive, job = Job.Soldier, place = $c
-        var $o = $c.war_with
+        var $o: $c.war_with
         random_weighted 100 {
             10 => {
                 set $s.prestige = $s.prestige + 1
@@ -294,7 +294,7 @@ rule soldier_war_distinction war country {
 // rule soldier_war_distinction war country {
 //     each $c: type = Country, war_with != null {
 //         pick $s: type = Person, alive, job = Job.Soldier, place = $c
-//         var $o = $c.war_with
+//         var $o: $c.war_with
 //         record '{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}'
 
 //     }
@@ -303,7 +303,7 @@ rule soldier_war_distinction war country {
 // rule soldier_war_death war {
 //     each $c: type = Country, war_with != null {
 //         pick $s: type = Person, alive, job = Job.Soldier, place = $c
-//         var $o = $c.war_with
+//         var $o: $c.war_with
 //         add_tag $s, #death
 //         record '{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}'
 //         add_tag $c, #prosperity_decrease
@@ -313,7 +313,7 @@ rule soldier_war_distinction war country {
 @1 per 10 year
 rule country_war_peace war country {
     pick $x: type = Country, war_with != null
-    var $y = $x.war_with
+    var $y: $x.war_with
     set $x.war_with = null
     set $y.war_with = null
     record '{$x.name} and {$y.name} sign a peace treaty, ending the war'
@@ -323,7 +323,7 @@ rule country_war_peace war country {
 @1 per 10 year
 rule country_war_win war country {
     pick $x: type = Country, war_with != null
-    var $y = $x.war_with
+    var $y: $x.war_with
     set $x.war_with = null
     set $y.war_with = null
     record '{$x.name} wins the war against {$y.name}'
@@ -338,7 +338,7 @@ rule couple_has_child {
     set $x.children_count = $x.children_count + 1
     set $y.children_count = $y.children_count + 1
     
-    var $fname = '{random name}'
+    var $fname: '{random name}'
     create $c: Person, '{$fname} {$x.first_name}son'
         set $c.alive = true
         set $c.first_name = $fname
@@ -374,7 +374,7 @@ rule paint_item items {
 rule item_lost items {
     pick $i: type=Item, owner != null
     pick $p: id = $i.owner, alive
-    var $prev = $i.owner
+    var $prev: $i.owner
     set $i.owner = null 
     record '{$prev.name} lost the {$i.name}'
 }
@@ -390,7 +390,7 @@ rule item_sold items {
     pick $i: type=Item, owner != null
     pick $s: id = $i.owner, type=Person, alive
     pick $p: type=Person, alive, id != $s
-    var $prev = $i.owner
+    var $prev: $i.owner
     set $i.owner = $p
     record '{$p.name} acquires the {$i.name} from {$prev.name}'
 }
