@@ -22,7 +22,7 @@ public class StoryPrinter
             sb.AppendLine($"tag {en}");
 
         }
-        foreach (EnumDefinition en in _database.Enums.Skip(2))
+        foreach (EnumDefinition en in _database.Enums.Skip(Database.BuiltinEnumCount))
         {
             sb.AppendLine($"enum {en.Name} {{ {string.Join(", ", en.Values)} }}");
 

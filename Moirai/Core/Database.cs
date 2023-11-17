@@ -14,7 +14,8 @@ public class Database
 
     public static Database? Instance;
 
-    public readonly List<EnumDefinition> Enums = new() { default, new EnumDefinition(new EnumDefinitionId(1), "Name", NameEntity.Names.ToList()) };
+    public readonly List<EnumDefinition> Enums = new() { default, new EnumDefinition(new EnumDefinitionId(1), "Name", EntityNames.Names) };
+    public static readonly int BuiltinEnumCount = 2;
     public readonly List<EntityType> Types;
     public readonly List<PropertyDefinition> Properties = DefaultProperties();
     public readonly int BuiltinTypes;

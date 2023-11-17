@@ -54,7 +54,9 @@ public class FunctionDescriptor : IFunctionDescriptor
             return Visitor.ParseScope(CallContext.scope(), autoCleanupVariableDeclarations);
         }
     }
+
     public delegate IValueCall ParseCallDelegate(ParseContext context);
+
     public string FuncName { get; }
     public bool ExpectVariable { get; }
     private readonly ParseCallDelegate _parse;
@@ -66,14 +68,14 @@ public class FunctionDescriptor : IFunctionDescriptor
         _parse = parse;
     }
 
-    public IValueCall Parse(StoryParser.AstVisitor parser,MoiraiParser.CallContext call)
+    public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.CallContext call)
     {
-        var c =  _parse(new ParseContext(parser,call));
+        var c = _parse(new ParseContext(parser, call));
         if (c != null)
             c.FunctionDescriptor = this;
         else
             throw new InvalidOperationException(parser.Parser.TokenStream.GetText(call));
-         return c;
+        return c;
     }
 
 
@@ -90,11 +92,16 @@ public static class StoryParser
         new("create", true, ctx =>
         {
             var typeId = ctx.ParseEntityType();
-            return new CreateEntity(ctx.ParseVariable(), typeId.Id, ctx.Visitor.ParseInterpolatedString(ctx.CallContext.expr(1)?.GetText().TrimQuotes() ?? ""));
+            return new CreateEntity(ctx.ParseVariable(), typeId.Id,
+                ctx.Visitor.ParseInterpolatedString(ctx.CallContext.expr(1)?.GetText().TrimQuotes() ?? ""));
         }),
-        new ("each", true, ctx => new AssignPick(ctx.ParseVariable(), ctx.Visitor.ParsePredicate(ctx.CallContext.expr()), CallType.Each, ctx.ParseScope(true))),
-        new ("pick", true, ctx => new AssignPick(ctx.ParseVariable(), ctx.Visitor.ParsePredicate(ctx.CallContext.expr()), CallType.Pick)),
-        
+        new("each", true,
+            ctx => new AssignPick(ctx.ParseVariable(), ctx.Visitor.ParsePredicate(ctx.CallContext.expr()),
+                CallType.Each, ctx.ParseScope(true))),
+        new("pick", true,
+            ctx => new AssignPick(ctx.ParseVariable(), ctx.Visitor.ParsePredicate(ctx.CallContext.expr()),
+                CallType.Pick)),
+
         new("assert", false, ctx =>
             new AssertInstr(ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)), ctx.GetText(ctx.CallContext.expr(0)))),
         new("assert_eq", false, ctx =>
@@ -102,14 +109,14 @@ public static class StoryParser
                 ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)),
                 ctx.Visitor.ParseExpr(ctx.CallContext.expr(1)),
                 $"{ctx.Visitor.Parser.TokenStream.GetText(ctx.CallContext.expr(0))} = {ctx.GetText(ctx.CallContext.expr(1))}")),
-        
-        new ("record",false, ctx =>
+
+        new("record", false, ctx =>
         {
             var stringContext = ctx.CallContext.expr(0).value().@string();
             var interpolatedString = ctx.Visitor.ParseInterpolatedString(stringContext.GetString());
             return new Record(interpolatedString);
         }),
-        new ("call", false, ctx =>
+        new("call", false, ctx =>
         {
             var arg = ctx.CallContext.expr(0);
             string? ruleName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
@@ -121,7 +128,7 @@ public static class StoryParser
             var ruleIndex = ctx.Visitor._database.Actions.FindIndex(r => r.Name == ruleName);
             if (ruleIndex == -1)
             {
-               ctx.Visitor.AddError(ErrorCode.UnknownRule, arg, ruleName);
+                ctx.Visitor.AddError(ErrorCode.UnknownRule, arg, ruleName);
             }
 
             int count = 1;
@@ -134,11 +141,11 @@ public static class StoryParser
                 return new CallRule(ruleIndex, count);
             }
         }),
-        
-        new ("random", false, ctx =>
+
+        new("random", false, ctx =>
         {
             var arg = ctx.CallContext.expr(0);
-           
+
             if (arg.value()?.TYPE_ID() != null)
             {
                 if (!ctx.Visitor._database.GetEnumDefinition(arg.GetText(), out var enumDef))
@@ -281,7 +288,7 @@ public static class StoryParser
     {
         var lexer = new moirai_lexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
         var tokens = new CommonTokenStream(lexer);
-        
+
         parser = new MoiraiParser(tokens);
         visitor.Parser = parser;
         var listener = new Listener(visitor.Errors);
@@ -447,9 +454,9 @@ public static class StoryParser
             foreach (var effectContext in context.effect())
             {
                 // if (effectContext.comment() != null)
-                    // continue;
+                // continue;
                 var effect = ParseEffect(effectContext);
-                if(effect != null)
+                if (effect != null)
                     action.Effects.Add(effect);
             }
 
@@ -461,7 +468,7 @@ public static class StoryParser
             if (effectContext.expr() != null)
             {
                 var value = ParseExpr(effectContext.expr());
-                if(value != null)
+                if (value != null)
                     return new CallInstruction(value);
             }
 
@@ -469,7 +476,7 @@ public static class StoryParser
                 return ParseVar(effectContext.var());
             if (effectContext.set() != null)
                 return ParseSet(effectContext.set());
-           
+
 
             AddError(ErrorCode.Exception, effectContext, "NULL");
             return new SetProperty(default, null, false);
@@ -530,7 +537,6 @@ public static class StoryParser
                         accWeight += w;
                         weights[i] = (accWeight, instrs);
                     }
-
                 }
                 else
                     cases[i] = (caseValues, instrs);
@@ -662,7 +668,7 @@ public static class StoryParser
 
             public void Dispose()
             {
-                if(_autoCleanup)
+                if (_autoCleanup)
                     Cleanup();
             }
 
@@ -680,141 +686,8 @@ public static class StoryParser
             {
                 return f.Parse(this, context);
             }
+
             return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
-            // functions that do not declare a value
-            switch (funcName)
-            {
-                case "call":
-                {
-                    var arg = context.expr(0);
-                    string? ruleName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
-                    if (ruleName == null)
-                    {
-                        return (AddError(ErrorCode.MissingArgument, context, "rule name") as IValue)!;
-                    }
-
-                    var ruleIndex = _database.Actions.FindIndex(r => r.Name == ruleName);
-                    if (ruleIndex == -1)
-                    {
-                        return (AddError(ErrorCode.UnknownRule, arg, ruleName) as IValue)!;
-                    }
-
-                    int count = 1;
-                    if (context.expr(1) != null)
-                    {
-                        count = int.Parse(context.expr(1).GetText());
-                    }
-
-                    {
-                        return new CallRule(ruleIndex, count);
-                    }
-                }
-                // case "assert":
-                //     return new AssertInstr(ParseExpr(context.expr(0)), context.expr(0).GetText());
-                // case "assert_eq":
-                //     return new AssertInstr(ParseExpr(context.expr(0)), ParseExpr(context.expr(1)),
-                //         context.expr(0).GetText() + " = " + context.expr(1).GetText());
-                // case "record":
-                //     var stringContext = context.expr(0).value().@string();
-                //     var interpolatedString = ParseInterpolatedString(stringContext.GetString());
-                //     return new Record(interpolatedString);
-                case "random":
-                {
-                    var arg = context.expr(0);
-                    // if (arg.value()?.path() != null)
-                    // {
-                    //     if (Enum.TryParse(arg.GetText(), true, out RandomName.NameType nt))
-                    //         return new RandomName(nt);
-                    // }
-                    if (arg.value()?.TYPE_ID() != null)
-                    {
-                        if (!_database.GetEnumDefinition(arg.GetText(), out var enumDef))
-                            return (AddError(ErrorCode.UnknownEnum, arg, arg.GetText()) as IValue)!;
-
-                        return new RandomEnum(enumDef.Index);
-                    }
-
-                    if (arg.value().number() != null)
-                    {
-                    }
-
-                    return (AddError(ErrorCode.MissingArgument, context, context.GetText()) as IValue)!;
-                }
-            }
-
-            int variableIndex = Math.Max(0, _variables.Count);
-            using var varScope = new VariableDeclarationScope(this, false);
-            if (context.VAR_ID() != null)
-            {
-                if (!DeclareVar(context.VAR_ID().GetText(), context.Start, out variableIndex))
-                    return null;
-            }
-            else
-            {
-                AddError(ErrorCode.MissingVariable, context, funcName);
-                // if (!DeclareVar('$' + variableIndex.ToString(), context.Start, out variableIndex))
-                    // return null;
-            }
-
-            var instr = MakeInstruction(out var isScoped);
-            if (isScoped)
-                varScope.Cleanup();
-            return instr;
-
-            IValue MakeInstruction(out bool isScoped)
-            {
-                instr = null!;
-                switch (funcName)
-                {
-                    case "each":
-                    {
-                        isScoped = true;
-                        if (context.scope() == null)
-                            AddError(ErrorCode.MissingEachScope, context, "Missing scope in foreach");
-                        var exprs = context.expr();
-                        var assignPick = new AssignPick(
-                            variableIndex,
-                            exprs.Length == 1
-                                ? ParseExpr(exprs[0])!
-                                : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
-                            CallType.Each,
-                            ParseScope(context.scope(), false));
-                        // _variables[variableIndex] = "";
-                        {
-                            return assignPick;
-                        }
-                    }
-                    case "pick":
-                    {
-                        isScoped = false;
-                        var exprs = context.expr();
-                        {
-                            return new AssignPick(
-                                variableIndex,
-                                exprs.Length == 1
-                                    ? ParseExpr(exprs[0])!
-                                    : new And(exprs.Select(ParseExpr).Where(e => e != null).Cast<IValue>().ToList()),
-                                CallType.Pick);
-                        }
-                    }
-                    case "create":
-                        isScoped = false;
-                        var type = context.expr(0).GetText().TrimQuotes();
-                        var typeId = _database.GetEntityType(type);
-                        if (typeId.Id == EntityTypeId.Null)
-                        {
-                            return ((IValue)AddError(ErrorCode.UnknownEntityType, context.expr(0), $"'{type}'"))!;
-                        }
-
-                        var name = ParseInterpolatedString(context.expr(1)?.GetText().TrimQuotes() ?? "");
-                    {
-                        return new CreateEntity(variableIndex, typeId.Id, name);
-                    }
-                    default:
-                        isScoped = false;
-                        return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
-                }
-            }
         }
 
         public IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext, bool autoCleanupVariableDeclarations)
@@ -932,7 +805,7 @@ public static class StoryParser
 
         public object AddError(ErrorCode code, ParserRuleContext loc, string msg)
         {
-            Errors.Add(new Error(code, loc, Parser.TokenStream.GetText(loc) + ": "+ msg));
+            Errors.Add(new Error(code, loc, Parser.TokenStream.GetText(loc) + ": " + msg));
             // to avoid warnings in a case where the parsing is already compromised
             return null!;
         }

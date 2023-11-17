@@ -1,18 +1,8 @@
 ﻿using Moirai;
 
-static class NameEntity
+static class EntityNames
 {
-    public static string MakeName(PredicateContext ctx, EntityTypeId t)
-    {
-        return GenerateName(ctx, t);
-    }
-
-    public static readonly string[] Items =
-    {
-        "Ring", "Sword", "Spear", "Breastplate", "Greatsword", "Pendant",
-    };
-
-    public static readonly string[] Names =
+    public static readonly List<string> Names = new()
     {
         // ReSharper disable StringLiteralTypo
         "Abraxas", "Adara", "Adrienne", "Aeron", "Aeronwen", "Aeronwy", "Ailbhe", "Aileen", "Aislinn", "Aithne", "Alanna", "Alastair",
@@ -33,24 +23,6 @@ static class NameEntity
         "Zella", "Áine"
         // ReSharper restore StringLiteralTypo
     };
-
-    private static string GenerateName(PredicateContext predicateContext, EntityTypeId t)
-    {
-        var n = Names.RandomIn(predicateContext.Rnd);
-        return n;
-        // switch (t)
-        // {
-        //
-        //     case EntityType.Person:
-        //         return n;
-        //     case EntityType.Item:
-        //         return Items.RandomIn(predicateContext.Rnd) + " of " + n;
-        //     case EntityType.Faction:
-        //         return "Faction of " + n;
-        //     default:
-        //         return t.ToString();
-        // }
-    }
 
     public static T RandomIn<T>(this T[] array, Pcg32 rnd) => array[rnd.GenerateNext((uint)array.Length)];
     public static T RandomIn<T>(this List<T> array, Pcg32 rnd) => array[(int)rnd.GenerateNext((uint)array.Count)];
