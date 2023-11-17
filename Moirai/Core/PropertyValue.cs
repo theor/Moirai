@@ -42,7 +42,8 @@ public struct PropertyValue : IEquatable<PropertyValue>
     public static readonly ValueType TypeNumber = new ValueType(ValueBaseType.Number, 0);
     public static readonly ValueType TypeBool = new ValueType(ValueBaseType.Bool, 0);
     public static readonly ValueType TypeEntityType = new ValueType(ValueBaseType.EntityType, 0);
-    public static ValueType TypeEnum(ushort index) => new ValueType(ValueBaseType.Enum, index);
+    public static ValueType TypeEnumType(EnumDefinitionId ed) => new ValueType(ValueBaseType.EnumType, ed.Id);
+    public static ValueType TypeEnum(EnumDefinitionId index) => new ValueType(ValueBaseType.Enum, index.Id);
 
     public readonly struct ValueType : IEquatable<ValueType>
     {
@@ -91,6 +92,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
         Number,
         Bool,
         Enum,
+        EnumType,
         EntityType
     }
 
@@ -112,6 +114,12 @@ public struct PropertyValue : IEquatable<PropertyValue>
         Value = null,
         IntValue = i.Id,
         Type = TypeEntityType,
+    };
+    public static implicit operator PropertyValue(EnumDefinitionId i) => new PropertyValue
+    {
+        Value = null,
+        IntValue = i.Id,
+        Type = TypeEnumType(i),
     };
     public static implicit operator PropertyValue(long i) => new PropertyValue
     {

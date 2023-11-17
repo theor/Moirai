@@ -12,6 +12,23 @@ public interface IValue
     }
 }
 
+public interface IValueCall : IValue
+{
+    public IFunctionDescriptor FunctionDescriptor { get; set; }
+    string Print(StoryPrinter printer)
+    {
+        return FunctionDescriptor.Print(printer, this);
+    }
+    IEnumerable<IValue> GetArgs();
+}
+
+
+public interface IFunctionDescriptor
+{
+    string FuncName { get; }
+    string Print(StoryPrinter printer, IValueCall valueCallParsed);
+}
+
 public class MatchAnyValue : IValue
 {
     private MatchAnyValue(){}

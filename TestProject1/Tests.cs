@@ -129,7 +129,7 @@ rule r {
 entity Person {}
 prop alive: bool
 rule born_char {
-    create $p: Person, '{random name}'
+    create $p: Person, '{random Name}'
     set $p.alive = true
     assert $p.alive = true
 }
@@ -160,7 +160,7 @@ rule born_char {
 entity Person {}
 prop alive: number
 rule born_char {
-    create $p: Person, '{random name}'
+    create $p: Person, '{random Name}'
 }
 @start rule init {
     call born_char, 10
@@ -579,11 +579,11 @@ entity Faction {
 }
 prop owner: ref
 rule create_faction {
-    create $f: Faction, 'Faction of {random name}'
+    create $f: Faction, 'Faction of {random Name}'
     create $g: Faction
-    set $g.name = 'Circle of {random name}'
+    set $g.name = 'Circle of {random Name}'
     create $p: Person
-    set $p.name = '{random name}'
+    set $p.name = '{random Name}'
     set $f.owner = $p
     record '{$p.name} creates the {$f.name} to counter the {$g.name}'
     assert_eq '{$p.name} creates the {$f.name} to counter the {$g.name}', 'River creates the Faction of Cerelia to counter the Circle of Hecate'
@@ -604,7 +604,7 @@ entity Person {
 }
 prop owner: ref
 rule create_faction {
-    create $p: Person, '{random name}-{random name} of {random name}'
+    create $p: Person, '{random Name}-{random Name} of {random Name}'
     assert_eq $p.name, 'Cerelia-Hecate of River'
 }";
         var db = Run(s, out var errors);

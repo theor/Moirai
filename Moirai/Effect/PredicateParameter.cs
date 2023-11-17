@@ -1,4 +1,5 @@
-﻿using Moirai.Core;
+﻿using Microsoft.VisualBasic;
+using Moirai.Core;
 
 public struct Literal : IValue
 {
@@ -94,7 +95,7 @@ public struct PropertyPath : IValue
 }
 
 
-public struct AssertInstr : IValue
+public struct AssertInstr : IValueCall
 {
     public enum AssertMode
     {
@@ -136,18 +137,37 @@ public struct AssertInstr : IValue
         }
         return true;
     }
+
+    public IFunctionDescriptor FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs()
+    {
+        switch (Mode)
+        {
+            case AssertMode.True:
+                yield return Value;
+                yield return new Literal(Message);
+                break;
+            case AssertMode.Eq:
+                yield return Value;
+                yield return Right!;
+                yield return new Literal(Message);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+    }
 }
 
-public struct RandomEnum : IValue
+public struct RandomEnum : IValueCall
 {
-    public readonly ushort EnumID;
-    public RandomEnum(ushort enumId)
+    public readonly EnumDefinitionId EnumID;
+    public RandomEnum(EnumDefinitionId enumId)
     {
         EnumID = enumId;
     }
     public PropertyValue Compute(PredicateContext ctx)
     {
-        var def = ctx.Database.Enums[EnumID];
+        var def = ctx.Database.Enums[EnumID.Id];
         return def.GetRandomValue(ctx.Rnd);
     }
     public bool HasTypeFilter(out EntityTypeId type)
@@ -159,33 +179,11 @@ public struct RandomEnum : IValue
     {
         return Compute(ctx).ToSql();
     }
-}
 
-public struct RandomName : IValue
-{
-    public enum NameType
+    public IFunctionDescriptor FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs()
     {
-        Name,
-        Item
-    }
-
-    public readonly NameType Type;
-    public RandomName(NameType type)
-    {
-        Type = type;
-    }
-    public PropertyValue Compute(PredicateContext ctx)
-    {
-        return Type == NameType.Name ? NameEntity.Names.RandomIn(ctx.Rnd) : NameEntity.Items.RandomIn(ctx.Rnd);
-    }
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
-    }
-    public string ToSql(PredicateContext ctx)
-    {
-        return Compute(ctx).ToSql();
+        yield return new Literal(EnumID);
     }
 }
 
@@ -197,7 +195,7 @@ public enum CallType
     Each,
 }
 
-public struct CallRule : IValue
+public struct CallRule : IValueCall
 {
     public readonly int RuleIndex;
     public readonly int Count;
@@ -222,6 +220,13 @@ public struct CallRule : IValue
             }
         return ctxLastValue;
     }
+
+    public IFunctionDescriptor FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs()
+    {
+        yield return new Literal(RuleIndex);
+        yield return new Literal(Count);
+    }
 }
 
 public struct CallInstruction : IInstruction
@@ -239,7 +244,7 @@ public struct CallInstruction : IInstruction
     }
 }
 
-public struct AssignPick : IValue
+public struct AssignPick : IValueCall
 {
     public readonly int VariableIndex;
     public readonly IValue Value;
@@ -301,6 +306,20 @@ public struct AssignPick : IValue
             }
             default:
                 throw new ArgumentOutOfRangeException(CallType.ToString());
+        }
+    }
+
+    public IFunctionDescriptor FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs()
+    {
+        switch (CallType)
+        {
+            case CallType.Pick:
+            case CallType.Each:
+                yield return Value;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 }

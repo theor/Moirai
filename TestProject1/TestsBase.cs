@@ -23,9 +23,17 @@ public class TestsBase
         )));
         var db = StoryParser.Parse(s, out errors);
 
-        var printed = db.Printer.Print();
-        Console.WriteLine("### REPRINT");
-        Console.WriteLine(printed);
+        string printed = "";
+        try
+        {
+            printed = db.Printer.Print();
+            Console.WriteLine("### REPRINT");
+            Console.WriteLine(printed);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
         Assert.AreEqual(errorCount, errors.Count, string.Join("\n", errors));
         if (errorCount == 0)
         {

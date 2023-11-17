@@ -140,7 +140,7 @@ public class If : IValue
     }
 }
 
-public class Record : IValue
+public class Record : IValueCall
 {
     public InterpolatedString String;
 
@@ -155,9 +155,15 @@ public class Record : IValue
             ctx.Database.CurrentChangeset.Categories);
         return true;
     }
+
+    public IFunctionDescriptor FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs()
+    {
+        yield return String;
+    }
 }
 
-public class CreateEntity : IValue
+public class CreateEntity : IValueCall
 {
     public readonly int VariableIndex;
     public readonly EntityTypeId Type;
@@ -182,5 +188,12 @@ public class CreateEntity : IValue
         var entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
         return entity;
+    }
+
+    public IFunctionDescriptor FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs()
+    {
+        yield return new Literal(Type);
+        yield return Name;
     }
 }

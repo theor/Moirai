@@ -22,7 +22,7 @@ public class StoryPrinter
             sb.AppendLine($"tag {en}");
 
         }
-        foreach (EnumDefinition en in _database.Enums.Skip(1))
+        foreach (EnumDefinition en in _database.Enums.Skip(2))
         {
             sb.AppendLine($"enum {en.Name} {{ {string.Join(", ", en.Values)} }}");
 
@@ -286,9 +286,7 @@ public class StoryPrinter
             case PropertyPath path:
                 return Print(path);
             case RandomEnum rnd:
-                return "random " + _database.Enums[rnd.EnumID].Name;
-            case RandomName rnd:
-                return "random " + rnd.Type.ToString().ToLowerInvariant();
+                return "random " + _database.Enums[rnd.EnumID.Id].Name;
            
             case And and:
                 return string.Join(", ", and.Predicates.Select(Print));
@@ -316,7 +314,8 @@ public class StoryPrinter
             // case True @true:
             // break;
             default:
-                throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
+                return "// !!!!!!!!!!!";
+                // throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
 
         }
 

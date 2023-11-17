@@ -15,6 +15,7 @@ enum Job {
     Prince, King,
 }
 enum Age { Child, Young, Adult, Old }
+enum Item { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
 enum ItemType { Forged, Painted, Sculpted }
 enum CountryHealth { Disarray, Recession, Neutral, Emerging, Prosperous }
 
@@ -60,14 +61,14 @@ enum GodTypes {
 }
 
 rule create_country country {
-    create $c: Country, '{random CountryName} {random name}'
+    create $c: Country, '{random CountryName} {random Name}'
     set prosperity = 5
     set health = CountryHealth.Neutral
     record "{name} is created"
 }
 
 rule create_god  {
-    create $g: God, '{random name}, God of {random GodTypes}'
+    create $g: God, '{random Name}, God of {random GodTypes}'
     record "{name} appears"
 }
 @start
@@ -151,8 +152,8 @@ event born {
 
 @1 per 2 year
 rule char_born {
-    var $fname: '{random name}'
-    create $p: Person, '{$fname} {random name}'
+    var $fname: '{random Name}'
+    create $p: Person, '{$fname} {random Name}'
     pick $loc: type = Country
     set $p.alive = true
     set $p.first_name = $fname
@@ -338,7 +339,7 @@ rule couple_has_child {
     set $x.children_count = $x.children_count + 1
     set $y.children_count = $y.children_count + 1
     
-    var $fname: '{random name}'
+    var $fname: '{random Name}'
     create $c: Person, '{$fname} {$x.first_name}son'
         set $c.alive = true
         set $c.first_name = $fname
@@ -356,7 +357,7 @@ rule couple_has_child {
 @1 per 2 year
 rule make_item items {
     pick $p: type=Person, alive = true, job=Job.Smith, age > Age.Child
-    create $i: Item, '{random item} of {random name}'
+    create $i: Item, '{random Item} of {random Name}'
     set $i.item_type = ItemType.Forged
     set $i.owner = $p
     record '{$p.name} crafts the {$i.name}'
@@ -397,7 +398,7 @@ rule item_sold items {
 @1 per 20 year
 rule create_faction {
     pick $p: type=Person, alive, faction = null, age > Age.Child
-    create $f: Faction, 'Faction of {random name}'
+    create $f: Faction, 'Faction of {random Name}'
     set $f.owner = $p
     set $p.faction = $f
     record '{$p.name} creates the {$f.name}'
