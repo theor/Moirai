@@ -125,7 +125,7 @@ public class WorldHistoryView : View
                 var content = str.Substring(startClose + 1, endOpen - startClose - 1);
     
                 // add link tag
-                var entityId = new EntityId(long.Parse(id));
+                var entityId = new EntityId(uint.Parse(id));
                 if(_w.Current.Id == entityId.Id)
                     driver.SetAttribute(container.ColorScheme.Disabled);
                 else

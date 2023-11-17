@@ -14,12 +14,13 @@ public interface IValue
 
 public interface IValueCall : IValue
 {
-    public IFunctionDescriptor FunctionDescriptor { get; set; }
+    public IFunctionDescriptor? FunctionDescriptor { get; set; }
+    int? VariableIndex => null;
     string Print(StoryPrinter printer)
     {
-        return FunctionDescriptor.Print(printer, this);
+        return FunctionDescriptor?.Print(printer, this) ?? "";
     }
-    IEnumerable<IValue> GetArgs();
+    IEnumerable<IValue> GetArgs(StoryPrinter printer);
 }
 
 

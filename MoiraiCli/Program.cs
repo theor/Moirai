@@ -147,7 +147,7 @@ internal class Program
             else if (line.StartsWith("p"))
             {
                 foreach (var id in line.Substring(1).Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                             .Select(long.Parse))
+                             .Select(uint.Parse))
                 {
                     if (db.TryGetEntity(new EntityId(id), out var e))
                         db.Printer.PrintEntity(e);

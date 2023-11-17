@@ -31,21 +31,21 @@
             case Operator.NotEquals:
                 return left != right;
             case Operator.Add:
-                return left.IntValue + right.IntValue;
+                return left.FloatValue + right.FloatValue;
             case Operator.Sub:
-                return left.IntValue - right.IntValue;
+                return left.FloatValue - right.FloatValue;
             case Operator.Div:
-                return left.IntValue / right.IntValue;
+                return left.FloatValue / right.FloatValue;
             case Operator.Mul:
-                return left.IntValue * right.IntValue;
+                return left.FloatValue * right.FloatValue;
             case Operator.Gt:
-                return left.IntValue > right.IntValue;
+                return left.FloatValue > right.FloatValue;
             case Operator.Lt:
-                return left.IntValue < right.IntValue;
+                return left.FloatValue < right.FloatValue;
             case Operator.Ge:
-                return left.IntValue >= right.IntValue;
+                return left.FloatValue >= right.FloatValue;
             case Operator.Le:
-                return left.IntValue <= right.IntValue;
+                return left.FloatValue <= right.FloatValue;
             default:
                 throw new ArgumentOutOfRangeException();
         }

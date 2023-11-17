@@ -81,7 +81,7 @@ public class FunctionDescriptor : IFunctionDescriptor
 
     public string Print(StoryPrinter printer, IValueCall call)
     {
-        return $"{FuncName} {string.Join(", ", call.GetArgs().Select(a => printer.Print(a)))}";
+        return $"{FuncName}{(call.VariableIndex.HasValue ? $" ${call.VariableIndex.Value}:" : "")} {string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))}";
     }
 }
 
@@ -161,6 +161,10 @@ public static class StoryParser
             ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, ctx.GetText(ctx.CallContext));
             return null!;
         }),
+        new FunctionDescriptor("floor", false, ctx => new MathUnary(MathUnary.UnaryFunction.Floor, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new FunctionDescriptor("round", false, ctx => new MathUnary(MathUnary.UnaryFunction.Round, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new FunctionDescriptor("ceiling", false, ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new FunctionDescriptor("clamp01", false, ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
     };
 
     public interface IVisitor
@@ -347,6 +351,7 @@ public static class StoryParser
                 case "bool": return PropertyValue.TypeBool;
                 case "ref": return PropertyValue.TypeRef;
                 case "number": return PropertyValue.TypeNumber;
+                case "float": return PropertyValue.TypeFloat;
                 case "string": return PropertyValue.TypeString;
                 default:
                     if (_database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
@@ -618,7 +623,11 @@ public static class StoryParser
             if (value.NULL() != null)
                 return new Literal(EntityId.Null);
             if (value.number() != null)
+            {
+                if (value.number().NUMBER_FLOAT() != null)
+                    return new Literal(float.Parse(value.number().NUMBER_FLOAT().GetText()));
                 return new Literal(int.Parse(value.number().GetText()));
+            }
             if (value.@bool() != null)
                 return new Literal(value.@bool().TRUE() != null);
 

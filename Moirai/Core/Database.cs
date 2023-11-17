@@ -97,7 +97,7 @@ public class Database
             e.SetProperty(PropName, name);
         }
 
-        e.Id = new EntityId(_entities.Count);
+        e.Id = new EntityId((uint)_entities.Count);
         _entities.Add(e);
         // PerTypeIndices[(int)entityType.Id].Add(e.Id);
         // TODO CS
@@ -175,7 +175,7 @@ WHERE id = $id;";
         {
             if (value.Type.BaseType != PropertyValue.ValueBaseType.Enum)
             {
-                value = new PropertyValue { Type = Enums[type.Index].ValueType, IntValue = value.IntValue };
+                value = new PropertyValue(Enums[type.Index].ValueType,  value.IntValue);
             }
         }
 
@@ -323,7 +323,7 @@ WHERE id = $id;";
         return true;
     }
 
-    internal static readonly EntityId ChangePrevEntityId = new EntityId(Int64.MaxValue - 1);
+    internal static readonly EntityId ChangePrevEntityId = new EntityId(uint.MaxValue - 1);
     internal static int EventAttemptCount;
     internal static int EventAttemptSuccess;
     private void RunEvents(Changeset cs)
@@ -402,6 +402,8 @@ WHERE id = $id;";
             case PropertyValue.ValueBaseType.Enum:
             case PropertyValue.ValueBaseType.EntityType:
                 return "INTEGER DEFAULT 0";
+            case PropertyValue.ValueBaseType.Float:
+                return "REAL DEFAULT 0";
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -476,7 +478,7 @@ SELECT id FROM entity WHERE " + sql;
         // Console.WriteLine(cmd.CommandText);
         var r = cmd.ExecuteReader();
         while (r.Read())
-            results.Add(new EntityId(r.GetInt64(0)));
+            results.Add(new EntityId((uint)r.GetInt32(0)));
         return true;
     }
 

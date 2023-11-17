@@ -50,6 +50,7 @@ PROP_ID: '%' [a-z][a-z_]*;
 AT : '@' ;
 TYPE_ID : ALPHA_UPPER (ALPHA|'_')* ;
 ID : (ALPHA_LOWER|'_') (ALPHA|'_'|DIGIT)* ;
+NUMBER_FLOAT: DIGIT+'.'DIGIT+ ;
 NUMBER: DIGIT+ ;
 fragment
 DIGIT   :   ('0'..'9');

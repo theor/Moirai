@@ -58,7 +58,7 @@ public class EntityList : View
             },
         };
         _tableView.SelectedRow = -1;
-        _tableView.SelectedCellChanged += e => { _w.SelectEntity(new EntityId(e.NewRow+1)); };
+        _tableView.SelectedCellChanged += e => { _w.SelectEntity(new EntityId((uint)(e.NewRow+1))); };
         // var typeStyle = _tableView.Style.GetOrCreateColumnStyle(_tableView.Table.Columns[1]);
         // typeStyle.ColorGetter = e =>
         // {

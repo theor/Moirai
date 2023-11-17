@@ -45,4 +45,4 @@ string: STRING ;
 bool: TRUE | FALSE;
 path : (SINGLETON_ID | VAR_ID) (DOT ID)* | ID;
 enum_value: TYPE_ID DOT TYPE_ID ;
-number: NUMBER;
+number: NUMBER_FLOAT | NUMBER;

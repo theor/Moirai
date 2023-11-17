@@ -156,8 +156,8 @@ public class Record : IValueCall
         return true;
     }
 
-    public IFunctionDescriptor FunctionDescriptor { get; set; }
-    public IEnumerable<IValue> GetArgs()
+    public IFunctionDescriptor? FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
         yield return String;
     }
@@ -190,8 +190,9 @@ public class CreateEntity : IValueCall
         return entity;
     }
 
-    public IFunctionDescriptor FunctionDescriptor { get; set; }
-    public IEnumerable<IValue> GetArgs()
+    int? IValueCall.VariableIndex => VariableIndex;
+    public IFunctionDescriptor? FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
         yield return new Literal(Type);
         yield return Name;

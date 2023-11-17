@@ -10,7 +10,7 @@ public class TestsBase
         var printed = db.Printer.Print();
         Console.WriteLine("### REPRINT");
         Console.WriteLine(printed);
-        Assert.AreEqual(0, errors.Count, string.Join("\n", errors));
+        Assert.That(errors.Count, Is.EqualTo(0), string.Join("\n", errors));
         assertReprintedCode(printed);
         db.Init();
         return db;
@@ -34,15 +34,15 @@ public class TestsBase
         {
             Console.WriteLine(e);
         }
-        Assert.AreEqual(errorCount, errors.Count, string.Join("\n", errors));
+        Assert.That(errors.Count, Is.EqualTo(errorCount), string.Join("\n", errors));
         if (errorCount == 0)
         {
             var reparsed = StoryParser.Parse(printed, out var errors2);
-            Assert.AreEqual(errorCount, errors2.Count, "During reparse: " + string.Join(", ", errors2));
+            Assert.That(errors2.Count, Is.EqualTo(errorCount), "During reparse: " + string.Join(", ", errors2));
             // Console.WriteLine("### REPRINT 2");
             var print2 = reparsed.Printer.Print();
             // Console.WriteLine(print2);
-            Assert.AreEqual(printed, print2);
+            Assert.That(print2, Is.EqualTo(printed));
         }
 
         db.Init();

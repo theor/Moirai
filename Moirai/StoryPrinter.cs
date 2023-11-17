@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using Moirai.Core;
 
@@ -72,6 +73,7 @@ public class StoryPrinter
             case PropertyValue.ValueBaseType.None:
             case PropertyValue.ValueBaseType.String:
             case PropertyValue.ValueBaseType.Number:
+            case PropertyValue.ValueBaseType.Float:
             case PropertyValue.ValueBaseType.Bool:
                 return propertyType.BaseType.ToString().ToLowerInvariant();
             case PropertyValue.ValueBaseType.Enum:
@@ -94,7 +96,7 @@ public class StoryPrinter
         {
             case CallInstruction call:
                 
-                sb.Append(Print(call.Value, indent));
+                sb.Append(Print(call.Value, indent) + Environment.NewLine);
                 break;
             case SetProperty setProperty:
                 sb.AppendLine(
@@ -137,9 +139,18 @@ public class StoryPrinter
         switch (value.Type.BaseType)
         {
             case PropertyValue.ValueBaseType.Enum:
+            {
                 var e = _database.Enums[value.Type.Index];
                 if (value.IntValue == 0) return "null";
-                return (storyMode & History.HistoryMode.Story) != 0 ? e.FormattedValues[(int)value.IntValue-1] : $"{e.Name}.{e.Values[(int)value.IntValue-1]}";
+                return (storyMode & History.HistoryMode.Story) != 0
+                    ? e.FormattedValues[(int)value.IntValue - 1]
+                    : $"{e.Name}.{e.Values[(int)value.IntValue - 1]}";
+            }
+            case PropertyValue.ValueBaseType.EnumType:
+            {
+                var e = _database.Enums[value.Type.Index];
+                return e.Name;
+            }
             case PropertyValue.ValueBaseType.None:
                 return "null";
             case PropertyValue.ValueBaseType.String:
@@ -152,6 +163,8 @@ public class StoryPrinter
                 return "#" + value.IntValue;
             case PropertyValue.ValueBaseType.Number:
                 return value.IntValue.ToString();
+            case PropertyValue.ValueBaseType.Float:
+                return value.FloatValue.ToString(CultureInfo.InvariantCulture);
             case PropertyValue.ValueBaseType.Bool:
                 return value.BoolValue ? "true" : "false";
             case PropertyValue.ValueBaseType.EntityType:
@@ -165,7 +178,12 @@ public class StoryPrinter
     public string Print(IValue value, int indent = 0)
     {
         string indentStr = indent == 0 ? String.Empty : new string(' ', indent * 4);
+        if (value is IValueCall call)
+        {
+            return indentStr + call.Print(this);
+        }
         StringBuilder sb = new StringBuilder();
+        
         switch (value)
         {
             case CreateEntity createEntity:
@@ -191,8 +209,8 @@ public class StoryPrinter
             case Record formatAction:
                 sb.AppendLine($"{indentStr}record {Print(formatAction.String)}");
                 break;
-            case CallRule call:
-                sb.AppendLine( $"{indentStr}call " + _database.Actions[call.RuleIndex].Name);
+            case CallRule callRule:
+                sb.AppendLine( $"{indentStr}callRule " + _database.Actions[callRule.RuleIndex].Name);
                 break;
             case AssertInstr assert:
                 switch (assert.Mode)
@@ -399,4 +417,6 @@ public class StoryPrinter
         }).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
     }
+
+    public string GetRuleName(int ruleIndex) => _database.Actions[ruleIndex].Name;
 }

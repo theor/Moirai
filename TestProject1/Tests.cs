@@ -43,6 +43,29 @@ rule r {
 ");
 
     [Test]
+    public void Float_Add() => RunAssert(@"
+entity Person {}
+prop f: float
+rule r {
+    create $p: Person
+    set $p.f = 2.1 + 3.2
+    assert $p.f = 5.3
+}
+");
+
+
+    [Test]
+    public void Float_Floor() => RunAssert(@"
+entity Person {}
+prop f: float
+rule r {
+    create $p: Person
+    set $p.f = floor(2.1 + 3.2)
+    assert $p.f = 5
+}
+");
+
+    [Test]
     public void Int_AddMul_Precedence() => RunAssert(@"
 entity Person {}
 prop f: number

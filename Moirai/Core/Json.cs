@@ -7,7 +7,7 @@ internal class EntityIdConverter : JsonConverter<EntityId>
 {
     public override EntityId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        return new EntityId(reader.GetInt64());
+        return new EntityId((uint)reader.GetInt64());
     }
     public override void Write(Utf8JsonWriter writer, EntityId value, JsonSerializerOptions options)
     {
