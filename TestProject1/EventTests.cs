@@ -23,7 +23,7 @@ rule die {
 }
 
 event on_death {
-    when $new.alive = false
+    when Person, $new.alive = false
 
     set test = true
     record 'event on {$new}'
@@ -66,13 +66,13 @@ rule die {
 }
 
 event on_death {
-    when $new.x = 2, $old.x = 1
+    when Person, $new.x = 2, $old.x = 1
 
     set test = 10
     record 'event on {$new}'
 }
 event on_death2 {
-    when $new.x = 2, $old.x = 3
+    when Person, $new.x = 2, $old.x = 3
 
     set test = 20
     record 'event on {$new}'
@@ -107,7 +107,7 @@ prop parent: Person
 prop owner: ref
 
 event inherit {
-    when $new.type = Person, $new.alive = false
+    when Person, $new.alive = false
     each $i: type = Item, owner = $new {
         pick $l: type = Link, $l.parent = $new 
         pick $c: type = Person, alive = true, id = $l.child

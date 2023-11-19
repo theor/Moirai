@@ -207,10 +207,10 @@ public class MoiraiCache {
         _logger.LogCritical("GetContent: NOT SAME URI");
             return "";
     }
-    public void GetSymbols(DocumentUri uri, SemanticTokensBuilder builder)
+    public void GetSemanticTokens(DocumentUri uri, SemanticTokensBuilder builder)
     {
         if (_cache.TryGetValue(uri, out var doc))
-            foreach (var symbol in doc.Symbols)
+            foreach (var symbol in doc.SemanticTokens)
             {
                 builder.Push(symbol.range, symbol.type, symbol.modifiers);
           
@@ -257,6 +257,14 @@ public class MoiraiCache {
     {
         _cache.Remove(notification.TextDocument.Uri);
     }
+
+    public SymbolInformationOrDocumentSymbolContainer? GetSymbols(DocumentSymbolParams request)
+    {
+        if (!_cache.TryGetValue(request.TextDocument.Uri, out var doc))
+            return null;
+
+        return doc.Symbols;
+    }
 }
 
 internal class MoiraiDocument
@@ -265,9 +273,10 @@ internal class MoiraiDocument
     private string _content;
     public string Content => _content;
     public int Version;
-    public List<(Range range, SemanticTokenType type, string[] modifiers)> Symbols { get; set; } = new();
+    public List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens { get; set; } = new();
     public List<StoryParser.Error> Errors = new();
     public List<(Range, Range)> Locations = new();
+    public SymbolInformationOrDocumentSymbolContainer? Symbols;
 
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
     {
@@ -287,14 +296,15 @@ internal class MoiraiDocument
     {
         try
         {
-            var visitor = new TokenVisitor( logger);
+            var visitor = new TokenVisitor( logger, DocumentUri);
         
             StoryParser.SetupParser(Content, out var parser, visitor);
             var r = parser.r();
             r.Accept(visitor);
             Errors = visitor.Errors;
-            Symbols = visitor.Symbols;
+            SemanticTokens = visitor.SemanticTokens;
             Locations = visitor.Locations;
+            Symbols = visitor.Symbols;
        
             var db = new Database();
             var astVisitor = new StoryParser.AstVisitor(db);

@@ -15,8 +15,8 @@ enum Job {
     Prince, King,
 }
 enum Age { Child, Young, Adult, Old }
-enum Item { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
-enum ItemType { Forged, Painted, Sculpted }
+enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
+enum ItemSource { Forged, Painted, Sculpted }
 enum CountryHealth { Disarray, Recession, Neutral, Emerging, Prosperous }
 
 prop age: Age
@@ -25,7 +25,7 @@ prop alive: bool
 prop birthdate: number
 prop prestige: number
 prop deathdate: number
-prop children_count: number
+prop last_child: number
 prop partner: Person
 prop war_with: Country
 prop god: God
@@ -33,7 +33,7 @@ prop faction: Faction
 prop birthplace: Country
 prop place: Country
 prop job: Job
-prop item_type: ItemType
+prop item_type: ItemSource
 prop prosperity: number
 prop health : CountryHealth
 
@@ -80,11 +80,11 @@ rule create_time {
 }
 
 event country_prosperity_increase country_events {
-    when type = Country, prosperity >= 10
+    when Country, prosperity >= 10
     set $new.prosperity = 10
 }
 event country_prosperity_decrease country_events {
-    when type = Country, prosperity < 1
+    when Country, prosperity < 1
     set $new.prosperity = 1
 }
 
@@ -120,12 +120,13 @@ rule country_prosperity country_events {
 }
 
 event inherit death items {
-    when type = Person, alive = false
+    when Person, alive = false, $old.alive
     // record '{$new.name} died'
     set $new.deathdate = #Time.year
     each $i: type = Item, owner = $new {
         pick $l: type = Link, $l.parent = $new
-        pick $child: type=Person, id = $l.child, alive
+        var $child: $l.child
+        // pick $child: type=Person, id = $l.child, alive
         set $i.owner = $l.child
         var $c: $l.child
         record '{$c.name} inherits the {$i.name} from {$new.name}'
@@ -133,16 +134,18 @@ event inherit death items {
 }
 
 event buries_children death {
-    when type = Person, alive = false
+    when Person, alive = false, $old.alive
     
     each $l: type = Link, $l.child = $new {
-        pick $parent: type=Person, alive, id = $l.parent
+        var $parent: $l.parent
         record '++ {$parent.name} buries their child, {$new.name}'
     }
 }
 
 event born {
-    when type = Person, $old = null
+    when_created Person
+    // record '!!! BORN {$new.birthdate} {#Time.year}'
+    // assert_eq $new.birthdate, null
     set $new.alive = true
     set $new.age = Age.Child
     set $new.birthdate = #Time.year
@@ -332,33 +335,35 @@ rule country_war_win war country {
     set $x.prosperity =  $x.prosperity + 3
     set $y.prosperity =  $y.prosperity - 1
 }
-@4 per 1 year
+@2 per 1 year
 rule couple_has_child {
-    pick $x: type = Person, alive = true, partner != null, children_count < 4
-    pick $y: id = $x.partner, alive
-    set $x.children_count = $x.children_count + 1
-    set $y.children_count = $y.children_count + 1
-    
-    var $fname: '{random Name}'
-    create $c: Person, '{$fname} {$x.first_name}son'
-        set $c.alive = true
-        set $c.first_name = $fname
-        set $c.birthplace = $x.place
-        set $c.god = $x.god
-    create $l1: Link
-        set $l1.parent = $x
-        set $l1.child = $c
-    create $l2: Link
-        set $l2.parent = $y
-        set $l2.child = $c
-    
-    record '{$x.name} and {$y.name} have a child, {$c.name}'
+    pick $x: type = Person, alive = true, age < Age.Old, partner != null, #Time.year - last_child > 4 
+    var $y: $x.partner
+    if $y.alive {
+        set $x.last_child = #Time.year
+        set $y.last_child = #Time.year
+        
+        var $fname: '{random Name}'
+        create $c: Person, '{$fname} {$x.first_name}son'
+            set $c.alive = true
+            set $c.first_name = $fname
+            set $c.birthplace = $x.place
+            set $c.god = $x.god
+        create $l1: Link
+            set $l1.parent = $x
+            set $l1.child = $c
+        create $l2: Link
+            set $l2.parent = $y
+            set $l2.child = $c
+        
+        record '{$x.name} and {$y.name} have a child, {$c.name}'
+    }
 }
 @1 per 2 year
 rule make_item items {
     pick $p: type=Person, alive = true, job=Job.Smith, age > Age.Child
-    create $i: Item, '{random Item} of {random Name}'
-    set $i.item_type = ItemType.Forged
+    create $i: Item, '{random ItemType} of {random Name}'
+    set $i.item_type = ItemSource.Forged
     set $i.owner = $p
     record '{$p.name} crafts the {$i.name}'
 }
@@ -367,7 +372,7 @@ rule paint_item items {
     pick $p: type=Person, alive = true, job=Job.Painter, age > Age.Child
     pick $t: type=Person, alive = true, id != $p
     create $i: Item, 'Portrait of {$t.name}'
-    set $i.item_type = ItemType.Painted
+    set $i.item_type = ItemSource.Painted
     set $i.owner = $p
     record '{$p.name} paints the {$i.name}'
 }

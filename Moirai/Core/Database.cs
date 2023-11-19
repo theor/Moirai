@@ -328,7 +328,7 @@ WHERE id = $id;";
     internal static int EventAttemptSuccess;
     private void RunEvents(Changeset cs)
     {
-        foreach (var changed in cs.Changes)
+        foreach (Changeset.Changed changed in cs.Changes)
         {
             _ctx.PrevEntity = changed.Prev;
             // Console.ForegroundColor = ConsoleColor.Yellow;
@@ -336,34 +336,45 @@ WHERE id = $id;";
             // Console.ResetColor();
             foreach (var @event in Events)
             {
+                // if entity created but event is on change
+                if(changed.Prev.Id.IsNull == (@event.When.Item1 == Action.WhenType.Changed))
+                    continue;
                 // if (!@event.WhenTags.Contains(tag))
                 //     continue;
                 EventAttemptCount++;
                 using (var s = _ctx.RunScope())
                 {
-                    // $old value
-                    _ctx.SetArgument(0, ChangePrevEntityId);
-                    // $new value
-                    _ctx.SetArgument(1, changed.New.Id);
                     
-                    if (@event.Whens.All(p => p.IsTrue(_ctx)))
+                    
+                    if (@event.When.Item2 == changed.New.Type)
                     {
-                        EventAttemptSuccess++;
-                        // Console.WriteLine("  @ " + @event.Name);
-                        CurrentChangeset = new(CurrentChangeset.Id, @event.Name, _ctx.Year, @event.Categories);
-                        // using (var s2 = _ctx.RunScope())
+                        // $old value
+                        int varIdx = 0;
+                    
+                        if (@event.When.Item1 == Action.WhenType.Changed)
+                            _ctx.SetArgument(varIdx++, ChangePrevEntityId);
+                        // $new value
+                        _ctx.SetArgument(varIdx, changed.New.Id);
+                        
+                        if (@event.When.Item3 == null || @event.When.Item3.IsTrue(_ctx))
                         {
-                            foreach (var e in @event.Effects)
+                            EventAttemptSuccess++;
+                            // Console.WriteLine("  @ " + @event.Name);
+                            CurrentChangeset = new(CurrentChangeset.Id, @event.Name, _ctx.Year, @event.Categories);
+                            // using (var s2 = _ctx.RunScope())
                             {
-                                if (!e.Execute(_ctx))
+                                foreach (var e in @event.Effects)
                                 {
-                                    // continue;
-                                    break;
+                                    if (!e.Execute(_ctx))
+                                    {
+                                        // continue;
+                                        break;
+                                    }
                                 }
                             }
+                            if (CurrentChangeset.Changes.Any())
+                                History?.Changesets?.Add(CurrentChangeset);
                         }
-                        if (CurrentChangeset.Changes.Any())
-                            History?.Changesets?.Add(CurrentChangeset);
                     }
                 }
             }

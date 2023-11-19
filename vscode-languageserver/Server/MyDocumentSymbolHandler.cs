@@ -20,40 +20,10 @@ internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
         CancellationToken cancellationToken
     )
     {
-        return null;
         // you would normally get this from a common source that is managed by current open editor, current active editor, etc.
-        var content = _moiraiCache.GetContent(request.TextDocument.Uri);
-        var lines = content.Split('\n');
-        var symbols = new List<SymbolInformationOrDocumentSymbol>();
-        for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
-        {
-            var line = lines[lineIndex];
-            if (line.StartsWith("rule "))
-            {
-                var end = line.IndexOf('{') - 1;
-                symbols.Add(
-                    new DocumentSymbol {
-                        // Detail = ,
-                        // Deprecated = true,
-                        Kind = SymbolKind.Class,
-                        // Tags = new[] { SymbolTag.Deprecated },
-                        Range = new Range(
-                            new Position(lineIndex+1, 0),
-                            new Position(lineIndex+1, end)
-                        ),
-                        SelectionRange =
-                            new Range(
-                                new Position(lineIndex+1, 0),
-                                new Position(lineIndex+1, end)
-                            ),
-                        Name = line.Substring(5, end - 5)
-                    }
-                );
-            }
-        }
+        return _moiraiCache.GetSymbols(request);
 
-        // await Task.Delay(2000, cancellationToken);
-        return symbols;
+       
     }
 
     public DocumentSymbolRegistrationOptions GetRegistrationOptions(DocumentSymbolCapability capability, ClientCapabilities clientCapabilities) => new DocumentSymbolRegistrationOptions {

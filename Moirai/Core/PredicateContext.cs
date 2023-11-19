@@ -213,7 +213,8 @@ public class PredicateContext
         if (!property.IsValid)
             return PrevEntity.Id;
         if (PrevEntity.Id.IsNull)
-            throw new InvalidOperationException("Null prev entity access");
+            return default;
+            // throw new InvalidOperationException("Null prev entity access");
         return PrevEntity.GetProperty(property);
     }
 }

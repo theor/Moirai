@@ -52,24 +52,6 @@ public class MyDeclarationHandler : DefinitionHandlerBase
         _moiraiCache = moiraiCache;
     }
 
-    // public async Task<LocationOrLocationLinks?> Handle(DeclarationParams request, CancellationToken cancellationToken)
-    // {
-    //     _logger.LogCritical($"LINK {request.TextDocument} {request.Position}");
-    //     return new LocationOrLocationLinks(
-    //         // _moiraiCache.GetLocations(request.TextDocument, request.Position)
-    //         );
-    // }
-    //
-    // public DeclarationRegistrationOptions GetRegistrationOptions(DeclarationCapability capability,
-    //     ClientCapabilities clientCapabilities)
-    // {
-    //     return new DeclarationRegistrationOptions
-    //     {
-    //         DocumentSelector = TextDocumentSelector.ForLanguage("moirai"),
-    //         
-    //     };
-    // }
-
     public override async Task<LocationOrLocationLinks?> Handle(DefinitionParams request, CancellationToken cancellationToken)
     {
         // _logger.LogCritical($"LINK {request.TextDocument} {request.Position}");

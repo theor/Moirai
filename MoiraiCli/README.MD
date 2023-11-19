@@ -90,3 +90,6 @@ CREATE INDEX types_alive ON entity (type,alive);
 
 pre-event old/new refactor: 1000 events, 7500ms
 after: 8500ms
+
+
+with 3 events: born, buries children, inherit 7100

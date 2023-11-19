@@ -172,6 +172,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
                 return IntValue.ToString();
             case PropertyValue.ValueBaseType.Float:
                 return FloatValue.ToString(CultureInfo.InvariantCulture);
+            case ValueBaseType.None: return "null";
             default:
                 throw new ArgumentOutOfRangeException();
         }

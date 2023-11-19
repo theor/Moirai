@@ -93,7 +93,7 @@ public static class StoryParser
         {
             var typeId = ctx.ParseEntityType();
             return new CreateEntity(ctx.ParseVariable(), typeId.Id,
-                ctx.Visitor.ParseInterpolatedString(ctx.CallContext.expr(1)?.GetText().TrimQuotes() ?? ""));
+                ctx.Visitor.ParseInterpolatedString(ctx.CallContext.expr(1)?.value()?.@string()));
         }),
         new("each", true,
             ctx => new AssignPick(ctx.ParseVariable(), ctx.Visitor.ParsePredicate(ctx.CallContext.expr()),
@@ -113,7 +113,7 @@ public static class StoryParser
         new("record", false, ctx =>
         {
             var stringContext = ctx.CallContext.expr(0).value().@string();
-            var interpolatedString = ctx.Visitor.ParseInterpolatedString(stringContext.GetString());
+            var interpolatedString = ctx.Visitor.ParseInterpolatedString(stringContext);
             return new Record(interpolatedString);
         }),
         new("call", false, ctx =>
@@ -149,7 +149,7 @@ public static class StoryParser
             if (arg.value()?.TYPE_ID() != null)
             {
                 if (!ctx.Visitor._database.GetEnumDefinition(arg.GetText(), out var enumDef))
-                    ctx.Visitor.AddError(ErrorCode.UnknownEnum, arg, arg.GetText());
+                    ctx.Visitor.AddError(ErrorCode.UnknownEnum, arg, "");
 
                 return new RandomEnum(enumDef.Index);
             }
@@ -171,6 +171,7 @@ public static class StoryParser
     {
         List<Error> Errors { get; }
         MoiraiParser Parser { get; set; }
+        (int offsetLine, int offsetColumn) offset { get; set; }
     }
 
     public enum ErrorCode
@@ -219,24 +220,24 @@ public static class StoryParser
             ColEnd = col + 1;
         }
 
-        public Error(ErrorCode code, ITerminalNode loc, string message)
+        public Error(ErrorCode code, ITerminalNode loc, string message, (int, int) offset)
         {
             Code = code;
-            Line = loc.Symbol.Line;
-            Col = loc.Symbol.Column;
+            Line = loc.Symbol.Line + offset.Item1;
+            Col = loc.Symbol.Column + offset.Item2;
             Message = message;
             LineEnd = loc.Symbol.Line;
             ColEnd = loc.Symbol.Column + loc.Symbol.Text.Length;
         }
 
-        public Error(ErrorCode code, ParserRuleContext loc, string message)
+        public Error(ErrorCode code, ParserRuleContext loc, string message, (int, int) offset)
         {
             Code = code;
-            Line = loc.Start.Line;
-            Col = loc.Start.Column;
+            Line = loc.Start.Line + offset.Item1;
+            Col = loc.Start.Column + offset.Item2;
             Message = message;
-            LineEnd = loc.Stop.Line;
-            ColEnd = loc.Stop.Column;
+            LineEnd = loc.Stop.Line + offset.Item1;
+            ColEnd = loc.Stop.Column + offset.Item2;
         }
 
         public override string ToString() => $"M{(int)Code}: {Code} {Line}:{Col}: {Message}";
@@ -245,10 +246,12 @@ public static class StoryParser
     class Listener : IAntlrErrorListener<int>, IAntlrErrorListener<IToken>
     {
         private readonly List<Error> _errors;
+        private readonly (int offsetLine, int offsetColumn) _offset;
 
-        public Listener(List<Error> errors)
+        public Listener(List<Error> errors, (int offsetLine, int offsetColumn)? offset)
         {
             _errors = errors;
+            _offset = offset ?? (0,0);
         }
 
         public void SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol, int line,
@@ -256,7 +259,7 @@ public static class StoryParser
             string msg,
             RecognitionException e)
         {
-            _errors.Add(new Error(ErrorCode.Lexer, line, charPositionInLine, "Lexer:" + msg));
+            _errors.Add(new Error(ErrorCode.Lexer, line + _offset.offsetLine, charPositionInLine + _offset.offsetColumn, "Lexer:" + msg));
         }
 
         public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line,
@@ -264,16 +267,18 @@ public static class StoryParser
             string msg,
             RecognitionException e)
         {
-            _errors.Add(new Error(ErrorCode.Parser, line, charPositionInLine, "Parser:" + msg));
+            _errors.Add(new Error(ErrorCode.Parser, line + _offset.offsetLine, charPositionInLine + _offset.offsetColumn, "Parser:" + msg));
         }
     }
 
-    internal static IValue? ParseExpr(AstVisitor visitor, string s, out List<Error> errors)
+    internal static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn, out List<Error> errors)
     {
-        SetupParser(s, out var parser, visitor);
+        var prevOffset = visitor.offset;
+        SetupParser(s, out var parser, visitor, (offsetLine, offsetColumn));
         var r = parser.expr();
         var propertyPath = visitor.ParseExpr(r);
         errors = visitor.Errors;
+        visitor.offset = prevOffset;
         return propertyPath;
     }
 
@@ -288,20 +293,24 @@ public static class StoryParser
         return db;
     }
 
-    public static void SetupParser(string s, out MoiraiParser parser, IVisitor visitor)
+    public static void SetupParser(string s, out MoiraiParser parser, IVisitor visitor,
+        (int offsetLine, int offsetColumn)? offset = null)
     {
         var lexer = new moirai_lexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
         var tokens = new CommonTokenStream(lexer);
 
         parser = new MoiraiParser(tokens);
         visitor.Parser = parser;
-        var listener = new Listener(visitor.Errors);
+        visitor.offset = offset ?? (0,0);
+        var listener = new Listener(visitor.Errors, offset);
         lexer.AddErrorListener(listener);
         parser.AddErrorListener(listener);
     }
 
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
+        public (int offsetLine, int offsetColumn) offset { get; set; }
+
         private List<string> _variables = new();
         private List<Error> _errors = new();
         public List<Error> Errors => _errors;
@@ -448,11 +457,22 @@ public static class StoryParser
             _variables.Clear();
 
             using (new VariableDeclarationScope(this, true)) ;
-            DeclareVar("$old", null, out var oldIndex);
+            if(context.when() != null)
+                DeclareVar("$old", null, out var oldIndex);
             DeclareVar("$new", null, out var newIndex);
-            foreach (var whenContext in context.when())
+            if(context.when_created() is { } createdContext)
             {
-                action.Whens.Add(ParsePredicate(whenContext.expr()));
+                EntityType type = _database.GetEntityType(createdContext.TYPE_ID().GetText());
+                if (!type.Id.IsValid)
+                    AddError(ErrorCode.UnknownPropertyType, createdContext, createdContext.TYPE_ID().GetText());
+                action.When = (Action.WhenType.Created, type.Id, ParsePredicate(createdContext.expr()));
+            }
+            else if(context.when() is {} whenContext)
+            {
+                EntityType type = _database.GetEntityType(whenContext.TYPE_ID().GetText());
+                if (!type.Id.IsValid)
+                    AddError(ErrorCode.UnknownPropertyType, whenContext, whenContext.TYPE_ID().GetText());
+                action.When = (Action.WhenType.Changed,type.Id, ParsePredicate(whenContext.expr()));
             }
 
             _database.Events.Add(action);
@@ -562,6 +582,8 @@ public static class StoryParser
         public IValue ParsePredicate(MoiraiParser.ExprContext[] exprContexts)
         {
             var exprs = exprContexts;
+            if (exprContexts.Length == 0) return null;
+            
             var predicate = exprs.Length == 1
                 ? ParseExpr(exprs[0])!
                 : new And(exprs.Select(x => ParseExpr(x)).Where(e => e != null).Cast<IValue>().ToList());
@@ -619,7 +641,7 @@ public static class StoryParser
             }
 
             if (value.@string() != null)
-                return ParseInterpolatedString(value.@string().GetString());
+                return ParseInterpolatedString(value.@string());
             if (value.NULL() != null)
                 return new Literal(EntityId.Null);
             if (value.number() != null)
@@ -707,8 +729,11 @@ public static class StoryParser
             return scopeContext.effect().Select(ParseEffect).Where(e => e != null).ToArray();
         }
 
-        public InterpolatedString ParseInterpolatedString(string str)
+        public InterpolatedString ParseInterpolatedString(MoiraiParser.StringContext? stringContext)
         {
+            if (stringContext == null)
+                return new InterpolatedString("", Array.Empty<IValue>());
+            var str = stringContext.GetText().TrimQuotes();
             List<IValue> paths = new();
             string result = "";
             int i = -1;
@@ -726,7 +751,7 @@ public static class StoryParser
                         $"Missing curly brace in string: {str}, opening brace at {i}");
 
                 var pathStr = str.Substring(i + 1, j - i - 1);
-                var path = StoryParser.ParseExpr(this, pathStr, out _errors);
+                var path = StoryParser.ParseExpr(this, pathStr, stringContext.Start.Line - 1 /* +1 somewhere in the pipeline */, stringContext.Start.Column + i + 1 +/*quote*/  1, out _);
                 paths.Add(path!);
                 // Console.WriteLine($"'{pathStr}'");
                 if (i > prev)
@@ -814,14 +839,14 @@ public static class StoryParser
 
         public object AddError(ErrorCode code, ParserRuleContext loc, string msg)
         {
-            Errors.Add(new Error(code, loc, Parser.TokenStream.GetText(loc) + ": " + msg));
+            Errors.Add(new Error(code, loc, Parser.TokenStream.GetText(loc) + ": " + msg, offset));
             // to avoid warnings in a case where the parsing is already compromised
             return null!;
         }
 
         public object? AddError(ErrorCode code, ITerminalNode loc, string msg)
         {
-            Errors.Add(new Error(code, loc, msg));
+            Errors.Add(new Error(code, loc, msg, offset));
             return null;
         }
 

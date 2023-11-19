@@ -20,6 +20,7 @@ EVENT: 'event';
 PROP: 'prop';
 ENUM: 'enum';
 WHEN: 'when';
+WHEN_CREATED: 'when_created';
 SET: 'set';
 VAR: 'var';
 MATCH: 'match';

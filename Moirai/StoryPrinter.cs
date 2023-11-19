@@ -37,7 +37,8 @@ public class StoryPrinter
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
-            foreach (var when in action.Whens) sb.AppendLine($"  when {Print(when)}");
+            if(action.IsEvent)
+                sb.AppendLine($"  when{(action.When.Item1 == Action.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (", " + Print(action.When.Item2)))}");
             foreach (var effect in action.Effects)
             {
                 PrintEffect(effect, sb, 1);
