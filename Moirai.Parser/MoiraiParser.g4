@@ -13,8 +13,8 @@ filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
 action: filter? RULE  ID categories SCOPE_OPEN LINE_BREAK (effect|comment)+ SCOPE_CLOSE LINE_BREAK*;
 categories: ID* ;
 event: EVENT ID categories SCOPE_OPEN LINE_BREAK (when|when_created) (effect|comment)+ SCOPE_CLOSE LINE_BREAK*;
-when: WHEN TYPE_ID (COMMA expr)* SPACE* LINE_BREAK+;
-when_created: WHEN_CREATED TYPE_ID (COMMA expr)* SPACE* LINE_BREAK+;
+when: WHEN TYPE_ID (AND expr)* SPACE* LINE_BREAK+;
+when_created: WHEN_CREATED TYPE_ID (AND expr)* SPACE* LINE_BREAK+;
 effect: (set | var | expr) SPACE* (comment|LINE_BREAK)* LINE_BREAK+;
 if: IF cond=expr then=scope (ELSE LINE_BREAK*  else=scope)? ;
 match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
@@ -31,6 +31,8 @@ expr
     | left=expr op=(MUL | DIV) right=expr
     | left=expr op=(ADD | SUB) right=expr
     | left=expr op=(EQ | NEQ | GE | LE | GT | LT) right=expr
+    | left=expr op=AND right=expr
+    | left=expr op=OR right=expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     | value
     ;

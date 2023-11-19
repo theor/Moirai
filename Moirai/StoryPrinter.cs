@@ -38,7 +38,7 @@ public class StoryPrinter
                 sb.AppendLine(Print(action.Filter));
             sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
             if(action.IsEvent)
-                sb.AppendLine($"  when{(action.When.Item1 == Action.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (", " + Print(action.When.Item2)))}");
+                sb.AppendLine($"  when{(action.When.Item1 == Action.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");
             foreach (var effect in action.Effects)
             {
                 PrintEffect(effect, sb, 1);
@@ -314,6 +314,8 @@ public class StoryPrinter
                 string op = propertyEquals.Op switch
                 {
 
+                    BinaryOperator.Operator.And => "and",
+                    BinaryOperator.Operator.Or => "or",
                     BinaryOperator.Operator.Equals => "=",
                     BinaryOperator.Operator.NotEquals => "!=",
                     BinaryOperator.Operator.Add => "+",

@@ -2,6 +2,7 @@
 {
     public enum Operator
     {
+        And, Or,
         Equals,
         NotEquals,
         Add,Sub,Div,Mul,
@@ -46,6 +47,10 @@
                 return left.FloatValue >= right.FloatValue;
             case Operator.Le:
                 return left.FloatValue <= right.FloatValue;
+            case Operator.And:
+                return left.BoolValue && right.BoolValue;
+            case Operator.Or:
+                return left.BoolValue || right.BoolValue;
             default:
                 throw new ArgumentOutOfRangeException();
         }
@@ -62,6 +67,8 @@
         string op = Op switch
         {
 
+            Operator.And => "and",
+            Operator.Or => "or",
             Operator.Equals => "=",
             Operator.NotEquals => "!=",
             Operator.Add => "+",

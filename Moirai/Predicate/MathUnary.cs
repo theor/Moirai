@@ -2,6 +2,7 @@
 {
     public enum UnaryFunction
     {
+        Not,
         Floor,
         Ceiling,
         Round,
@@ -22,6 +23,8 @@
     {
         switch (Function)
         {
+            case UnaryFunction.Not:
+                return !Arg.Compute(ctx).BoolValue;
             case UnaryFunction.Floor:
                 return (int)MathF.Floor(Arg.Compute(ctx).FloatValue);
             case UnaryFunction.Ceiling:

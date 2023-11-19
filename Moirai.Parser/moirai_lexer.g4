@@ -43,6 +43,8 @@ GE: '>=';
 LE: '<=';
 GT: '>';
 LT: '<';
+AND: 'and';
+OR: 'or';
 
 SINGLETON_ID: '#' (ALPHA_UPPER)(ALPHA|'_')*;
 VAR_ID: '$' (ALPHA|DIGIT)(ALPHA|DIGIT|'_')*;

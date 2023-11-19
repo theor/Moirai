@@ -80,11 +80,11 @@ rule create_time {
 }
 
 event country_prosperity_increase country_events {
-    when Country, prosperity >= 10
+    when Country and prosperity >= 10
     set $new.prosperity = 10
 }
 event country_prosperity_decrease country_events {
-    when Country, prosperity < 1
+    when Country and prosperity < 1
     set $new.prosperity = 1
 }
 
@@ -120,7 +120,7 @@ rule country_prosperity country_events {
 }
 
 event inherit death items {
-    when Person, alive = false, $old.alive
+    when Person and alive = false and $old.alive
     // record '{$new.name} died'
     set $new.deathdate = #Time.year
     each $i: type = Item, owner = $new {
@@ -134,7 +134,7 @@ event inherit death items {
 }
 
 event buries_children death {
-    when Person, alive = false, $old.alive
+    when Person and alive = false and $old.alive
     
     each $l: type = Link, $l.child = $new {
         var $parent: $l.parent

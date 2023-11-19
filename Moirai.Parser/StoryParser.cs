@@ -103,10 +103,10 @@ public static class StoryParser
                 CallType.Pick)),
 
         new("assert", false, ctx =>
-            new AssertInstr(ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)), ctx.GetText(ctx.CallContext.expr(0)))),
+            new AssertInstr(ctx.Visitor.ParseExpr(ctx.CallContext.expr(0))!, ctx.GetText(ctx.CallContext.expr(0)))),
         new("assert_eq", false, ctx =>
             new AssertInstr(
-                ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)),
+                ctx.Visitor.ParseExpr(ctx.CallContext.expr(0))!,
                 ctx.Visitor.ParseExpr(ctx.CallContext.expr(1)),
                 $"{ctx.Visitor.Parser.TokenStream.GetText(ctx.CallContext.expr(0))} = {ctx.GetText(ctx.CallContext.expr(1))}")),
 
@@ -161,10 +161,11 @@ public static class StoryParser
             ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, ctx.GetText(ctx.CallContext));
             return null!;
         }),
-        new FunctionDescriptor("floor", false, ctx => new MathUnary(MathUnary.UnaryFunction.Floor, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
-        new FunctionDescriptor("round", false, ctx => new MathUnary(MathUnary.UnaryFunction.Round, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
-        new FunctionDescriptor("ceiling", false, ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
-        new FunctionDescriptor("clamp01", false, ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new ("not", false, ctx => new MathUnary(MathUnary.UnaryFunction.Not, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new ("floor", false, ctx => new MathUnary(MathUnary.UnaryFunction.Floor, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new ("round", false, ctx => new MathUnary(MathUnary.UnaryFunction.Round, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new ("ceiling", false, ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new ("clamp01", false, ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
     };
 
     public interface IVisitor
@@ -793,6 +794,12 @@ public static class StoryParser
             BinaryOperator.Operator pop;
             switch (op)
             {
+                case "and":
+                    pop = BinaryOperator.Operator.And;
+                    break;
+                case "or":
+                    pop = BinaryOperator.Operator.Or;
+                    break;
                 case "=":
                     pop = BinaryOperator.Operator.Equals;
 
