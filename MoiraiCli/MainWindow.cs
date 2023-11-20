@@ -32,8 +32,8 @@ public class MainWindow : Toplevel
 
      static ChannelReader<IMessage> CreateWatcher(string path)
     {
-        Channel<IMessage> channel = Channel.CreateBounded<IMessage>(new BoundedChannelOptions(40)
-            { FullMode = BoundedChannelFullMode.Wait, SingleReader = true, SingleWriter = true }); 
+        Channel<IMessage> channel = Channel.CreateBounded<IMessage>(new BoundedChannelOptions(1)
+            { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true, SingleWriter = true }); 
         new Thread(async () =>
         {
             FileSystemWatcher fsw = new FileSystemWatcher(Path.GetDirectoryName(Path.GetFullPath(path)));
@@ -194,8 +194,8 @@ public class MainWindow : Toplevel
         });
         Application.RootMouseEvent += e =>
         {
-            if((e.Flags & MouseFlags.ReportMousePosition) == 0)
-                Debug.WriteLine(e.Flags);
+            // if((e.Flags & MouseFlags.ReportMousePosition) == 0)
+                // Debug.WriteLine(e.Flags);
             if ((e.Flags == (MouseFlags.ButtonAlt| MouseFlags.Button3Released)))
             {
                     e.Handled = true;
@@ -434,7 +434,7 @@ public class MainWindow : Toplevel
         Category
     }
 
-    private FilteringMode _mode;
+    public FilteringMode _mode;
 
     public void SetFiltering(FilteringMode filtering)
     {

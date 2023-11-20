@@ -291,6 +291,8 @@ public class WorldHistoryView : View
 
     public void Update()
     {
+        _listView.Source = new HistorySource(_w, _listView);
+        _listView.HistorySource.SetFiltering(_w._mode);
         _listView.SetNeedsDisplay();
         // _listView.Source = new HistorySource(_w);
     }
