@@ -1,4 +1,97 @@
+using System.Data;
+using System.Diagnostics;
+using Microsoft.Data.Sqlite;
+using Moirai;
+
 namespace TestProject1;
+
+[Ignore("Manual tests")]
+public class SQLiteTests
+{
+    [Test]
+    public void PerfTest()
+    {
+         string path = Path.GetFullPath("../../../../MoiraiCli/hello.db");
+         Console.WriteLine(path + " "+ File.Exists(path));
+        using var n = new SqliteConnection($"Data Source=\"{path}\"");
+        n.Open();
+        var res = new List<long>();
+        var sw = Stopwatch.StartNew();
+        var l = 1000;
+        for (int i = 0; i < l; i++)
+        {
+            if(i == 500)
+                sw.Restart();
+            var cmd = n.CreateCommand();
+            cmd.CommandText = $"SELECT id FROM entity WHERE type = 2 AND god = {i}";
+            var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                res.Add(reader.GetInt64(0));
+        }
+        var ms = sw.ElapsedMilliseconds;
+        Console.WriteLine((ms / (float)500) + "ms");
+        Console.WriteLine(string.Join(",", res));
+    }
+    [Test]
+    public void PerfTest_Prepared()
+    {
+         string path = Path.GetFullPath("../../../../MoiraiCli/hello.db");
+         Console.WriteLine(path + " "+ File.Exists(path));
+        using var n = new SqliteConnection($"Data Source=\"{path}\"");
+        n.Open();
+        var res = new List<long>();
+        var l = 1000;
+        
+        var cmd = n.CreateCommand();
+        cmd.CommandText = "SELECT id FROM entity WHERE type = 2 AND god = $god";
+        var godParam = cmd.Parameters.Add("$god", SqliteType.Integer);
+        cmd.Prepare();
+        var sw = Stopwatch.StartNew();
+        for (int i = 0; i < l; i++)
+        {
+            if(i == 500)
+                sw.Restart();
+            godParam.Value = i;
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                res.Add(reader.GetInt64(0));
+        }
+        var ms = sw.ElapsedMilliseconds;
+        Console.WriteLine((ms / (float)500) + "ms");
+        Console.WriteLine(string.Join(",", res));
+    }
+    [Test]
+    public void RandomFunction()
+    {
+         string path = Path.GetFullPath("../../../../MoiraiCli/hello.db");
+         Console.WriteLine(path + " "+ File.Exists(path));
+        using var n = new SqliteConnection($"Data Source=\"{path}\"");
+        Pcg32 pcg = new Pcg32(32, 41);
+        n.CreateFunction("rnd", () => pcg.GenerateNext());
+        n.Open();
+        var res = new List<long>();
+        var l = 2000;
+        
+        var cmd = n.CreateCommand();
+        cmd.CommandText = "SELECT id, rnd() as r FROM entity WHERE type = 2 AND god = $god ORDER BY r LIMIT 1";
+        var godParam = cmd.Parameters.Add("$god", SqliteType.Integer);
+        godParam.Value = 21;
+        cmd.Prepare();
+        var sw = Stopwatch.StartNew();
+        for (int i = 0; i < l; i++)
+        {
+            if(i == 500)
+                sw.Restart();
+            pcg = new Pcg32(21, 42);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                res.Add(reader.GetInt64(0));
+        }
+        var ms = sw.ElapsedMilliseconds;
+        Console.WriteLine((ms / (float)1500) + "ms");
+        Console.WriteLine(string.Join(",", res));
+    }
+}
 
 public class Tests : TestsBase
 {
@@ -272,7 +365,7 @@ rule char_dies {
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
     }
-    
+
     [Test]
     public void Test3()
     {
@@ -289,7 +382,6 @@ rule char_dies {
         var action = db.Actions[0];
         Assert.AreEqual("char_dies", action.Name);
         Assert.AreEqual(2, action.Effects.Count);
-
     }
 
 
@@ -330,7 +422,7 @@ rule foreach {
             db.Printer.PrintChangeset(changeset);
         }
     }
-    
+
     [Test]
     public void Each_Multiple()
     {
@@ -356,14 +448,14 @@ rule foreach {
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
         db.Printer.PrintDb();
-       
+
         db.RunAction(db.Actions[0]);
         db.Printer.PrintDb();
         foreach (var entity in db.Entities)
         {
             Assert.IsTrue(entity.TryGetProperty(propX, out var val));
             Assert.AreEqual(true, val.BoolValue);
-            Assert.IsTrue(entity.TryGetProperty(propY, out  val));
+            Assert.IsTrue(entity.TryGetProperty(propY, out val));
             Assert.AreEqual(true, val.BoolValue);
         }
 
@@ -372,7 +464,7 @@ rule foreach {
             db.Printer.PrintChangeset(changeset);
         }
     }
-    
+
     [Test]
     public void Each_Multiple_Unnamed()
     {
@@ -398,14 +490,14 @@ rule foreach {
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
         db.Printer.PrintDb();
-       
+
         db.RunAction(db.Actions[0]);
         db.Printer.PrintDb();
         foreach (var entity in db.Entities)
         {
             Assert.IsTrue(entity.TryGetProperty(propX, out var val));
             Assert.AreEqual(true, val.BoolValue);
-            Assert.IsTrue(entity.TryGetProperty(propY, out  val));
+            Assert.IsTrue(entity.TryGetProperty(propY, out val));
             Assert.AreEqual(true, val.BoolValue);
         }
 

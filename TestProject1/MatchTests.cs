@@ -38,6 +38,25 @@ rule r {
     }
 
     [Test]
+    public void MatchOneValue_ReturnValue()
+    {
+        var db = Run(@"
+entity T {}
+prop p: number
+rule r {
+    create $t: T
+    set $t.p = match 2 {
+        1 => 10
+        2 => 20
+        3 => 30
+    }
+}", out _);
+        db.RunAction("r");
+        db.Printer.PrintDb();
+        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
+
+    [Test]
     public void MatchTwoValue()
     {
         var db = Run(@"

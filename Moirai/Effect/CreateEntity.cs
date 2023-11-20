@@ -82,13 +82,16 @@ public class Match : IValue
             var @case = Cases[index];
             if (CaseMatch(_values, @case.Item1, ctx))
             {
+                PropertyValue val = true;
                 foreach (var instr in @case.Item2)
                 {
-                    if (!instr.Execute(ctx))
+                    if (instr is CallInstruction call)
+                        val = call.Value.Compute(ctx);
+                    else if (!instr.Execute(ctx))
                         break;
                 }
 
-                break;
+                return val;
             }
         }
 
@@ -130,13 +133,16 @@ public class If : IValue
     public PropertyValue Compute(PredicateContext ctx)
     {
         var scope = Condition.Compute(ctx).BoolValue ? IfTrue : IfFalse;
+        PropertyValue res = true;
         foreach (var instr in scope)
         {
-            if (!instr.Execute(ctx))
+            if (instr is CallInstruction call)
+                res = call.Value.Compute(ctx);
+            else if (!instr.Execute(ctx))
                 break;
         }
 
-        return true;
+        return res;
     }
 }
 

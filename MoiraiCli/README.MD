@@ -93,3 +93,6 @@ after: 8500ms
 
 
 with 3 events: born, buries children, inherit 7100
+
+1000 events: 4945
+cached commands: 4038

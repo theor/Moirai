@@ -51,15 +51,16 @@ public class PredicateContext
     {
         // Console.ForegroundColor = ConsoleColor.Blue;
         // Console.WriteLine($"PICK {Database.Printer.Print(value)}  VAL COUNT {ValueCount} OFFSET {ValueOffset}");
-        // Console.ResetColor(); 
-        Database.FindAll(value, ref _pool);
-        if (_pool.Count == 0)
-        {
-            id = default;
-            return false;
-        }
-        id = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
-        return true;
+        // Console.ResetColor();
+        return Database.PickRandom(value, out id);
+        // Database.FindAll(value, ref _pool);
+        // if (_pool.Count == 0)
+        // {
+        //     id = default;
+        //     return false;
+        // }
+        // id = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
+        // return true;
     }
     public bool _FindAll(IValue? predicate, ref List<EntityId> results)
     {

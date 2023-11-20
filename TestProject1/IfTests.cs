@@ -17,6 +17,20 @@ rule r {
         db.RunAction("r");
         Assert.AreEqual(1, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
     }
+    [Test]
+    public void IfTrue_Expression()
+    {
+        var db = Run(@"
+entity T {}
+prop p: number
+rule r {
+    create $t: T
+    
+    set $t.p = if true { 1 }
+}", out _);
+        db.RunAction("r");
+        Assert.AreEqual(1, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+    }
 
     [Test]
     public void IfFalse()

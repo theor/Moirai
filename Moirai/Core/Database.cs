@@ -34,7 +34,6 @@ public class Database
 
     public PredicateContext Ctx
     {
-        set { _ctx = value; }
         get { return _ctx; }
     }
 
@@ -424,6 +423,7 @@ WHERE id = $id;";
     {
         Console.WriteLine(Path.GetFullPath("."));
         _connection = new SqliteConnection("Data Source=:memory:");
+        _connection.CreateFunction("rnd", () => _ctx.Rnd.GenerateNext());
         _connection.Open();
         var cmd = _connection.CreateCommand();
 
@@ -439,7 +439,11 @@ CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
 CREATE TABLE entity (
     id INTEGER PRIMARY KEY,
     type INTEGER NOT NULL,
-    {string.Join(",\n  ", Properties.Skip(3).Select(p => $@"{p.Name} {ToSqlType(p.Type)}"))}
+    {string.Join(",\n  ", Properties.Skip(3).Select(p => {
+        // if (p.Type.BaseType == PropertyValue.ValueBaseType.Ref)
+            // return $"FOREIGN KEY({p.Name}) REFERENCES entity(id)";
+        return $@"{p.Name} {ToSqlType(p.Type)}";
+    }))}
 );
 {indices}
 ";
@@ -473,6 +477,31 @@ CREATE TABLE entity (
             _connection.BackupDatabase(_backup);
     }
 
+    private Dictionary<string, SqliteCommand> _commands = new();
+    private Dictionary<string, SqliteCommand> _commands2 = new();
+    public bool PickRandom(IValue value, out EntityId id)
+    {
+        string sql = value.ToSql(_ctx);
+        if (!_commands.TryGetValue(sql, out var cmd))
+        {
+            // Console.WriteLine(sql);
+            cmd = _connection.CreateCommand();
+            // cmd.CommandText = $@"SELECT id FROM entity WHERE {sql} LIMIT 1";
+            cmd.CommandText = $@"SELECT id, rnd() as r FROM entity WHERE {sql} ORDER BY r LIMIT 1";
+            cmd.Prepare();
+            _commands.Add(sql, cmd);
+        }
+
+        // Console.WriteLine(cmd.CommandText);
+        var r = cmd.ExecuteScalar();
+        if (r is long u)
+        {
+            id = new EntityId((uint)u);
+            return true;
+        }
+            id = default;
+        return false;
+    }
     public bool FindAll(IValue? predicate, ref List<EntityId> results)
     {
         results.Clear();
@@ -480,14 +509,20 @@ CREATE TABLE entity (
         {
             return false;
         }
-
         string sql = predicate.ToSql(_ctx);
+
+        if (!_commands2.TryGetValue(sql, out var cmd))
+        {
+            // Console.WriteLine(sql);
+            cmd = _connection.CreateCommand();
+            // cmd.CommandText = $@"SELECT id FROM entity WHERE {sql} LIMIT 1";
+            cmd.CommandText = $@"SELECT id FROM entity WHERE " + sql;
+            cmd.Prepare();
+            _commands2.Add(sql, cmd);
+        }
         // Console.WriteLine(sql);
-        var cmd = _connection.CreateCommand();
-        cmd.CommandText = @"
-SELECT id FROM entity WHERE " + sql;
         // Console.WriteLine(cmd.CommandText);
-        var r = cmd.ExecuteReader();
+        using var r = cmd.ExecuteReader();
         while (r.Read())
             results.Add(new EntityId((uint)r.GetInt32(0)));
         return true;
@@ -550,4 +585,5 @@ SELECT id FROM entity WHERE " + sql;
     {
         Records.Add(new(text, year, categories, CurrentChangeset.Id, _currentActionId));
     }
+
 }
