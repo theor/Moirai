@@ -1,7 +1,6 @@
 entity Person {}
 entity Item {}
 entity Faction {}
-entity Link {}
 entity Country {}
 entity God {}
 
@@ -37,8 +36,8 @@ prop item_type: ItemSource
 prop prosperity: number
 prop health : CountryHealth
 
-prop parent: Person
-prop child: Person
+prop parent1: Person
+prop parent2: Person
 
 prop owner: Person
  
@@ -124,21 +123,24 @@ event inherit death items {
     // record '{$new.name} died'
     set $new.deathdate = #Time.year
     each $i: type = Item, owner = $new {
-        pick $l: type = Link, $l.parent = $new
-        var $child: $l.child
+        pick $child: type=Person, parent1 = $new or parent2 = $new
         // pick $child: type=Person, id = $l.child, alive
-        set $i.owner = $l.child
-        var $c: $l.child
-        record '{$c.name} inherits the {$i.name} from {$new.name}'
+        set $i.owner = $child
+        record '{$child.name} inherits the {$i.name} from {$new.name}'
     }
 }
 
 event buries_children death {
     when Person and alive = false and $old.alive
     
-    each $l: type = Link, $l.child = $new {
-        var $parent: $l.parent
+    
+    var $parent: $new.parent1
+    if $parent and $parent.alive {
         record '++ {$parent.name} buries their child, {$new.name}'
+    }
+    var $parent2: $new.parent2
+    if $parent2 and $parent2.alive {
+        record '++ {$parent2.name} buries their child, {$new.name}'
     }
 }
 
@@ -194,7 +196,7 @@ rule children_grow {
 rule youngs_grow {
     each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year{
         set $p.age = Age.Adult
-       record '{$p.name} grew up as a {$p.age}'
+    //    record '{$p.name} grew up as a {$p.age}'
     }
 }
 
@@ -214,15 +216,15 @@ rule olds_dies {
     }
 }
 
-rule _parent_dies {
-    each $l: type = Link {
-        pick $p: id = $l.parent, alive = true
-        pick $c: id = $l.child
-        set $p.alive = false 
-        record '{$p.name}, parent of {$c.name}, dies'
+// rule _parent_dies {
+//     each $l: type = Link {
+//         pick $p: id = $l.parent, alive = true
+//         pick $c: id = $l.child
+//         set $p.alive = false 
+//         record '{$p.name}, parent of {$c.name}, dies'
 
-    }
-}
+//     }
+// }
 @1 per 1 years
 rule char_joins_faith {
     pick $x: type = Person, alive, god = null
@@ -349,12 +351,8 @@ rule couple_has_child {
             set $c.first_name = $fname
             set $c.birthplace = $x.place
             set $c.god = $x.god
-        create $l1: Link
-            set $l1.parent = $x
-            set $l1.child = $c
-        create $l2: Link
-            set $l2.parent = $y
-            set $l2.child = $c
+            set $c.parent1 = $x
+            set $c.parent2 = $y
         
         record '{$x.name} and {$y.name} have a child, {$c.name}'
     }

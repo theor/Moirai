@@ -43,6 +43,28 @@ rule r {
 ");
 
     [Test]
+    public void Int_Negative() => RunAssert(@"
+entity Person {}
+prop f: number
+rule r {
+    create $p: Person
+    set $p.f = -2 + 3
+    assert $p.f = 1
+}
+");
+
+    [Test]
+    public void Int_Negative2() => RunAssert(@"
+entity Person {}
+prop f: number
+rule r {
+    create $p: Person
+    set $p.f = -4 - -3
+    assert $p.f = -1
+}
+");
+
+    [Test]
     public void Float_Add() => RunAssert(@"
 entity Person {}
 prop f: float
