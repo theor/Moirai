@@ -10,27 +10,27 @@ public class EventTests : TestsBase
 entity Person {}
 prop alive: bool
 prop test: bool
-rule born {
+event born {
     create $p: Person
     set alive = true
 }
 
-rule die {
+event die {
     each $p: type=Person, alive = true {
         set alive = false
         record '{$p} dies'
     }
 }
 
-event on_death {
+trigger on_death {
     when Person and $new.alive = false
 
     set test = true
-    record 'event on {$new}'
+    record 'trigger on {$new}'
 }";
         var db = Run(s, out _, 0);
         db.History = new();
-        Assert.AreEqual(1, db.Events.Count);
+        Assert.AreEqual(1, db.Triggers.Count);
 
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[0]);
@@ -52,30 +52,30 @@ event on_death {
 entity Person {}
 prop x: number
 prop test: number
-rule born {
+event born {
     create $p: Person
     set x = 1
     set test = 1
 }
 
-rule die {
+event die {
     each $p: type=Person, x = 1 {
         set x = 2
         record '{$p} dies'
     }
 }
 
-event on_death {
+trigger on_death {
     when Person and $new.x = 2 and $old.x = 1
 
     set test = 10
-    record 'event on {$new}'
+    record 'trigger on {$new}'
 }
-event on_death2 {
+trigger on_death2 {
     when Person and $new.x = 2 and $old.x = 3
 
     set test = 20
-    record 'event on {$new}'
+    record 'trigger on {$new}'
 }";
         var db = Run(s, out _, 0);
         db.History = new();
@@ -106,7 +106,7 @@ prop child: Person
 prop parent: Person
 prop owner: ref
 
-event inherit {
+trigger inherit {
     when Person and $new.alive = false
     each $i: type = Item, owner = $new {
         pick $l: type = Link, $l.parent = $new 
@@ -116,7 +116,7 @@ event inherit {
     }
 }";
         var db = Run(s, out _, 0);
-        Assert.AreEqual(1, db.Events.Count);
+        Assert.AreEqual(1, db.Triggers.Count);
 
         // db.RunAction(db.Events[0]);
         db.Printer.PrintDb();
@@ -157,7 +157,7 @@ prop child: ref
 
 prop owner: ref
 
-event inherit {
+trigger inherit {
     when #death
     when $p: type = Person, alive = false
     record '## {$p} {$p.name} died, inheriting'
@@ -171,7 +171,7 @@ event inherit {
 }
 
 @1 every 1 year
-rule olds_dies {
+event olds_dies {
     each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
         set $p.alive = false
         record '{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}'

@@ -15,12 +15,12 @@ prop kind: Kind
 prop distance_to_sun: number
 
 @start
-rule create_time {
+event create_time {
     create $t: Time, 'time'
     set year = 0
 }
 @start
-rule create_solar_system {
+event create_solar_system {
     create $s: System, "Solar System"
 
     create $p: Object, "Sun"
@@ -66,7 +66,7 @@ rule create_solar_system {
 }
 
 @start
-rule star_dies {
+event star_dies {
     pick $sun: type=Object, kind = Kind.Star, dead = false
     var $s: $sun.system
     each $p: type=Object, system = $s {

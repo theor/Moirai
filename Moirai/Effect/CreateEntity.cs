@@ -44,12 +44,15 @@ public class MatchWeight : IValue
         {
             if(CumulativeWeights[i].Item1 == -1 || r < CumulativeWeights[i].Item1)
             {
+                PropertyValue val = true;
                 foreach (var instr in @CumulativeWeights[i].Item2)
                 {
-                    if (!instr.Execute(ctx))
+                    if (instr is CallInstruction call)
+                        val = call.Value.Compute(ctx);
+                    else if (!instr.Execute(ctx))
                         break;
                 }
-                break;
+                return val;
             }
         }
 

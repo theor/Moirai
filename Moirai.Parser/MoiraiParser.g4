@@ -7,12 +7,12 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: COMMENT* (comment|action|event|prop_definition|enum_definition|type_definition|LINE_BREAK)+ EOF;
+r: COMMENT* (comment|event|trigger|prop_definition|enum_definition|type_definition|LINE_BREAK)+ EOF;
 comment: COMMENT;
 filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
-action: filter? RULE  ID categories SCOPE_OPEN LINE_BREAK ((effect LINE_BREAK+)|comment)+ SCOPE_CLOSE LINE_BREAK*;
+event: filter? EVENT  ID categories SCOPE_OPEN LINE_BREAK ((effect LINE_BREAK+)|comment)+ SCOPE_CLOSE LINE_BREAK*;
 categories: ID* ;
-event: EVENT ID categories SCOPE_OPEN LINE_BREAK (when|when_created) ((effect LINE_BREAK+)|comment LINE_BREAK+)+ SCOPE_CLOSE LINE_BREAK*;
+trigger: TRIGGER ID categories SCOPE_OPEN LINE_BREAK (when|when_created) ((effect LINE_BREAK+)|comment LINE_BREAK+)+ SCOPE_CLOSE LINE_BREAK*;
 when: WHEN TYPE_ID (AND expr)* SPACE* LINE_BREAK+;
 when_created: WHEN_CREATED TYPE_ID (AND expr)* SPACE* LINE_BREAK+;
 effect: (set | var | expr) SPACE* (comment|LINE_BREAK)*;
@@ -28,13 +28,13 @@ value: call | string | enum_value | TYPE_ID | path | bool | number | NULL;
 expr
     : if
     | match
+    | value
     | left=expr op=(MUL | DIV) right=expr
     | left=expr op=(ADD | SUB) right=expr
     | left=expr op=(EQ | NEQ | GE | LE | GT | LT) right=expr
     | left=expr op=AND right=expr
     | left=expr op=OR right=expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
-    | value
     ;
 
 type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;

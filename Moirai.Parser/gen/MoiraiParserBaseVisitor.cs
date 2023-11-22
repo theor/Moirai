@@ -68,7 +68,7 @@ public partial class MoiraiParserBaseVisitor<Result> : AbstractParseTreeVisitor<
 	/// <return>The visitor result.</return>
 	public virtual Result VisitFilter([NotNull] MoiraiParser.FilterContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="MoiraiParser.action"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.event"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
 	/// on <paramref name="context"/>.
@@ -76,7 +76,7 @@ public partial class MoiraiParserBaseVisitor<Result> : AbstractParseTreeVisitor<
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitAction([NotNull] MoiraiParser.ActionContext context) { return VisitChildren(context); }
+	public virtual Result VisitEvent([NotNull] MoiraiParser.EventContext context) { return VisitChildren(context); }
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.categories"/>.
 	/// <para>
@@ -88,7 +88,7 @@ public partial class MoiraiParserBaseVisitor<Result> : AbstractParseTreeVisitor<
 	/// <return>The visitor result.</return>
 	public virtual Result VisitCategories([NotNull] MoiraiParser.CategoriesContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="MoiraiParser.event"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.trigger"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
 	/// on <paramref name="context"/>.
@@ -96,7 +96,7 @@ public partial class MoiraiParserBaseVisitor<Result> : AbstractParseTreeVisitor<
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitEvent([NotNull] MoiraiParser.EventContext context) { return VisitChildren(context); }
+	public virtual Result VisitTrigger([NotNull] MoiraiParser.TriggerContext context) { return VisitChildren(context); }
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.when"/>.
 	/// <para>

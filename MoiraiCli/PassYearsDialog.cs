@@ -43,8 +43,10 @@ class PassYearsDialog : TaskDialog
             else
                 tcs.SetResult();
         };
-                
+             
+        _t = CreateTask(_cts.Token, _progress);   
         Application.Run(this);
+        
         return tcs.Task;
     }
 
@@ -54,7 +56,7 @@ class PassYearsDialog : TaskDialog
         {
             _db.Ctx.PassYears(_years, cancellationToken, progress, _offset);
             _db.Commit();
-        });
+        }, cancellationToken);
     }
     protected override void OnProgress(int passed)
     {

@@ -2,9 +2,9 @@
 {
     public readonly int RuleIndex;
     public readonly int Count;
-    public CallRule(int ruleIndex, int count)
+    public CallRule(int eventIndex, int count)
     {
-        RuleIndex = ruleIndex;
+        RuleIndex = eventIndex;
         Count = count;
 
     }

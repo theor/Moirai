@@ -53,6 +53,13 @@ public class FunctionDescriptor : IFunctionDescriptor
         {
             return Visitor.ParseScope(CallContext.scope(), autoCleanupVariableDeclarations);
         }
+
+        public void ExpectArgcount(int i, bool isMaxCount = false)
+        {
+            if (isMaxCount ? CallContext.expr().Length > i : CallContext.expr().Length != i)
+                Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext,
+                    $"Expected {i} arguments{(isMaxCount ? " max" :"")}, got {CallContext.expr().Length}");
+        }
     }
 
     public delegate IValueCall ParseCallDelegate(ParseContext context);
@@ -119,16 +126,16 @@ public static class StoryParser
         new("call", false, ctx =>
         {
             var arg = ctx.CallContext.expr(0);
-            string? ruleName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
-            if (ruleName == null)
+            string? eventName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
+            if (eventName == null)
             {
-                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, "rule name");
+                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, "event name");
             }
 
-            var ruleIndex = ctx.Visitor._database.Actions.FindIndex(r => r.Name == ruleName);
-            if (ruleIndex == -1)
+            var eventIndex = ctx.Visitor._database.Actions.FindIndex(r => r.Name == eventName);
+            if (eventIndex == -1)
             {
-                ctx.Visitor.AddError(ErrorCode.UnknownRule, arg, ruleName);
+                ctx.Visitor.AddError(ErrorCode.UnknownRule, arg, eventName);
             }
 
             int count = 1;
@@ -138,24 +145,36 @@ public static class StoryParser
             }
 
             {
-                return new CallRule(ruleIndex, count);
+                return new CallRule(eventIndex, count);
             }
         }),
 
         new("random", false, ctx =>
         {
+            var argCount = ctx.CallContext.expr().Length;
+            if (argCount == 0)
+            {
+                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext,
+                    "'random' needs at least one argument");
+                return null;
+            }
             var arg = ctx.CallContext.expr(0);
 
             if (arg.value()?.TYPE_ID() != null)
             {
                 if (!ctx.Visitor._database.GetEnumDefinition(arg.GetText(), out var enumDef))
                     ctx.Visitor.AddError(ErrorCode.UnknownEnum, arg, "");
-
+                ctx.ExpectArgcount(1);
                 return new RandomEnum(enumDef.Index);
             }
 
             if (arg.value().number() != null)
             {
+                
+                ctx.ExpectArgcount(2, true);
+                var min  = argCount == 1 ? new Literal(0) : ctx.Visitor.ParseExpr(arg);
+                var max = ctx.Visitor.ParseExpr(ctx.CallContext.expr(argCount == 1 ? 0 : 1));
+                return new RandomRange(min, max);
             }
 
             ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, ctx.GetText(ctx.CallContext));
@@ -382,7 +401,7 @@ public static class StoryParser
             return null;
         }
 
-        public override object? VisitAction(MoiraiParser.ActionContext context)
+        public override object? VisitEvent(MoiraiParser.EventContext context)
         {
             string actionId = context.ID().GetText();
             // bool isStartAction = context.AT() != null;
@@ -449,12 +468,12 @@ public static class StoryParser
             return tags;
         }
 
-        public override object? VisitEvent(MoiraiParser.EventContext context)
+        public override object? VisitTrigger(MoiraiParser.TriggerContext context)
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
             var categories = ParseCategories(context.categories());
-            var action = new Action(_database.Events.Count + 1, actionId, true, null, categories);
+            var action = new Action(_database.Triggers.Count + 1, actionId, true, null, categories);
             _variables.Clear();
 
             using (new VariableDeclarationScope(this, true)) ;
@@ -476,7 +495,7 @@ public static class StoryParser
                 action.When = (Action.WhenType.Changed,type.Id, ParsePredicate(whenContext.expr()));
             }
 
-            _database.Events.Add(action);
+            _database.Triggers.Add(action);
             foreach (var effectContext in context.effect())
             {
                 // if (effectContext.comment() != null)

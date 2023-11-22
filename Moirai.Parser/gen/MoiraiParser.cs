@@ -40,21 +40,21 @@ public partial class MoiraiParser : Parser {
 	protected static PredictionContextCache sharedContextCache = new PredictionContextCache();
 	public const int
 		STRING=1, NULL=2, SPACE=3, LINE_BREAK=4, COMMENT=5, COLON_EQ=6, COLON=7, 
-		SCOPE_OPEN=8, SCOPE_CLOSE=9, PAREN_OPEN=10, PAREN_CLOSE=11, RULE=12, ENTITY=13, 
-		EVENT=14, PROP=15, ENUM=16, WHEN=17, WHEN_CREATED=18, SET=19, VAR=20, 
-		MATCH=21, MATCH_WEIGHT=22, COMMA=23, ARROW=24, IF=25, ELSE=26, TRUE=27, 
-		FALSE=28, DOT=29, NEQ=30, EQ=31, ADD=32, SUB=33, MUL=34, DIV=35, GE=36, 
-		LE=37, GT=38, LT=39, AND=40, OR=41, SINGLETON_ID=42, VAR_ID=43, PROP_ID=44, 
-		AT=45, TYPE_ID=46, ID=47, NUMBER_FLOAT=48, NUMBER=49;
+		SCOPE_OPEN=8, SCOPE_CLOSE=9, PAREN_OPEN=10, PAREN_CLOSE=11, EVENT=12, 
+		ENTITY=13, TRIGGER=14, PROP=15, ENUM=16, WHEN=17, WHEN_CREATED=18, SET=19, 
+		VAR=20, MATCH=21, MATCH_WEIGHT=22, COMMA=23, ARROW=24, IF=25, ELSE=26, 
+		TRUE=27, FALSE=28, DOT=29, NEQ=30, EQ=31, ADD=32, SUB=33, MUL=34, DIV=35, 
+		GE=36, LE=37, GT=38, LT=39, AND=40, OR=41, SINGLETON_ID=42, VAR_ID=43, 
+		PROP_ID=44, AT=45, TYPE_ID=46, ID=47, NUMBER_FLOAT=48, NUMBER=49;
 	public const int
-		RULE_r = 0, RULE_comment = 1, RULE_filter = 2, RULE_action = 3, RULE_categories = 4, 
-		RULE_event = 5, RULE_when = 6, RULE_when_created = 7, RULE_effect = 8, 
+		RULE_r = 0, RULE_comment = 1, RULE_filter = 2, RULE_event = 3, RULE_categories = 4, 
+		RULE_trigger = 5, RULE_when = 6, RULE_when_created = 7, RULE_effect = 8, 
 		RULE_if = 9, RULE_match = 10, RULE_match_case = 11, RULE_set = 12, RULE_var = 13, 
 		RULE_call = 14, RULE_scope = 15, RULE_value = 16, RULE_expr = 17, RULE_type_definition = 18, 
 		RULE_prop_definition = 19, RULE_enum_definition = 20, RULE_string = 21, 
 		RULE_bool = 22, RULE_path = 23, RULE_enum_value = 24, RULE_number = 25;
 	public static readonly string[] ruleNames = {
-		"r", "comment", "filter", "action", "categories", "event", "when", "when_created", 
+		"r", "comment", "filter", "event", "categories", "trigger", "when", "when_created", 
 		"effect", "if", "match", "match_case", "set", "var", "call", "scope", 
 		"value", "expr", "type_definition", "prop_definition", "enum_definition", 
 		"string", "bool", "path", "enum_value", "number"
@@ -62,7 +62,7 @@ public partial class MoiraiParser : Parser {
 
 	private static readonly string[] _LiteralNames = {
 		null, null, "'null'", null, null, null, "':='", "':'", "'{'", "'}'", "'('", 
-		"')'", "'rule'", "'entity'", "'event'", "'prop'", "'enum'", "'when'", 
+		"')'", "'event'", "'entity'", "'trigger'", "'prop'", "'enum'", "'when'", 
 		"'when_created'", "'set'", "'var'", "'match'", "'random_weighted'", "','", 
 		"'=>'", "'if'", "'else'", "'true'", "'false'", "'.'", "'!='", "'='", "'+'", 
 		"'-'", "'*'", "'/'", "'>='", "'<='", "'>'", "'<'", "'and'", "'or'", null, 
@@ -70,8 +70,8 @@ public partial class MoiraiParser : Parser {
 	};
 	private static readonly string[] _SymbolicNames = {
 		null, "STRING", "NULL", "SPACE", "LINE_BREAK", "COMMENT", "COLON_EQ", 
-		"COLON", "SCOPE_OPEN", "SCOPE_CLOSE", "PAREN_OPEN", "PAREN_CLOSE", "RULE", 
-		"ENTITY", "EVENT", "PROP", "ENUM", "WHEN", "WHEN_CREATED", "SET", "VAR", 
+		"COLON", "SCOPE_OPEN", "SCOPE_CLOSE", "PAREN_OPEN", "PAREN_CLOSE", "EVENT", 
+		"ENTITY", "TRIGGER", "PROP", "ENUM", "WHEN", "WHEN_CREATED", "SET", "VAR", 
 		"MATCH", "MATCH_WEIGHT", "COMMA", "ARROW", "IF", "ELSE", "TRUE", "FALSE", 
 		"DOT", "NEQ", "EQ", "ADD", "SUB", "MUL", "DIV", "GE", "LE", "GT", "LT", 
 		"AND", "OR", "SINGLETON_ID", "VAR_ID", "PROP_ID", "AT", "TYPE_ID", "ID", 
@@ -121,17 +121,17 @@ public partial class MoiraiParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public CommentContext comment(int i) {
 			return GetRuleContext<CommentContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ActionContext[] action() {
-			return GetRuleContexts<ActionContext>();
-		}
-		[System.Diagnostics.DebuggerNonUserCode] public ActionContext action(int i) {
-			return GetRuleContext<ActionContext>(i);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public EventContext[] @event() {
 			return GetRuleContexts<EventContext>();
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public EventContext @event(int i) {
 			return GetRuleContext<EventContext>(i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public TriggerContext[] trigger() {
+			return GetRuleContexts<TriggerContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public TriggerContext trigger(int i) {
+			return GetRuleContext<TriggerContext>(i);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext[] prop_definition() {
 			return GetRuleContexts<Prop_definitionContext>();
@@ -217,17 +217,17 @@ public partial class MoiraiParser : Parser {
 					comment();
 					}
 					break;
-				case RULE:
+				case EVENT:
 				case AT:
 					{
 					State = 59;
-					action();
+					@event();
 					}
 					break;
-				case EVENT:
+				case TRIGGER:
 					{
 					State = 60;
-					@event();
+					trigger();
 					}
 					break;
 				case PROP:
@@ -409,8 +409,8 @@ public partial class MoiraiParser : Parser {
 		return _localctx;
 	}
 
-	public partial class ActionContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode RULE() { return GetToken(MoiraiParser.RULE, 0); }
+	public partial class EventContext : ParserRuleContext {
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EVENT() { return GetToken(MoiraiParser.EVENT, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(MoiraiParser.ID, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public CategoriesContext categories() {
 			return GetRuleContext<CategoriesContext>(0);
@@ -436,33 +436,33 @@ public partial class MoiraiParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public EffectContext effect(int i) {
 			return GetRuleContext<EffectContext>(i);
 		}
-		public ActionContext(ParserRuleContext parent, int invokingState)
+		public EventContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
 		}
-		public override int RuleIndex { get { return RULE_action; } }
+		public override int RuleIndex { get { return RULE_event; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
 			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterAction(this);
+			if (typedListener != null) typedListener.EnterEvent(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
 			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitAction(this);
+			if (typedListener != null) typedListener.ExitEvent(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
-			if (typedVisitor != null) return typedVisitor.VisitAction(this);
+			if (typedVisitor != null) return typedVisitor.VisitEvent(this);
 			else return visitor.VisitChildren(this);
 		}
 	}
 
 	[RuleVersion(0)]
-	public ActionContext action() {
-		ActionContext _localctx = new ActionContext(Context, State);
-		EnterRule(_localctx, 6, RULE_action);
+	public EventContext @event() {
+		EventContext _localctx = new EventContext(Context, State);
+		EnterRule(_localctx, 6, RULE_event);
 		int _la;
 		try {
 			int _alt;
@@ -479,7 +479,7 @@ public partial class MoiraiParser : Parser {
 			}
 
 			State = 86;
-			Match(RULE);
+			Match(EVENT);
 			State = 87;
 			Match(ID);
 			State = 88;
@@ -641,8 +641,8 @@ public partial class MoiraiParser : Parser {
 		return _localctx;
 	}
 
-	public partial class EventContext : ParserRuleContext {
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode EVENT() { return GetToken(MoiraiParser.EVENT, 0); }
+	public partial class TriggerContext : ParserRuleContext {
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TRIGGER() { return GetToken(MoiraiParser.TRIGGER, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ID() { return GetToken(MoiraiParser.ID, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public CategoriesContext categories() {
 			return GetRuleContext<CategoriesContext>(0);
@@ -671,40 +671,40 @@ public partial class MoiraiParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public EffectContext effect(int i) {
 			return GetRuleContext<EffectContext>(i);
 		}
-		public EventContext(ParserRuleContext parent, int invokingState)
+		public TriggerContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
 		}
-		public override int RuleIndex { get { return RULE_event; } }
+		public override int RuleIndex { get { return RULE_trigger; } }
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void EnterRule(IParseTreeListener listener) {
 			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEvent(this);
+			if (typedListener != null) typedListener.EnterTrigger(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override void ExitRule(IParseTreeListener listener) {
 			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEvent(this);
+			if (typedListener != null) typedListener.ExitTrigger(this);
 		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
-			if (typedVisitor != null) return typedVisitor.VisitEvent(this);
+			if (typedVisitor != null) return typedVisitor.VisitTrigger(this);
 			else return visitor.VisitChildren(this);
 		}
 	}
 
 	[RuleVersion(0)]
-	public EventContext @event() {
-		EventContext _localctx = new EventContext(Context, State);
-		EnterRule(_localctx, 10, RULE_event);
+	public TriggerContext trigger() {
+		TriggerContext _localctx = new TriggerContext(Context, State);
+		EnterRule(_localctx, 10, RULE_trigger);
 		int _la;
 		try {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
 			State = 115;
-			Match(EVENT);
+			Match(TRIGGER);
 			State = 116;
 			Match(ID);
 			State = 117;
@@ -2122,6 +2122,9 @@ public partial class MoiraiParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public MatchContext match() {
 			return GetRuleContext<MatchContext>(0);
 		}
+		[System.Diagnostics.DebuggerNonUserCode] public ValueContext value() {
+			return GetRuleContext<ValueContext>(0);
+		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PAREN_OPEN() { return GetToken(MoiraiParser.PAREN_OPEN, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PAREN_CLOSE() { return GetToken(MoiraiParser.PAREN_CLOSE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext[] expr() {
@@ -2129,9 +2132,6 @@ public partial class MoiraiParser : Parser {
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ExprContext expr(int i) {
 			return GetRuleContext<ExprContext>(i);
-		}
-		[System.Diagnostics.DebuggerNonUserCode] public ValueContext value() {
-			return GetRuleContext<ValueContext>(0);
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode MUL() { return GetToken(MoiraiParser.MUL, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode DIV() { return GetToken(MoiraiParser.DIV, 0); }
@@ -2201,18 +2201,6 @@ public partial class MoiraiParser : Parser {
 				match();
 				}
 				break;
-			case PAREN_OPEN:
-				{
-				{
-				State = 336;
-				Match(PAREN_OPEN);
-				State = 337;
-				_localctx.paren_expr = expr(0);
-				State = 338;
-				Match(PAREN_CLOSE);
-				}
-				}
-				break;
 			case STRING:
 			case NULL:
 			case TRUE:
@@ -2224,8 +2212,20 @@ public partial class MoiraiParser : Parser {
 			case NUMBER_FLOAT:
 			case NUMBER:
 				{
-				State = 340;
+				State = 336;
 				value();
+				}
+				break;
+			case PAREN_OPEN:
+				{
+				{
+				State = 337;
+				Match(PAREN_OPEN);
+				State = 338;
+				_localctx.paren_expr = expr(0);
+				State = 339;
+				Match(PAREN_CLOSE);
+				}
 				}
 				break;
 			default:
@@ -2250,7 +2250,7 @@ public partial class MoiraiParser : Parser {
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
 						State = 343;
-						if (!(Precpred(Context, 7))) throw new FailedPredicateException(this, "Precpred(Context, 7)");
+						if (!(Precpred(Context, 6))) throw new FailedPredicateException(this, "Precpred(Context, 6)");
 						State = 344;
 						_localctx.op = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
@@ -2262,7 +2262,7 @@ public partial class MoiraiParser : Parser {
 						    Consume();
 						}
 						State = 345;
-						_localctx.right = expr(8);
+						_localctx.right = expr(7);
 						}
 						break;
 					case 2:
@@ -2271,7 +2271,7 @@ public partial class MoiraiParser : Parser {
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
 						State = 346;
-						if (!(Precpred(Context, 6))) throw new FailedPredicateException(this, "Precpred(Context, 6)");
+						if (!(Precpred(Context, 5))) throw new FailedPredicateException(this, "Precpred(Context, 5)");
 						State = 347;
 						_localctx.op = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
@@ -2283,7 +2283,7 @@ public partial class MoiraiParser : Parser {
 						    Consume();
 						}
 						State = 348;
-						_localctx.right = expr(7);
+						_localctx.right = expr(6);
 						}
 						break;
 					case 3:
@@ -2292,7 +2292,7 @@ public partial class MoiraiParser : Parser {
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
 						State = 349;
-						if (!(Precpred(Context, 5))) throw new FailedPredicateException(this, "Precpred(Context, 5)");
+						if (!(Precpred(Context, 4))) throw new FailedPredicateException(this, "Precpred(Context, 4)");
 						State = 350;
 						_localctx.op = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
@@ -2304,7 +2304,7 @@ public partial class MoiraiParser : Parser {
 						    Consume();
 						}
 						State = 351;
-						_localctx.right = expr(6);
+						_localctx.right = expr(5);
 						}
 						break;
 					case 4:
@@ -2313,11 +2313,11 @@ public partial class MoiraiParser : Parser {
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
 						State = 352;
-						if (!(Precpred(Context, 4))) throw new FailedPredicateException(this, "Precpred(Context, 4)");
+						if (!(Precpred(Context, 3))) throw new FailedPredicateException(this, "Precpred(Context, 3)");
 						State = 353;
 						_localctx.op = Match(AND);
 						State = 354;
-						_localctx.right = expr(5);
+						_localctx.right = expr(4);
 						}
 						break;
 					case 5:
@@ -2326,11 +2326,11 @@ public partial class MoiraiParser : Parser {
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
 						State = 355;
-						if (!(Precpred(Context, 3))) throw new FailedPredicateException(this, "Precpred(Context, 3)");
+						if (!(Precpred(Context, 2))) throw new FailedPredicateException(this, "Precpred(Context, 2)");
 						State = 356;
 						_localctx.op = Match(OR);
 						State = 357;
-						_localctx.right = expr(4);
+						_localctx.right = expr(3);
 						}
 						break;
 					}
@@ -3023,11 +3023,11 @@ public partial class MoiraiParser : Parser {
 	}
 	private bool expr_sempred(ExprContext _localctx, int predIndex) {
 		switch (predIndex) {
-		case 0: return Precpred(Context, 7);
-		case 1: return Precpred(Context, 6);
-		case 2: return Precpred(Context, 5);
-		case 3: return Precpred(Context, 4);
-		case 4: return Precpred(Context, 3);
+		case 0: return Precpred(Context, 6);
+		case 1: return Precpred(Context, 5);
+		case 2: return Precpred(Context, 4);
+		case 3: return Precpred(Context, 3);
+		case 4: return Precpred(Context, 2);
 		}
 		return true;
 	}
@@ -3153,13 +3153,13 @@ public partial class MoiraiParser : Parser {
 		0,330,332,5,2,0,0,331,323,1,0,0,0,331,324,1,0,0,0,331,325,1,0,0,0,331,
 		326,1,0,0,0,331,327,1,0,0,0,331,328,1,0,0,0,331,329,1,0,0,0,331,330,1,
 		0,0,0,332,33,1,0,0,0,333,334,6,17,-1,0,334,342,3,18,9,0,335,342,3,20,10,
-		0,336,337,5,10,0,0,337,338,3,34,17,0,338,339,5,11,0,0,339,342,1,0,0,0,
-		340,342,3,32,16,0,341,333,1,0,0,0,341,335,1,0,0,0,341,336,1,0,0,0,341,
-		340,1,0,0,0,342,360,1,0,0,0,343,344,10,7,0,0,344,345,7,1,0,0,345,359,3,
-		34,17,8,346,347,10,6,0,0,347,348,7,2,0,0,348,359,3,34,17,7,349,350,10,
-		5,0,0,350,351,7,3,0,0,351,359,3,34,17,6,352,353,10,4,0,0,353,354,5,40,
-		0,0,354,359,3,34,17,5,355,356,10,3,0,0,356,357,5,41,0,0,357,359,3,34,17,
-		4,358,343,1,0,0,0,358,346,1,0,0,0,358,349,1,0,0,0,358,352,1,0,0,0,358,
+		0,336,342,3,32,16,0,337,338,5,10,0,0,338,339,3,34,17,0,339,340,5,11,0,
+		0,340,342,1,0,0,0,341,333,1,0,0,0,341,335,1,0,0,0,341,336,1,0,0,0,341,
+		337,1,0,0,0,342,360,1,0,0,0,343,344,10,6,0,0,344,345,7,1,0,0,345,359,3,
+		34,17,7,346,347,10,5,0,0,347,348,7,2,0,0,348,359,3,34,17,6,349,350,10,
+		4,0,0,350,351,7,3,0,0,351,359,3,34,17,5,352,353,10,3,0,0,353,354,5,40,
+		0,0,354,359,3,34,17,4,355,356,10,2,0,0,356,357,5,41,0,0,357,359,3,34,17,
+		3,358,343,1,0,0,0,358,346,1,0,0,0,358,349,1,0,0,0,358,352,1,0,0,0,358,
 		355,1,0,0,0,359,362,1,0,0,0,360,358,1,0,0,0,360,361,1,0,0,0,361,35,1,0,
 		0,0,362,360,1,0,0,0,363,364,5,13,0,0,364,365,5,46,0,0,365,369,5,8,0,0,
 		366,368,5,4,0,0,367,366,1,0,0,0,368,371,1,0,0,0,369,367,1,0,0,0,369,370,

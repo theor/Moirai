@@ -17,23 +17,23 @@ public class MainWindow : Toplevel
     public EntityId Current => _historyIndex >= 0 && _historyIndex < _history.Count ? _history[_historyIndex] : default;
     public Action CurrentAction;
     
-    interface IMessage{}
-
-    struct ReloadMessage : IMessage
+    // interface IMessage{}
+    //
+    // struct ReloadMessage : IMessage
+    // {
+    //     public readonly string Path;
+    //     public readonly int YearsToPass;
+    //     public ReloadMessage(string path, int yearsToPass)
+    //     {
+    //         Path = path;
+    //         YearsToPass = yearsToPass;
+    //     }
+    // }
+    private static bool _requestReload;
+     static void CreateWatcher(string path)
     {
-        public readonly string Path;
-        public readonly int YearsToPass;
-        public ReloadMessage(string path, int yearsToPass)
-        {
-            Path = path;
-            YearsToPass = yearsToPass;
-        }
-    }
-
-     static ChannelReader<IMessage> CreateWatcher(string path)
-    {
-        Channel<IMessage> channel = Channel.CreateBounded<IMessage>(new BoundedChannelOptions(1)
-            { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true, SingleWriter = true }); 
+        // Channel<IMessage> channel = Channel.CreateBounded<IMessage>(new BoundedChannelOptions(1)
+            // { FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true, SingleWriter = true }); 
         new Thread(async () =>
         {
             FileSystemWatcher fsw = new FileSystemWatcher(Path.GetDirectoryName(Path.GetFullPath(path)));
@@ -45,12 +45,10 @@ public class MainWindow : Toplevel
                 var res = fsw.WaitForChanged(WatcherChangeTypes.All, 1000);
                 if(res.TimedOut)
                     continue;
-                await channel.Writer.WaitToWriteAsync();
                 Debug.WriteLine($"Changed: {res.ChangeType} {res.Name}");
-                await channel.Writer.WriteAsync(new ReloadMessage(path, -1));
+                _requestReload = true;
             }
         }).Start();
-        return channel.Reader;
     }
     public MainWindow()
     {
@@ -182,13 +180,19 @@ public class MainWindow : Toplevel
         Add(StatusBar);
 
 
-        var reader = CreateWatcher(path);
+        CreateWatcher(path);
         ReloadFile(path);
         Application.MainLoop.AddIdle( () =>
         {
-            if (reader.TryRead(out var msg))
+            if (_requestReload)
             {
-                ReloadFile(((ReloadMessage)msg).Path);
+                _requestReload = false;
+                Application.MainLoop.AddTimeout(TimeSpan.FromSeconds(0.5), (l) =>
+                {
+                    ReloadFile(path);
+                    return false;
+                });
+              
             }
             return true;
         });
@@ -295,6 +299,7 @@ public class MainWindow : Toplevel
         db.History = new();
 
         db.Init();
+        
         await new PassYearsDialog(db, targetYear, false).Execute();
         // db.Ctx.PassYears(100);
         LoadDatabase(db);

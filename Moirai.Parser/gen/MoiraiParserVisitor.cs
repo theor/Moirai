@@ -53,11 +53,11 @@ public interface IMoiraiParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitFilter([NotNull] MoiraiParser.FilterContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="MoiraiParser.action"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.event"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitAction([NotNull] MoiraiParser.ActionContext context);
+	Result VisitEvent([NotNull] MoiraiParser.EventContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.categories"/>.
 	/// </summary>
@@ -65,11 +65,11 @@ public interface IMoiraiParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitCategories([NotNull] MoiraiParser.CategoriesContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="MoiraiParser.event"/>.
+	/// Visit a parse tree produced by <see cref="MoiraiParser.trigger"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitEvent([NotNull] MoiraiParser.EventContext context);
+	Result VisitTrigger([NotNull] MoiraiParser.TriggerContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.when"/>.
 	/// </summary>

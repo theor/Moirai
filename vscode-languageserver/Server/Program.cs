@@ -135,6 +135,7 @@ internal class Program
                     .WithHandler<SemanticTokensHandler>()
                     .WithHandler<MyDeclarationHandler>()
                     .WithHandler<MyHoverHandler>()
+                    .WithHandler<MyUsageHandler>()
             ).ConfigureAwait(false);
 
             await server.WaitForExit.ConfigureAwait(false);

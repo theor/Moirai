@@ -7,36 +7,27 @@ public static class MoiraiLanguage
 {
     public static readonly TextDocumentSelector Selector = TextDocumentSelector.ForLanguage("moirai");
 }
-public class MyHoverHandler : HoverHandlerBase
+public class MyUsageHandler : ReferencesHandlerBase
 {
     private readonly ILogger _logger;
     private readonly MoiraiCache _moiraiCache;
 
     
-    public MyHoverHandler(ILogger<MyDeclarationHandler> logger, MoiraiCache moiraiCache)
+    public MyUsageHandler(ILogger<MyDeclarationHandler> logger, MoiraiCache moiraiCache)
     {
         _logger = logger;
         _moiraiCache = moiraiCache;
     }
-    protected override HoverRegistrationOptions CreateRegistrationOptions(HoverCapability capability, ClientCapabilities clientCapabilities)
+    protected override ReferenceRegistrationOptions CreateRegistrationOptions(ReferenceCapability capability,
+        ClientCapabilities clientCapabilities)
     {
-        return new HoverRegistrationOptions
-        {
-            DocumentSelector = MoiraiLanguage.Selector,
-
-        };
+        return new ReferenceRegistrationOptions { DocumentSelector = MoiraiLanguage.Selector };
     }
 
-    public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken)
+    public override Task<LocationContainer?> Handle(ReferenceParams request, CancellationToken cancellationToken)
     {
-        // _logger.LogCritical($"LINK {request.TextDocument} {request.Position}");
-        var res = _moiraiCache.GetLocations(request.TextDocument, request.Position);
-        if(res != null)
-            return new Hover{ Range = res.Location.Range,
-                Contents = new MarkedStringsOrMarkupContent(
-                    new MarkedString("moirai", 
-                        _moiraiCache.GetRange(request.TextDocument.Uri, res.Location.Range)))};
-        return null;
+        return null;// _moiraiCache.GetLocations(request.Position)
+        // request.Context.IncludeDeclaration
     }
 }
 

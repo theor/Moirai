@@ -143,6 +143,7 @@ public class PredicateContext
     }
     public void Assert(bool boolValue, string msg)
     {
+        // Console.WriteLine(msg);
         if (!boolValue)
             throw new InvalidOperationException("assert failed: " + msg);
     }

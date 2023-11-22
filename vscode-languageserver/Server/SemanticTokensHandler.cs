@@ -144,12 +144,12 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             tokenType,
             keyword));
     }
-    public override object? VisitAction(MoiraiParser.ActionContext context)
+    public override object? VisitEvent(MoiraiParser.EventContext context)
     {
         var id = context.ID();
-        // base.VisitAction(context);
+        // base.VisitEvent(context);
         context.filter()?.Accept(this);
-        PushSemanticToken(context.RULE().Symbol, SemanticTokenType.Keyword);
+        PushSemanticToken(context.EVENT().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(id.Symbol, SemanticTokenType.Class);
         PushSymbol(id.Symbol, SymbolKind.Function);
         foreach (var cat in context.categories().ID())
@@ -168,10 +168,10 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         return null ;
     }
 
-    public override object? VisitEvent(MoiraiParser.EventContext context)
+    public override object? VisitTrigger(MoiraiParser.TriggerContext context)
     {
         var id = context.ID();
-        PushSemanticToken(context.EVENT().Symbol, SemanticTokenType.Keyword);
+        PushSemanticToken(context.TRIGGER().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(id.Symbol, SemanticTokenType.Class, SemanticTokenModifier.Definition);
         PushSymbol(id.Symbol, SymbolKind.Event);
         foreach (var cat in context.categories().ID())

@@ -1,7 +1,7 @@
 entity System {}
 
 @start
-rule create_solar_system {
+event create_solar_system {
     create $s: System, "Solar System"
 
 }

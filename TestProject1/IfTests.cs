@@ -1,5 +1,37 @@
 ﻿namespace TestProject1;
 
+public class RandomTests : TestsBase
+{
+    [Test]
+    public void RandomRange()
+    {
+        Run(@"
+event c {
+   var $x: random 1, 10
+    assert $x >= 1
+    assert $x <= 10
+}
+@start
+event r {
+    call c, 100
+}", out _);
+    }
+    [Test]
+    public void RandomMax()
+    {
+        Run(@"
+event c {
+   var $x: random 10
+    assert $x >= 0
+    assert $x <= 10
+}
+@start
+event r {
+    call c, 100
+}", out _);
+    }
+}
+
 public class IfTests : TestsBase
 {
     [Test]
@@ -8,7 +40,7 @@ public class IfTests : TestsBase
         var db = Run(@"
 entity T {}
 prop p: number
-rule r {
+event r {
     create $t: T
     if true {
         set $t.p = 1
@@ -23,7 +55,7 @@ rule r {
         var db = Run(@"
 entity T {}
 prop p: number
-rule r {
+event r {
     create $t: T
     
     set $t.p = if true { 1 }
@@ -38,7 +70,7 @@ rule r {
         var db = Run(@"
 entity T {}
 prop p: number
-rule r {
+event r {
     create $t: T
     if false {
         set $t.p = 1
@@ -57,7 +89,7 @@ rule r {
 entity T {}
 entity U {}
 prop p: number
-rule r {
+event r {
     if false {
         create $x: T
     } else {
@@ -73,7 +105,7 @@ rule r {
 entity T {}
 entity U {}
 prop p: number
-rule r {
+event r {
     var $x: if false {
         create $x: T
     } else {

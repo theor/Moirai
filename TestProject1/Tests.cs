@@ -106,12 +106,12 @@ public class Tests : TestsBase
         var s = @"
 entity Person {}
 prop f: number
-rule r {
+event r {
     create $p: Person
     set $p.f = 42
     assert $p.f = 42
 }
-rule rr {
+event rr {
     pick $p: Person
     set $p.f = 43
     assert $p.f = 43
@@ -128,7 +128,7 @@ rule rr {
     public void Int_Add() => RunAssert(@"
 entity Person {}
 prop f: number
-rule r {
+event r {
     create $p: Person
     set $p.f = 2 + 3
     assert $p.f = 5
@@ -139,7 +139,7 @@ rule r {
     public void Int_Negative() => RunAssert(@"
 entity Person {}
 prop f: number
-rule r {
+event r {
     create $p: Person
     set $p.f = -2 + 3
     assert $p.f = 1
@@ -150,7 +150,7 @@ rule r {
     public void Int_Negative2() => RunAssert(@"
 entity Person {}
 prop f: number
-rule r {
+event r {
     create $p: Person
     set $p.f = -4 - -3
     assert $p.f = -1
@@ -161,7 +161,7 @@ rule r {
     public void Float_Add() => RunAssert(@"
 entity Person {}
 prop f: float
-rule r {
+event r {
     create $p: Person
     set $p.f = 2.1 + 3.2
     assert $p.f = 5.3
@@ -173,7 +173,7 @@ rule r {
     public void Float_Floor() => RunAssert(@"
 entity Person {}
 prop f: float
-rule r {
+event r {
     create $p: Person
     set $p.f = floor(2.1 + 3.2)
     assert $p.f = 5
@@ -184,7 +184,7 @@ rule r {
     public void Int_AddMul_Precedence() => RunAssert(@"
 entity Person {}
 prop f: number
-rule r {
+event r {
     create $p: Person
     set f = 2 + 3 * 4
     assert_eq $0.f, 14
@@ -209,7 +209,7 @@ rule r {
 entity Person {}
 enum E { A, B, C }
 prop f: number
-rule r {
+event r {
     create $p: Person
     set f = E.B
     assert $0.f = 2
@@ -229,7 +229,7 @@ rule r {
         var s = @"
 entity Person {}
 prop f: number
-rule r {
+event r {
     create $p: Person
     set f = 42 > 4
     assert $0.f
@@ -247,7 +247,7 @@ rule r {
         var s = @"
 entity Person {}
 prop f: number
-rule r {
+event r {
     create $p: Person
     set f = 42
     set f = f + 1
@@ -266,7 +266,7 @@ rule r {
         var s = @"
 entity Person {}
 prop alive: bool
-rule born_char {
+event born_char {
     create $p: Person, '{random Name}'
     set $p.alive = true
     assert $p.alive = true
@@ -297,13 +297,13 @@ rule born_char {
         var s = @"
 entity Person {}
 prop alive: number
-rule born_char {
+event born_char {
     create $p: Person, '{random Name}'
 }
-@start rule init {
+@start event init {
     call born_char, 10
 }
-rule r {
+event r {
     each $p: type=Person {
         set $p.alive = 2
     }
@@ -326,7 +326,7 @@ rule r {
         var s = @"
 entity Person {}
 prop alive: bool
-rule r {
+event r {
     pick $p: type = Person
     set $p.alive = true
 }
@@ -354,7 +354,7 @@ rule r {
         var s = @"
 entity Person {}
 prop alive: bool
-rule char_dies {
+event char_dies {
     pick $p: type = Person, alive = true
     set $p.alive = false
 }";
@@ -371,7 +371,7 @@ rule char_dies {
     {
         var s = @"
 prop alive: bool
-rule char_dies {
+event char_dies {
     pick $x: alive = true
     pick $y: id != $x
 }";
@@ -391,7 +391,7 @@ rule char_dies {
         var s = @"
 entity Person {}
 prop test: bool
-rule foreach {
+event foreach {
     each $x: type=Person {
         set $x.test = true
         record '{$x.name} {$x.test}'
@@ -430,7 +430,7 @@ rule foreach {
 entity Person {}
 prop x: bool
 prop y: bool
-rule foreach {
+event foreach {
     each $x: type=Person {
         set $x.x = true
         record '{$x.name} {$x.x}'
@@ -472,7 +472,7 @@ rule foreach {
 entity Person {}
 prop x: bool
 prop y: bool
-rule foreach {
+event foreach {
     each $p: type=Person {
         set $p.x = true
         record '{$p.name} {$p.x}'
@@ -533,7 +533,7 @@ rule foreach {
         var s = @"
 entity Person {}
 prop alive: bool
-rule char_dies {
+event char_dies {
     pick $p: type=Person, alive = true
     pick $p: type=Person, alive = true
     set $p.alive = false
@@ -550,7 +550,7 @@ entity Person {}
 prop x: number
 prop link: ref
 
-rule create {
+event create {
     create $p: Person
     create $p2: Person
     set $p.link = $p2
@@ -571,7 +571,7 @@ entity Person {}
 prop x: number
 prop link: ref
 
-rule create {
+event create {
     create $p: Person
     create $p2: Person
     set $p.link = $p2
@@ -594,7 +594,7 @@ entity Person {}
 enum Job { None, Farmer, Smith }
 prop job: Job
 
-rule create {
+event create {
     create $p: Person
     set $p.job = Job.Farmer
 }
@@ -619,7 +619,7 @@ entity Person {}
 enum Job { None, Farmer, Smith }
 prop job: Job
 
-rule create {
+event create {
     create $p: Person
     set $p.job = 1
 }
@@ -644,7 +644,7 @@ entity Person {}
 enum Job { None, Farmer, Smith }
 prop job: Job
 
-rule create {
+event create {
     create $p: Person
     set job = Asd
 }
@@ -665,7 +665,7 @@ entity Person {}
 enum Job { Farmer, Smith, Mayor }
 prop job: Job
 
-rule create {
+event create {
     create $p: Person
     set $p.job = random Job
 }
@@ -696,7 +696,7 @@ entity Person {}
 entity Faction {}
 prop faction: ref
 prop owner: ref
-rule create_faction {
+event create_faction {
     pick $p: type=Person, faction = null
     create $f: Faction
     set $f.owner = $p
@@ -715,7 +715,7 @@ entity Person {
 entity Faction {
 }
 prop owner: ref
-rule create_faction {
+event create_faction {
     create $f: Faction, 'Faction of {random Name}'
     create $g: Faction
     set $g.name = 'Circle of {random Name}'
@@ -740,7 +740,7 @@ rule create_faction {
 entity Person {
 }
 prop owner: ref
-rule create_faction {
+event create_faction {
     create $p: Person, '{random Name}-{random Name} of {random Name}'
     assert_eq $p.name, 'Cerelia-Hecate of River'
 }";
@@ -753,7 +753,7 @@ rule create_faction {
     public void FormatLiteral()
     {
         var s = @"
-rule create_faction {
+event create_faction {
     record 'res {42} > {16} = {42 > 16}'
 }";
         var db = Run(s, out var errors);
@@ -771,10 +771,10 @@ rule create_faction {
     {
         var s = @"
 entity E {}
-rule called {
+event called {
     create $e: E
 }
-rule call {
+event call {
     call called
 }";
         var db = Run(s, out var errors);
@@ -789,10 +789,10 @@ rule call {
         var s = @"
 entity E {}
 prop x: number
-rule called {
+event called {
     create $x: E
 }
-rule call {
+event call {
     var $x: call called
     var $y: call called
     
@@ -814,7 +814,7 @@ rule call {
 entity E {}
 prop x: number
 
-rule call {
+event call {
     var $w:  42
     var $g: 43
     assert_eq $w, 42
@@ -830,11 +830,11 @@ rule call {
     public void Singleton()
     {
         var s = @"
-rule create {
+event create {
     create $t: Time, 'time'
     set year = 1000
 }
-rule read {
+event read {
     assert_eq #Time.year, 1000
 }";
 
@@ -851,12 +851,12 @@ rule read {
         string s = @"
 entity Person {}
 
-rule init {
+event init {
     create $t: Time, 'time'
     set $t.year = 345
 }
 @4 per 1 years
-rule born {
+event born {
     create $p: Person
 }
 ";
@@ -878,11 +878,11 @@ enum Age { Child, Young, Adult, Old }
 prop alive: bool
 prop birthdate: number
 prop age: Age
-rule create_time {
+event create_time {
     create $t: Time, 'time'
     set $t.year = 1000
 }
-rule born {
+event born {
     create $p: Person
     set $p.alive = true
     set $p.age = Age.Child
@@ -890,7 +890,7 @@ rule born {
     record 'The {$p.age} {$p.name} is born in {$p.birthdate}'
 }
 
-rule pass_15_years {
+event pass_15_years {
     set #Time.year = #Time.year + 15
     each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
         set $p.age = Age.Young
@@ -932,7 +932,7 @@ rule pass_15_years {
         string s = @"
 entity Person {}
 prop birthdate: number
-rule born {
+event born {
     pick $t: type=Time
     create $p: Person
     set $p.birthdate = $t.year
@@ -946,7 +946,7 @@ rule born {
         string s = @"
 entity Person {}
 prop birthdate: number
-rule born {
+event born {
     pick $t: type=Time
     create $p: Person
     set birthdate = $t.year
@@ -963,11 +963,11 @@ enum Age { Child, Young, Adult, Old }
 prop alive: bool
 prop birthdate: number
 prop age: Age
-rule create_time {
+event create_time {
     create $t: Time, 'time'
     set $t.year = 1000
 }
-rule born {
+event born {
     pick $t: type=Time
     create $p: Person
     set $p.alive = true
@@ -976,7 +976,7 @@ rule born {
     record 'The {$p.age} {$p.name} is born in {$p.birthdate}'
 }
 
-rule pass_15_years {
+event pass_15_years {
     pick $t: type=Time
     set $t.year = $t.year + 15
     each $p: type=Person, alive = true, age < Age.Old, (birthdate + 20* (age+1) ) <= $t.year, age < Age.Old {
@@ -1011,7 +1011,7 @@ rule pass_15_years {
     public void TestAssertFalse()
     {
         var s = @"
-rule r {
+event r {
     assert false
 }";
         var db = Run(s, out var errors);
@@ -1025,7 +1025,7 @@ rule r {
     public void TestAssertEq()
     {
         var s = @"
-rule r {
+event r {
     assert 1 = 2
 }";
         var db = Run(s, out var errors);
@@ -1039,7 +1039,7 @@ rule r {
     public void TestAssertTrue()
     {
         var s = @"
-rule r {
+event r {
     assert true
 }";
         var db = Run(s, out var errors);

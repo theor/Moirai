@@ -16,6 +16,7 @@ enum Job {
 enum Age { Child, Young, Adult, Old }
 enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
 enum ItemSource { Forged, Painted, Sculpted }
+enum Mastery { Novice, Seasoned, Master, Legendary }
 enum CountryHealth { Disarray, Recession, Neutral, Emerging, Prosperous }
 
 prop age: Age
@@ -23,6 +24,7 @@ prop first_name: string
 prop alive: bool
 prop birthdate: number
 prop prestige: number
+prop mastery: Mastery
 prop deathdate: number
 prop last_child: number
 prop partner: Person
@@ -59,66 +61,58 @@ enum GodTypes {
     Death,
 }
 
-rule create_country country {
+event create_country country {
     create $c: Country, '{random CountryName} {random Name}'
     set prosperity = 5
     set health = CountryHealth.Neutral
     record "{name} is created"
 }
 
-rule create_god  {
+event create_god  {
     create $g: God, '{random Name}, God of {random GodTypes}'
     record "{name} appears"
 }
 @start
-rule create_time {
+event create_time {
     create $t: Time, 'time'
     set $t.year = 764
     call create_country, 10
     call create_god, 10
 }
 
-event country_prosperity_increase country_events {
+trigger country_prosperity_increase country_events {
     when Country and prosperity >= 10
     set $new.prosperity = 10
 }
-event country_prosperity_decrease country_events {
+trigger country_prosperity_decrease country_events {
     when Country and prosperity < 1
     set $new.prosperity = 1
 }
 
 @ 1 per 15 years
-rule update_country_health country_events {
+event update_country_health country_events {
     each $c: type = Country {
+        var $prev: $c.health
         set $c.health = ($c.prosperity + 1) / 2
-        // record '+ {$c.name} p {$c.prosperity} h {$c.health}'
-        if $c.health = CountryHealth.Disarray {
-            random_weighted 100 {
+        var $diff: $prev != $c.health
+        match $diff, $c.health  {
+            
+            false, CountryHealth.Disarray => random_weighted 100 {
                 3 => {
                     record 'The governement of {$c.name} disappears in a coup'
                     set $c.health = CountryHealth.Neutral
                     set $c.prosperity = 5
                 }
             }
-             
+            // true, CountryHealth.Disarray => record '{$c.name} enters an era or disarray'
+           true, CountryHealth.Prosperous => record '{$c.name} enters an era of prosperity'
+            //  _ => {}
         }
     }
 }
 
-@ 1 per 10 years
-rule country_coup country_events {
-    pick $c: type = Country, health = CountryHealth.Disarray
-    record 'The governement of {$c.name} disappears in a coup'
-    set $c.health = CountryHealth.Recession
-}
 
-@ 1 per 10 years
-rule country_prosperity country_events {
-    pick $c: type = Country, prosperity >= 8
-    record '{$c.name} enters a phase of prosperity'
-}
-
-event inherit death items {
+trigger inherit items {
     when Person and alive = false and $old.alive
     // record '{$new.name} died'
     set $new.deathdate = #Time.year
@@ -130,7 +124,7 @@ event inherit death items {
     }
 }
 
-event buries_children death {
+trigger buries_children death {
     when Person and alive = false and $old.alive
     
     
@@ -144,7 +138,7 @@ event buries_children death {
     }
 }
 
-event born {
+trigger born {
     when_created Person
     // record '!!! BORN {$new.birthdate} {#Time.year}'
     // assert_eq $new.birthdate, null
@@ -156,7 +150,7 @@ event born {
 }
 
 @1 per 2 year
-rule char_born {
+event char_born {
     var $fname: '{random Name}'
     create $p: Person, '{$fname} {random Name}'
     pick $loc: type = Country
@@ -168,7 +162,7 @@ rule char_born {
 
 
 @1 every 1 year
-rule children_grow {
+event children_grow {
     each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
         set $p.age = Age.Young
         random_weighted 100 {
@@ -187,13 +181,14 @@ rule children_grow {
             10 => set $p.job = Job.Fisher
             _ => set $p.job = Job.Farmer
         }
+        set $p.mastery = Mastery.Novice
        
         record '{$p.name} becomes a {$p.job}'
     }
 }
 
 @1 every 1 year
-rule youngs_grow {
+event youngs_grow {
     each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year{
         set $p.age = Age.Adult
     //    record '{$p.name} grew up as a {$p.age}'
@@ -201,22 +196,37 @@ rule youngs_grow {
 }
 
 @1 every 1 year
-rule adults_grow {
+event adults_grow death {
     each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year{
         set $p.age = Age.Old
-        record '{$p.name} grew old'
+        if (random 100) < 10 {
+            set $p.alive = false
+            random_weighted 50 {
+                40 =>  record '{$p.name} dies of sickness at {#Time.year - $p.birthdate} in {#Time.year}'
+                _ =>  record '{$p.name} dies in an accident at {#Time.year - $p.birthdate} in {#Time.year}'
+            }
+        } else {
+            record '{$p.name} grew old'
+        }
     }   
 }
 
 @1 every 1 year
-rule olds_dies {
+event olds_dies death {
     each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
-        set $p.alive = false
-        record '{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}'
+        if (random 100) < 20 {
+            set $p.alive = false
+            random_weighted 100 {
+                40 =>  record '{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}'
+                40 =>  record '{$p.name} dies of sickness at {#Time.year - $p.birthdate} in {#Time.year}'
+                _ =>  record '{$p.name} dies in an accident at {#Time.year - $p.birthdate} in {#Time.year}'
+            }
+           
+        }
     }
 }
 
-// rule _parent_dies {
+// event _parent_dies {
 //     each $l: type = Link {
 //         pick $p: id = $l.parent, alive = true
 //         pick $c: id = $l.child
@@ -225,15 +235,34 @@ rule olds_dies {
 
 //     }
 // }
+@1 per 5 years
+event char_prestige_update items {
+    each $p: type=Person, alive, prestige > 0 {
+        match $p.job {
+            Job.Painter => {
+                if $p.prestige > 5 and $p.mastery < Mastery.Master {
+                    record '{$p.name} is now a master painter'
+                    set $p.mastery = Mastery.Master
+                }
+            }
+            Job.Smith => {
+                if $p.prestige > 5 and $p.mastery < Mastery.Master {
+                    record '{$p.name} is now a master smith'
+                    set $p.mastery = Mastery.Master
+                }
+            }
+        }
+    }
+}
 @1 per 1 years
-rule char_joins_faith {
+event char_joins_faith {
     pick $x: type = Person, alive, god = null
     pick $g: type = God
     set $x.god = $g
     record '{$x.name} takes the faith of {$g.name}'
 }
  @1 per 2 years
-rule wedding {
+event wedding {
     pick $x: type = Person, alive = true, partner = null, age > Age.Child
     pick $y: type = Person, alive = true, partner = null, age > Age.Child, id != $x, place = $x.place
     set $x.partner = $y
@@ -245,7 +274,7 @@ rule wedding {
     record '{$x.name} and {$y.name} get married'
 }
  @1 per 15 year
-rule divorce {
+event divorce {
     pick $x: type = Person, alive = true, partner != null
     pick $y: type = Person, alive = true, partner != null, id != $x
     set $x.partner = null
@@ -253,21 +282,21 @@ rule divorce {
     record '{$x.name} and {$y.name} separate'
 } 
 @1 per 15 year
-rule murder {
+event murder {
     pick $x: type = Person, alive = true, age > Age.Child
     pick $y: type = Person, alive = true, id != $x
     set $y.alive = false
     record '{$x} {$x.name} murders {$y} {$y.name}'
 } 
 @1 per 4 year
-rule char_migrates country {
+event char_migrates country {
     pick $p: type = Person, alive, partner = null
     pick $c: type = Country, id != $p.place
     set $p.place = $c
     record '{$p.name} moves to {$c.name}'
 }
 @1 per 4 year
-rule country_war_start war {
+event country_war_start war {
     pick $x: type = Country, war_with = null
     pick $y: type = Country, id != $x, war_with = null
     set $x.war_with = $y
@@ -277,7 +306,7 @@ rule country_war_start war {
     set $y.prosperity =  $y.prosperity - 1
 }
 @5 per 1 year
-rule soldier_war_distinction war country {
+event soldier_war_distinction war country {
     each $c: type = Country, war_with != null {
         pick $s: type = Person, alive, job = Job.Soldier, place = $c
         var $o: $c.war_with
@@ -297,7 +326,7 @@ rule soldier_war_distinction war country {
 }
 
 // @1 per 1 year
-// rule soldier_war_distinction war country {
+// event soldier_war_distinction war country {
 //     each $c: type = Country, war_with != null {
 //         pick $s: type = Person, alive, job = Job.Soldier, place = $c
 //         var $o: $c.war_with
@@ -306,7 +335,7 @@ rule soldier_war_distinction war country {
 //     }
 // }
 // @1 per 1 year
-// rule soldier_war_death war {
+// event soldier_war_death war {
 //     each $c: type = Country, war_with != null {
 //         pick $s: type = Person, alive, job = Job.Soldier, place = $c
 //         var $o: $c.war_with
@@ -317,7 +346,7 @@ rule soldier_war_distinction war country {
 //     }
 // }
 @1 per 10 year
-rule country_war_peace war country {
+event country_war_peace war country {
     pick $x: type = Country, war_with != null
     var $y: $x.war_with
     set $x.war_with = null
@@ -327,7 +356,7 @@ rule country_war_peace war country {
     set $y.prosperity =  $y.prosperity + 1
 }
 @1 per 10 year
-rule country_war_win war country {
+event country_war_win war country {
     pick $x: type = Country, war_with != null
     var $y: $x.war_with
     set $x.war_with = null
@@ -337,8 +366,20 @@ rule country_war_win war country {
     set $x.prosperity =  $x.prosperity + 3
     set $y.prosperity =  $y.prosperity - 1
 }
+@1 per 20 years
+event country_natural_disaster country {
+    pick $c: type = Country
+    var $d: random_weighted 100 {
+        20 => 'A flood'
+        20 => 'A volcano'
+        20 => 'A famine'
+        _ => 'An earthquake'
+    }
+    set $c.prosperity = $c.prosperity - 3
+    record '{$d} hits {$c.name}'
+}
 @2 per 1 year
-rule couple_has_child {
+event couple_has_child {
     pick $x: type = Person, alive = true, age < Age.Old, partner != null, #Time.year - last_child > 4 
     var $y: $x.partner
     if $y.alive {
@@ -358,16 +399,18 @@ rule couple_has_child {
     }
 }
 @1 per 2 year
-rule make_item items {
+event make_item items {
     pick $p: type=Person, alive = true, job=Job.Smith, age > Age.Child
+    set $p.prestige = $p.prestige + 1
     create $i: Item, '{random ItemType} of {random Name}'
     set $i.item_type = ItemSource.Forged
     set $i.owner = $p
     record '{$p.name} crafts the {$i.name}'
 }
 @1 per 2 year
-rule paint_item items {
+event paint_item items {
     pick $p: type=Person, alive = true, job=Job.Painter, age > Age.Child
+    set $p.prestige = $p.prestige + 1
     pick $t: type=Person, alive = true, id != $p
     create $i: Item, 'Portrait of {$t.name}'
     set $i.item_type = ItemSource.Painted
@@ -375,7 +418,7 @@ rule paint_item items {
     record '{$p.name} paints the {$i.name}'
 }
 @1 per 8 year
-rule item_lost items {
+event item_lost items {
     pick $i: type=Item, owner != null
     pick $p: id = $i.owner, alive
     var $prev: $i.owner
@@ -383,14 +426,14 @@ rule item_lost items {
     record '{$prev.name} lost the {$i.name}'
 }
 @1 per 20 year
-rule item_found items {
+event item_found items {
     pick $p: type=Person, alive = true
     pick $i: type=Item, owner = null
     set $i.owner = $p
-    record '{$p.name} obtains the {$i.name}'
+    record '{$p.name} finds the {$i.name}'
 }
 @1 per 10 year
-rule item_sold items {
+event item_sold items {
     pick $i: type=Item, owner != null
     pick $s: id = $i.owner, type=Person, alive
     pick $p: type=Person, alive, id != $s
@@ -399,7 +442,7 @@ rule item_sold items {
     record '{$p.name} acquires the {$i.name} from {$prev.name}'
 }
 @1 per 20 year
-rule create_faction {
+event create_faction {
     pick $p: type=Person, alive, faction = null, age > Age.Child
     create $f: Faction, 'Faction of {random Name}'
     set $f.owner = $p
@@ -407,7 +450,7 @@ rule create_faction {
     record '{$p.name} creates the {$f.name}'
 }
 @1 per 2 year
-rule char_joins_faction {
+event char_joins_faction {
     pick $p: type=Person, alive, faction = null, age > Age.Child
     pick $f: type=Faction
     set $p.faction = $f

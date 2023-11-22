@@ -32,12 +32,12 @@ public class StoryPrinter
         {
             sb.AppendLine($"prop {property.Name}: {Print(property.Type)}");
         }
-        foreach (var action in _database.Actions.Concat(_database.Events))
+        foreach (var action in _database.Actions.Concat(_database.Triggers))
         {
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
-            sb.AppendLine($"{(action.IsEvent ? "event" : "rule")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
-            if(action.IsEvent)
+            sb.AppendLine($"{(action.IsTrigger ? "trigger" : "event")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
+            if(action.IsTrigger)
                 sb.AppendLine($"  when{(action.When.Item1 == Action.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");
             foreach (var effect in action.Effects)
             {
@@ -421,5 +421,5 @@ public class StoryPrinter
         return String.Format(formatAction.FormatString, propertyValues);
     }
 
-    public string GetRuleName(int ruleIndex) => _database.Actions[ruleIndex].Name;
+    public string GetRuleName(int eventIndex) => _database.Actions[eventIndex].Name;
 }

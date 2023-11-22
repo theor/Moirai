@@ -8,7 +8,7 @@ public class MatchTests : TestsBase
         var db = Run(@"
 entity T {}
 prop p: number
-rule r {
+event r {
     create $t: T
     match 2 {
         _ => set $t.p = 20
@@ -25,7 +25,7 @@ rule r {
         var db = Run(@"
 entity T {}
 prop p: number
-rule r {
+event r {
     create $t: T
     match 2 {
         1 => set $t.p = 10
@@ -43,7 +43,7 @@ rule r {
         var db = Run(@"
 entity T {}
 prop p: number
-rule r {
+event r {
     create $t: T
     set $t.p = match 2 {
         1 => 10
@@ -62,7 +62,7 @@ rule r {
         var db = Run(@"
 entity T {}
 prop p: number
-rule r {
+event r {
     create $t: T
     match 2,(3>4) {
         1,true => set $t.p = 10
@@ -83,10 +83,10 @@ prop x: number
 prop y: number
 prop z: number
 @start
-rule create {
+event create {
     create $t: T
 }
-rule r {
+event r {
     random_weighted 10 {
         1 => set #T.x = #T.x + 1
         4 => set #T.y = #T.y + 1
@@ -111,10 +111,10 @@ prop x: number
 prop y: number
 prop z: number
 @start
-rule create {
+event create {
     create $t: T
 }
-rule r {
+event r {
     random_weighted 10 {
         1 => set #T.x = #T.x + 1
         4 => set #T.y = #T.y + 1
@@ -138,7 +138,7 @@ entity Asteroid {}
 entity Star {}
 entity Planet {}
 entity Satelite {}
-rule create {
+event create {
     random_weighted 10 {
         1 => create $x: Star
         6 => create $x: Asteroid
@@ -168,7 +168,7 @@ enum Job {
     King,
 }
 prop job: Job
-rule create {
+event create {
     create $p: Person
     random_weighted 10 {
         6 => set job = Job.Farmer

@@ -7,10 +7,10 @@ public class TagsTests : TestsBase
     {
         var db = Run(@"
 
-rule r1 x {
+event r1 x {
     record ''
 }
-rule r2 x y {
+event r2 x y {
     record ''
 }
 

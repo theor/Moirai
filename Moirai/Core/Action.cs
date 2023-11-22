@@ -5,7 +5,7 @@ public struct Action(int id, string name, bool isEvent,IFilter? filter, Category
     public enum WhenType { Created, Changed, }
     public readonly int Id = id;
     public readonly string Name = name;
-    public readonly bool IsEvent = isEvent;
+    public readonly bool IsTrigger = isEvent;
 
     public readonly List<IInstruction> Effects = new();
     public (WhenType, EntityTypeId, IValue?) When = default;

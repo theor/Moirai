@@ -9,7 +9,7 @@ public class FilterTests : TestsBase
 entity Person {}
 prop alive: bool
 @start
-rule char_dies {
+event char_dies {
     pick $p: type=Person, alive = true
     set $p.alive = false
 }";
@@ -25,7 +25,7 @@ rule char_dies {
 entity Person {}
 prop alive: bool
 @1 every 1 year
-rule char_dies {
+event char_dies {
     pick $p: type=Person, alive = true
     set $p.alive = false
 }";
@@ -40,7 +40,7 @@ rule char_dies {
 entity Person {}
 prop alive: bool
 @1 per 2 years
-rule char_dies {
+event char_dies {
     pick $p: type=Person, alive = true
     set $p.alive = false
 }";

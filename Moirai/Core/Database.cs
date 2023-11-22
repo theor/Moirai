@@ -21,7 +21,7 @@ public class Database
     public readonly int BuiltinTypes;
 
     public readonly List<Action> Actions;
-    public readonly List<Action> Events;
+    public readonly List<Action> Triggers;
 
     public readonly StoryPrinter Printer;
     public History? History;
@@ -75,7 +75,7 @@ public class Database
         BuiltinTypes = Types.Count;
         _ctx = new PredicateContext(this, seed);
         Actions = new();
-        Events = new();
+        Triggers = new();
         Printer = new StoryPrinter(this);
         Instance = this;
     }
@@ -333,10 +333,10 @@ WHERE id = $id;";
             // Console.ForegroundColor = ConsoleColor.Yellow;
             // Console.WriteLine("Event entity: " + entity);
             // Console.ResetColor();
-            foreach (var @event in Events)
+            foreach (var trigger in Triggers)
             {
-                // if entity created but event is on change
-                if(changed.Prev.Id.IsNull == (@event.When.Item1 == Action.WhenType.Changed))
+                // if entity created but trigger is on change
+                if(changed.Prev.Id.IsNull == (trigger.When.Item1 == Action.WhenType.Changed))
                     continue;
                 // if (!@event.WhenTags.Contains(tag))
                 //     continue;
@@ -345,24 +345,24 @@ WHERE id = $id;";
                 {
                     
                     
-                    if (@event.When.Item2 == changed.New.Type)
+                    if (trigger.When.Item2 == changed.New.Type)
                     {
                         // $old value
                         int varIdx = 0;
                     
-                        if (@event.When.Item1 == Action.WhenType.Changed)
+                        if (trigger.When.Item1 == Action.WhenType.Changed)
                             _ctx.SetArgument(varIdx++, ChangePrevEntityId);
                         // $new value
                         _ctx.SetArgument(varIdx, changed.New.Id);
                         
-                        if (@event.When.Item3 == null || @event.When.Item3.IsTrue(_ctx))
+                        if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
                         {
                             EventAttemptSuccess++;
                             // Console.WriteLine("  @ " + @event.Name);
-                            CurrentChangeset = new(CurrentChangeset.Id, @event.Name, _ctx.Year, @event.Categories);
+                            CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year, trigger.Categories);
                             // using (var s2 = _ctx.RunScope())
                             {
-                                foreach (var e in @event.Effects)
+                                foreach (var e in trigger.Effects)
                                 {
                                     if (!e.Execute(_ctx))
                                     {
