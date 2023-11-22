@@ -149,6 +149,50 @@ public class If : IValue
     }
 }
 
+public class Mark(IValue entity, int eventIndex) : IValueCall
+{
+    public readonly IValue Entity = entity;
+    public readonly int EventIndex = eventIndex;
+
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        var e = Entity.Compute(ctx);
+        if (e.Id.IsNull)
+            return true;
+        
+        ctx.Mark(e.Id, EventIndex);
+        return true;
+    }
+
+    public IFunctionDescriptor? FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs(StoryPrinter printer)
+    {
+        yield return Entity;
+        // yield return new Literal(EventIndex);
+    }
+}
+public class SinceLast(IValue entity, int eventIndex) : IValueCall
+{
+    public readonly IValue Entity = entity;
+    public readonly int EventIndex = eventIndex;
+
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        var e = Entity.Compute(ctx);
+        if (e.Id.IsNull)
+            return int.MaxValue;
+        if(ctx.GetLastMarked(e.Id, EventIndex, out var year))
+            return ctx.Year - year;
+        return int.MaxValue;
+    }
+
+    public IFunctionDescriptor? FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs(StoryPrinter printer)
+    {
+        yield return Entity;
+        // yield return new Literal(EventIndex);
+    }
+}
 public class Record : IValueCall
 {
     public InterpolatedString String;

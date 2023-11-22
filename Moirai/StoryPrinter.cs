@@ -38,7 +38,7 @@ public class StoryPrinter
                 sb.AppendLine(Print(action.Filter));
             sb.AppendLine($"{(action.IsTrigger ? "trigger" : "event")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
             if(action.IsTrigger)
-                sb.AppendLine($"  when{(action.When.Item1 == Action.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");
+                sb.AppendLine($"  when{(action.When.Item1 == EventTrigger.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");
             foreach (var effect in action.Effects)
             {
                 PrintEffect(effect, sb, 1);
@@ -397,9 +397,9 @@ public class StoryPrinter
             Console.WriteLine("<Empty>");
         Console.WriteLine();
     }
-    public void PrintHistory(Database database)
+    public void PrintHistory()
     {
-        foreach (var cs in database.History.Changesets)
+        foreach (var cs in _database.History.Changesets)
         {
             this.PrintChangeset(cs);
         }
@@ -422,4 +422,20 @@ public class StoryPrinter
     }
 
     public string GetRuleName(int eventIndex) => _database.Actions[eventIndex].Name;
+
+    public void PrintMarked()
+    {
+        foreach (var ((eid, index), year) in _database.Ctx._marked)
+        {
+            Console.WriteLine($"{eid,6}{GetRuleName(index-1),20} : {year}");
+        }
+    }
+
+    public void PrintRecords()
+    {
+        foreach (var record in _database.Records)
+        {
+            Console.WriteLine($"{record.Year,4} {record.Text}");
+        }
+    }
 }

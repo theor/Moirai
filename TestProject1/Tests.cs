@@ -1004,7 +1004,7 @@ event pass_15_years {
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
         db.Printer.PrintDb();
-        db.Printer.PrintHistory(db);
+        db.Printer.PrintHistory();
     }
 
     [Test]

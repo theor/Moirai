@@ -21,11 +21,11 @@ public class ActionListView : FrameView
         };
         _listView.SelectedItemChanged += e =>
         {
-            _w.SelectAction((Action)e.Value);
+            _w.SelectAction((EventTrigger)e.Value);
         };
         _listView.OpenSelectedItem += e =>
         {
-            if (_w.CurrentAction.Name == ((Action)e.Value).Name)
+            if (_w.CurrentEventTrigger.Name == ((EventTrigger)e.Value).Name)
             {
                 // _w.SelectAction(null);
                 _w.SetFiltering(MainWindow.FilteringMode.None);

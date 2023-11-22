@@ -166,7 +166,7 @@ public class WorldHistoryView : View
                     }).ToList();
                     break;
                 case MainWindow.FilteringMode.Action:
-                    _filtered = _w.Database.Records.Where(cs => cs.ActionId == _w.CurrentAction.Id).ToList();
+                    _filtered = _w.Database.Records.Where(cs => cs.ActionId == _w.CurrentEventTrigger.Id).ToList();
                     break;
                 case MainWindow.FilteringMode.Category:
                     if (_w.CurrentCategory.IsNull)

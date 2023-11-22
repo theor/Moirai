@@ -58,7 +58,7 @@ public class FunctionDescriptor : IFunctionDescriptor
         {
             if (isMaxCount ? CallContext.expr().Length > i : CallContext.expr().Length != i)
                 Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext,
-                    $"Expected {i} arguments{(isMaxCount ? " max" :"")}, got {CallContext.expr().Length}");
+                    $"Expected {i} arguments{(isMaxCount ? " max" : "")}, got {CallContext.expr().Length}");
         }
     }
 
@@ -88,7 +88,8 @@ public class FunctionDescriptor : IFunctionDescriptor
 
     public string Print(StoryPrinter printer, IValueCall call)
     {
-        return $"{FuncName}{(call.VariableIndex.HasValue ? $" ${call.VariableIndex.Value}:" : "")} {string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))}";
+        return
+            $"{FuncName}{(call.VariableIndex.HasValue ? $" ${call.VariableIndex.Value}:" : "")} {string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))}";
     }
 }
 
@@ -116,7 +117,18 @@ public static class StoryParser
                 ctx.Visitor.ParseExpr(ctx.CallContext.expr(0))!,
                 ctx.Visitor.ParseExpr(ctx.CallContext.expr(1)),
                 $"{ctx.Visitor.Parser.TokenStream.GetText(ctx.CallContext.expr(0))} = {ctx.GetText(ctx.CallContext.expr(1))}")),
-
+        new("mark", false, ctx =>
+        {
+            ctx.ExpectArgcount(1);
+            var e = ctx.Visitor.ParseExpr(ctx.CallContext.expr(0));
+            return new Mark(e, ctx.Visitor.CurrentEventTrigger.Id);
+        }),
+        new("since_last", false, ctx =>
+        {
+            ctx.ExpectArgcount(1);
+            var e = ctx.Visitor.ParseExpr(ctx.CallContext.expr(0));
+            return new SinceLast(e, ctx.Visitor.CurrentEventTrigger.Id);
+        }),
         new("record", false, ctx =>
         {
             var stringContext = ctx.CallContext.expr(0).value().@string();
@@ -158,6 +170,7 @@ public static class StoryParser
                     "'random' needs at least one argument");
                 return null;
             }
+
             var arg = ctx.CallContext.expr(0);
 
             if (arg.value()?.TYPE_ID() != null)
@@ -170,9 +183,8 @@ public static class StoryParser
 
             if (arg.value().number() != null)
             {
-                
                 ctx.ExpectArgcount(2, true);
-                var min  = argCount == 1 ? new Literal(0) : ctx.Visitor.ParseExpr(arg);
+                var min = argCount == 1 ? new Literal(0) : ctx.Visitor.ParseExpr(arg);
                 var max = ctx.Visitor.ParseExpr(ctx.CallContext.expr(argCount == 1 ? 0 : 1));
                 return new RandomRange(min, max);
             }
@@ -180,11 +192,16 @@ public static class StoryParser
             ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, ctx.GetText(ctx.CallContext));
             return null!;
         }),
-        new ("not", false, ctx => new MathUnary(MathUnary.UnaryFunction.Not, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
-        new ("floor", false, ctx => new MathUnary(MathUnary.UnaryFunction.Floor, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
-        new ("round", false, ctx => new MathUnary(MathUnary.UnaryFunction.Round, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
-        new ("ceiling", false, ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
-        new ("clamp01", false, ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new("not", false,
+            ctx => new MathUnary(MathUnary.UnaryFunction.Not, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new("floor", false,
+            ctx => new MathUnary(MathUnary.UnaryFunction.Floor, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new("round", false,
+            ctx => new MathUnary(MathUnary.UnaryFunction.Round, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new("ceiling", false,
+            ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+        new("clamp01", false,
+            ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
     };
 
     public interface IVisitor
@@ -271,7 +288,7 @@ public static class StoryParser
         public Listener(List<Error> errors, (int offsetLine, int offsetColumn)? offset)
         {
             _errors = errors;
-            _offset = offset ?? (0,0);
+            _offset = offset ?? (0, 0);
         }
 
         public void SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol, int line,
@@ -279,7 +296,8 @@ public static class StoryParser
             string msg,
             RecognitionException e)
         {
-            _errors.Add(new Error(ErrorCode.Lexer, line + _offset.offsetLine, charPositionInLine + _offset.offsetColumn, "Lexer:" + msg));
+            _errors.Add(new Error(ErrorCode.Lexer, line + _offset.offsetLine, charPositionInLine + _offset.offsetColumn,
+                "Lexer:" + msg));
         }
 
         public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line,
@@ -287,11 +305,13 @@ public static class StoryParser
             string msg,
             RecognitionException e)
         {
-            _errors.Add(new Error(ErrorCode.Parser, line + _offset.offsetLine, charPositionInLine + _offset.offsetColumn, "Parser:" + msg));
+            _errors.Add(new Error(ErrorCode.Parser, line + _offset.offsetLine,
+                charPositionInLine + _offset.offsetColumn, "Parser:" + msg));
         }
     }
 
-    internal static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn, out List<Error> errors)
+    internal static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn,
+        out List<Error> errors)
     {
         var prevOffset = visitor.offset;
         SetupParser(s, out var parser, visitor, (offsetLine, offsetColumn));
@@ -321,7 +341,7 @@ public static class StoryParser
 
         parser = new MoiraiParser(tokens);
         visitor.Parser = parser;
-        visitor.offset = offset ?? (0,0);
+        visitor.offset = offset ?? (0, 0);
         var listener = new Listener(visitor.Errors, offset);
         lexer.AddErrorListener(listener);
         parser.AddErrorListener(listener);
@@ -436,7 +456,7 @@ public static class StoryParser
 
             var cats = ParseCategories(context.categories());
 
-            var action = new Action(_database.Actions.Count + 1, actionId, false, f, cats);
+            CurrentEventTrigger = new EventTrigger(_database.Actions.Count + 1, actionId, false, f, cats);
             foreach (MoiraiParser.EffectContext effectContext in context.effect())
             {
                 // if (effectContext.comment() != null)
@@ -448,10 +468,11 @@ public static class StoryParser
                     continue;
                 }
 
-                action.Effects.Add(effect);
+                CurrentEventTrigger.Effects.Add(effect);
             }
 
-            _database.Actions.Add(action);
+            _database.Actions.Add(CurrentEventTrigger);
+            CurrentEventTrigger = null;
             return null;
         }
 
@@ -468,43 +489,46 @@ public static class StoryParser
             return tags;
         }
 
+
+        public EventTrigger? CurrentEventTrigger;
         public override object? VisitTrigger(MoiraiParser.TriggerContext context)
         {
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
             var categories = ParseCategories(context.categories());
-            var action = new Action(_database.Triggers.Count + 1, actionId, true, null, categories);
+            CurrentEventTrigger = new EventTrigger(_database.Triggers.Count + 1, actionId, true, null, categories);
             _variables.Clear();
 
             using (new VariableDeclarationScope(this, true)) ;
-            if(context.when() != null)
+            if (context.when() != null)
                 DeclareVar("$old", null, out var oldIndex);
             DeclareVar("$new", null, out var newIndex);
-            if(context.when_created() is { } createdContext)
+            if (context.when_created() is { } createdContext)
             {
                 EntityType type = _database.GetEntityType(createdContext.TYPE_ID().GetText());
                 if (!type.Id.IsValid)
                     AddError(ErrorCode.UnknownPropertyType, createdContext, createdContext.TYPE_ID().GetText());
-                action.When = (Action.WhenType.Created, type.Id, ParsePredicate(createdContext.expr()));
+                CurrentEventTrigger.When = (EventTrigger.WhenType.Created, type.Id, ParsePredicate(createdContext.expr()));
             }
-            else if(context.when() is {} whenContext)
+            else if (context.when() is { } whenContext)
             {
                 EntityType type = _database.GetEntityType(whenContext.TYPE_ID().GetText());
                 if (!type.Id.IsValid)
                     AddError(ErrorCode.UnknownPropertyType, whenContext, whenContext.TYPE_ID().GetText());
-                action.When = (Action.WhenType.Changed,type.Id, ParsePredicate(whenContext.expr()));
+                CurrentEventTrigger.When = (EventTrigger.WhenType.Changed, type.Id, ParsePredicate(whenContext.expr()));
             }
 
-            _database.Triggers.Add(action);
+            _database.Triggers.Add(CurrentEventTrigger);
             foreach (var effectContext in context.effect())
             {
                 // if (effectContext.comment() != null)
                 // continue;
                 var effect = ParseEffect(effectContext);
                 if (effect != null)
-                    action.Effects.Add(effect);
+                    CurrentEventTrigger.Effects.Add(effect);
             }
 
+            CurrentEventTrigger = null;
             return null;
         }
 
@@ -603,7 +627,7 @@ public static class StoryParser
         {
             var exprs = exprContexts;
             if (exprContexts.Length == 0) return null;
-            
+
             var predicate = exprs.Length == 1
                 ? ParseExpr(exprs[0])!
                 : new And(exprs.Select(x => ParseExpr(x)).Where(e => e != null).Cast<IValue>().ToList());
@@ -670,6 +694,7 @@ public static class StoryParser
                     return new Literal(float.Parse(value.number().NUMBER_FLOAT().GetText()));
                 return new Literal(int.Parse(value.number().GetText()));
             }
+
             if (value.@bool() != null)
                 return new Literal(value.@bool().TRUE() != null);
 
@@ -771,7 +796,9 @@ public static class StoryParser
                         $"Missing curly brace in string: {str}, opening brace at {i}");
 
                 var pathStr = str.Substring(i + 1, j - i - 1);
-                var path = StoryParser.ParseExpr(this, pathStr, stringContext.Start.Line - 1 /* +1 somewhere in the pipeline */, stringContext.Start.Column + i + 1 +/*quote*/  1, out _);
+                var path = StoryParser.ParseExpr(this, pathStr,
+                    stringContext.Start.Line - 1 /* +1 somewhere in the pipeline */,
+                    stringContext.Start.Column + i + 1 + /*quote*/ 1, out _);
                 paths.Add(path!);
                 // Console.WriteLine($"'{pathStr}'");
                 if (i > prev)

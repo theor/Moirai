@@ -219,4 +219,16 @@ public class PredicateContext
             // throw new InvalidOperationException("Null prev entity access");
         return PrevEntity.GetProperty(property);
     }
+
+    // tuple eid, eventId -> year
+    internal Dictionary<(EntityId, int), long> _marked = new();
+    public void Mark(EntityId eId, int eventIndex)
+    {
+        _marked[(eId, eventIndex)] = Year;
+    }
+
+    public bool GetLastMarked(EntityId eId, int eventIndex, out long year)
+    {
+        return _marked.TryGetValue((eId, eventIndex), out year);
+    }
 }

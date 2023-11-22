@@ -1,6 +1,6 @@
 ﻿using Moirai.Core;
 
-public struct Action(int id, string name, bool isEvent,IFilter? filter, CategoryId[] tags = null)
+public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, CategoryId[] tags = null)
 {
     public enum WhenType { Created, Changed, }
     public readonly int Id = id;

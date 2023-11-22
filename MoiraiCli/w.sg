@@ -26,7 +26,6 @@ prop birthdate: number
 prop prestige: number
 prop mastery: Mastery
 prop deathdate: number
-prop last_child: number
 prop partner: Person
 prop war_with: Country
 prop god: God
@@ -380,11 +379,11 @@ event country_natural_disaster country {
 }
 @2 per 1 year
 event couple_has_child {
-    pick $x: type = Person, alive = true, age < Age.Old, partner != null, #Time.year - last_child > 4 
+    pick $x: type = Person, alive = true, age < Age.Old, partner != null, since_last($x) > 4 
     var $y: $x.partner
     if $y.alive {
-        set $x.last_child = #Time.year
-        set $y.last_child = #Time.year
+        mark $x
+        mark $y
         
         var $fname: '{random Name}'
         create $c: Person, '{$fname} {$x.first_name}son'

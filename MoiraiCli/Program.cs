@@ -247,7 +247,7 @@ internal class Program
     private static void RunRandomAction(Database db, Pcg32 rnd)
     {
 
-        Action a;
+        EventTrigger a;
         do
         {
             a = db.Actions[(int)rnd.GenerateNext((uint)db.Actions.Count)];

@@ -20,8 +20,8 @@ public class Database
     public readonly List<PropertyDefinition> Properties = DefaultProperties();
     public readonly int BuiltinTypes;
 
-    public readonly List<Action> Actions;
-    public readonly List<Action> Triggers;
+    public readonly List<EventTrigger> Actions;
+    public readonly List<EventTrigger> Triggers;
 
     public readonly StoryPrinter Printer;
     public History? History;
@@ -283,18 +283,18 @@ WHERE id = $id;";
         return false;
     }
 
-    public bool RunAction(Action action)
+    public bool RunAction(EventTrigger eventTrigger)
     {
         // Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, action.Name, _ctx.Year, action.Categories);
-        _currentActionId = action.Id;
+        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year, eventTrigger.Categories);
+        _currentActionId = eventTrigger.Id;
         _ctx.ClearValueStack();
         // _ctx.Values.Clear();
 
 
-        for (var index = 0; index < action.Effects.Count; index++)
+        for (var index = 0; index < eventTrigger.Effects.Count; index++)
         {
-            var e = action.Effects[index];
+            var e = eventTrigger.Effects[index];
             if (e is CallInstruction{ Value:  AssignPick { VariableIndex: -1 }})
                 throw new NotImplementedException("Arg index -1 on p " + index);
 
@@ -336,7 +336,7 @@ WHERE id = $id;";
             foreach (var trigger in Triggers)
             {
                 // if entity created but trigger is on change
-                if(changed.Prev.Id.IsNull == (trigger.When.Item1 == Action.WhenType.Changed))
+                if(changed.Prev.Id.IsNull == (trigger.When.Item1 == EventTrigger.WhenType.Changed))
                     continue;
                 // if (!@event.WhenTags.Contains(tag))
                 //     continue;
@@ -350,7 +350,7 @@ WHERE id = $id;";
                         // $old value
                         int varIdx = 0;
                     
-                        if (trigger.When.Item1 == Action.WhenType.Changed)
+                        if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
                             _ctx.SetArgument(varIdx++, ChangePrevEntityId);
                         // $new value
                         _ctx.SetArgument(varIdx, changed.New.Id);
@@ -454,7 +454,7 @@ CREATE TABLE entity (
         // {
         // PerTypeIndices[i] = new List<EntityId>(100);
         // }
-        foreach (Action a in Actions)
+        foreach (EventTrigger a in Actions)
         {
             if (a.Filter is FilterAtStart)
                 RunAction(a);

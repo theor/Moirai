@@ -15,7 +15,7 @@ public class MainWindow : Toplevel
     private List<EntityId> _history = new();
     private int _historyIndex = -1;
     public EntityId Current => _historyIndex >= 0 && _historyIndex < _history.Count ? _history[_historyIndex] : default;
-    public Action CurrentAction;
+    public EventTrigger CurrentEventTrigger;
     
     // interface IMessage{}
     //
@@ -311,9 +311,9 @@ public class MainWindow : Toplevel
     public EntityList EntityList { get; set; }
     public WorldHistoryView WorldHistory { get; set; }
 
-    public void SelectAction(Action a)
+    public void SelectAction(EventTrigger a)
     {
-        CurrentAction = a;
+        CurrentEventTrigger = a;
         if(_mode == FilteringMode.Action)
             WorldHistory.SetFiltering(_mode);
     }
@@ -404,8 +404,16 @@ public class MainWindow : Toplevel
                 {
                     await cw.Execute();
                 }
-                catch (TaskCanceledException)
+                catch (TaskCanceledException ex)
                 {
+                    errorDialog = new Dialog("Errors"){Modal = false};
+                    errorDialog.Add(new Label(ex.ToString())
+                    {
+                        Width = Dim.Fill(),
+                        Height = Dim.Fill(),
+                    });
+                    Application.Run(errorDialog);
+                    return;
                 }
                 MessageStatus.Title = cw.Ms + "ms";
                 UpdateDb();
