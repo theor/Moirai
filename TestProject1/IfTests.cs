@@ -7,13 +7,13 @@ public class RandomTests : TestsBase
     {
         Run(@"
 event c {
-   var $x: random 1, 10
-    assert $x >= 1
-    assert $x <= 10
+   var $x: random (1, 10)
+    assert ($x >= 1)
+    assert ($x <= 10)
 }
 @start
 event r {
-    call c, 100
+    call (c, 100)
 }", out _);
     }
     [Test]
@@ -21,13 +21,13 @@ event r {
     {
         Run(@"
 event c {
-   var $x: random 10
-    assert $x >= 0
-    assert $x <= 10
+   var $x: random (10)
+    assert ($x >= 0)
+    assert ($x <= 10)
 }
 @start
 event r {
-    call c, 100
+    call (c, 100)
 }", out _);
     }
 }
@@ -41,7 +41,7 @@ public class IfTests : TestsBase
 entity T {}
 prop p: number
 event r {
-    create $t: T
+    create $t: (T)
     if true {
         set $t.p = 1
     }
@@ -56,7 +56,7 @@ event r {
 entity T {}
 prop p: number
 event r {
-    create $t: T
+    create $t: (T)
     
     set $t.p = if true { 1 }
 }", out _);
@@ -71,7 +71,7 @@ event r {
 entity T {}
 prop p: number
 event r {
-    create $t: T
+    create $t: (T)
     if false {
         set $t.p = 1
     } else {
@@ -91,9 +91,9 @@ entity U {}
 prop p: number
 event r {
     if false {
-        create $x: T
+        create $x: (T)
     } else {
-        create $x: U
+        create $x: (U)
     }
     set $x.p = 2
 }", out _, 1);
@@ -107,9 +107,9 @@ entity U {}
 prop p: number
 event r {
     var $x: if false {
-        create $x: T
+        create $x: (T)
     } else {
-        create $x: U
+        create $x: (U)
     }
     set $x.p = 2
 }", out _);

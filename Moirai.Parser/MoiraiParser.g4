@@ -22,7 +22,7 @@ match_case: value (COMMA value)* ARROW ((effect LINE_BREAK+)|scope) ;
 set: SET  path EQ expr;
 var: VAR  VAR_ID COLON expr;
 //call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
-call : ID (VAR_ID COLON)? ((expr (COMMA expr)* )) scope?;
+call : ID  (VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* )) PAREN_CLOSE scope?;
 scope: SCOPE_OPEN LINE_BREAK* ((effect SCOPE_CLOSE)|(((effect|comment) LINE_BREAK+)* SCOPE_CLOSE)) LINE_BREAK*;
 value: call | string | enum_value | TYPE_ID | path | bool | number | NULL;
 expr

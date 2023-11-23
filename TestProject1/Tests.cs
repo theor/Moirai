@@ -107,7 +107,7 @@ public class Tests : TestsBase
 entity Person {}
 prop f: number
 event r {
-    create $p: Person
+    create $p: (Person)
     set $p.f = 42
     assert $p.f = 42
 }
@@ -129,7 +129,7 @@ event rr {
 entity Person {}
 prop f: number
 event r {
-    create $p: Person
+    create $p: (Person)
     set $p.f = 2 + 3
     assert $p.f = 5
 }
@@ -140,7 +140,7 @@ event r {
 entity Person {}
 prop f: number
 event r {
-    create $p: Person
+    create $p: (Person)
     set $p.f = -2 + 3
     assert $p.f = 1
 }
@@ -151,7 +151,7 @@ event r {
 entity Person {}
 prop f: number
 event r {
-    create $p: Person
+    create $p: (Person)
     set $p.f = -4 - -3
     assert $p.f = -1
 }
@@ -162,7 +162,7 @@ event r {
 entity Person {}
 prop f: float
 event r {
-    create $p: Person
+    create $p: (Person)
     set $p.f = 2.1 + 3.2
     assert $p.f = 5.3
 }
@@ -174,7 +174,7 @@ event r {
 entity Person {}
 prop f: float
 event r {
-    create $p: Person
+    create $p: (Person)
     set $p.f = floor(2.1 + 3.2)
     assert $p.f = 5
 }
@@ -185,7 +185,7 @@ event r {
 entity Person {}
 prop f: number
 event r {
-    create $p: Person
+    create $p: (Person)
     set f = 2 + 3 * 4
     assert_eq $0.f, 14
 }
@@ -210,7 +210,7 @@ entity Person {}
 enum E { A, B, C }
 prop f: number
 event r {
-    create $p: Person
+    create $p: (Person)
     set f = E.B
     assert $0.f = 2
     set f = E.C * 2
@@ -230,7 +230,7 @@ event r {
 entity Person {}
 prop f: number
 event r {
-    create $p: Person
+    create $p: (Person)
     set f = 42 > 4
     assert $0.f
 }
@@ -248,7 +248,7 @@ event r {
 entity Person {}
 prop f: number
 event r {
-    create $p: Person
+    create $p: (Person)
     set f = 42
     set f = f + 1
     assert $0.f = 43
@@ -267,8 +267,7 @@ event r {
 entity Person {}
 prop alive: bool
 event born_char {
-    create $p: Person, '{random Name}'
-    set $p.alive = true
+    create $p: ( Person, '{random Name}')    set $p.alive = true
     assert $p.alive = true
 }
 ";
@@ -298,13 +297,12 @@ event born_char {
 entity Person {}
 prop alive: number
 event born_char {
-    create $p: Person, '{random Name}'
-}
+    create $p: ( Person, '{random Name}')}
 @start event init {
     call born_char, 10
 }
 event r {
-    each $p: type=Person {
+    each $p: (type=Person) {
         set $p.alive = 2
     }
 }
@@ -327,7 +325,7 @@ event r {
 entity Person {}
 prop alive: bool
 event r {
-    pick $p: type = Person
+    pick $p: type = (Person)
     set $p.alive = true
 }
 ";
@@ -355,7 +353,7 @@ event r {
 entity Person {}
 prop alive: bool
 event char_dies {
-    pick $p: type = Person, alive = true
+    pick $p: (type = Person, alive = true)
     set $p.alive = false
 }";
         var db = Run(s, out var errors);
@@ -372,8 +370,8 @@ event char_dies {
         var s = @"
 prop alive: bool
 event char_dies {
-    pick $x: alive = true
-    pick $y: id != $x
+    pick $x: (alive = true)
+    pick $y: (id != $x)
 }";
 
         var db = Run(s, out var errors);
@@ -394,7 +392,7 @@ prop test: bool
 event foreach {
     each $x: type=Person {
         set $x.test = true
-        record '{$x.name} {$x.test}'
+        record('{$x.name} {$x.test}')
     }
 }";
         var db = Run(s, out var errors);
@@ -433,11 +431,11 @@ prop y: bool
 event foreach {
     each $x: type=Person {
         set $x.x = true
-        record '{$x.name} {$x.x}'
+        record('{$x.name} {$x.x}')
     }
     each $x: type=Person {
         set $x.y = true
-        record '{$x.name} {$x.y}'
+        record('{$x.name} {$x.y}')
     }
 }";
         var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
@@ -473,13 +471,13 @@ entity Person {}
 prop x: bool
 prop y: bool
 event foreach {
-    each $p: type=Person {
+    each $p: (type=Person) {
         set $p.x = true
-        record '{$p.name} {$p.x}'
+        record('{$p.name} {$p.x}')
     }
-    each $p: type=Person {
+    each $p: (type=Person) {
         set $p.y = true
-        record '{$p.name} {$p.y}'
+        record('{$p.name} {$p.y}')
     }
 }";
         var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
@@ -534,8 +532,8 @@ event foreach {
 entity Person {}
 prop alive: bool
 event char_dies {
-    pick $p: type=Person, alive = true
-    pick $p: type=Person, alive = true
+    pick $p: (type=Person, alive = true)
+    pick $p: (type=Person, alive = true)
     set $p.alive = false
 }";
 
@@ -551,7 +549,7 @@ prop x: number
 prop link: ref
 
 event create {
-    create $p: Person
+    create $p: (Person)
     create $p2: Person
     set $p.link = $p2
     set $p2.x = 33
@@ -572,7 +570,7 @@ prop x: number
 prop link: ref
 
 event create {
-    create $p: Person
+    create $p: (Person)
     create $p2: Person
     set $p.link = $p2
     set $p2.x = 33
@@ -595,7 +593,7 @@ enum Job { None, Farmer, Smith }
 prop job: Job
 
 event create {
-    create $p: Person
+    create $p: (Person)
     set $p.job = Job.Farmer
 }
 ";
@@ -620,7 +618,7 @@ enum Job { None, Farmer, Smith }
 prop job: Job
 
 event create {
-    create $p: Person
+    create $p: (Person)
     set $p.job = 1
 }
 ";
@@ -645,7 +643,7 @@ enum Job { None, Farmer, Smith }
 prop job: Job
 
 event create {
-    create $p: Person
+    create $p: (Person)
     set job = Asd
 }
 ";
@@ -666,8 +664,8 @@ enum Job { Farmer, Smith, Mayor }
 prop job: Job
 
 event create {
-    create $p: Person
-    set $p.job = random Job
+    create $p: (Person)
+    set $p.job = random(Job)
 }
 ";
         var db = Run(s, out var errors);
@@ -697,8 +695,8 @@ entity Faction {}
 prop faction: ref
 prop owner: ref
 event create_faction {
-    pick $p: type=Person, faction = null
-    create $f: Faction
+    pick $p: (type=Person, faction = null)
+    create $f: (Faction)
     set $f.owner = $p
     set $p.faction = $f
 }";
@@ -716,13 +714,12 @@ entity Faction {
 }
 prop owner: ref
 event create_faction {
-    create $f: Faction, 'Faction of {random Name}'
-    create $g: Faction
+    create $f: ( Faction, 'Faction of {random Name}')    create $g: Faction
     set $g.name = 'Circle of {random Name}'
-    create $p: Person
+    create $p: (Person)
     set $p.name = '{random Name}'
     set $f.owner = $p
-    record '{$p.name} creates the {$f.name} to counter the {$g.name}'
+    record('{$p.name} creates the {$f.name} to counter the {$g.name}')
     assert_eq '{$p.name} creates the {$f.name} to counter the {$g.name}', 'River creates the Faction of Cerelia to counter the Circle of Hecate'
 }";
         var db = Run(s, out var errors);
@@ -741,8 +738,7 @@ entity Person {
 }
 prop owner: ref
 event create_faction {
-    create $p: Person, '{random Name}-{random Name} of {random Name}'
-    assert_eq $p.name, 'Cerelia-Hecate of River'
+    create $p: ( Person, '{random Name}-{random Name} of {random Name}')    assert_eq $p.name, 'Cerelia-Hecate of River'
 }";
         var db = Run(s, out var errors);
         db.History = new();
@@ -754,7 +750,7 @@ event create_faction {
     {
         var s = @"
 event create_faction {
-    record 'res {42} > {16} = {42 > 16}'
+    record('res {42} > {16} = {42 > 16}')
 }";
         var db = Run(s, out var errors);
         db.History = new();
@@ -831,8 +827,7 @@ event call {
     {
         var s = @"
 event create {
-    create $t: Time, 'time'
-    set year = 1000
+    create $t: ( Time, 'time')    set year = 1000
 }
 event read {
     assert_eq #Time.year, 1000
@@ -852,12 +847,11 @@ event read {
 entity Person {}
 
 event init {
-    create $t: Time, 'time'
-    set $t.year = 345
+    create $t: ( Time, 'time')    set $t.year = 345
 }
 @4 per 1 years
 event born {
-    create $p: Person
+    create $p: (Person)
 }
 ";
         var db = Run(s, out _);
@@ -879,29 +873,28 @@ prop alive: bool
 prop birthdate: number
 prop age: Age
 event create_time {
-    create $t: Time, 'time'
-    set $t.year = 1000
+    create $t: ( Time, 'time')    set $t.year = 1000
 }
 event born {
-    create $p: Person
+    create $p: (Person)
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = #Time.year
-    record 'The {$p.age} {$p.name} is born in {$p.birthdate}'
+    record('The {$p.age} {$p.name} is born in {$p.birthdate}')
 }
 
 event pass_15_years {
     set #Time.year = #Time.year + 15
-    each $p: type=Person, alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
+    each $p: (type=Person), alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
         set $p.age = Age.Young
     }
-    each $p: type=Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year{
+    each $p: (type=Person), alive = true, age = Age.Young, (birthdate + 40) <= #Time.year{
         set $p.age = Age.Adult
     }
-    each $p: type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year{
+    each $p: (type=Person), alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year{
         set $p.age = Age.Old
     }
-    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
+    each $p: (type=Person), alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
         set $p.alive = false
     }
 }";
@@ -933,8 +926,8 @@ event pass_15_years {
 entity Person {}
 prop birthdate: number
 event born {
-    pick $t: type=Time
-    create $p: Person
+    pick $t: (type=Time)
+    create $p: (Person)
     set $p.birthdate = $t.year
 }";
         Run(s, out _);
@@ -947,8 +940,8 @@ event born {
 entity Person {}
 prop birthdate: number
 event born {
-    pick $t: type=Time
-    create $p: Person
+    pick $t: (type=Time)
+    create $p: (Person)
     set birthdate = $t.year
 }";
         Run(s, out _);
@@ -964,26 +957,25 @@ prop alive: bool
 prop birthdate: number
 prop age: Age
 event create_time {
-    create $t: Time, 'time'
-    set $t.year = 1000
+    create $t: ( Time, 'time')    set $t.year = 1000
 }
 event born {
-    pick $t: type=Time
-    create $p: Person
+    pick $t: (type=Time)
+    create $p: (Person)
     set $p.alive = true
     set $p.age = Age.Child
     set $p.birthdate = $t.year
-    record 'The {$p.age} {$p.name} is born in {$p.birthdate}'
+    record('The {$p.age} {$p.name} is born in {$p.birthdate}')
 }
 
 event pass_15_years {
-    pick $t: type=Time
+    pick $t: (type=Time)
     set $t.year = $t.year + 15
-    each $p: type=Person, alive = true, age < Age.Old, (birthdate + 20* (age+1) ) <= $t.year, age < Age.Old {
+    each $p: (type=Person), alive = true, age < Age.Old, (birthdate + 20* (age+1) ) <= $t.year, age < Age.Old {
         set $p.age = age+1
     }
    
-    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
+    each $p: (type=Person), alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
         set $p.alive = false
     }
 }";

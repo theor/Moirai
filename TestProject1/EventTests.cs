@@ -11,14 +11,14 @@ entity Person {}
 prop alive: bool
 prop test: bool
 event born {
-    create $p: Person
+    create $p: (Person)
     set alive = true
 }
 
 event die {
-    each $p: type=Person, alive = true {
+    each $p: (type=Person, alive = true) {
         set alive = false
-        record '{$p} dies'
+        record('{$p} dies')
     }
 }
 
@@ -26,7 +26,7 @@ trigger on_death {
     when Person and $new.alive = false
 
     set test = true
-    record 'trigger on {$new}'
+    record('trigger on {$new}')
 }";
         var db = Run(s, out _, 0);
         db.History = new();
@@ -53,15 +53,15 @@ entity Person {}
 prop x: number
 prop test: number
 event born {
-    create $p: Person
+    create $p: (Person)
     set x = 1
     set test = 1
 }
 
 event die {
-    each $p: type=Person, x = 1 {
+    each $p: (type=Person, x = 1) {
         set x = 2
-        record '{$p} dies'
+        record('{$p} dies')
     }
 }
 
@@ -69,13 +69,13 @@ trigger on_death {
     when Person and $new.x = 2 and $old.x = 1
 
     set test = 10
-    record 'trigger on {$new}'
+    record('trigger on {$new}')
 }
 trigger on_death2 {
     when Person and $new.x = 2 and $old.x = 3
 
     set test = 20
-    record 'trigger on {$new}'
+    record('trigger on {$new}')
 }";
         var db = Run(s, out _, 0);
         db.History = new();
@@ -108,11 +108,11 @@ prop owner: ref
 
 trigger inherit {
     when Person and $new.alive = false
-    each $i: type = Item, owner = $new {
-        pick $l: type = Link, $l.parent = $new 
-        pick $c: type = Person, alive = true, id = $l.child
+    each $i: (type = Item, owner = $new) {
+        pick $l: (type = Link, $l.parent = $new) 
+        pick $c: (type = Person, alive = true, id = $l.child)
             set $i.owner = $c
-            record ""{$c.name} inherits the {$i.name} from {$new.name}""
+            record('{$c.name} inherits the {$i.name} from {$new.name}')
     }
 }";
         var db = Run(s, out _, 0);
@@ -160,21 +160,21 @@ prop owner: ref
 trigger inherit {
     when #death
     when $p: type = Person, alive = false
-    record '## {$p} {$p.name} died, inheriting'
-    each $i: type = Item, owner = $p {
-        record '##   {$i} {$i.name} item'
-        pick $l: type = Link, $l.parent = $p
+    record('## {$p} {$p.name} died, inheriting')
+    each $i: (type = Item, owner = $p) {
+        record('##   {$i} {$i.name} item')
+        pick $l: (type = Link, $l.parent = $p)
         set $i.owner = $l.child
         var $c = $l.child
-        record '{$c.name} inherits the {$i.name} from {$p.name} - {$l}'
+        record('{$c.name} inherits the {$i.name} from {$p.name} - {$l}')
     }
 }
 
 @1 every 1 year
 event olds_dies {
-    each $p: type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
+    each $p: (type=Person), alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
         set $p.alive = false
-        record '{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}'
+        record('{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}')
     }
 }
 ";

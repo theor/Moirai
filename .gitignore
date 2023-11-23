@@ -7,3 +7,4 @@ Moirai.Parser/gen/MoiraiParserBaseListener.cs
 Moirai.Parser/gen/MoiraiParserListener.cs
 MoiraiCli/hello.db
 vscode-languageserver/client/serverCopy
+MoiraiCli/g.dot

@@ -8,10 +8,10 @@ public class TagsTests : TestsBase
         var db = Run(@"
 
 event r1 x {
-    record ''
+    record('')
 }
 event r2 x y {
-    record ''
+    record('')
 }
 
 ", out _);

@@ -188,7 +188,7 @@ public class StoryPrinter
         switch (value)
         {
             case CreateEntity createEntity:
-                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: {_database.GetEntityTypeName(createEntity.Type)}, {Print(createEntity.Name)}");
+                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: ({_database.GetEntityTypeName(createEntity.Type)}, {Print(createEntity.Name)})");
                 break;
             // case NameEntity nameEntity:
             case AssignPick predicateParameter:

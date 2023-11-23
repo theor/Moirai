@@ -8,7 +8,8 @@ public interface IValue
 
     string ToSql(PredicateContext ctx)
     {
-        throw new NotImplementedException(this.GetType().ToString());
+        return "1";
+        // throw new NotImplementedException(this.GetType().ToString());
     }
 }
 

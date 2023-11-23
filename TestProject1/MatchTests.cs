@@ -9,7 +9,7 @@ public class MatchTests : TestsBase
 entity T {}
 prop p: number
 event r {
-    create $t: T
+    create $t: (T)
     match 2 {
         _ => set $t.p = 20
         2 => set $t.p = 30
@@ -26,7 +26,7 @@ event r {
 entity T {}
 prop p: number
 event r {
-    create $t: T
+    create $t: (T)
     match 2 {
         1 => set $t.p = 10
         2 => set $t.p = 20
@@ -44,7 +44,7 @@ event r {
 entity T {}
 prop p: number
 event r {
-    create $t: T
+    create $t: (T)
     set $t.p = match 2 {
         1 => 10
         2 => 20
@@ -63,7 +63,7 @@ event r {
 entity T {}
 prop p: number
 event r {
-    create $t: T
+    create $t: (T)
     match 2,(3>4) {
         1,true => set $t.p = 10
         2,true => set $t.p = 20
@@ -84,7 +84,7 @@ prop y: number
 prop z: number
 @start
 event create {
-    create $t: T
+    create $t: (T)
 }
 event r {
     random_weighted 10 {
@@ -112,7 +112,7 @@ prop y: number
 prop z: number
 @start
 event create {
-    create $t: T
+    create $t: (T)
 }
 event r {
     random_weighted 10 {
@@ -140,10 +140,10 @@ entity Planet {}
 entity Satelite {}
 event create {
     random_weighted 10 {
-        1 => create $x: Star
-        6 => create $x: Asteroid
-        2 => create $x: Planet
-        1 => create $x: Satelite
+        1 => create $x: (Star)
+        6 => create $x: (Asteroid)
+        2 => create $x: (Planet)
+        1 => create $x: (Satelite)
     }
 }", out _);
         for (int i = 0; i < 100; i++)
@@ -169,7 +169,7 @@ enum Job {
 }
 prop job: Job
 event create {
-    create $p: Person
+    create $p: (Person)
     random_weighted 10 {
         6 => set job = Job.Farmer
         1 => set job = Job.Smith
