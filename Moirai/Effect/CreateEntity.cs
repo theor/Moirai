@@ -248,6 +248,7 @@ public class CreateEntity : IValueCall
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
         yield return new Literal(Type);
-        yield return Name;
+        if(Name != null)
+            yield return Name;
     }
 }

@@ -187,7 +187,7 @@ prop f: number
 event r {
     create $p: (Person)
     set f = 2 + 3 * 4
-    assert_eq $0.f, 14
+    assert_eq ($0.f, 14)
 }
 ");
 
@@ -267,8 +267,9 @@ event r {
 entity Person {}
 prop alive: bool
 event born_char {
-    create $p: ( Person, '{random Name}')    set $p.alive = true
-    assert $p.alive = true
+    create $p: ( Person, '{random Name}')
+    set $p.alive = true
+    assert($p.alive = true)
 }
 ";
 
@@ -297,9 +298,10 @@ event born_char {
 entity Person {}
 prop alive: number
 event born_char {
-    create $p: ( Person, '{random Name}')}
+    create $p: ( Person, '{random Name}')
+}
 @start event init {
-    call born_char, 10
+    call (born_char, 10)
 }
 event r {
     each $p: (type=Person) {
@@ -325,7 +327,7 @@ event r {
 entity Person {}
 prop alive: bool
 event r {
-    pick $p: type = (Person)
+    pick $p: (type = Person)
     set $p.alive = true
 }
 ";
@@ -390,7 +392,7 @@ event char_dies {
 entity Person {}
 prop test: bool
 event foreach {
-    each $x: type=Person {
+    each $x: (type=Person) {
         set $x.test = true
         record('{$x.name} {$x.test}')
     }
@@ -429,11 +431,11 @@ entity Person {}
 prop x: bool
 prop y: bool
 event foreach {
-    each $x: type=Person {
+    each $x: (type=Person) {
         set $x.x = true
         record('{$x.name} {$x.x}')
     }
-    each $x: type=Person {
+    each $x: (type=Person) {
         set $x.y = true
         record('{$x.name} {$x.y}')
     }
@@ -575,7 +577,7 @@ event create {
     set $p.link = $p2
     set $p2.x = 33
     var $tmp: $p.link
-    assert_eq 33, $tmp.x
+    assert_eq(33, $tmp.x)
 }
 ";
         var db = Run(s, out var errors);
@@ -665,7 +667,7 @@ prop job: Job
 
 event create {
     create $p: (Person)
-    set $p.job = random(Job)
+    set $p.job = random Job
 }
 ";
         var db = Run(s, out var errors);
@@ -714,13 +716,14 @@ entity Faction {
 }
 prop owner: ref
 event create_faction {
-    create $f: ( Faction, 'Faction of {random Name}')    create $g: Faction
+    create $f: ( Faction, 'Faction of {random Name}')
+    create $g: Faction
     set $g.name = 'Circle of {random Name}'
     create $p: (Person)
     set $p.name = '{random Name}'
     set $f.owner = $p
     record('{$p.name} creates the {$f.name} to counter the {$g.name}')
-    assert_eq '{$p.name} creates the {$f.name} to counter the {$g.name}', 'River creates the Faction of Cerelia to counter the Circle of Hecate'
+    assert_eq('{$p.name} creates the {$f.name} to counter the {$g.name}', 'River creates the Faction of Cerelia to counter the Circle of Hecate')
 }";
         var db = Run(s, out var errors);
         db.History = new();
@@ -738,7 +741,8 @@ entity Person {
 }
 prop owner: ref
 event create_faction {
-    create $p: ( Person, '{random Name}-{random Name} of {random Name}')    assert_eq $p.name, 'Cerelia-Hecate of River'
+    create $p: ( Person, '{random Name}-{random Name} of {random Name}')
+    assert_eq($p.name, 'Cerelia-Hecate of River')
 }";
         var db = Run(s, out var errors);
         db.History = new();
@@ -793,8 +797,8 @@ event call {
     var $y: call called
     
     set $y.x = 42
-    assert_eq $x, 1
-    assert_eq $y, 2
+    assert_eq ($x, 1)
+    assert_eq ($y, 2)
 }";
         var db = Run(s, out var errors);
         db.History = new();
@@ -813,8 +817,8 @@ prop x: number
 event call {
     var $w:  42
     var $g: 43
-    assert_eq $w, 42
-    assert_eq $g, 43
+    assert_eq($w, 42)
+    assert_eq($g, 43)
 }";
         var db = Run(s, out var errors);
         db.History = new();
@@ -827,10 +831,11 @@ event call {
     {
         var s = @"
 event create {
-    create $t: ( Time, 'time')    set year = 1000
+    create $t: ( Time, 'time')
+    set year = 1000
 }
 event read {
-    assert_eq #Time.year, 1000
+    assert_eq(#Time.year, 1000)
 }";
 
         var db = Run(s, out var errors);
@@ -847,7 +852,8 @@ event read {
 entity Person {}
 
 event init {
-    create $t: ( Time, 'time')    set $t.year = 345
+    create $t: ( Time, 'time')
+    set $t.year = 345
 }
 @4 per 1 years
 event born {
@@ -873,7 +879,8 @@ prop alive: bool
 prop birthdate: number
 prop age: Age
 event create_time {
-    create $t: ( Time, 'time')    set $t.year = 1000
+    create $t: ( Time, 'time')
+    set $t.year = 1000
 }
 event born {
     create $p: (Person)
@@ -885,16 +892,16 @@ event born {
 
 event pass_15_years {
     set #Time.year = #Time.year + 15
-    each $p: (type=Person), alive = true, age = Age.Child, (birthdate + 20) <= #Time.year{
+    each $p: (type=Person, alive = true, age = Age.Child, (birthdate + 20) <= #Time.year) {
         set $p.age = Age.Young
     }
-    each $p: (type=Person), alive = true, age = Age.Young, (birthdate + 40) <= #Time.year{
+    each $p: (type=Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year) {
         set $p.age = Age.Adult
     }
-    each $p: (type=Person), alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year{
+    each $p: (type=Person, alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year) {
         set $p.age = Age.Old
     }
-    each $p: (type=Person), alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
+    each $p: (type=Person, alive = true, age = Age.Old, (birthdate + 80) <= #Time.year) {
         set $p.alive = false
     }
 }";
@@ -957,7 +964,8 @@ prop alive: bool
 prop birthdate: number
 prop age: Age
 event create_time {
-    create $t: ( Time, 'time')    set $t.year = 1000
+    create $t: ( Time, 'time')
+    set $t.year = 1000
 }
 event born {
     pick $t: (type=Time)
@@ -971,11 +979,11 @@ event born {
 event pass_15_years {
     pick $t: (type=Time)
     set $t.year = $t.year + 15
-    each $p: (type=Person), alive = true, age < Age.Old, (birthdate + 20* (age+1) ) <= $t.year, age < Age.Old {
+    each $p: (type=Person, alive = true, age < Age.Old, (birthdate + 20* (age+1) ) <= $t.year, age < Age.Old ){
         set $p.age = age+1
     }
    
-    each $p: (type=Person), alive = true, age = Age.Old, (birthdate + 80) <= $t.year{
+    each $p: (type=Person, alive = true, age = Age.Old, (birthdate + 80) <= $t.year){
         set $p.alive = false
     }
 }";
@@ -1018,7 +1026,7 @@ event r {
     {
         var s = @"
 event r {
-    assert 1 = 2
+    assert(1 = 2)
 }";
         var db = Run(s, out var errors);
         db.History = new();
@@ -1032,7 +1040,7 @@ event r {
     {
         var s = @"
 event r {
-    assert true
+    assert(true)
 }";
         var db = Run(s, out var errors);
         db.History = new();

@@ -27,38 +27,93 @@ using Moirai.Parser;
 // }
 public class FunctionDescriptor : IFunctionDescriptor
 {
-    public record ParseContext(StoryParser.AstVisitor Visitor, MoiraiParser.CallContext CallContext)
+    public record ParseContext(StoryParser.AstVisitor Visitor, ParserRuleContext CallContext)
     {
         public int ParseVariable()
         {
-            Visitor.DeclareVar(this.CallContext.VAR_ID().GetText(), this.CallContext.VAR_ID().Symbol, out var varIndex);
+            int varIndex;
+            if (CallContext is MoiraiParser.CallContext c)
+            {
+                 Visitor.DeclareVar(c.VAR_ID().GetText(), c.VAR_ID().Symbol, out varIndex);
+            } else
+            {
+                var rawCallContext = (MoiraiParser.Raw_callContext)CallContext;
+                Visitor.DeclareVar(rawCallContext.VAR_ID().GetText(), rawCallContext.VAR_ID().Symbol, out varIndex);
+            }
+
             return varIndex;
         }
 
+        public ParserRuleContext GetArgumentToken(int index)
+        {
+            if (CallContext is MoiraiParser.CallContext c)
+            {
+                return c.expr(index);
+            } else if (CallContext is MoiraiParser.Raw_callContext r)
+            {
+                return r.value();
+            }
+            return CallContext;
+        }
+        public IValue? ParseArgument(int index)
+        {
+            if (CallContext is MoiraiParser.CallContext c)
+            {
+                return Visitor.ParseExpr(c.expr(index));
+            } else if (CallContext is MoiraiParser.Raw_callContext r)
+            {
+                if (index != 0)
+                {
+                    Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext,
+                        "Expected more arguments, convert to () syntax");
+                    return default;
+                }
+                return Visitor.ParseValue(r.value());
+            }
+            return default;
+        }
+
+        public int ArgCount => CallContext is MoiraiParser.CallContext c ? c.expr().Length : 1;
+
         public EntityType ParseEntityType()
         {
-            var type = CallContext.expr(0).GetText().TrimQuotes();
-            EntityType typeId = Visitor._database.GetEntityType(type);
-            if (typeId.Id == EntityTypeId.Null)
+            var type = ((Literal)ParseArgument(0)).Value.TypeId;
+            if (type == EntityTypeId.Null)
             {
-                Visitor.AddError(StoryParser.ErrorCode.UnknownEntityType, CallContext.expr(0), $"'{type}'");
+                Visitor.AddError(StoryParser.ErrorCode.UnknownEntityType, GetArgumentToken(0), $"'{type}'");
             }
 
-            return typeId;
+            return this.Visitor._database.Types[(int)type.Id];
         }
 
         public string GetText(RuleContext expr) => Visitor.Parser.TokenStream.GetText(expr);
 
         public IInstruction[]? ParseScope(bool autoCleanupVariableDeclarations)
         {
-            return Visitor.ParseScope(CallContext.scope(), autoCleanupVariableDeclarations);
+            if(CallContext is MoiraiParser.CallContext c)
+                return Visitor.ParseScope(c.scope(), autoCleanupVariableDeclarations);
+            else
+                return Visitor.ParseScope(((MoiraiParser.Raw_callContext)CallContext).scope(), autoCleanupVariableDeclarations);
+                
         }
 
         public void ExpectArgcount(int i, bool isMaxCount = false)
         {
-            if (isMaxCount ? CallContext.expr().Length > i : CallContext.expr().Length != i)
+            if (isMaxCount ? ArgCount > i : ArgCount != i)
                 Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext,
-                    $"Expected {i} arguments{(isMaxCount ? " max" : "")}, got {CallContext.expr().Length}");
+                    $"Expected {i} arguments{(isMaxCount ? " max" : "")}, got {ArgCount}");
+        }
+
+        public IValue ParsePredicate()
+        {
+            if (ArgCount == 1)
+                return ParseArgument(0);
+            IValue[] preds = new IValue[ArgCount];
+            for (int i = 0; i < ArgCount; i++)
+            {
+                preds[i] = ParseArgument(i);
+            }
+            return new And(preds);
         }
     }
 
@@ -75,6 +130,15 @@ public class FunctionDescriptor : IFunctionDescriptor
         _parse = parse;
     }
 
+    public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.Raw_callContext call)
+    {
+        var c = _parse(new ParseContext(parser, call));
+        if (c != null)
+            c.FunctionDescriptor = this;
+        else
+            throw new InvalidOperationException(parser.Parser.TokenStream.GetText(call));
+        return c;
+    }
     public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.CallContext call)
     {
         var c = _parse(new ParseContext(parser, call));
@@ -100,45 +164,44 @@ public static class StoryParser
         new("create", true, ctx =>
         {
             var typeId = ctx.ParseEntityType();
-            return new CreateEntity(ctx.ParseVariable(), typeId.Id,
-                ctx.Visitor.ParseInterpolatedString(ctx.CallContext.expr(1)?.value()?.@string()));
+            return new CreateEntity(ctx.ParseVariable(), typeId.Id,ctx.ArgCount == 1 ? null : (InterpolatedString)ctx.ParseArgument(1));
         }),
         new("each", true,
-            ctx => new AssignPick(ctx.ParseVariable(), ctx.Visitor.ParsePredicate(ctx.CallContext.expr()),
+            ctx => new AssignPick(ctx.ParseVariable(), ctx.ParsePredicate(),
                 CallType.Each, ctx.ParseScope(true))),
         new("pick", true,
-            ctx => new AssignPick(ctx.ParseVariable(), ctx.Visitor.ParsePredicate(ctx.CallContext.expr()),
+            ctx => new AssignPick(ctx.ParseVariable(), ctx.ParsePredicate(),
                 CallType.Pick)),
 
         new("assert", false, ctx =>
-            new AssertInstr(ctx.Visitor.ParseExpr(ctx.CallContext.expr(0))!, ctx.GetText(ctx.CallContext.expr(0)))),
+            new AssertInstr(ctx.ParseArgument(0)!, ctx.GetText(ctx.GetArgumentToken(0)))),
         new("assert_eq", false, ctx =>
             new AssertInstr(
-                ctx.Visitor.ParseExpr(ctx.CallContext.expr(0))!,
-                ctx.Visitor.ParseExpr(ctx.CallContext.expr(1)),
-                $"{ctx.Visitor.Parser.TokenStream.GetText(ctx.CallContext.expr(0))} = {ctx.GetText(ctx.CallContext.expr(1))}")),
+                ctx.ParseArgument(0)!,
+                ctx.ParseArgument(1),
+                $"{ctx.GetText(ctx.GetArgumentToken(0))} = {ctx.GetText(ctx.GetArgumentToken(1))}")),
         new("mark", false, ctx =>
         {
             ctx.ExpectArgcount(1);
-            var e = ctx.Visitor.ParseExpr(ctx.CallContext.expr(0));
+            var e = ctx.ParseArgument(0);
             return new Mark(e, ctx.Visitor.CurrentEventTrigger.Id);
         }),
         new("since_last", false, ctx =>
         {
             ctx.ExpectArgcount(1);
-            var e = ctx.Visitor.ParseExpr(ctx.CallContext.expr(0));
+            var e = ctx.ParseArgument(0);
             return new SinceLast(e, ctx.Visitor.CurrentEventTrigger.Id);
         }),
         new("record", false, ctx =>
         {
-            var stringContext = ctx.CallContext.expr(0).value().@string();
-            var interpolatedString = ctx.Visitor.ParseInterpolatedString(stringContext);
+            var interpolatedString = (InterpolatedString)ctx.ParseArgument(0);
             return new Record(interpolatedString);
         }),
         new("call", false, ctx =>
         {
-            var arg = ctx.CallContext.expr(0);
-            string? eventName = arg.value()?.path()?.GetText() ?? arg.value()?.@string()?.GetString();
+            var arg = ctx.GetArgumentToken(0);
+            string? eventName = arg is MoiraiParser.ExprContext e ? e.value()?.path()?.GetText() ?? e.value()?.@string()?.GetString()
+                    : (arg is MoiraiParser.ValueContext v) ? v.path()?.GetText() ?? v.@string()?.GetText() : null;
             if (eventName == null)
             {
                 ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, "event name");
@@ -151,19 +214,24 @@ public static class StoryParser
             }
 
             int count = 1;
-            if (ctx.CallContext.expr(1) != null)
+            if (ctx.ArgCount > 1)
             {
-                count = int.Parse(ctx.CallContext.expr(1).GetText());
+                var countValue = ctx.ParseArgument(1);
+                if (countValue is Literal l && l is Literal
+                    {
+                        Value: { Type: { BaseType: PropertyValue.ValueBaseType.Number } }
+                    })
+                {
+                    count = l.Value.IntValue;
+                }
             }
 
-            {
-                return new CallRule(eventIndex, count);
-            }
+            return new CallRule(eventIndex, count);
         }),
 
         new("random", false, ctx =>
         {
-            var argCount = ctx.CallContext.expr().Length;
+            var argCount = ctx.ArgCount;
             if (argCount == 0)
             {
                 ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext,
@@ -171,21 +239,19 @@ public static class StoryParser
                 return null;
             }
 
-            var arg = ctx.CallContext.expr(0);
+            var arg = ctx.ParseArgument(0);
 
-            if (arg.value()?.TYPE_ID() != null)
+            if (arg is Literal l && l is Literal { Value: {Type: { BaseType: PropertyValue.ValueBaseType.EnumType}}})
             {
-                if (!ctx.Visitor._database.GetEnumDefinition(arg.GetText(), out var enumDef))
-                    ctx.Visitor.AddError(ErrorCode.UnknownEnum, arg, "");
                 ctx.ExpectArgcount(1);
-                return new RandomEnum(enumDef.Index);
+                return new RandomEnum(new EnumDefinitionId((ushort)l.Value.IntValue));
             }
 
-            if (arg.value().number() != null)
+            if (arg is Literal l2 && l2 is Literal { Value: {Type: { BaseType: PropertyValue.ValueBaseType.Number}}})
             {
                 ctx.ExpectArgcount(2, true);
-                var min = argCount == 1 ? new Literal(0) : ctx.Visitor.ParseExpr(arg);
-                var max = ctx.Visitor.ParseExpr(ctx.CallContext.expr(argCount == 1 ? 0 : 1));
+                var min = argCount == 1 ? new Literal(0) : arg;
+                var max = ctx.ParseArgument(argCount == 1 ? 0 : 1);
                 return new RandomRange(min, max);
             }
 
@@ -193,15 +259,15 @@ public static class StoryParser
             return null!;
         }),
         new("not", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Not, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+            ctx => new MathUnary(MathUnary.UnaryFunction.Not, ctx.ParseArgument(0))),
         new("floor", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Floor, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+            ctx => new MathUnary(MathUnary.UnaryFunction.Floor, ctx.ParseArgument(0))),
         new("round", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Round, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+            ctx => new MathUnary(MathUnary.UnaryFunction.Round, ctx.ParseArgument(0))),
         new("ceiling", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+            ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.ParseArgument(0))),
         new("clamp01", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.Visitor.ParseExpr(ctx.CallContext.expr(0)))),
+            ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.ParseArgument(0))),
     };
 
     public interface IVisitor
@@ -661,7 +727,7 @@ public static class StoryParser
             return new SetProperty(left, right, false);
         }
 
-        private IValue ParseValue(MoiraiParser.ValueContext value)
+        public IValue ParseValue(MoiraiParser.ValueContext value)
         {
             if (_parsingMatchCase && value.path()?.GetText() == "_")
                 return MatchAnyValue.Instance;
@@ -669,7 +735,11 @@ public static class StoryParser
             {
                 var type = _database.GetEntityType(value.TYPE_ID().GetText());
                 if (!type.Id.IsValid)
+                {
+                    if (_database.GetEnumDefinition(value.TYPE_ID().GetText(), out var ed))
+                        return new Literal(ed.EnumType);
                     AddError(ErrorCode.UnknownPropertyType, value, value.TYPE_ID().GetText());
+                }
                 return new Literal(type.Id);
             }
 
@@ -677,6 +747,9 @@ public static class StoryParser
             {
                 return ParseCall(value.call());
             }
+
+            if (value.raw_call() != null)
+                return ParseRawCall(value.raw_call());
 
             if (value.path() != null)
             {
@@ -754,6 +827,17 @@ public static class StoryParser
             }
         }
 
+        private IValue ParseRawCall(MoiraiParser.Raw_callContext context)
+        {
+            var funcName = context.ID().GetText();
+            var f = Functions.FirstOrDefault(f => f.FuncName == funcName);
+            if (f != null)
+            {
+                return f.Parse(this, context);
+            }
+
+            return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
+        }
         private IValue ParseCall(MoiraiParser.CallContext context)
         {
             var funcName = context.ID().GetText();

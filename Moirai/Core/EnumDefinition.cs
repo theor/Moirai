@@ -8,6 +8,8 @@ public readonly struct EnumDefinition
     public readonly List<string> FormattedValues;
     public readonly EnumDefinitionId Index;
     public PropertyValue.ValueType ValueType => Index.Id != 0 ? PropertyValue.TypeEnum(Index) : default;
+    public PropertyValue EnumType => Index;
+
     public EnumDefinition(EnumDefinitionId index, string name, List<string> values)
     {
         Name = name;

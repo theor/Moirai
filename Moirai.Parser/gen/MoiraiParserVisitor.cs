@@ -131,6 +131,12 @@ public interface IMoiraiParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitScope([NotNull] MoiraiParser.ScopeContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="MoiraiParser.raw_call"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitRaw_call([NotNull] MoiraiParser.Raw_callContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.value"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

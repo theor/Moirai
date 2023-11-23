@@ -24,7 +24,8 @@ var: VAR  VAR_ID COLON expr;
 //call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
 call : ID  (VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* )) PAREN_CLOSE scope?;
 scope: SCOPE_OPEN LINE_BREAK* ((effect SCOPE_CLOSE)|(((effect|comment) LINE_BREAK+)* SCOPE_CLOSE)) LINE_BREAK*;
-value: call | string | enum_value | TYPE_ID | path | bool | number | NULL;
+raw_call: ID  (VAR_ID COLON)? value scope?;
+value: raw_call | call | string | enum_value | TYPE_ID | path | bool | number | NULL;
 expr
     : if
     | match
