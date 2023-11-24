@@ -158,13 +158,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             
         }
 
-        foreach (var child in context.children)
-        {
-            if (child is MoiraiParser.EffectContext e)
-                e.Accept(this);
-            else if (child is MoiraiParser.CommentContext c)
-                c.Accept(this);
-        }
+        context.scope().Accept(this);
         return null ;
     }
 
@@ -179,13 +173,22 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             PushSemanticToken(cat.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
             
         }
-        if(context.scope().when() != null)context.scope().when().Accept(this);
-        if(context.scope().when_created() != null)context.scope().when_created().Accept(this);
-        
-        foreach (var comment in context.scope().comment())
-            comment.Accept(this);
-        foreach (var effect in context.scope().effect())
-            effect.Accept(this);
+
+        if (context.scope() != null)
+            context.scope().Accept(this);
+        return null;
+    }
+
+    public override object? VisitScope(MoiraiParser.ScopeContext context)
+    {
+       
+        foreach (var child in context.children)
+        {
+            if (child is MoiraiParser.EffectContext e)
+                e.Accept(this);
+            else if (child is MoiraiParser.CommentContext c)
+                c.Accept(this);
+        }
         return null;
     }
 

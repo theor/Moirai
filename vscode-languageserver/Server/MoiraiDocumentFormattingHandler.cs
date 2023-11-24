@@ -66,6 +66,10 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
         {
             return new Range(symbol.Line - 1, symbol.Column, symbol.Line - 1, symbol.Column);
         }
+        public static Range InsertAfter(IToken symbol)
+        {
+            return new Range(symbol.Line - 1, symbol.Column + symbol.Text.Length, symbol.Line - 1, symbol.Column + symbol.Text.Length);
+        }
 
 
         private IEnumerable<TextEdit> EnsureSpaces(ITerminalNode? node, int? rightSpaceCount, int? leftSpaceCount) =>
@@ -104,7 +108,7 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
                 else if (rightSpaceCount.Value > 0) // no space but we want one
                 {
                     yield return new TextEdit
-                        { NewText = new string(' ', rightSpaceCount.Value), Range = InsertBefore(node) };
+                        { NewText = new string(' ', rightSpaceCount.Value), Range = InsertAfter(node) };
                     
                 }
             }
@@ -190,6 +194,24 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
 
             foreach (var e in EnsureSpaces(context.SCOPE_CLOSE(), 0, IndentCount()))
                 yield return e;
+        }
+
+        public override IEnumerable<TextEdit> VisitExpr(MoiraiParser.ExprContext context)
+        {
+            return EnsureSpaces(context.op, 1, 1).Concat(base.VisitExpr(context));
+        }
+
+        public override IEnumerable<TextEdit> VisitSet(MoiraiParser.SetContext context)
+        {
+            return EnsureSpaces(context.EQ(), 1, 1).Concat(base.VisitSet(context));
+        }
+
+        public override IEnumerable<TextEdit> VisitCall(MoiraiParser.CallContext context)
+        {
+            return EnsureSpaces(
+                (context.PAREN_OPEN(), 0, 1),
+                (context.PAREN_CLOSE(), 0, 0)
+            ).Concat(base.VisitCall(context));
         }
 
         public override IEnumerable<TextEdit> VisitProp_definition(MoiraiParser.Prop_definitionContext context)
