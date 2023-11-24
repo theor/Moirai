@@ -152,8 +152,9 @@ public class FunctionDescriptor : IFunctionDescriptor
 
     public string Print(StoryPrinter printer, IValueCall call)
     {
+        var print = $"{FuncName}{(call.VariableIndex.HasValue ? $" ${call.VariableIndex.Value}:" : "")} ({string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))})";
         return
-            $"{FuncName}{(call.VariableIndex.HasValue ? $" ${call.VariableIndex.Value}:" : "")} ({string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))})";
+            print;
     }
 }
 

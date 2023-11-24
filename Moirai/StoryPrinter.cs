@@ -90,7 +90,8 @@ public class StoryPrinter
         PrintEffect(instruction, sb, 0);
         return sb.ToString();
     }
-    private void PrintEffect(IInstruction instruction, StringBuilder sb, int indent)
+
+    public void PrintEffect(IInstruction instruction, StringBuilder sb, int indent)
     {
         string indentStr = MakeIndent(indent);
         switch (instruction)
@@ -178,10 +179,10 @@ public class StoryPrinter
     
     public string Print(IValue value, int indent = 0)
     {
-        string indentStr = indent == 0 ? String.Empty : new string(' ', indent * 4);
+        string indentStr = IndentStr(indent);
         if (value is IValueCall call)
         {
-            return indentStr + call.Print(this);
+            return indentStr + call.Print(this, indent);
         }
         StringBuilder sb = new StringBuilder();
         
@@ -341,6 +342,11 @@ public class StoryPrinter
         }
 
         return sb.ToString();
+    }
+
+    public static string IndentStr(int indent)
+    {
+        return indent == 0 ? String.Empty : new string(' ', indent * 4);
     }
 
     public void PrintChangeset(Changeset cs, bool oneLine = true)

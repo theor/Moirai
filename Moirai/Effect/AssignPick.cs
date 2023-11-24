@@ -1,4 +1,6 @@
-﻿public struct AssignPick : IValueCall
+﻿using System.Text;
+
+public struct AssignPick : IValueCall
 {
     public readonly int VariableIndex;
     public readonly IValue Value;
@@ -65,6 +67,23 @@
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     int? IValueCall.VariableIndex => VariableIndex;
+
+    public string Print(StoryPrinter printer, int indent)
+    {
+        
+        var b = new StringBuilder(FunctionDescriptor?.Print(printer, this));
+        if (ScopeEffects != null)
+        {
+            b.AppendLine(" {");
+            foreach (var effect in ScopeEffects)
+            {
+                printer.PrintEffect(effect, b, indent + 1);
+            }
+            b.AppendLine(StoryPrinter.IndentStr(indent) + " }") ;
+        }
+
+        return b.ToString();
+    }
 
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {

@@ -17,7 +17,7 @@ public interface IValueCall : IValue
 {
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     int? VariableIndex => null;
-    string Print(StoryPrinter printer)
+    string Print(StoryPrinter printer, int indent)
     {
         return FunctionDescriptor?.Print(printer, this) ?? "";
     }
