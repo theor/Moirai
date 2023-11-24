@@ -132,6 +132,7 @@ internal class Program
                     // .WithHandler<CodeActionHandler>()
                     // .WithHandler<DocumentDiagnosticHandler>()
                     .WithHandler<MyWorkspaceSymbolsHandler>()
+                    .WithHandler<MoiraiDocumentFormattingHandler>()
                     .WithHandler<SemanticTokensHandler>()
                     .WithHandler<MyDeclarationHandler>()
                     .WithHandler<MyHoverHandler>()

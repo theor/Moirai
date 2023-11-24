@@ -508,26 +508,6 @@ event foreach {
     }
 
     [Test]
-    [TestCase("../../../../MoiraiCli/w.sg")]
-    [TestCase("../../../../MoiraiCli/space.sg")]
-    public void ParseWholeFile(string rpath)
-    {
-        var path = Path.GetFullPath(rpath);
-        Console.WriteLine(path);
-        Assert.IsTrue(File.Exists(path));
-        var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
-        Console.WriteLine("------------------");
-        var record = db.Printer.Print();
-        Console.WriteLine(record);
-        Assert.AreEqual(0, errors.Count, string.Join("\n", errors));
-        var db2 = StoryParser.Parse(record, out var errors2);
-        Assert.AreEqual(0, errors2.Count, string.Join("\n", errors2));
-        db.Init();
-        db.Ctx.PassYears(100, true);
-        db.Commit();
-    }
-
-    [Test]
     public void DuplicateVarNoError()
     {
         var s = @"

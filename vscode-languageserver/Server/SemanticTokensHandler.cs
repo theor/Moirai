@@ -179,12 +179,12 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             PushSemanticToken(cat.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
             
         }
-        if(context.when() != null)context.when().Accept(this);
-        if(context.when_created() != null)context.when_created().Accept(this);
+        if(context.scope().when() != null)context.scope().when().Accept(this);
+        if(context.scope().when_created() != null)context.scope().when_created().Accept(this);
         
-        foreach (var comment in context.comment())
+        foreach (var comment in context.scope().comment())
             comment.Accept(this);
-        foreach (var effect in context.effect())
+        foreach (var effect in context.scope().effect())
             effect.Accept(this);
         return null;
     }

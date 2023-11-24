@@ -401,11 +401,11 @@ public static class StoryParser
     }
 
     public static void SetupParser(string s, out MoiraiParser parser, IVisitor visitor,
-        (int offsetLine, int offsetColumn)? offset = null)
+        (int offsetLine, int offsetColumn)? offset = null, bool mergeChannels = false)
     {
-        var lexer = new moirai_lexer(CharStreams.fromString(s /*.TrimStart('\r', '\n', ' ')*/));
-        var tokens = new CommonTokenStream(lexer);
-
+        var fromString = new CodePointCharStream(s /*.TrimStart('\r', '\n', ' ')*/);
+        var lexer = new moirai_lexer(fromString);
+        var tokens = /*mergeChannels ? new BufferedTokenStream(lexer) :*/ new CommonTokenStream(lexer);
         parser = new MoiraiParser(tokens);
         visitor.Parser = parser;
         visitor.offset = offset ?? (0, 0);
@@ -524,7 +524,7 @@ public static class StoryParser
             var cats = ParseCategories(context.categories());
 
             CurrentEventTrigger = new EventTrigger(_database.Actions.Count + 1, actionId, false, f, cats);
-            foreach (MoiraiParser.EffectContext effectContext in context.effect())
+            foreach (MoiraiParser.EffectContext effectContext in context.scope().effect())
             {
                 // if (effectContext.comment() != null)
                 //     continue;
@@ -567,17 +567,17 @@ public static class StoryParser
             _variables.Clear();
 
             using (new VariableDeclarationScope(this, true)) ;
-            if (context.when() != null)
+            if (context.scope().when() != null)
                 DeclareVar("$old", null, out var oldIndex);
             DeclareVar("$new", null, out var newIndex);
-            if (context.when_created() is { } createdContext)
+            if (context.scope().when_created() is { } createdContext)
             {
                 EntityType type = _database.GetEntityType(createdContext.TYPE_ID().GetText());
                 if (!type.Id.IsValid)
                     AddError(ErrorCode.UnknownPropertyType, createdContext, createdContext.TYPE_ID().GetText());
                 CurrentEventTrigger.When = (EventTrigger.WhenType.Created, type.Id, ParsePredicate(createdContext.expr()));
             }
-            else if (context.when() is { } whenContext)
+            else if (context.scope().when() is { } whenContext)
             {
                 EntityType type = _database.GetEntityType(whenContext.TYPE_ID().GetText());
                 if (!type.Id.IsValid)
@@ -586,7 +586,7 @@ public static class StoryParser
             }
 
             _database.Triggers.Add(CurrentEventTrigger);
-            foreach (var effectContext in context.effect())
+            foreach (var effectContext in context.scope().effect())
             {
                 // if (effectContext.comment() != null)
                 // continue;
