@@ -7,15 +7,14 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: COMMENT* (comment|event|trigger|prop_definition|enum_definition|type_definition|LINE_BREAK)+ EOF;
-comment: COMMENT;
+r: (event|trigger|prop_definition|enum_definition|type_definition|LINE_BREAK)+ EOF;
 filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
 event: filter? EVENT  ID categories scope;
 categories: ID* ;
 trigger: TRIGGER ID categories scope;
 when: WHEN TYPE_ID (AND expr)* SPACE* LINE_BREAK+;
 when_created: WHEN_CREATED TYPE_ID (AND expr)* SPACE* LINE_BREAK+;
-effect: (set | var | expr) SPACE* (comment|LINE_BREAK)*;
+effect: (set | var | expr) SPACE* (LINE_BREAK)*;
 if: IF cond=expr then=scope (ELSE LINE_BREAK*  else=scope)? ;
 match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
 match_case: value (COMMA value)* ARROW ((effect LINE_BREAK+)|scope) ;
@@ -23,7 +22,7 @@ set: SET  path EQ expr;
 var: VAR  VAR_ID COLON expr;
 //call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
 call : ID  (VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* )) PAREN_CLOSE scope?;
-scope: SCOPE_OPEN LINE_BREAK* (when|when_created)?  ((effect SCOPE_CLOSE)|(((effect|comment) LINE_BREAK+)* SCOPE_CLOSE)) LINE_BREAK*;
+scope: SCOPE_OPEN LINE_BREAK* (when|when_created)?  ((effect SCOPE_CLOSE)|((effect LINE_BREAK+)* SCOPE_CLOSE)) LINE_BREAK*;
 raw_call: ID  (VAR_ID COLON)? value scope?;
 value: raw_call | call | string | enum_value | TYPE_ID | path | bool | number | NULL;
 expr

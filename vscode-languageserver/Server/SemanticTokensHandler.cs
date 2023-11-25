@@ -1,4 +1,5 @@
-﻿using Antlr4.Runtime;
+﻿using System.Collections.ObjectModel;
+using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using Microsoft.Extensions.Logging;
 using Moirai.Parser;
@@ -118,6 +119,17 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             Kind = symbolKind,
         }));
     }
+
+    private object? VisitTerminals(ParserRuleContext context)
+    {
+        foreach (var child in context.children)
+        {
+            if (child is ITerminalNode terminalNode)
+                terminalNode.Accept(this);
+        }
+
+        return null;
+    }
     private void PushSemanticToken(IToken symbol, SemanticTokenType tokenType, params string[] keyword)
     {
         SemanticTokens.Add((
@@ -159,7 +171,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         }
 
         context.scope().Accept(this);
-        return null ;
+        return VisitTerminals(context);
     }
 
     public override object? VisitTrigger(MoiraiParser.TriggerContext context)
@@ -176,7 +188,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 
         if (context.scope() != null)
             context.scope().Accept(this);
-        return null;
+        return VisitTerminals(context);
     }
 
     public override object? VisitScope(MoiraiParser.ScopeContext context)
@@ -184,10 +196,16 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
        
         foreach (var child in context.children)
         {
-            if (child is MoiraiParser.EffectContext e)
+            if (child is MoiraiParser.WhenContext w)
+                w.Accept(this);
+            else if (child is MoiraiParser.When_createdContext wc)
+                wc.Accept(this);
+            else if (child is MoiraiParser.EffectContext e)
                 e.Accept(this);
-            else if (child is MoiraiParser.CommentContext c)
-                c.Accept(this);
+            else if (child is ITerminalNode terminalNode)
+                terminalNode.Accept(this);
+            // else if (child is MoiraiParser.CommentContext c)
+                // c.Accept(this);
         }
         return null;
     }
@@ -302,6 +320,24 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 
     public override object? VisitTerminal(ITerminalNode node)
     {
+        IList<IToken> hidden;
+        // {
+        //     _logger.LogCritical($"T: '{(node.Symbol.Type == moirai_lexer.LINE_BREAK ? "LINE_BREAK" : node.GetText())}'");
+        //     hidden = ((CommonTokenStream)Parser.TokenStream).GetHiddenTokensToLeft(node.Symbol.TokenIndex, moirai_lexer.COMMENTS) ?? ReadOnlyCollection<IToken>.Empty;
+        //     _logger.LogCritical("  L: " + string.Join("|",hidden.Select(t => $"'{t.Text}'")));
+        //     hidden = ((CommonTokenStream)Parser.TokenStream).GetHiddenTokensToRight(node.Symbol.TokenIndex,
+        //         moirai_lexer.COMMENTS) ?? ReadOnlyCollection<IToken>.Empty;
+        //     _logger.LogCritical("  R: " + string.Join("|",hidden.Select(t => $"'{t.Text}'")));
+        // }
+        
+        
+         hidden = ((CommonTokenStream)Parser.TokenStream).GetHiddenTokensToLeft(node.Symbol.TokenIndex, moirai_lexer.COMMENTS);
+        if(hidden != null)
+            foreach (var t in hidden)
+            {
+                // if(t.Type == moirai_lexer.COMMENT)
+                PushSemanticToken(t, SemanticTokenType.Comment);
+            }
 
         if (node.Parent is MoiraiParser.SetContext && node.Symbol.Text == "set")
         {
@@ -311,14 +347,22 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         {
             PushSemanticToken(node.Symbol, SemanticTokenType.Keyword);
         }
+        
+        hidden = ((CommonTokenStream)Parser.TokenStream).GetHiddenTokensToRight(node.Symbol.TokenIndex, moirai_lexer.COMMENTS);
+        if(hidden != null)
+            foreach (var t in hidden)
+            {
+                // if(t.Type == moirai_lexer.COMMENT)
+                    PushSemanticToken(t, SemanticTokenType.Comment);
+            }
         return base.VisitTerminal(node);
     }
-    public override object? VisitComment(MoiraiParser.CommentContext context)
-    {
-        PushSemanticToken(context, SemanticTokenType.Comment);
-        
-        return null;
-    }
+    // public override object? VisitComment(MoiraiParser.CommentContext context)
+    // {
+    //     PushSemanticToken(context, SemanticTokenType.Comment);
+    //     
+    //     return null;
+    // }
     public override object? VisitFilter(MoiraiParser.FilterContext context)
     {
         PushSemanticToken(context, SemanticTokenType.Decorator);

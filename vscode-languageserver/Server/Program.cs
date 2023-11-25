@@ -310,6 +310,7 @@ internal class MoiraiDocument
        
             var db = new Database();
             var astVisitor = new StoryParser.AstVisitor(db);
+            astVisitor.Parser = parser;
             r.Accept(astVisitor);
             Errors.AddRange(astVisitor.Errors);
         }

@@ -574,7 +574,7 @@ public static class StoryParser
             {
                 EntityType type = _database.GetEntityType(createdContext.TYPE_ID().GetText());
                 if (!type.Id.IsValid)
-                    AddError(ErrorCode.UnknownPropertyType, createdContext, createdContext.TYPE_ID().GetText());
+                    AddError(ErrorCode.UnknownPropertyType, createdContext, createdContext.TYPE_ID()?.GetText() ?? createdContext.GetText());
                 CurrentEventTrigger.When = (EventTrigger.WhenType.Created, type.Id, ParsePredicate(createdContext.expr()));
             }
             else if (context.scope().when() is { } whenContext)

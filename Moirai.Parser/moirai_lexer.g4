@@ -1,11 +1,14 @@
 lexer grammar moirai_lexer;
 
+channels {
+    COMMENTS
+}
 STRING : ('"' (~[\\"])* '"') | ('\''(~[\\'])*  '\'');
 NULL: 'null';
 SPACE: [ \t]+ -> channel(HIDDEN);
 LINE_BREAK: ('\r\n' | '\r' | '\n');
 COMMENT
-  :  '//' ~( '\r' | '\n')*;
+  :  '//' ~( '\r' | '\n')* -> channel(COMMENTS);
 
 COLON_EQ: ':=';
 COLON: ':';
