@@ -52,9 +52,6 @@ public class MainWindow : Toplevel
     }
     public MainWindow()
     {
-        var args = Environment.GetCommandLineArgs();
-        string path = args.Length > 1 ? args[1] : @"w.sg";
-
         ColorScheme = Colors.Base;
         // AddCommand(Command.PageLeft, () =>
         // {
@@ -179,7 +176,7 @@ public class MainWindow : Toplevel
         Add(WorldHistory);
         Add(StatusBar);
 
-
+        var path = Program.Options.File;
         CreateWatcher(path);
         ReloadFile(path);
         Application.MainLoop.AddIdle( () =>
@@ -297,6 +294,16 @@ public class MainWindow : Toplevel
         
         db.FilePath = path;
         db.History = new();
+        if(Program.Options.ExcludedCategories.Any())
+        {
+            CategoryId[] excludedCategories =
+                Program.Options.ExcludedCategories.Select(c => db.GetCategoryId(c)).ToArray(); 
+            foreach (var action in db.Actions)
+            {
+                if (action.Categories != null && action.Categories.Any(excludedCategories.Contains))
+                    action.Skip = true;
+            }
+        }
 
         db.Init();
         

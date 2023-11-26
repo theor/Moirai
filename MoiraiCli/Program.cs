@@ -1,14 +1,37 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
+using CommandLine;
 using Moirai;
 using Moirai.Core;
 using Terminal.Gui;
 
+public class Options
+{
+    // [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
+    // public bool Verbose { get; set; }
+    [Option('x', "excluded-categories", Required = false, HelpText = "Event categories to exclude when picking random events to run")]
+    public IEnumerable<string> ExcludedCategories { get; set; }
+    [Value(0, MetaName = "input file",
+        HelpText = "Input file to be processed.",
+        Required = true)]
+    public string File { get; set; }
+}
 internal class Program
 {
+    internal static Options Options;
     public static async Task Main(string[] args)
     {
-
+        Parser.Default.ParseArguments<Options>(args)
+            .WithParsed<Options>(o =>
+            {
+                Options = o;
+            })
+            .WithNotParsed(errors =>
+            {
+                Console.WriteLine(string.Join("\n", errors));
+            });
+        if (Options == null)
+            return;
         Application.Run<MainWindow>();
         Application.Shutdown();
     }

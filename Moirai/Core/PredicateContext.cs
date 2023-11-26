@@ -191,7 +191,7 @@ public class PredicateContext
             progress?.Report(i);
             foreach (var action in Database.Actions)
             {
-                if (action.Filter == null)
+                if (action.Filter == null || action.Skip)
                     continue;
 
                 int count = (int)action.Filter.Compute(Database.Ctx).IntValue;
