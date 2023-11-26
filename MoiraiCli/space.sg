@@ -1,5 +1,5 @@
-entity Object {}
-entity System {}
+entity Object
+entity System
 
 enum Kind {
     Asteroid,
@@ -16,60 +16,60 @@ prop distance_to_sun: number
 
 @start
 event create_time {
-    create $t: ( Time, 'time')
-	set year = 0
+    create $t: (Time, 'time')
+    set year = 0
 }
 @start
 event create_solar_system {
-    create $s: ( System, "Solar System")
-    create $p: ( Object, "Sun")
-	set kind = Kind.Star
+    create $s: (System, "Solar System")
+    create $p: (Object, "Sun")
+    set kind = Kind.Star
     set system = $s
-    
-    create $p: ( Object, "Mercury")
-	set kind = Kind.Planet
+
+    create $p: (Object, "Mercury")
+    set kind = Kind.Planet
     set distance_to_sun = 57
     set system = $s
-    create $p: ( Object, "Venus")
-	set kind = Kind.Planet
+    create $p: (Object, "Venus")
+    set kind = Kind.Planet
     set distance_to_sun = 108
     set system = $s
-    create $p: ( Object, "Earth")
-	set kind = Kind.Planet
+    create $p: (Object, "Earth")
+    set kind = Kind.Planet
     set distance_to_sun = 149
     set system = $s
-    create $p: ( Object, "Mars")
-	set kind = Kind.Planet
+    create $p: (Object, "Mars")
+    set kind = Kind.Planet
     set distance_to_sun = 227
     set system = $s
-    create $p: ( Object, "Jupiter")
-	set kind = Kind.Planet
+    create $p: (Object, "Jupiter")
+    set kind = Kind.Planet
     set distance_to_sun = 778
     set system = $s
-    create $p: ( Object, "Saturn")
-	set kind = Kind.Planet
+    create $p: (Object, "Saturn")
+    set kind = Kind.Planet
     set distance_to_sun = 1433
     set system = $s
-    create $p: ( Object, "Uranus")
-	set kind = Kind.Planet
+    create $p: (Object, "Uranus")
+    set kind = Kind.Planet
     set distance_to_sun = 2872
     set system = $s
-    create $p: ( Object, "Neptune")
-	set kind = Kind.Planet
+    create $p: (Object, "Neptune")
+    set kind = Kind.Planet
     set distance_to_sun = 4495
     set system = $s
-    
-    create $p: ( Object, "Moon")
-	set kind = Kind.Satelite
+
+    create $p: (Object, "Moon")
+    set kind = Kind.Satelite
     set system = $s
 }
 
 @start
 event star_dies {
-    pick $sun: (type=Object, kind = Kind.Star, dead = false)
+    pick $sun: (type = Object, kind = Kind.Star, dead = false)
     var $s: $sun.system
-    each $p: (type=Object, system = $s) {
-	set $p.dead = true
-	
+    each $p: (type = Object, system = $s) {
+        set $p.dead = true
+
     }
 }

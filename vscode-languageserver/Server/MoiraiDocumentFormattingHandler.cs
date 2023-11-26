@@ -63,6 +63,10 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
         {
             return new Range(symbol.Line - 1, symbol.Column, symbol.Line - 1, symbol.Column + symbol.Text.Length);
         }
+        public static Range GetRange(IToken from, IToken to)
+        {
+            return new Range(from.Line - 1, from.Column, to.Line - 1, to.Column+1);
+        }
         public static Range InsertBefore(IToken symbol)
         {
             return new Range(symbol.Line - 1, symbol.Column, symbol.Line - 1, symbol.Column);
@@ -196,6 +200,15 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
             _indent--;
 
             foreach (var e in EnsureSpaces(context.SCOPE_CLOSE(), null, IndentCount()))
+                yield return e;
+        }
+
+        public override IEnumerable<TextEdit> VisitType_definition(MoiraiParser.Type_definitionContext context)
+        {
+            if (context.SCOPE_OPEN() != null)
+                yield return new TextEdit
+                    { NewText = "", Range = GetRange(context.SCOPE_OPEN().Symbol, context.SCOPE_CLOSE().Symbol) };
+            foreach (var e in  base.VisitType_definition(context))
                 yield return e;
         }
 

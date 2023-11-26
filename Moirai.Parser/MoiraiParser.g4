@@ -37,7 +37,7 @@ expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     ;
 
-type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
+type_definition: ENTITY TYPE_ID (SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE)? LINE_BREAK+ ;
 
 prop_definition: PROP ID COLON (ID|TYPE_ID) LINE_BREAK+ ;
 

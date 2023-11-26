@@ -1,8 +1,8 @@
-entity Person {}
-entity Item {}
-entity Faction {}
-entity Country {}
-entity God {}
+entity Person
+entity Item
+entity Faction
+entity Country
+entity God
 
 enum Job {
     Farmer, Fisher, Hunter,
