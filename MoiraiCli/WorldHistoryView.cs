@@ -126,9 +126,9 @@ public class WorldHistoryView : View
     
                 // add link tag
                 var entityId = new EntityId(uint.Parse(id));
-                if(_w.Current.Id == entityId.Id)
-                    driver.SetAttribute(container.ColorScheme.Disabled);
-                else
+                // if(_w.Current.Id == entityId.Id)
+                //     driver.SetAttribute(container.ColorScheme.Disabled);
+                // else
                     driver.SetAttribute(/*selected ? container.ColorScheme.HotFocus : */container.ColorScheme.HotNormal);
                 _mlv.RegisterId(entityId, displayedIndex, line, content.Length);
                 displayedIndex += content.Length;

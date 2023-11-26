@@ -39,7 +39,6 @@ public class EntityList : View
     public EntityList(MainWindow w)
     {
         _w = w;
-        ColorScheme = Colors.TopLevel;
         _tableView = new TableView()
         {
 

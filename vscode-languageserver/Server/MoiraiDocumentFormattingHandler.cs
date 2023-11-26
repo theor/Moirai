@@ -33,7 +33,8 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
         StoryParser.SetupParser(content, out var parser, v, mergeChannels:true);
         var r = v.Parser.r();
         var edits = r.Accept(v).ToList();
-        _logger.LogCritical($"Format: {edits.Count} edits");
+        edits.Sort((x,y) => x.Range.Start.CompareTo(y.Range.Start));
+        _logger.LogCritical($"Format: {edits.Count} edits\n{string.Join("\n", edits.Select(e=> $"{e}: '{e.NewText}'"))}");
         return new TextEditContainer(edits);
 
     }
@@ -164,6 +165,8 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
             _indent++;
             foreach (var e in EnsureSpaces(context.Start, null, IndentCount()))
                 yield return e;
+            foreach (var e in EnsureSpaces(context.ARROW(), 1, 1))
+                yield return e;
             if(context.scope() != null)
                 foreach (var e in context.scope().Accept(this))
                     yield return e;
@@ -192,7 +195,7 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
                 yield return e;
             _indent--;
 
-            foreach (var e in EnsureSpaces(context.SCOPE_CLOSE(), 0, IndentCount()))
+            foreach (var e in EnsureSpaces(context.SCOPE_CLOSE(), null, IndentCount()))
                 yield return e;
         }
 
@@ -208,12 +211,30 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
 
         public override IEnumerable<TextEdit> VisitCall(MoiraiParser.CallContext context)
         {
+            if (context.VAR_ID() != null)
+            {
+                return EnsureSpaces(
+                    (context.VAR_ID(), 0, 1),
+                    (context.COLON(), 1, 0),
+                    (context.PAREN_OPEN(), 0, null),
+                    (context.PAREN_CLOSE(), null, 0)
+                ).Concat(base.VisitCall(context));
+            }
             return EnsureSpaces(
-                (context.PAREN_OPEN(), 0, 1),
-                (context.PAREN_CLOSE(), 0, 0)
+                (context.ID(), 0, null),
+                (context.PAREN_OPEN(), 0, null),
+                (context.PAREN_CLOSE(), null, 0)
             ).Concat(base.VisitCall(context));
         }
 
+        public override IEnumerable<TextEdit> VisitIf(MoiraiParser.IfContext context)
+        {
+            
+            return  EnsureSpaces(
+                (context.ELSE(), 1, 1)
+            ).Concat(base.VisitIf(context));
+        }
+        
         public override IEnumerable<TextEdit> VisitProp_definition(MoiraiParser.Prop_definitionContext context)
         {
             return EnsureSpaces(

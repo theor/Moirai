@@ -22,7 +22,6 @@ internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
     {
         // you would normally get this from a common source that is managed by current open editor, current active editor, etc.
         return _moiraiCache.GetSymbols(request);
-
        
     }
 

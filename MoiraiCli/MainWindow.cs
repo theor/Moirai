@@ -55,7 +55,7 @@ public class MainWindow : Toplevel
         var args = Environment.GetCommandLineArgs();
         string path = args.Length > 1 ? args[1] : @"w.sg";
 
-        ColorScheme = Colors.TopLevel;
+        ColorScheme = Colors.Base;
         // AddCommand(Command.PageLeft, () =>
         // {
         //     GoBack();
