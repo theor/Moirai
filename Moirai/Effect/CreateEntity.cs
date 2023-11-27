@@ -183,7 +183,7 @@ public class SinceLast(IValue entity, int eventIndex) : IValueCall
             return int.MaxValue;
         if(ctx.GetLastMarked(e.Id, EventIndex, out var year))
             return ctx.Year - year;
-        return int.MaxValue;
+        return int.MinValue;
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
