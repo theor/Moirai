@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moirai", "Moirai\Moirai.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moirai.Parser", "Moirai.Parser\Moirai.Parser.csproj", "{039C4387-F891-45A0-B12B-0558ACD86FB4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoiraiWebServer", "MoiraiWebServer\MoiraiWebServer.csproj", "{8F215786-AF11-4F89-BA82-8ECA1F85EDC5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,5 +38,9 @@ Global
 		{039C4387-F891-45A0-B12B-0558ACD86FB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{039C4387-F891-45A0-B12B-0558ACD86FB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{039C4387-F891-45A0-B12B-0558ACD86FB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F215786-AF11-4F89-BA82-8ECA1F85EDC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F215786-AF11-4F89-BA82-8ECA1F85EDC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F215786-AF11-4F89-BA82-8ECA1F85EDC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F215786-AF11-4F89-BA82-8ECA1F85EDC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
