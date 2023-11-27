@@ -1,6 +1,4 @@
-﻿import {Dispatch, SetStateAction} from "react";
-
-export type Property<T> = [T, Dispatch<SetStateAction<T>>]
+﻿export type Property<T> = [T, (t:T) => void]
 
 export interface Record {
     text: string;

@@ -4,15 +4,27 @@ import './index.css'
 import { ThemeProvider } from '@emotion/react';
 import { CssBaseline } from '@mui/material';
 import theme from './theme';
-import {createTheme} from "@mui/material/styles";
 
+import {
+    createBrowserRouter,
+    RouterProvider,
+} from "react-router-dom";
+
+
+const router = createBrowserRouter([
+    {
+        path: "*",
+        element: <App/>,
+    },
+]);
 // const defaultTheme = createTheme();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   // <React.StrictMode>
     <ThemeProvider theme={theme}>
+
         <CssBaseline />
-        <App />
+        <RouterProvider router={router} />
     </ThemeProvider>
   // </React.StrictMode>,
 )
