@@ -1,7 +1,7 @@
 ﻿import * as signalR from "@microsoft/signalr";
 import {HubConnection, IStreamResult} from "@microsoft/signalr";
 import {createContext} from "react";
-import {Record, ClientData} from "./types.ts";
+import {Record, ClientData, EntityPropertyDisplay} from "./types.ts";
 
 export class SignalRConnection {
     public connection: HubConnection;
@@ -17,7 +17,7 @@ export class SignalRConnection {
             // .withUrl("http://localhost:5028/hub")
             // .withUrl("https://localhost:7148/hub")
             .withUrl("/hub")
-            .configureLogging(signalR.LogLevel.Trace)
+            .configureLogging(signalR.LogLevel.Information)
             .build();
         // connection.onclose()
         connection.on("messageReceived", (username: string, message: string) => {
@@ -45,6 +45,10 @@ export class SignalRConnection {
 
     streamRecords(): IStreamResult<Record> {
         return this.connection.stream<Record>("Counter", 20, 100)
+    }
+
+    getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]> {
+        return this.connection.invoke("GetEntityDetails", entityId)
     }
 }
 // @ts-ignore

@@ -52,7 +52,7 @@ event since {
         db.RunAction("since");
         db.Printer.PrintMarked();
         db.Printer.PrintRecords();
-        Assert.That(db.Records[0].Text, Is.EqualTo("since last: " +int.MaxValue));
+        Assert.That(db.Records[0].Text, Is.EqualTo("since last: " +int.MinValue));
         Assert.That(db.Records[1].Text, Is.EqualTo("since last: 15"));
     }
 }

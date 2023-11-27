@@ -62,6 +62,9 @@ public struct PropertyValue : IEquatable<PropertyValue>
                 throw new System.NotImplementedException();
             Index = index;
         }
+
+        public bool IsRefType => BaseType == ValueBaseType.Ref || BaseType == ValueBaseType.EntityType;
+
         public bool Equals(ValueType other)
         {
             return BaseType == other.BaseType && Index == other.Index;
