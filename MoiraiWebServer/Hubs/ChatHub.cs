@@ -8,16 +8,23 @@ using Microsoft.AspNetCore.SignalR;
 public class ChatHub : Hub
 {
     private static Database _db;
-
+    private static bool _reset;
     public ChatHub()
     {
         if (_db == null)
         {
-            _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
-            _db.Init();
+            Reset();
         }
+        Debug.WriteLine("Ctor");
+
     }
 
+    public void Reset()
+    {
+        _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
+        _db.Init();
+        _reset = true;
+    }
     public async Task PassYears(int years)
     {
         _db.Ctx.PassYears(years, true);
@@ -46,9 +53,15 @@ public class ChatHub : Hub
         [EnumeratorCancellation]
         CancellationToken cancellationToken)
     {
+        Debug.WriteLine("Stream");
         int lastRecord = 0;
         while (true)
         {
+            if (_reset)
+            {
+                lastRecord = 0;
+                _reset = false;
+            }
             while (_db.Records.Count > 0 && lastRecord < _db.Records.Count)
             {
                 yield return _db.Records[lastRecord++];

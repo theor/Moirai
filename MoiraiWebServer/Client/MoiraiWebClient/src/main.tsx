@@ -6,11 +6,11 @@ import { CssBaseline } from '@mui/material';
 import theme from './theme';
 import {createTheme} from "@mui/material/styles";
 
-const defaultTheme = createTheme();
+// const defaultTheme = createTheme();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   // <React.StrictMode>
-    <ThemeProvider theme={defaultTheme}>
+    <ThemeProvider theme={theme}>
         <CssBaseline />
         <App />
     </ThemeProvider>
