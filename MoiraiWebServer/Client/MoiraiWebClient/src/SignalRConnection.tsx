@@ -41,6 +41,10 @@ export class SignalRConnection {
     passYears(years: number): void {
         this.connection.send("PassYears", years)
     }
+    
+    save() {
+        this.connection.send("Save");
+    }
 
 
     streamRecords(): IStreamResult<Record> {

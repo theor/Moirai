@@ -24,6 +24,11 @@
         return ctxLastValue;
     }
 
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {

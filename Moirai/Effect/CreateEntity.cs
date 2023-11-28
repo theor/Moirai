@@ -58,6 +58,11 @@ public class MatchWeight : IValue
 
         return true;
     }
+
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public class Match : IValue
@@ -99,6 +104,11 @@ public class Match : IValue
         }
 
         return true;
+    }
+
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
     }
 
     private bool CaseMatch(PropertyValue[] actual, IValue?[] caseValues, PredicateContext ctx)
@@ -147,6 +157,11 @@ public class If : IValue
 
         return res;
     }
+
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public class Mark(IValue entity, int eventIndex) : IValueCall
@@ -162,6 +177,11 @@ public class Mark(IValue entity, int eventIndex) : IValueCall
         
         ctx.Mark(e.Id, EventIndex);
         return true;
+    }
+
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
@@ -186,6 +206,11 @@ public class SinceLast(IValue entity, int eventIndex) : IValueCall
         return int.MinValue;
     }
 
+    public string ToSql(PredicateContext ctx)
+    {
+        return Compute(ctx).IntValue.ToString();
+    }
+
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
@@ -207,6 +232,11 @@ public class Record : IValueCall
         ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year,
             ctx.Database.CurrentChangeset.Categories);
         return true;
+    }
+
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
@@ -241,6 +271,11 @@ public class CreateEntity : IValueCall
         var entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
         return entity;
+    }
+
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
     }
 
     int? IValueCall.VariableIndex => VariableIndex;

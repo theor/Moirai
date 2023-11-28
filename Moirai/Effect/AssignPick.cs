@@ -65,6 +65,11 @@ public struct AssignPick : IValueCall
         }
     }
 
+    public string ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     int? IValueCall.VariableIndex => VariableIndex;
 

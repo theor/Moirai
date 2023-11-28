@@ -24,11 +24,11 @@ export function EntityDetails() {
             <Typography gutterBottom
                         variant="h5">{selectedEntity[0] !== -1 ? "Entity #" + selectedEntity[0] : "-"}</Typography>
             <TableContainer component={Paper}>
-                <Table>
+                <Table size="small">
                     <TableBody>
                         {details.map((d, i) =>
                             <TableRow key={i}>
-                                <TableCell>{d.label}</TableCell>
+                                <TableCell align={"right"}><Typography fontWeight="bold">{d.label.toUpperCase()}</Typography> </TableCell>
                                 <TableCell>{makeEntityLink(d.value, selectedEntity)}</TableCell>
                             </TableRow>)}
                     </TableBody>

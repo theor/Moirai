@@ -80,7 +80,7 @@ const RecordTable: TableComponents<Record, Property<number>> = {
         <TableContainer  component={Paper} {...props} ref={ref}/>
     )),
     Table: (props) => (
-        <Table {...props} sx={{borderCollapse: 'separate', tableLayout: 'fixed'}}/>
+        <Table size="small" {...props} sx={{borderCollapse: 'separate', tableLayout: 'fixed'}}/>
     ),
     TableHead,
     TableRow: ({item: _item, ...props}) => <TableRow {...props} />,

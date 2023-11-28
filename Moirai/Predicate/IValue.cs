@@ -6,11 +6,7 @@ public interface IValue
 
     bool IsTrue(PredicateContext ctx) => Compute(ctx).BoolValue;
 
-    string ToSql(PredicateContext ctx)
-    {
-        return "1";
-        // throw new NotImplementedException(this.GetType().ToString());
-    }
+    string ToSql(PredicateContext ctx);
 }
 
 public interface IValueCall : IValue

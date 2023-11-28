@@ -26,7 +26,8 @@ export function makeEntityChip(id: number, label: string, selectedEntity: Proper
 
 export function useSelectedEntity(): Property<number>{
     let eid = Number(useParams().eid);
-    var nav = useNavigate();
+    // console.warn("eid", eid)
+    let nav = useNavigate();
     return [eid, (x:number) => nav("/entity/" + x)];
 
 }

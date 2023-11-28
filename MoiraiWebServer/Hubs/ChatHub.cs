@@ -30,6 +30,11 @@ public class ChatHub : Hub
         _db.Ctx.PassYears(years, true);
     }
 
+    public void Save()
+    {
+        _db.Commit();
+    }
+
     public struct ClientData
     {
         public (int Id, string Name)[] Actions { get; set; }
