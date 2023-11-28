@@ -2,31 +2,58 @@ import './App.css'
 import {useContext, useEffect, useState} from "react";
 import Button from '@mui/material/Button';
 import {SignalRConnection, SignalRConnectionContext} from "./SignalRConnection.tsx";
-import {Grid, Stack} from "@mui/material";
+import {Grid, IconButton, Stack, Typography} from "@mui/material";
 import {Outlet, Route, Routes} from 'react-router-dom';
 import {RecordList} from "./RecordList.tsx";
+import {ActionList} from "./ActionList.tsx";
 import {EntityDetails} from "./EntityDetails.tsx";
+import AppBar from '@mui/material/AppBar';
+import Box from '@mui/material/Box';
+import Toolbar from '@mui/material/Toolbar';
+import MenuIcon from '@mui/icons-material/Menu';
 
 function InnerApp() {
     const conn = useContext(SignalRConnectionContext);
-    return <Grid container height="100vh"  pt={2} pb={2}>
-        <Grid item xs={4} p={2}>
-            <Outlet/>
-        </Grid>
-        <Grid item xs={8} p={2}>
-            <Stack spacing={2} sx={{height: "100%"}}>
-                <Stack direction="row" spacing={1}>
-                    <Button variant="contained" onClick={() => conn.passYears(100)}>Pass years</Button>
-                    <Button variant="outlined" onClick={() => conn.save()}>Save</Button>
-                    <Button variant={"outlined"} onClick={() => {
+    return <>
+        <Box>
+            <AppBar position="static">
+                <Toolbar>
+                    <IconButton
+                        size="large"
+                        edge="start"
+                        color="inherit"
+                        aria-label="menu"
+                        sx={{mr: 2}}
+                    >
+                        <MenuIcon/>
+                    </IconButton>
+                    <Typography variant="h6" component="div" sx={{flexGrow: 1}}/>
+                    <Typography variant="h6" component="div">
+                        Year: 123
+                    </Typography>
+                    <Button color="inherit" onClick={() => conn.passYears(100)}>Pass years</Button>
+                    <Button color="inherit" onClick={() => conn.save()}>Save</Button>
+                    <Button color="inherit" onClick={() => {
                         conn.reset();
                     }}>Reset</Button>
-                </Stack>
-                <RecordList  />
-            </Stack>
-        </Grid>
-    </Grid>
+                </Toolbar>
+            </AppBar>
+        </Box>
+        <Box sx={{flexGrow: 1}} display="grid" gridTemplateColumns="repeat(3, 1fr)" gridTemplateRows="0.5fr 0.5fr"
+             gap={2} py={2}>
+            <Box>
+                <Outlet/>
+            </Box>
+            <Box gridColumn="span 2" gridRow="span 2">
+                <RecordList/>
+            </Box>
+            <Box>
+                <ActionList/>
+            </Box>
+        </Box>
+    </>
 }
+
 function App() {
     const [conn, setConn] = useState<SignalRConnection | null>(null);
 
@@ -37,12 +64,12 @@ function App() {
 
     return conn ? (
             <SignalRConnectionContext.Provider value={conn}>
-            <Routes>
-                <Route path="/" element={<InnerApp/>}>
-                    <Route path="entity/:eid" element={<EntityDetails  /> }/>
-                </Route>
-            </Routes>
-               
+                <Routes>
+                    <Route path="/" element={<InnerApp/>}>
+                        <Route path="entity/:eid" element={<EntityDetails/>}/>
+                    </Route>
+                </Routes>
+
             </SignalRConnectionContext.Provider>
         ) :
         <span>Loading</span>

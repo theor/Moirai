@@ -2,7 +2,7 @@
 import {useContext, useEffect, useState} from "react";
 import {SignalRConnectionContext} from "./SignalRConnection.tsx";
 import {EntityPropertyDisplay} from "./types.ts";
-import {Card, CardContent, Typography} from "@mui/material";
+import {Typography} from "@mui/material";
 import TableContainer from "@mui/material/TableContainer";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -19,11 +19,10 @@ export function EntityDetails() {
         if (selectedEntity[0] != -1)
             ctx.getEntityDetails(selectedEntity[0]).then(setDetails);
     }, [selectedEntity[0]]);
-    return <Card sx={{height: "100%"}} variant="outlined">
-        <CardContent>
+    return <>
             <Typography gutterBottom
                         variant="h5">{selectedEntity[0] !== -1 ? "Entity #" + selectedEntity[0] : "-"}</Typography>
-            <TableContainer component={Paper}>
+            <TableContainer sx={{ overflow: "auto"}} component={Paper}>
                 <Table size="small">
                     <TableBody>
                         {details.map((d, i) =>
@@ -38,6 +37,5 @@ export function EntityDetails() {
             {/*<Typography key={i}>*/}
             {/*    {d.label}: {d.value}*/}
             {/*</Typography>)}*/}
-        </CardContent>
-    </Card>
+    </>
 }

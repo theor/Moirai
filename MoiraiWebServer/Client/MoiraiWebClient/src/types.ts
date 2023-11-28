@@ -9,6 +9,8 @@ export interface Record {
 }
 
 export type EntityPropertyDisplay = {label: string, value: string}
+
+export interface ActionData { id:number;  name: string; hidden: boolean; }
 export interface ClientData {
-    actions: any[];
+    actions: ActionData[];
 }

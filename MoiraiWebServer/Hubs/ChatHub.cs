@@ -37,13 +37,14 @@ public class ChatHub : Hub
 
     public struct ClientData
     {
-        public (int Id, string Name)[] Actions { get; set; }
+        public record ActionData( int Id,  string Name);
+        public ActionData[] Actions { get; set; }
     }
     public async Task<ClientData> GetClientData()
     {
         return new ClientData
         {
-            Actions = _db.Actions.Select(a => (a.Id, a.Name)).ToArray(),
+            Actions = _db.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
         };
     }
     public record EntityPropertyDisplay(string Label, string Value);
