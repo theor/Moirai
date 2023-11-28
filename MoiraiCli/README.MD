@@ -96,3 +96,6 @@ with 3 events: born, buries children, inherit 7100
 
 1000 events: 4945
 cached commands: 4038
+
+SELECT id, rnd() as r FROM entity     LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = 21 WHERE type = 2 AND (alive = 1) AND (age < 4) AND (partner != 0) AND (COALESCE(marked.last_year, 0) > 4) ORDER BY r LIMIT 1
+SELECT id, rnd() as r FROM entity     LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = 21 WHERE type = 2 AND (alive = 1) AND (age < 4) AND (partner != 0) AND (COALESCE(765 - marked.last_year, 0) > 4) ORDER BY r LIMIT 1

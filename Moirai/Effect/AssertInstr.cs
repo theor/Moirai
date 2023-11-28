@@ -41,7 +41,7 @@
         return true;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }

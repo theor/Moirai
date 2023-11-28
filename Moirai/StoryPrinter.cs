@@ -431,7 +431,7 @@ public class StoryPrinter
 
     public void PrintMarked()
     {
-        foreach (var ((eid, index), year) in _database.Ctx._marked)
+        foreach (var ((eid, index), year) in _database._marked)
         {
             Console.WriteLine($"{eid,6}{GetRuleName(index-1),20} : {year}");
         }

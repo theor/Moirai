@@ -22,7 +22,7 @@ public class InterpolatedString : IValue
         return false;
     }
 
-    public string ToSql(PredicateContext ctx) => $"'{Compute(ctx)}'";
+    public (string where, string? joins) ToSql(PredicateContext ctx) => ($"'{Compute(ctx)}'", null);
 }
 
 public class MatchWeight : IValue
@@ -59,7 +59,7 @@ public class MatchWeight : IValue
         return true;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -106,7 +106,7 @@ public class Match : IValue
         return true;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -158,7 +158,7 @@ public class If : IValue
         return res;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -179,7 +179,7 @@ public class Mark(IValue entity, int eventIndex) : IValueCall
         return true;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -191,11 +191,8 @@ public class Mark(IValue entity, int eventIndex) : IValueCall
         // yield return new Literal(EventIndex);
     }
 }
-public class SinceLast(IValue entity, int eventIndex) : IValueCall
+public class SinceLast(IValue Entity, int EventIndex) : IValueCall
 {
-    public readonly IValue Entity = entity;
-    public readonly int EventIndex = eventIndex;
-
     public PropertyValue Compute(PredicateContext ctx)
     {
         var e = Entity.Compute(ctx);
@@ -206,9 +203,10 @@ public class SinceLast(IValue entity, int eventIndex) : IValueCall
         return int.MinValue;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
-        return Compute(ctx).IntValue.ToString();
+        return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
+        $"LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = {EventIndex}");
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
@@ -234,7 +232,7 @@ public class Record : IValueCall
         return true;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -273,7 +271,7 @@ public class CreateEntity : IValueCall
         return entity;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }

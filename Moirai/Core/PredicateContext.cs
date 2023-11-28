@@ -70,8 +70,8 @@ public class PredicateContext
             return false;
         }
 
-        string sql = predicate.ToSql(this);
-        Debug.WriteLine(sql);
+        var (where,joins) = predicate.ToSql(this);
+        Debug.WriteLine(where,joins);
         
         // if (predicate.HasTypeFilter(out var typeFilter))
         // {
@@ -221,14 +221,13 @@ public class PredicateContext
     }
 
     // tuple eid, eventId -> year
-    internal Dictionary<(EntityId, int), long> _marked = new();
     public void Mark(EntityId eId, int eventIndex)
     {
-        _marked[(eId, eventIndex)] = Year;
+        Database.Mark(eId, eventIndex);
     }
 
     public bool GetLastMarked(EntityId eId, int eventIndex, out long year)
     {
-        return _marked.TryGetValue((eId, eventIndex), out year);
+        return Database.GetLastMarked(eId, eventIndex, out year);
     }
 }

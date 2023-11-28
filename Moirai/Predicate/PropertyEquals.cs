@@ -1,4 +1,6 @@
-﻿public class BinaryOperator : IValue
+﻿using System.Reflection;
+
+public class BinaryOperator : IValue
 {
     public enum Operator
     {
@@ -60,10 +62,10 @@
         type = default;
         return false;
     }
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
-        var l = Left.ToSql(ctx);
-        var r = Right.ToSql(ctx);
+        var (l,lj) = Left.ToSql(ctx);
+        var (r,rj) = Right.ToSql(ctx);
         string op = Op switch
         {
 
@@ -81,6 +83,6 @@
             Operator.Le => "<=",
             _ => throw new ArgumentOutOfRangeException()
         };
-        return $"({l} {op} {r})";
+        return ($"({l} {op} {r})", string.Join("", new[]{lj, rj}.Where(s => s!=null)));
     }
 }

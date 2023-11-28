@@ -446,6 +446,11 @@ CREATE TABLE entity (
     }))}
 );
 {indices}
+CREATE TABLE marked (
+    eid INTEGER NOT NULL,
+    marker INTEGER NOT NULL,
+    last_year INTEGER NOT NULL,
+    count  INTEGER DEFAULT 1, PRIMARY KEY(eid, marker))
 ";
         cmd.ExecuteNonQuery();
         Profiler.Init(this);
@@ -481,13 +486,14 @@ CREATE TABLE entity (
     private Dictionary<string, SqliteCommand> _commands2 = new();
     public bool PickRandom(IValue value, out EntityId id)
     {
-        string sql = value.ToSql(_ctx);
+        var(where, joins) = value.ToSql(_ctx);
+        var sql = $@"SELECT id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
         if (!_commands.TryGetValue(sql, out var cmd))
         {
             // Console.WriteLine(sql);
             cmd = _connection.CreateCommand();
             // cmd.CommandText = $@"SELECT id FROM entity WHERE {sql} LIMIT 1";
-            cmd.CommandText = $@"SELECT id, rnd() as r FROM entity WHERE {sql} ORDER BY r LIMIT 1";
+            cmd.CommandText = sql;
             cmd.Prepare();
             _commands.Add(sql, cmd);
         }
@@ -509,14 +515,15 @@ CREATE TABLE entity (
         {
             return false;
         }
-        string sql = predicate.ToSql(_ctx);
+        var (where, joins) = predicate.ToSql(_ctx);
+        var sql = $@"SELECT id FROM entity {(joins ?? "")} WHERE {where}";
 
         if (!_commands2.TryGetValue(sql, out var cmd))
         {
             // Console.WriteLine(sql);
             cmd = _connection.CreateCommand();
             // cmd.CommandText = $@"SELECT id FROM entity WHERE {sql} LIMIT 1";
-            cmd.CommandText = $@"SELECT id FROM entity WHERE " + sql;
+            cmd.CommandText = sql;
             cmd.Prepare();
             _commands2.Add(sql, cmd);
         }
@@ -585,5 +592,26 @@ CREATE TABLE entity (
     {
         Records.Add(new(text, year, categories, CurrentChangeset.Id, _currentActionId));
     }
+    internal Dictionary<(EntityId, int), long> _marked = new();
 
+    public void Mark(EntityId eId, int eventIndex)
+    {
+        _marked[(eId, eventIndex)] = _ctx.Year;
+        var cmd = _connection.CreateCommand();
+        cmd.CommandText = $@"
+INSERT INTO marked (eid, marker, last_year) VALUES ($id,$marker,$year)
+ON CONFLICT (eid, marker) DO UPDATE SET last_year = excluded.last_year, count = count + 1
+;";
+        // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
+        cmd.Parameters.AddWithValue("$id", eId.Id);
+        cmd.Parameters.AddWithValue("$marker", eventIndex);
+        cmd.Parameters.AddWithValue("$year", _ctx.Year);
+        // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
+        cmd.ExecuteNonQuery();
+    }
+
+    public bool GetLastMarked(EntityId eId, int eventIndex, out long year)
+    {
+        return _marked.TryGetValue((eId, eventIndex), out year);
+    }
 }

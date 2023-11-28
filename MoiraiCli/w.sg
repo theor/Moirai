@@ -262,8 +262,8 @@ event char_joins_faith {
 }
 @1 per 2 years
 event wedding {
-    pick $x: (type = Person, alive = true, partner = null, age > Age.Child)
-    pick $y: (type = Person, alive = true, partner = null, age > Age.Child, id != $x, place = $x.place)
+    pick $x: (type = Person and alive = true and partner = null and age > Age.Child and age < Age.Old)
+    pick $y: (type = Person and alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place)
     set $x.partner = $y
     set $y.partner = $x
     // create $i: ( Item, "Wedding ring of {$x.name}")    // set $i.owner = $x

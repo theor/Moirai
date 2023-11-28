@@ -22,5 +22,22 @@
         }
         return true;
     }
-    public string ToSql(PredicateContext ctx) => String.Join(" AND ", Predicates.Select(p => p.ToSql(ctx)));
+    public (string where, string? joins) ToSql(PredicateContext ctx)
+    {
+        var wheres = "";
+        var joins = "";
+        foreach (var predicate in Predicates)
+        {
+            var (w, j) = predicate.ToSql(ctx);
+            if (wheres != "")
+                wheres += " AND " + w;
+            else
+                wheres = w;
+            if (j != null)
+            {
+                joins += " " + j;
+            }
+        }
+        return (wheres, joins);
+    }
 }

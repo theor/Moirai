@@ -6,7 +6,7 @@ public interface IValue
 
     bool IsTrue(PredicateContext ctx) => Compute(ctx).BoolValue;
 
-    string ToSql(PredicateContext ctx);
+    (string where, string? joins) ToSql(PredicateContext ctx);
 }
 
 public interface IValueCall : IValue
@@ -41,7 +41,7 @@ public class MatchAnyValue : IValue
         throw new NotImplementedException();
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -67,7 +67,7 @@ public class IsOfType : IValue
         type = ValueTypeId;
         return true;
     }
-    public string ToSql(PredicateContext ctx) => $"type = " + ValueTypeId.Id;
+    public (string where, string? joins) ToSql(PredicateContext ctx) => ($"type = " + ValueTypeId.Id, null);
 }
 
 public interface IFilter{

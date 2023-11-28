@@ -17,7 +17,7 @@
         return ctx.Rnd.GenerateNext((uint)(max - min)) + min;
     }
 
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -47,9 +47,9 @@ public struct RandomEnum : IValueCall
         type = default;
         return false;
     }
-    public string ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(PredicateContext ctx)
     {
-        return Compute(ctx).ToSql();
+        return (Compute(ctx).ToSql(), null);
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
