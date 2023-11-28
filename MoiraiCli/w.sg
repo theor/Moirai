@@ -395,6 +395,12 @@ event couple_has_child {
         record('{$x.name} and {$y.name} have a child, {$c.name}')
     }
 }
+@1 per 2 years
+event parent_child_break {
+    pick $x: (type = Person and alive = true and (parent1 != null or parent2 != null)) 
+    var $p: (if $x.parent1 { $x.parent1 } else { $x.parent2 })
+    record('{$x.name} and {$p.name} got into a quarrel')
+}
 @1 per 2 year
 event make_item items {
     pick $p: (type = Person, alive = true, job = Job.Smith, age > Age.Child)

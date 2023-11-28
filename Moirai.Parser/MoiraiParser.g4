@@ -32,6 +32,7 @@ expr
     | left=expr op=(MUL | DIV) right=expr
     | left=expr op=(ADD | SUB) right=expr
     | left=expr op=(EQ | NEQ | GE | LE | GT | LT) right=expr
+    | left=expr op=QQ right=expr
     | left=expr op=AND right=expr
     | left=expr op=OR right=expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)

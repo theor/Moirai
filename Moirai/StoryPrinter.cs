@@ -327,6 +327,7 @@ public class StoryPrinter
                     BinaryOperator.Operator.Ge => ">=",
                     BinaryOperator.Operator.Lt => "<",
                     BinaryOperator.Operator.Le => "<=",
+                    BinaryOperator.Operator.Coalesce => "??",
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 return $"({Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)})";

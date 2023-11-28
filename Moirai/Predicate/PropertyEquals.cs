@@ -10,6 +10,7 @@ public class BinaryOperator : IValue
         Add,Sub,Div,Mul,
         Gt,Lt,
         Ge,Le,
+        Coalesce,
     }
     public readonly Operator Op;
     public readonly IValue Left;
@@ -29,6 +30,8 @@ public class BinaryOperator : IValue
         Profiler.Value(right.Type.BaseType);
         switch (Op)
         {
+            case Operator.Coalesce:
+                return left.IntValue == 0 ? right : left;
             case Operator.Equals:
                 return left == right;
             case Operator.NotEquals:
@@ -66,6 +69,9 @@ public class BinaryOperator : IValue
     {
         var (l,lj) = Left.ToSql(ctx);
         var (r,rj) = Right.ToSql(ctx);
+        var joins = string.Join("", new[]{lj, rj}.Where(s => s!=null));
+        if (Op == Operator.Coalesce)
+            return ($"COALESCE({l}, {r})", joins);
         string op = Op switch
         {
 
@@ -83,6 +89,6 @@ public class BinaryOperator : IValue
             Operator.Le => "<=",
             _ => throw new ArgumentOutOfRangeException()
         };
-        return ($"({l} {op} {r})", string.Join("", new[]{lj, rj}.Where(s => s!=null)));
+        return ($"({l} {op} {r})", joins);
     }
 }

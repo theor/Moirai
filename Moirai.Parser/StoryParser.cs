@@ -931,6 +931,9 @@ public static class StoryParser
                 case "or":
                     pop = BinaryOperator.Operator.Or;
                     break;
+                case "??":
+                    pop = BinaryOperator.Operator.Coalesce;
+                    break;
                 case "=":
                     pop = BinaryOperator.Operator.Equals;
 
