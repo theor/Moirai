@@ -55,6 +55,8 @@ event since {
         Assert.That(db.Records[0].Text, Is.EqualTo("since last: " +int.MinValue));
         Assert.That(db.Records[1].Text, Is.EqualTo("since last: 15"));
     }
+    
+    // TODO pick $x: (since_last($x) > 4) should not compile
 }
 public class FilterTests : TestsBase
 {

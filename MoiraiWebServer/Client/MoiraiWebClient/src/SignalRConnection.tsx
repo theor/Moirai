@@ -5,18 +5,12 @@ import { Message, ClientData, EntityPropertyDisplay} from "./types.ts";
 
 export class SignalRConnection {
     public connection: HubConnection;
-    public clientData: ClientData;
-    public setClientData: (value: ClientData) => void;
 
-    private constructor(connection: HubConnection, clientData: ClientData, setClientData: (value:ClientData) => void) {
+    private constructor(connection: HubConnection) {
         this.connection = connection;
-        this.clientData = clientData;
-        this.setClientData = setClientData;
-        if(clientData)
-            setClientData(clientData);
     }
 
-    static async make(clientData: ClientData | undefined, setClientData: (value: (((prevState: (ClientData | undefined)) => (ClientData | undefined)) | ClientData | undefined)) => void): Promise<SignalRConnection> {
+    static async make(): Promise<[SignalRConnection, ClientData]> {
         let connection = new signalR.HubConnectionBuilder()
             // .withUrl("http://localhost:5028/hub")
             // .withUrl("https://localhost:7148/hub")
@@ -29,25 +23,25 @@ export class SignalRConnection {
         });
         await connection.start();
         console.log("done", connection.state)
-        clientData = await connection.invoke("GetClientData")
-        console.log("data", clientData);
-        return new SignalRConnection(connection, clientData!, setClientData);
+        let clientData = await connection.invoke("GetClientData")
+        // console.log("data", clientData);
+        return [new SignalRConnection(connection), clientData];
         // connection.send("newMessage", "theoir", "test")
 
 
     }
 
-    reset(): void {
-        this.connection.send("Reset")
+    reset() {
+        return this.connection.send("Reset")
 
     }
 
-    passYears(years: number): void {
-        this.connection.send("PassYears", years)
+    passYears(years: number) {
+        return this.connection.send("PassYears", years)
     }
     
     save() {
-        this.connection.send("Save");
+        return this.connection.send("Save");
     }
 
 
@@ -60,5 +54,5 @@ export class SignalRConnection {
     }
 }
 // @ts-ignore
-export const SignalRConnectionContext = createContext<SignalRConnection>(null);
+export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void]}>(null);
 

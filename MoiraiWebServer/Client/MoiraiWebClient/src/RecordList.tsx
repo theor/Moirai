@@ -92,10 +92,11 @@ const RecordTable: TableComponents<Record, Property<number>> = {
 export function RecordList() {
     const selectedEntity = useSelectedEntity();
     const [records, setRecords] = useState<Record[]>([]);
-    const context = useContext(SignalRConnectionContext);
+    const [filteredRecords, setFilteredRecords] = useState<Record[]>([]);
+    const {conn, data:[clientData,_setClientData]} = useContext(SignalRConnectionContext);
     useEffect(() => {
         console.log("stream")
-        const stream = context.streamRecords().subscribe({
+        const stream = conn.streamRecords().subscribe({
             next(i) {
                 switch(i.type)
                 {
@@ -104,6 +105,8 @@ export function RecordList() {
                         break;
                     case MessageType.Record:
                         setRecords(records => [...records, i.record!])
+                        if(!clientData.actions[i.record!.actionId-1].hidden)
+                            setFilteredRecords(filteredRecords => [...filteredRecords, i.record! ])
                         break;
 
                 }
@@ -119,13 +122,14 @@ export function RecordList() {
             setRecords([])
             stream.dispose();
         };
-    }, [context]);
+    }, [conn]);
     useEffect(() => {
-        console.log("CDATA")
-    }, [context.clientData]);
+        console.log("CDATA", records, clientData)
+        setFilteredRecords(records.filter(r => !clientData.actions[r.actionId-1].hidden))
+    }, [clientData]);
     return <TableVirtuoso
         context={selectedEntity}
-        data={records}
+        data={filteredRecords}
         components={RecordTable}
         fixedHeaderContent={fixedHeaderContent}
         itemContent={rowContent}

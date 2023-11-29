@@ -10,7 +10,7 @@ import {AppBar, Grid, Stack, Toolbar,IconButton, Typography, Button} from "@mui/
 import MenuIcon from '@mui/icons-material/Menu';
 import {ClientData} from "./types.ts";
 function InnerApp() {
-    const conn = useContext(SignalRConnectionContext);
+    const {conn} = useContext(SignalRConnectionContext);
     return <>
         {/*<Box>*/}
             <AppBar position="relative" sx={{marginBottom:"12px"}}>
@@ -74,11 +74,11 @@ function App() {
     const [conn, setConn] = useState<SignalRConnection | null>(null);
     useEffect(() => {
         if (!conn)
-            SignalRConnection.make(clientData, setClientData).then(setConn)
+            SignalRConnection.make().then(([conn,data]) => {setConn(conn); setClientData(data)})
     }, [conn]);
 
-    return conn ? (
-            <SignalRConnectionContext.Provider value={conn}>
+    return conn && clientData ? (
+            <SignalRConnectionContext.Provider value={{conn:conn, data: [clientData, setClientData]}}>
                 <Routes>
                     <Route path="/" element={<InnerApp/>}>
                         <Route path="entity/:eid" element={<EntityDetails/>}/>

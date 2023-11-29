@@ -32,6 +32,50 @@ event r {
     }
 }
 
+public class CoalesceTests : TestsBase
+{
+    [Test]
+    public void CoalesceNullInt()
+    {
+        Run(@"
+@start
+event e {
+    var $x: null ?? 12
+    assert_eq($x, 12)
+}", out _);
+    }
+    [Test]
+    public void CoalesceNullNull()
+    {
+        Run(@"
+@start
+event e {
+    var $x: null ?? null
+    assert_eq($x, null)
+}", out _);
+    }
+    [Test]
+    public void CoalesceIntNull()
+    {
+        Run(@"
+@start
+event e {
+    var $x: 13 ?? null
+    assert_eq($x, 13)
+}", out _);
+    }
+    [Test]
+    public void CoalesceStringInt()
+    {
+        Run(@"
+@start
+event e {
+    var $x: 'asd' ?? 12
+    assert_eq($x, 'asd')
+    debug($x)
+}", out _);
+    }
+}
 public class IfTests : TestsBase
 {
     [Test]

@@ -269,6 +269,7 @@ public static class StoryParser
             ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.ParseArgument(0))),
         new("clamp01", false,
             ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.ParseArgument(0))),
+        new("debug", false, ctx=> new DebugPrint(Enumerable.Repeat((object?)null, ctx.ArgCount).Select((_,i) => ctx.ParseArgument(i))))
     };
 
     public interface IVisitor

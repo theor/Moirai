@@ -395,7 +395,7 @@ event couple_has_child {
         record('{$x.name} and {$y.name} have a child, {$c.name}')
     }
 }
-@1 per 2 years
+@1 every 2 years
 event parent_child_quarrel {
     pick $x: (type = Person and alive = true and (parent1 != null or parent2 != null)) 
     var $p: (if $x.parent1 { $x.parent1 } else { $x.parent2 })

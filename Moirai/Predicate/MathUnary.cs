@@ -44,6 +44,7 @@
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
+
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
         yield return Arg;

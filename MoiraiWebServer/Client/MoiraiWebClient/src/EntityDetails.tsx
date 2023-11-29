@@ -12,12 +12,12 @@ import TableCell from "@mui/material/TableCell";
 
 export function EntityDetails() {
     let selectedEntity = useSelectedEntity();
-    let ctx = useContext(SignalRConnectionContext);
+    let {conn} = useContext(SignalRConnectionContext);
     let [details, setDetails] = useState<EntityPropertyDisplay[]>([]);
     useEffect(() => {
         console.log("sel changed", selectedEntity[0])
         if (selectedEntity[0] != -1)
-            ctx.getEntityDetails(selectedEntity[0]).then(setDetails);
+            conn.getEntityDetails(selectedEntity[0]).then(setDetails);
     }, [selectedEntity[0]]);
     return <>
             <Typography gutterBottom
