@@ -94,6 +94,7 @@ export function RecordList() {
     const [records, setRecords] = useState<Record[]>([]);
     const context = useContext(SignalRConnectionContext);
     useEffect(() => {
+        console.log("stream")
         const stream = context.streamRecords().subscribe({
             next(i) {
                 switch(i.type)
@@ -119,6 +120,9 @@ export function RecordList() {
             stream.dispose();
         };
     }, [context]);
+    useEffect(() => {
+        console.log("CDATA")
+    }, [context.clientData]);
     return <TableVirtuoso
         context={selectedEntity}
         data={records}

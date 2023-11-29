@@ -8,6 +8,7 @@ import {EntityDetails} from "./EntityDetails.tsx";
 import Box from '@mui/material/Box';
 import {AppBar, Grid, Stack, Toolbar,IconButton, Typography, Button} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
+import {ClientData} from "./types.ts";
 function InnerApp() {
     const conn = useContext(SignalRConnectionContext);
     return <>
@@ -35,7 +36,7 @@ function InnerApp() {
                 </Toolbar>
             </AppBar>
         {/*</Box>*/}
-        <Grid container spacing={2} sx={{flexGrow: 1, height: "100%"}} mb={8}>
+        <Grid container spacing={2} sx={{flexGrow: 1, height: "100%"}} mb={8} px={2}>
             <Grid item xs={4} sx={{height:"100%"}}>
                 <Stack gap={2} sx={{height:"95%"}} direction={"column"} >
                     <Box>
@@ -69,11 +70,11 @@ function InnerApp() {
 }
 
 function App() {
+    const [clientData, setClientData] = useState<ClientData>();
     const [conn, setConn] = useState<SignalRConnection | null>(null);
-
     useEffect(() => {
         if (!conn)
-            SignalRConnection.make().then(setConn)
+            SignalRConnection.make(clientData, setClientData).then(setConn)
     }, [conn]);
 
     return conn ? (
