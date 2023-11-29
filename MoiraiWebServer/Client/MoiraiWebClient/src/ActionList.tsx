@@ -1,4 +1,5 @@
 ﻿import {
+    Divider,
     Switch,
     TableRow,
     Typography
@@ -34,10 +35,11 @@ export function ActionList(){
         setChecked(newChecked);
     };
     return <>
+        <Divider/>
         <Typography gutterBottom mt={2}
                     variant="h5">Actions</Typography>
-        <TableContainer sx={{ width: '100%', overflow: 'auto' }} >
-        <Table size="small">
+        <TableContainer sx={{  overflow: 'auto' }} >
+        <Table  sx={{overflow:"auto"}} size="small">
             <TableBody>
                 {ctx.clientData.actions.map(a => {
                     return <TableRow key={a.id}>

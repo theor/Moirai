@@ -1,22 +1,18 @@
 import './App.css'
 import {useContext, useEffect, useState} from "react";
-import Button from '@mui/material/Button';
 import {SignalRConnection, SignalRConnectionContext} from "./SignalRConnection.tsx";
-import {Grid, IconButton, Stack, Typography} from "@mui/material";
 import {Outlet, Route, Routes} from 'react-router-dom';
 import {RecordList} from "./RecordList.tsx";
 import {ActionList} from "./ActionList.tsx";
 import {EntityDetails} from "./EntityDetails.tsx";
-import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
-import Toolbar from '@mui/material/Toolbar';
+import {AppBar, Grid, Stack, Toolbar,IconButton, Typography, Button} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
-
 function InnerApp() {
     const conn = useContext(SignalRConnectionContext);
     return <>
-        <Box>
-            <AppBar position="static">
+        {/*<Box>*/}
+            <AppBar position="relative" sx={{marginBottom:"12px"}}>
                 <Toolbar>
                     <IconButton
                         size="large"
@@ -38,19 +34,37 @@ function InnerApp() {
                     }}>Reset</Button>
                 </Toolbar>
             </AppBar>
-        </Box>
-        <Box sx={{flexGrow: 1}} display="grid" gridTemplateColumns="repeat(3, 1fr)" gridTemplateRows="0.5fr 0.5fr"
-             gap={2} py={2}>
-            <Box>
-                <Outlet/>
-            </Box>
-            <Box gridColumn="span 2" gridRow="span 2">
+        {/*</Box>*/}
+        <Grid container spacing={2} sx={{flexGrow: 1, height: "100%"}} mb={8}>
+            <Grid item xs={4} sx={{height:"100%"}}>
+                <Stack gap={2} sx={{height:"95%"}} direction={"column"} >
+                    <Box>
+                        <Outlet/>
+                    </Box>
+                    <Box  sx={{overflow:"auto"}}>
+                        <ActionList/>
+                        {/*<Outlet/>*/}
+                    </Box>
+                </Stack>
+            </Grid>
+            <Grid item xs={8} sx={{paddingBottom:"64px"}}>
                 <RecordList/>
-            </Box>
-            <Box>
-                <ActionList/>
-            </Box>
-        </Box>
+            </Grid>
+        </Grid>
+        {/*<Box sx={{flexGrow: 1}} display="grid" gridTemplateColumns="repeat(3, 1fr)" gridAutoRows="50%"*/}
+        {/*     gap={2} py={2} px={2}>*/}
+        {/*    <Box>*/}
+        {/*        <Outlet/>*/}
+        {/*    </Box>*/}
+        {/*    <Box gridColumn="span 2" gridRow="span 2">*/}
+        {/*        <RecordList/>*/}
+        {/*    </Box>*/}
+        {/*    <Box>*/}
+        {/*        /!*<Outlet/>*!/*/}
+        {/*        <ActionList/>*/}
+        {/*    </Box>*/}
+        {/*</Box>*/}
+
     </>
 }
 

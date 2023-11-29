@@ -1,7 +1,7 @@
 ﻿import * as signalR from "@microsoft/signalr";
 import {HubConnection, IStreamResult} from "@microsoft/signalr";
 import {createContext} from "react";
-import {Record, ClientData, EntityPropertyDisplay} from "./types.ts";
+import { Message, ClientData, EntityPropertyDisplay} from "./types.ts";
 
 export class SignalRConnection {
     public connection: HubConnection;
@@ -47,8 +47,8 @@ export class SignalRConnection {
     }
 
 
-    streamRecords(): IStreamResult<Record> {
-        return this.connection.stream<Record>("Counter", 20, 100)
+    streamRecords(): IStreamResult<Message> {
+        return this.connection.stream<Message>("Stream")
     }
 
     getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]> {

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 
 namespace MoiraiWebServer.Hubs;
 
@@ -9,14 +10,15 @@ public class ChatHub : Hub
 {
     private static Database _db;
     private static bool _reset;
+
     public ChatHub()
     {
         if (_db == null)
         {
             Reset();
         }
-        Debug.WriteLine("Ctor");
 
+        Debug.WriteLine("Ctor");
     }
 
     public void Reset()
@@ -25,6 +27,7 @@ public class ChatHub : Hub
         _db.Init();
         _reset = true;
     }
+
     public async Task PassYears(int years)
     {
         _db.Ctx.PassYears(years, true);
@@ -37,9 +40,11 @@ public class ChatHub : Hub
 
     public struct ClientData
     {
-        public record ActionData( int Id,  string Name);
+        public record ActionData(int Id, string Name);
+
         public ActionData[] Actions { get; set; }
     }
+
     public async Task<ClientData> GetClientData()
     {
         return new ClientData
@@ -47,6 +52,7 @@ public class ChatHub : Hub
             Actions = _db.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
         };
     }
+
     public record EntityPropertyDisplay(string Label, string Value);
 
     public EntityPropertyDisplay[] GetEntityDetails(uint eid)
@@ -63,40 +69,89 @@ public class ChatHub : Hub
                     if (p.Value.Id.IsNull)
                         value = "null";
                     else
-                        value = $"<{print}>{(_db.GetProperty(p.Value.Id, Database.PropName, out var val) ? val.Value : print)}</>";
+                        value =
+                            $"<{print}>{(_db.GetProperty(p.Value.Id, Database.PropName, out var val) ? val.Value : print)}</>";
                 }
                 else
                     value = print;
+
                 return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
                     value);
             }).ToArray();
     }
+
     public async Task NewMessage(string username, string message)
     {
         Debug.WriteLine($"Received {username} {message}");
         await Clients.All.SendAsync("messageReceived", username, message);
     }
-    
-    public async IAsyncEnumerable<Database.Record> Counter(
-        int count,
-        int delay,
-        [EnumeratorCancellation]
+
+    public ChannelReader<Message> Stream(
         CancellationToken cancellationToken)
     {
-        Debug.WriteLine("Stream");
-        int lastRecord = 0;
-        while (true)
+        var channel = Channel.CreateUnbounded<Message>();
+
+        // We don't want to await WriteItemsAsync, otherwise we'd end up waiting 
+        // for all the items to be written before returning the channel back to
+        // the client.
+        _ = WriteItemsAsync(channel.Writer, cancellationToken);
+
+        return channel.Reader;
+    }
+
+    public struct Message
+    {
+        public enum MessageType
         {
-            if (_reset)
+            Reset,
+            Record,
+        }
+
+        public MessageType Type;
+        public Database.Record? Record;
+
+        public Message(Database.Record? record)
+        {
+            Type = MessageType.Record;
+            Record = record;
+        }
+
+        public static Message Reset() => new Message() { Type = MessageType.Reset };
+    }
+
+    private async Task WriteItemsAsync(
+        ChannelWriter<Message> writer,
+        CancellationToken cancellationToken)
+    {
+        Exception localException = null;
+        try
+        {
+            Debug.WriteLine("Stream");
+            int lastRecord = 0;
+            while (true)
             {
-                lastRecord = 0;
-                _reset = false;
+                if (_reset)
+                {
+                    _reset = false;
+                    lastRecord = 0;
+                    await writer.WriteAsync(Message.Reset(), cancellationToken);
+                }
+
+                while (_db.Records.Count > 0 && lastRecord < _db.Records.Count)
+                {
+                    await writer.WriteAsync(new Message(_db.Records[lastRecord++]), cancellationToken);
+                }
+
+                await Task.Delay(1000);
             }
-            while (_db.Records.Count > 0 && lastRecord < _db.Records.Count)
-            {
-                yield return _db.Records[lastRecord++];
-            }
-            await Task.Delay(1000);
+        }
+        catch (Exception e)
+        {
+            localException = e;
+        }
+        finally
+        {
+            writer.Complete(localException);
         }
     }
 }

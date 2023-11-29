@@ -1,4 +1,4 @@
-﻿import {Property, Record} from "./types.ts";
+﻿import {MessageType, Property, Record} from "./types.ts";
 import * as React from "react";
 import TableCell from "@mui/material/TableCell";
 import {useContext, useEffect, useState} from "react";
@@ -96,7 +96,16 @@ export function RecordList() {
     useEffect(() => {
         const stream = context.streamRecords().subscribe({
             next(i) {
-                setRecords(records => [...records, i])
+                switch(i.type)
+                {
+                    case MessageType.Reset:
+                        setRecords([]);
+                        break;
+                    case MessageType.Record:
+                        setRecords(records => [...records, i.record!])
+                        break;
+
+                }
                 // console.log(i, records)
             },
             complete() {

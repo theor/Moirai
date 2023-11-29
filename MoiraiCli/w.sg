@@ -396,7 +396,7 @@ event couple_has_child {
     }
 }
 @1 per 2 years
-event parent_child_break {
+event parent_child_quarrel {
     pick $x: (type = Person and alive = true and (parent1 != null or parent2 != null)) 
     var $p: (if $x.parent1 { $x.parent1 } else { $x.parent2 })
     record('{$x.name} and {$p.name} got into a quarrel')

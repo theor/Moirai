@@ -8,6 +8,16 @@ export interface Record {
     categories: number;
 }
 
+export interface Message {
+    type: MessageType;
+    record: Record | null;
+}
+
+export enum MessageType {
+    Reset,
+    Record
+}
+
 export type EntityPropertyDisplay = {label: string, value: string}
 
 export interface ActionData { id:number;  name: string; hidden: boolean; }
