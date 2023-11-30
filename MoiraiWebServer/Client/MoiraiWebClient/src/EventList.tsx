@@ -13,10 +13,12 @@ import {ActionData} from "./types.ts";
 
 export function EventList() {
     const clientData = useMoiraiStore(s=>s.clientData)
+    const toggleActionFiltering = useMoiraiStore(s=>s.toggleActionFiltering)
     // console.log("AL ", ctx);
     if (!clientData)
         return <span>loading</span>
     const handleToggle = (value: ActionData) => (e: React.MouseEvent<HTMLButtonElement>) => {
+        toggleActionFiltering(value.id, value.hidden, e.ctrlKey)
         // if (e.ctrlKey) {
         //     clientData.actions = clientData.actions.map(a => a.id === value.id ? {
         //         ...a,

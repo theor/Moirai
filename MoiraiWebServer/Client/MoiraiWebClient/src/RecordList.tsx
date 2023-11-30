@@ -1,6 +1,5 @@
-﻿import {MessageType, Property, Record} from "./types.ts";
+﻿import { Property, Record} from "./types.ts";
 import * as React from "react";
-import {useContext, useEffect, useState} from "react";
 import TableCell from "@mui/material/TableCell";
 // import {SignalRConnectionContext} from "./SignalRConnection.tsx";
 import {TableComponents, TableVirtuoso} from "react-virtuoso";
@@ -11,7 +10,7 @@ import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
 import TableHead from "@mui/material/TableHead";
 import TableBody from "@mui/material/TableBody";
-import {connState, useMoiraiStore} from "./SignalRConnection.tsx";
+import {useMoiraiStore} from "./SignalRConnection.tsx";
 
 function fixedHeaderContent() {
     return (
@@ -100,6 +99,6 @@ export function RecordList() {
         data={filteredRecords}
         components={RecordTable}
         fixedHeaderContent={fixedHeaderContent}
-        itemContent={rowContent}
+        itemContent={rowContent} followOutput={true}
     />;
 }

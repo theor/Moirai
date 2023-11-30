@@ -19,7 +19,7 @@ export class SignalRConnection {
             .build();
         // connection.onclose()
         connection.on("messageReceived", (username: string, message: string) => {
-            console.log("messageReceived",username, message);
+            console.log("messageReceived", username, message);
         });
         await connection.start();
         console.log("done", connection.state)
@@ -39,7 +39,7 @@ export class SignalRConnection {
     passYears(years: number) {
         return this.connection.send("PassYears", years)
     }
-    
+
     save() {
         return this.connection.send("Save");
     }
@@ -53,6 +53,7 @@ export class SignalRConnection {
         return this.connection.invoke("GetEntityDetails", entityId)
     }
 }
+
 // @ts-ignore
 // export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void], records: Record[]}>(null);
 interface State {
@@ -61,44 +62,71 @@ interface State {
     conn?: SignalRConnection;
     records: Record[];
     clientData?: ClientData;
-}
-export const useMoiraiStore = create<State>((set, get) => {
-     SignalRConnection.make().then(([x,y, c]) => {
-         console.log("ZUSTAND done")
-         x.connection.onreconnected(_id => {
-             console.log("ZUS " + true)
-             set({connected: true});
-         });
-         x.connection.onreconnecting(_id => {
-             console.log("ZUS " + false)
-             set({connected: false});
-         });
-         x.streamRecords().subscribe({
-             next(value: Message) {
-                 switch (value.type)
-                 {
-                     case MessageType.Reset:
-                         break;
-                     case MessageType.Record:
-                         set({records: [...get().records, value.record!]})
-                         break;
-                     case MessageType.Year:
-                         set({year: value.year})
-                         break;
 
-                 }
-             },
-             error(err: any) {
-                 console.error(err)
-             },
-             complete() {
-             }
-         })
-         set({conn: x, clientData: y, connected: c});
-     })
+    toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => void;
+}
+
+export const useMoiraiStore = create<State>((set, get) => {
+    SignalRConnection.make().then(([x, y, c]) => {
+        console.log("ZUSTAND done")
+        x.connection.onreconnected(_id => {
+            console.log("ZUS " + true)
+            set({connected: true});
+        });
+        x.connection.onreconnecting(_id => {
+            console.log("ZUS " + false)
+            set({connected: false});
+        });
+        let buffer: Record[] = [];
+        setInterval(() => {
+            if (buffer.length > 0) {
+                set({records: [...get().records, ...buffer]});
+                buffer = []
+            }
+        }, 500);
+        x.streamRecords().subscribe({
+            next(value: Message) {
+                switch (value.type) {
+                    case MessageType.Reset:
+                        set({year: 0, records: []})
+                        break;
+                    case MessageType.Record:
+                        buffer.push(value.record!);
+                        break;
+                    case MessageType.Year:
+                        set({year: value.year})
+                        break;
+
+                }
+            },
+            error(err: any) {
+                console.error(err)
+            },
+            complete() {
+            }
+        })
+        set({conn: x, clientData: y, connected: c});
+    })
     return ({
         year: 0,
         connected: false,
         records: [],
+
+        toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
+            const clientData = get().clientData!;
+            if (switchAll) {
+                set({
+                    clientData: {
+                        ...clientData, actions: clientData.actions.map(a => a.id === id ? {
+                            ...a,
+                            hidden: !active
+                        } : {...a, hidden: active})
+                    }
+                });
+                return;
+            }
+            clientData.actions[id - 1].hidden = !clientData.actions[id - 1].hidden;
+            set({clientData: {...clientData}});
+        }
     });
 }); 
