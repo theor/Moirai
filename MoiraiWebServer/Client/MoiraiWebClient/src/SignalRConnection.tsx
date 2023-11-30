@@ -1,7 +1,7 @@
 ﻿import * as signalR from "@microsoft/signalr";
-import {HubConnection, IStreamResult} from "@microsoft/signalr";
-import {createContext} from "react";
-import {Message, ClientData, EntityPropertyDisplay, Record} from "./types.ts";
+import {HubConnection, HubConnectionState, IStreamResult} from "@microsoft/signalr";
+import {ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
+import {create} from "zustand";
 
 export class SignalRConnection {
     public connection: HubConnection;
@@ -10,7 +10,7 @@ export class SignalRConnection {
         this.connection = connection;
     }
 
-    static async make(): Promise<[SignalRConnection, ClientData]> {
+    static async make(): Promise<[SignalRConnection, ClientData, boolean]> {
         let connection = new signalR.HubConnectionBuilder()
             // .withUrl("http://localhost:5028/hub")
             // .withUrl("https://localhost:7148/hub")
@@ -25,7 +25,7 @@ export class SignalRConnection {
         console.log("done", connection.state)
         let clientData = await connection.invoke("GetClientData")
         // console.log("data", clientData);
-        return [new SignalRConnection(connection), clientData];
+        return [new SignalRConnection(connection), clientData, connection.state === HubConnectionState.Connected];
         // connection.send("newMessage", "theoir", "test")
 
 
@@ -54,5 +54,51 @@ export class SignalRConnection {
     }
 }
 // @ts-ignore
-export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void], records: Record[]}>(null);
+// export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void], records: Record[]}>(null);
+interface State {
+    year: number;
+    connected: boolean;
+    conn?: SignalRConnection;
+    records: Record[];
+    clientData?: ClientData;
+}
+export const useMoiraiStore = create<State>((set, get) => {
+     SignalRConnection.make().then(([x,y, c]) => {
+         console.log("ZUSTAND done")
+         x.connection.onreconnected(_id => {
+             console.log("ZUS " + true)
+             set({connected: true});
+         });
+         x.connection.onreconnecting(_id => {
+             console.log("ZUS " + false)
+             set({connected: false});
+         });
+         x.streamRecords().subscribe({
+             next(value: Message) {
+                 switch (value.type)
+                 {
+                     case MessageType.Reset:
+                         break;
+                     case MessageType.Record:
+                         set({records: [...get().records, value.record!]})
+                         break;
+                     case MessageType.Year:
+                         set({year: value.year})
+                         break;
 
+                 }
+             },
+             error(err: any) {
+                 console.error(err)
+             },
+             complete() {
+             }
+         })
+         set({conn: x, clientData: y, connected: c});
+     })
+    return ({
+        year: 0,
+        connected: false,
+        records: [],
+    });
+}); 

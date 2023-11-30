@@ -4,8 +4,7 @@
     TableRow,
     Typography
 } from "@mui/material";
-import {useContext} from "react";
-import {SignalRConnectionContext} from "./SignalRConnection.tsx";
+import {useMoiraiStore} from "./SignalRConnection.tsx";
 import Table from "@mui/material/Table";
 import TableContainer from "@mui/material/TableContainer";
 import TableBody from "@mui/material/TableBody";
@@ -13,21 +12,21 @@ import TableCell from "@mui/material/TableCell";
 import {ActionData} from "./types.ts";
 
 export function EventList() {
-    const {data:[clientData, setClientData]} = useContext(SignalRConnectionContext)
+    const clientData = useMoiraiStore(s=>s.clientData)
     // console.log("AL ", ctx);
     if (!clientData)
         return <span>loading</span>
     const handleToggle = (value: ActionData) => (e: React.MouseEvent<HTMLButtonElement>) => {
-        if (e.ctrlKey) {
-            clientData.actions = clientData.actions.map(a => a.id === value.id ? {
-                ...a,
-                hidden: !value.hidden
-            } : {...a, hidden: value.hidden});
-            setClientData({...clientData})
-            return;
-        }
-        value.hidden = !value.hidden;
-        setClientData({...clientData})
+        // if (e.ctrlKey) {
+        //     clientData.actions = clientData.actions.map(a => a.id === value.id ? {
+        //         ...a,
+        //         hidden: !value.hidden
+        //     } : {...a, hidden: value.hidden});
+        //     setClientData({...clientData})
+        //     return;
+        // }
+        // value.hidden = !value.hidden;
+        // setClientData({...clientData})
     };
     return <>
         <Divider/>

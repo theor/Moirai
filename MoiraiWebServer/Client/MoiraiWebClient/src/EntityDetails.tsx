@@ -1,6 +1,6 @@
 ﻿import {makeEntityLink, useSelectedEntity} from "./utils.tsx";
-import {useContext, useEffect, useState} from "react";
-import {SignalRConnectionContext} from "./SignalRConnection.tsx";
+import {useEffect, useState} from "react";
+import {useMoiraiStore} from "./SignalRConnection.tsx";
 import {EntityPropertyDisplay} from "./types.ts";
 import {Typography} from "@mui/material";
 import TableContainer from "@mui/material/TableContainer";
@@ -12,7 +12,7 @@ import TableCell from "@mui/material/TableCell";
 
 export function EntityDetails() {
     let selectedEntity = useSelectedEntity();
-    let {conn} = useContext(SignalRConnectionContext);
+    const conn = useMoiraiStore(s => s.conn!);
     let [details, setDetails] = useState<EntityPropertyDisplay[]>([]);
     useEffect(() => {
         console.log("sel changed", selectedEntity[0])

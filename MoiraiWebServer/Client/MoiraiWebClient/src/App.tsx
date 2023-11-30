@@ -1,6 +1,5 @@
 import './App.css'
-import {useContext, useEffect, useState} from "react";
-import {SignalRConnection, SignalRConnectionContext} from "./SignalRConnection.tsx";
+import {useMoiraiStore} from "./SignalRConnection.tsx";
 import {Outlet, Route, Routes} from 'react-router-dom';
 import {RecordList} from "./RecordList.tsx";
 import {EventList} from "./EventList.tsx";
@@ -8,9 +7,9 @@ import {EntityDetails} from "./EntityDetails.tsx";
 import Box from '@mui/material/Box';
 import {AppBar, Grid, Stack, Toolbar,IconButton, Typography, Button} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
-import {ClientData, Record} from "./types.ts";
 function InnerApp() {
-    const {conn} = useContext(SignalRConnectionContext);
+    const conn = useMoiraiStore(s => s.conn!);
+    const year = useMoiraiStore(s => s.year);
     return <>
         {/*<Box>*/}
             <AppBar position="relative" sx={{marginBottom:"12px"}}>
@@ -26,7 +25,7 @@ function InnerApp() {
                     </IconButton>
                     <Typography variant="h6" component="div" sx={{flexGrow: 1}}/>
                     <Typography variant="h6" component="div">
-                        Year: 123
+                        Year: {year}
                     </Typography>
                     <Button color="inherit" onClick={() => conn.passYears(100)}>Pass years</Button>
                     <Button color="inherit" onClick={() => conn.save()}>Save</Button>
@@ -70,26 +69,26 @@ function InnerApp() {
 }
 
 function App() {
-    const [clientData, setClientData] = useState<ClientData>();
-    const [conn, setConn] = useState<SignalRConnection | null>(null);
-    const [records, setRecords] = useState<Record[]>([]);
-    
-    useEffect(() => {
-        if (!conn)
-            SignalRConnection.make().then(([conn,data]) => {setConn(conn); setClientData(data)})
-    }, [conn]);
+    // const [clientData, setClientData] = useState<ClientData>();
+    // const [conn, setConn] = useState<SignalRConnection | null>(null);
+    // const [records, setRecords] = useState<Record[]>([]);
 
-    return conn && clientData ? (
-            <SignalRConnectionContext.Provider value={{conn:conn, data: [clientData, setClientData], records}}>
+    // useEffect(() => {
+    //     if (!conn)
+    //         SignalRConnection.make().then(([conn,data]) => {setConn(conn); setClientData(data)})
+    // }, [conn]);
+    
+    const connected = useMoiraiStore(s => s.connected);
+
+    return connected ? (
                 <Routes>
                     <Route path="/" element={<InnerApp/>}>
                         <Route path="entity/:eid" element={<EntityDetails/>}/>
                     </Route>
                 </Routes>
 
-            </SignalRConnectionContext.Provider>
         ) :
-        <span>Loading</span>
+        <span>{connected + ""}</span>
 }
 
 export default App

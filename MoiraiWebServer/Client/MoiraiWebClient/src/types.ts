@@ -11,6 +11,7 @@ export interface Record {
 export interface Message {
     type: MessageType;
     record: Record | null;
+    year: number;
 }
 
 export enum MessageType {
