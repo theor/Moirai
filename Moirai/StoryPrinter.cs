@@ -74,6 +74,7 @@ public class StoryPrinter
             case PropertyValue.ValueBaseType.None:
             case PropertyValue.ValueBaseType.String:
             case PropertyValue.ValueBaseType.Number:
+            case PropertyValue.ValueBaseType.Percentage:
             case PropertyValue.ValueBaseType.Float:
             case PropertyValue.ValueBaseType.Bool:
                 return propertyType.BaseType.ToString().ToLowerInvariant();
@@ -165,6 +166,8 @@ public class StoryPrinter
                 return "#" + value.IntValue;
             case PropertyValue.ValueBaseType.Number:
                 return value.IntValue.ToString();
+            case PropertyValue.ValueBaseType.Percentage:
+                return value.IntValue.ToString() + '%';
             case PropertyValue.ValueBaseType.Float:
                 return value.FloatValue.ToString(CultureInfo.InvariantCulture);
             case PropertyValue.ValueBaseType.Bool:

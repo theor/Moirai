@@ -2,6 +2,7 @@ using System.Data;
 using System.Diagnostics;
 using Microsoft.Data.Sqlite;
 using Moirai;
+using NUnit.Framework.Internal;
 
 namespace TestProject1;
 
@@ -124,83 +125,6 @@ event rr {
         db.Printer.PrintDb();
     }
 
-    [Test]
-    public void Int_Add() => RunAssert(@"
-entity Person {}
-prop f: number
-event r {
-    create $p: (Person)
-    set $p.f = 2 + 3
-    assert $p.f = 5
-}
-");
-
-    [Test]
-    public void Int_Negative() => RunAssert(@"
-entity Person {}
-prop f: number
-event r {
-    create $p: (Person)
-    set $p.f = -2 + 3
-    assert $p.f = 1
-}
-");
-
-    [Test]
-    public void Int_Negative2() => RunAssert(@"
-entity Person {}
-prop f: number
-event r {
-    create $p: (Person)
-    set $p.f = -4 - -3
-    assert $p.f = -1
-}
-");
-
-    [Test]
-    public void Float_Add() => RunAssert(@"
-entity Person {}
-prop f: float
-event r {
-    create $p: (Person)
-    set $p.f = 2.1 + 3.2
-    assert $p.f = 5.3
-}
-");
-
-
-    [Test]
-    public void Float_Floor() => RunAssert(@"
-entity Person {}
-prop f: float
-event r {
-    create $p: (Person)
-    set $p.f = floor(2.1 + 3.2)
-    assert $p.f = 5
-}
-");
-
-    [Test]
-    public void Int_AddMul_Precedence() => RunAssert(@"
-entity Person {}
-prop f: number
-event r {
-    create $p: (Person)
-    set f = 2 + 3 * 4
-    assert_eq ($0.f, 14)
-}
-");
-
-
-    static void RunAssert(string s, string? actionName = null)
-    {
-        var db = Run(s, out var errors);
-        if (actionName != null)
-            db.RunAction(actionName);
-        else
-            db.RunAction(db.Actions[0]);
-        db.Printer.PrintDb();
-    }
 
     [Test]
     public void Int_FromEnum()

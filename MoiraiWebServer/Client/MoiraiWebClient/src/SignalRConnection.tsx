@@ -19,7 +19,7 @@ export class SignalRConnection {
             .build();
         // connection.onclose()
         connection.on("messageReceived", (username: string, message: string) => {
-            console.log(username, message);
+            console.log("messageReceived",username, message);
         });
         await connection.start();
         console.log("done", connection.state)

@@ -2,6 +2,15 @@
 
 public class TestsBase
 {
+    protected static void RunAssert(string s, string? actionName = null)
+    {
+        var db = Run(s, out var errors);
+        if (actionName != null)
+            db.RunAction(actionName);
+        else
+            db.RunAction(db.Actions[0]);
+        db.Printer.PrintDb();
+    }
     public static Database Run(string s, out List<StoryParser.Error> errors, Action<string> assertReprintedCode)
     {
         Console.WriteLine(s);

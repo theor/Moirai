@@ -3,7 +3,7 @@ import {useContext, useEffect, useState} from "react";
 import {SignalRConnection, SignalRConnectionContext} from "./SignalRConnection.tsx";
 import {Outlet, Route, Routes} from 'react-router-dom';
 import {RecordList} from "./RecordList.tsx";
-import {ActionList} from "./ActionList.tsx";
+import {EventList} from "./EventList.tsx";
 import {EntityDetails} from "./EntityDetails.tsx";
 import Box from '@mui/material/Box';
 import {AppBar, Grid, Stack, Toolbar,IconButton, Typography, Button} from "@mui/material";
@@ -43,7 +43,7 @@ function InnerApp() {
                         <Outlet/>
                     </Box>
                     <Box  sx={{overflow:"auto"}}>
-                        <ActionList/>
+                        <EventList/>
                         {/*<Outlet/>*/}
                     </Box>
                 </Stack>

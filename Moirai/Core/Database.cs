@@ -170,13 +170,19 @@ WHERE id = $id;";
         //     entity.Properties = new();
         //     _entities[(int)entityId.Id] = entity;
         // }
-        if (GetPropertyType(property, out var type) && type.BaseType == PropertyValue.ValueBaseType.Enum)
+        if (GetPropertyType(property, out var type))
         {
-            if (value.Type.BaseType != PropertyValue.ValueBaseType.Enum)
+            if (type.BaseType == PropertyValue.ValueBaseType.Enum)
             {
-                value = new PropertyValue(Enums[type.Index].ValueType,  value.IntValue);
-            }
-        }
+                if (value.Type.BaseType != PropertyValue.ValueBaseType.Enum)
+                {
+                    value = new PropertyValue(Enums[type.Index].ValueType,  value.IntValue);
+                }
+            } else if (type.BaseType == PropertyValue.ValueBaseType.Percentage &&
+                       value.Type.BaseType != PropertyValue.ValueBaseType.Percentage)
+                value = new PropertyValue(PropertyValue.TypePercent, value.FloatValue);
+                
+        } 
 
         PropertyValue prev = entity.SetProperty(property, value);
         
@@ -408,6 +414,7 @@ WHERE id = $id;";
             case PropertyValue.ValueBaseType.None:
             case PropertyValue.ValueBaseType.Ref:
             case PropertyValue.ValueBaseType.Number:
+            case PropertyValue.ValueBaseType.Percentage:
             case PropertyValue.ValueBaseType.Bool:
             case PropertyValue.ValueBaseType.Enum:
             case PropertyValue.ValueBaseType.EntityType:

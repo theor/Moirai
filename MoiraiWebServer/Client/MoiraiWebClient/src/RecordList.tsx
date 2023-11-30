@@ -98,6 +98,7 @@ export function RecordList() {
         console.log("stream")
         const stream = conn.streamRecords().subscribe({
             next(i) {
+                console.log("MESSAGE", i)
                 switch(i.type)
                 {
                     case MessageType.Reset:

@@ -28,36 +28,45 @@ public class BinaryOperator : IValue
         Profiler.Value(left.Type.BaseType);
         var right = Right.Compute(ctx);
         Profiler.Value(right.Type.BaseType);
-        switch (Op)
+        var propertyValue = DoCompute();
+        if (left.Type.BaseType == PropertyValue.ValueBaseType.Percentage &&
+            right.Type.BaseType == PropertyValue.ValueBaseType.Percentage)
+            return new PropertyValue(PropertyValue.TypePercent, propertyValue.FloatValue);
+        return propertyValue;
+
+        PropertyValue DoCompute()
         {
-            case Operator.Coalesce:
-                return left.IntValue == 0 ? right : left;
-            case Operator.Equals:
-                return left == right;
-            case Operator.NotEquals:
-                return left != right;
-            case Operator.Add:
-                return left.FloatValue + right.FloatValue;
-            case Operator.Sub:
-                return left.FloatValue - right.FloatValue;
-            case Operator.Div:
-                return left.FloatValue / right.FloatValue;
-            case Operator.Mul:
-                return left.FloatValue * right.FloatValue;
-            case Operator.Gt:
-                return left.FloatValue > right.FloatValue;
-            case Operator.Lt:
-                return left.FloatValue < right.FloatValue;
-            case Operator.Ge:
-                return left.FloatValue >= right.FloatValue;
-            case Operator.Le:
-                return left.FloatValue <= right.FloatValue;
-            case Operator.And:
-                return left.BoolValue && right.BoolValue;
-            case Operator.Or:
-                return left.BoolValue || right.BoolValue;
-            default:
-                throw new ArgumentOutOfRangeException();
+            switch (Op)
+            {
+                case Operator.Coalesce:
+                    return left.IntValue == 0 ? right : left;
+                case Operator.Equals:
+                    return left == right;
+                case Operator.NotEquals:
+                    return left != right;
+                case Operator.Add:
+                    return left.FloatValue + right.FloatValue;
+                case Operator.Sub:
+                    return left.FloatValue - right.FloatValue;
+                case Operator.Div:
+                    return left.FloatValue / right.FloatValue;
+                case Operator.Mul:
+                    return left.FloatValue * right.FloatValue;
+                case Operator.Gt:
+                    return left.FloatValue > right.FloatValue;
+                case Operator.Lt:
+                    return left.FloatValue < right.FloatValue;
+                case Operator.Ge:
+                    return left.FloatValue >= right.FloatValue;
+                case Operator.Le:
+                    return left.FloatValue <= right.FloatValue;
+                case Operator.And:
+                    return left.BoolValue && right.BoolValue;
+                case Operator.Or:
+                    return left.BoolValue || right.BoolValue;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
     public bool HasTypeFilter(out EntityTypeId type)

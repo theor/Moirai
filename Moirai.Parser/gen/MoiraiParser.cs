@@ -45,7 +45,7 @@ public partial class MoiraiParser : Parser {
 		VAR=20, MATCH=21, MATCH_WEIGHT=22, COMMA=23, ARROW=24, IF=25, ELSE=26, 
 		TRUE=27, FALSE=28, DOT=29, NEQ=30, EQ=31, QQ=32, ADD=33, SUB=34, MUL=35, 
 		DIV=36, GE=37, LE=38, GT=39, LT=40, AND=41, OR=42, SINGLETON_ID=43, VAR_ID=44, 
-		PROP_ID=45, AT=46, TYPE_ID=47, ID=48, NUMBER_FLOAT=49, NUMBER=50;
+		PROP_ID=45, AT=46, TYPE_ID=47, ID=48, PERCENT=49, NUMBER_FLOAT=50, NUMBER=51;
 	public const int
 		RULE_r = 0, RULE_filter = 1, RULE_event = 2, RULE_categories = 3, RULE_trigger = 4, 
 		RULE_when = 5, RULE_when_created = 6, RULE_effect = 7, RULE_if = 8, RULE_match = 9, 
@@ -75,7 +75,7 @@ public partial class MoiraiParser : Parser {
 		"MATCH", "MATCH_WEIGHT", "COMMA", "ARROW", "IF", "ELSE", "TRUE", "FALSE", 
 		"DOT", "NEQ", "EQ", "QQ", "ADD", "SUB", "MUL", "DIV", "GE", "LE", "GT", 
 		"LT", "AND", "OR", "SINGLETON_ID", "VAR_ID", "PROP_ID", "AT", "TYPE_ID", 
-		"ID", "NUMBER_FLOAT", "NUMBER"
+		"ID", "PERCENT", "NUMBER_FLOAT", "NUMBER"
 	};
 	public static readonly IVocabulary DefaultVocabulary = new Vocabulary(_LiteralNames, _SymbolicNames);
 
@@ -829,6 +829,7 @@ public partial class MoiraiParser : Parser {
 			case VAR_ID:
 			case TYPE_ID:
 			case ID:
+			case PERCENT:
 			case NUMBER_FLOAT:
 			case NUMBER:
 				{
@@ -1090,7 +1091,7 @@ public partial class MoiraiParser : Parser {
 				State = 182;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 2137451007049734L) != 0) );
+			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 4389250820734982L) != 0) );
 			State = 184;
 			Match(SCOPE_CLOSE);
 			State = 188;
@@ -1212,6 +1213,7 @@ public partial class MoiraiParser : Parser {
 			case VAR_ID:
 			case TYPE_ID:
 			case ID:
+			case PERCENT:
 			case NUMBER_FLOAT:
 			case NUMBER:
 				{
@@ -1585,6 +1587,7 @@ public partial class MoiraiParser : Parser {
 			case VAR_ID:
 			case TYPE_ID:
 			case ID:
+			case PERCENT:
 			case NUMBER_FLOAT:
 			case NUMBER:
 				break;
@@ -1610,7 +1613,7 @@ public partial class MoiraiParser : Parser {
 				State = 259;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 2137451048469510L) != 0)) {
+				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 4389250862154758L) != 0)) {
 					{
 					{
 					State = 251;
@@ -1979,6 +1982,7 @@ public partial class MoiraiParser : Parser {
 			case VAR_ID:
 			case TYPE_ID:
 			case ID:
+			case PERCENT:
 			case NUMBER_FLOAT:
 			case NUMBER:
 				{
@@ -2753,6 +2757,7 @@ public partial class MoiraiParser : Parser {
 	public partial class NumberContext : ParserRuleContext {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NUMBER_FLOAT() { return GetToken(MoiraiParser.NUMBER_FLOAT, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode NUMBER() { return GetToken(MoiraiParser.NUMBER, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode PERCENT() { return GetToken(MoiraiParser.PERCENT, 0); }
 		public NumberContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
@@ -2786,7 +2791,7 @@ public partial class MoiraiParser : Parser {
 			{
 			State = 407;
 			_la = TokenStream.LA(1);
-			if ( !(_la==NUMBER_FLOAT || _la==NUMBER) ) {
+			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 3940649673949184L) != 0)) ) {
 			ErrorHandler.RecoverInline(this);
 			}
 			else {
@@ -2825,7 +2830,7 @@ public partial class MoiraiParser : Parser {
 	}
 
 	private static int[] _serializedATN = {
-		4,1,50,410,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
+		4,1,51,410,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
 		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,
 		2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,21,
 		2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,1,0,1,0,1,0,1,0,1,0,1,0,4,0,59,
@@ -2859,7 +2864,7 @@ public partial class MoiraiParser : Parser {
 		23,396,8,23,10,23,12,23,399,9,23,1,23,3,23,402,8,23,1,24,1,24,1,24,1,24,
 		1,25,1,25,1,25,0,1,34,26,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,
 		34,36,38,40,42,44,46,48,50,0,8,1,0,21,22,1,0,35,36,1,0,33,34,2,0,30,31,
-		37,40,1,0,47,48,1,0,27,28,1,0,43,44,1,0,49,50,453,0,58,1,0,0,0,2,64,1,
+		37,40,1,0,47,48,1,0,27,28,1,0,43,44,1,0,49,51,453,0,58,1,0,0,0,2,64,1,
 		0,0,0,4,75,1,0,0,0,6,85,1,0,0,0,8,88,1,0,0,0,10,93,1,0,0,0,12,113,1,0,
 		0,0,14,136,1,0,0,0,16,150,1,0,0,0,18,163,1,0,0,0,20,191,1,0,0,0,22,209,
 		1,0,0,0,24,214,1,0,0,0,26,219,1,0,0,0,28,237,1,0,0,0,30,271,1,0,0,0,32,
@@ -2869,7 +2874,7 @@ public partial class MoiraiParser : Parser {
 		3,36,18,0,57,59,5,4,0,0,58,52,1,0,0,0,58,53,1,0,0,0,58,54,1,0,0,0,58,55,
 		1,0,0,0,58,56,1,0,0,0,58,57,1,0,0,0,59,60,1,0,0,0,60,58,1,0,0,0,60,61,
 		1,0,0,0,61,62,1,0,0,0,62,63,5,0,0,1,63,1,1,0,0,0,64,68,5,46,0,0,65,66,
-		5,50,0,0,66,67,5,48,0,0,67,69,5,50,0,0,68,65,1,0,0,0,68,69,1,0,0,0,69,
+		5,51,0,0,66,67,5,48,0,0,67,69,5,51,0,0,68,65,1,0,0,0,68,69,1,0,0,0,69,
 		70,1,0,0,0,70,72,5,48,0,0,71,73,5,4,0,0,72,71,1,0,0,0,72,73,1,0,0,0,73,
 		3,1,0,0,0,74,76,3,2,1,0,75,74,1,0,0,0,75,76,1,0,0,0,76,77,1,0,0,0,77,78,
 		5,12,0,0,78,79,5,48,0,0,79,80,3,6,3,0,80,81,3,28,14,0,81,5,1,0,0,0,82,

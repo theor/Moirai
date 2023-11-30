@@ -470,6 +470,7 @@ public static class StoryParser
                 case "number": return PropertyValue.TypeNumber;
                 case "float": return PropertyValue.TypeFloat;
                 case "string": return PropertyValue.TypeString;
+                case "percentage": return PropertyValue.TypePercent;
                 default:
                     if (_database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
                         return PropertyValue.TypeEnum(enumDefinition.Index);
@@ -763,11 +764,14 @@ public static class StoryParser
                 return ParseInterpolatedString(value.@string());
             if (value.NULL() != null)
                 return new Literal(EntityId.Null);
-            if (value.number() != null)
+            if (value.number() is { } number)
             {
-                if (value.number().NUMBER_FLOAT() != null)
-                    return new Literal(float.Parse(value.number().NUMBER_FLOAT().GetText()));
-                return new Literal(int.Parse(value.number().GetText()));
+                if (number.NUMBER_FLOAT() != null)
+                    return new Literal(float.Parse(number.NUMBER_FLOAT().GetText()));
+                if (number.PERCENT() != null)
+                    return new Literal(PropertyValue.Percent(int.Parse(number.PERCENT().GetText()
+                        .Substring(0, number.PERCENT().GetText().Length - 1))));
+                return new Literal(int.Parse(number.GetText()));
             }
 
             if (value.@bool() != null)

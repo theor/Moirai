@@ -1,21 +1,29 @@
-﻿TODO
+﻿# TODO
+- [ ] nested property paths. add a ppath nested fieldto ppath ? make a separate NestedPropPath class ?
+
 - [ ] `pick?` optional value ?
 - [ ] flag enum properties - `flag F { A,B,C }` `set_flag $x.f, F.B` `remove_flag $x.f, F.B` `has_flag $x.f, F.B `?
 - [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
 - [ ] parse types props init `type person { alive = true }`
 - [ ] restrict props to type ? `type person { alive: number = true }` would allow overlap of prop indices across types and to index them directly
-- [ ] assign factor per entity to impact history ?
-- [ ] filter sinceLastEvent ? avoid having 4 children in the same year
-- [ ] fix shaky implicit variables (equal to -1 or variable.count)
 
-FEATURES
+
+# Tech debt
+- [ ] fix shaky implicit variables (equal to -1 or variable.count)
+- [ ] filtering of records per entity not accurate because of how records depends on the source action changeset
+
+# Backlog
 - [ ] curves ?
-- [ ] nested property paths. add a ppath nested fieldto ppath ? make a separate NestedPropPath class ?
 - [ ] format: prev value ? `set $i.owner = $p;`
   - `format "from prev($i.owner.name) to $p.name" ?`
   - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?`
 - [ ] tags ? are they arrays, bitflags, links, their own thing ?
 - [ ] arrays ? are links good enough ?
+
+# Done
+- [x] percentage type and literals, clamped
+- [x] assign factor per entity to impact history ? - Possible with a percentage
+- [x] filter sinceLastEvent ? avoid having 4 children in the same year
 - [x] events description not in history ??
 - [x] action tags
 - [x] time passing
@@ -78,8 +86,10 @@ sqlite
 500 tracing: findall 1 519 ms 9562 calls
 
 sqlite indexed:
+```sql
 -- CREATE INDEX owners ON entity (owner) WHERE type = 3;
 -- CREATE INDEX types ON entity (type,alive)  WHERE type = 2;
+```
 1000 2.8s
 3000  13s
 
@@ -96,6 +106,36 @@ with 3 events: born, buries children, inherit 7100
 
 1000 events: 4945
 cached commands: 4038
+```sql
+SELECT id, rnd() as r FROM entity
+    LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = 21
+    WHERE type = 2 AND (alive = 1) AND (age < 4) AND (partner != 0)
+      AND (COALESCE(marked.last_year, 0) > 4) ORDER BY r LIMIT 1
+SELECT id, rnd() as r FROM entity
+    LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = 21
+    WHERE type = 2 AND (alive = 1) AND (age < 4) AND (partner != 0)
+      AND (COALESCE(765 - marked.last_year, 0) > 4) ORDER BY r LIMIT 1
+```
 
-SELECT id, rnd() as r FROM entity     LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = 21 WHERE type = 2 AND (alive = 1) AND (age < 4) AND (partner != 0) AND (COALESCE(marked.last_year, 0) > 4) ORDER BY r LIMIT 1
-SELECT id, rnd() as r FROM entity     LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = 21 WHERE type = 2 AND (alive = 1) AND (age < 4) AND (partner != 0) AND (COALESCE(765 - marked.last_year, 0) > 4) ORDER BY r LIMIT 1
+join for nested props:
+
+```sql
+SELECT e.id, e.name, e.parent1, e.parent2, p.id, p.name, p.alive
+FROM entity e
+INNER JOIN entity p ON (e.parent1 = p.id OR e.parent2 = p.id)
+WHERE e.alive AND p.alive
+```
+```sql
+SELECT e.id, e.name, e.parent1, e.parent2, p.id, p.name, p.alive, p2.id, p2.name, p2.alive
+ FROM entity e
+  LEFT JOIN entity p ON (e.parent1 = p.id)
+  LEFT JOIN entity p2 ON e.parent2 = p2.id
+--   LEFT OUTER JOIN entity p ON e.id = p.id
+ WHERE e.alive AND (p.alive OR p2.alive)
+```
+```
+pick $x: (type = Person and alive = true
+ and (parent1 != null and parent1.alive or parent2 != null and parent2.alive)) 
+var $p: $x.parent1 ?? $x.parent2
+
+```

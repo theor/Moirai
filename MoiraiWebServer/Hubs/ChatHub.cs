@@ -133,8 +133,8 @@ public class ChatHub : Hub
                 if (_reset)
                 {
                     _reset = false;
-                    lastRecord = 0;
                     await writer.WriteAsync(Message.Reset(), cancellationToken);
+                    lastRecord = 0;
                 }
 
                 while (_db.Records.Count > 0 && lastRecord < _db.Records.Count)

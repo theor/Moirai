@@ -57,6 +57,7 @@ PROP_ID: '%' [a-z][a-z_]*;
 AT : '@' ;
 TYPE_ID : ALPHA_UPPER (ALPHA|'_')* ;
 ID : (ALPHA_LOWER|'_') (ALPHA|'_'|DIGIT)* ;
+PERCENT: '-'?DIGIT+'%' ;
 NUMBER_FLOAT: '-'?DIGIT+'.'DIGIT+ ;
 NUMBER: '-'?DIGIT+ ;
 fragment

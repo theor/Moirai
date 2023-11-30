@@ -12,7 +12,7 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import {ActionData} from "./types.ts";
 
-export function ActionList() {
+export function EventList() {
     const {data:[clientData, setClientData]} = useContext(SignalRConnectionContext)
     // console.log("AL ", ctx);
     if (!clientData)

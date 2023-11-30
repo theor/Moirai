@@ -43,6 +43,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
     public static readonly ValueType TypeString = new ValueType(ValueBaseType.String, 0);
     public static readonly ValueType TypeRef = new ValueType(ValueBaseType.Ref, 0);
     public static readonly ValueType TypeNumber = new ValueType(ValueBaseType.Number, 0);
+    public static readonly ValueType TypePercent = new ValueType(ValueBaseType.Percentage, 0);
     public static readonly ValueType TypeFloat = new ValueType(ValueBaseType.Float, 0);
     public static readonly ValueType TypeBool = new ValueType(ValueBaseType.Bool, 0);
     public static readonly ValueType TypeEntityType = new ValueType(ValueBaseType.EntityType, 0);
@@ -101,13 +102,16 @@ public struct PropertyValue : IEquatable<PropertyValue>
         Bool,
         Enum,
         EnumType,
-        EntityType
+        EntityType,
+        Percentage
     }
 
     public PropertyValue(ValueType type, int intValue)
     {
         Type = type;
         Value = null;
+        if (type.BaseType == ValueBaseType.Percentage)
+            intValue = Math.Clamp(intValue, 0, 100);
         IntValue = intValue;
         FloatValue = intValue;
     }
@@ -115,6 +119,8 @@ public struct PropertyValue : IEquatable<PropertyValue>
     {
         Type = type;
         Value = null;
+        if (type.BaseType == ValueBaseType.Percentage)
+            floatValue = Math.Clamp(floatValue, 0f, 100f);
         IntValue = (int)floatValue;
         FloatValue = floatValue;
     }
@@ -173,11 +179,18 @@ public struct PropertyValue : IEquatable<PropertyValue>
             case PropertyValue.ValueBaseType.Enum:
             case PropertyValue.ValueBaseType.EntityType:
                 return IntValue.ToString();
+            case PropertyValue.ValueBaseType.Percentage:
+                return IntValue.ToString();
             case PropertyValue.ValueBaseType.Float:
                 return FloatValue.ToString(CultureInfo.InvariantCulture);
             case ValueBaseType.None: return "null";
             default:
                 throw new ArgumentOutOfRangeException();
         }
+    }
+
+    public static PropertyValue Percent(int i)
+    {
+        return new PropertyValue(TypePercent, i);
     }
 }
