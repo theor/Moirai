@@ -1,7 +1,7 @@
 ﻿import {MessageType, Property, Record} from "./types.ts";
 import * as React from "react";
-import TableCell from "@mui/material/TableCell";
 import {useContext, useEffect, useState} from "react";
+import TableCell from "@mui/material/TableCell";
 import {SignalRConnectionContext} from "./SignalRConnection.tsx";
 import {TableComponents, TableVirtuoso} from "react-virtuoso";
 import TableRow from "@mui/material/TableRow";
@@ -91,23 +91,25 @@ const RecordTable: TableComponents<Record, Property<number>> = {
 
 export function RecordList() {
     const selectedEntity = useSelectedEntity();
-    const [records, setRecords] = useState<Record[]>([]);
     const [filteredRecords, setFilteredRecords] = useState<Record[]>([]);
-    const {conn, data:[clientData,_setClientData]} = useContext(SignalRConnectionContext);
+    const {conn, data:[clientData,_setClientData], records} = useContext(SignalRConnectionContext);
     useEffect(() => {
         console.log("stream")
         const stream = conn.streamRecords().subscribe({
             next(i) {
-                console.log("MESSAGE", i)
+                // console.log("MESSAGE", i)
                 switch(i.type)
                 {
                     case MessageType.Reset:
                         setRecords([]);
+                        setFilteredRecords([]);
                         break;
                     case MessageType.Record:
                         setRecords(records => [...records, i.record!])
                         if(!clientData.actions[i.record!.actionId-1].hidden)
                             setFilteredRecords(filteredRecords => [...filteredRecords, i.record! ])
+                        break;
+                    case MessageType.Year:
                         break;
 
                 }
@@ -121,9 +123,11 @@ export function RecordList() {
         });
         return () => {
             setRecords([])
+            setFilteredRecords([]) 
+            
             stream.dispose();
         };
-    }, [conn]);
+    }, []);
     useEffect(() => {
         console.log("CDATA", records, clientData)
         setFilteredRecords(records.filter(r => !clientData.actions[r.actionId-1].hidden))

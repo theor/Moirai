@@ -15,7 +15,8 @@ export interface Message {
 
 export enum MessageType {
     Reset,
-    Record
+    Record,
+    Year,
 }
 
 export type EntityPropertyDisplay = {label: string, value: string}

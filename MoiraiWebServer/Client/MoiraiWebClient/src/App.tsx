@@ -8,7 +8,7 @@ import {EntityDetails} from "./EntityDetails.tsx";
 import Box from '@mui/material/Box';
 import {AppBar, Grid, Stack, Toolbar,IconButton, Typography, Button} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
-import {ClientData} from "./types.ts";
+import {ClientData, Record} from "./types.ts";
 function InnerApp() {
     const {conn} = useContext(SignalRConnectionContext);
     return <>
@@ -72,13 +72,15 @@ function InnerApp() {
 function App() {
     const [clientData, setClientData] = useState<ClientData>();
     const [conn, setConn] = useState<SignalRConnection | null>(null);
+    const [records, setRecords] = useState<Record[]>([]);
+    
     useEffect(() => {
         if (!conn)
             SignalRConnection.make().then(([conn,data]) => {setConn(conn); setClientData(data)})
     }, [conn]);
 
     return conn && clientData ? (
-            <SignalRConnectionContext.Provider value={{conn:conn, data: [clientData, setClientData]}}>
+            <SignalRConnectionContext.Provider value={{conn:conn, data: [clientData, setClientData], records}}>
                 <Routes>
                     <Route path="/" element={<InnerApp/>}>
                         <Route path="entity/:eid" element={<EntityDetails/>}/>

@@ -1,7 +1,7 @@
 ﻿import * as signalR from "@microsoft/signalr";
 import {HubConnection, IStreamResult} from "@microsoft/signalr";
 import {createContext} from "react";
-import { Message, ClientData, EntityPropertyDisplay} from "./types.ts";
+import {Message, ClientData, EntityPropertyDisplay, Record} from "./types.ts";
 
 export class SignalRConnection {
     public connection: HubConnection;
@@ -54,5 +54,5 @@ export class SignalRConnection {
     }
 }
 // @ts-ignore
-export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void]}>(null);
+export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void], records: Record[]}>(null);
 

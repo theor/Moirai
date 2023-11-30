@@ -105,10 +105,12 @@ public class ChatHub : Hub
         {
             Reset,
             Record,
+            Year
         }
 
         public MessageType Type;
         public Database.Record? Record;
+        public long Year;
 
         public Message(Database.Record? record)
         {
@@ -117,6 +119,7 @@ public class ChatHub : Hub
         }
 
         public static Message Reset() => new Message() { Type = MessageType.Reset };
+        public static Message YearMessage(long year) => new Message() { Type = MessageType.Year, Year = year, };
     }
 
     private async Task WriteItemsAsync(
@@ -142,7 +145,8 @@ public class ChatHub : Hub
                     await writer.WriteAsync(new Message(_db.Records[lastRecord++]), cancellationToken);
                 }
 
-                await Task.Delay(1000);
+                await writer.WriteAsync(Message.YearMessage(_db.Ctx.Year));
+                await Task.Delay(500);
             }
         }
         catch (Exception e)
