@@ -1,6 +1,6 @@
 import './App.css'
 import {useMoiraiStore} from "./SignalRConnection.tsx";
-import {Outlet, Route, Routes} from 'react-router-dom';
+import {Route, Routes} from 'react-router-dom';
 import {RecordList} from "./RecordList.tsx";
 import {EventList} from "./EventList.tsx";
 import {EntityDetails} from "./EntityDetails.tsx";
@@ -39,7 +39,7 @@ function InnerApp() {
             <Grid item xs={4} sx={{height:"100%"}}>
                 <Stack gap={2} sx={{height:"95%"}} direction={"column"} >
                     <Box>
-                        <Outlet/>
+                        <EntityDetails/>
                     </Box>
                     <Box  sx={{overflow:"auto"}}>
                         <EventList/>
@@ -82,9 +82,7 @@ function App() {
 
     return connected ? (
                 <Routes>
-                    <Route path="/" element={<InnerApp/>}>
-                        <Route path="entity/:eid" element={<EntityDetails/>}/>
-                    </Route>
+                    <Route path="/" element={<InnerApp/>}/>
                 </Routes>
 
         ) :

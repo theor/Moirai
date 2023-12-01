@@ -1,7 +1,7 @@
 ﻿import {Property} from "./types.ts";
 import * as React from "react";
 import {Chip, Tooltip} from "@mui/material";
-import {useNavigate, useParams} from "react-router-dom";
+import {useNavigate, useParams, useSearchParams} from "react-router-dom";
 
 export function makeEntityLink(str: string, selectedEntity: Property<number>): React.JSX.Element[] {
     const rx = /(?:(?:<#(?<id>\d+)>(?<link>[^<]+)<\/>)|(?<text>[^<\n]+))/ig;
@@ -25,9 +25,7 @@ export function makeEntityChip(id: number, label: string, selectedEntity: Proper
 }
 
 export function useSelectedEntity(): Property<number>{
-    let eid = Number(useParams().eid);
-    // console.warn("eid", eid)
-    let nav = useNavigate();
-    return [eid, (x:number) => nav("/entity/" + x)];
-
+    let [searchParams, setSearchParams] = useSearchParams({eid:0});
+    let eid = Number(searchParams.get("eid"));
+    return [eid, (x:number) => setSearchParams({eid: x})];
 }
