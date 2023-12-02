@@ -13,6 +13,7 @@ export function EntityDetails() {
     let selectedEntity = useSelectedEntity();
     let filtering = useFiltering();
     const conn = useMoiraiStore(s => s.conn!);
+    const [keyEvent, clearEvent] = useMoiraiStore(s => [s.keyboardEvent, s.clearEvent]);
     let [details, setDetails] = useState<EntityPropertyDisplay[]>([]);
     useEffect(() => {
         // console.log("sel changed", selectedEntity[0])
@@ -20,12 +21,17 @@ export function EntityDetails() {
             conn.getEntityDetails(selectedEntity[0]).then(setDetails);
     }, [selectedEntity[0]]);
     const matches = useMediaQuery('(min-width:700px)');
+    if(keyEvent && keyEvent.key === 'f')
+    {
+        toggleFiltering();
+        clearEvent();
+    }
     return <>
         <Box sx={{display: "flex",flexDirection:"row"}}>
             <Typography gutterBottom sx={{flex:1}}
                         variant="h5">{selectedEntity[0] !== -1 ? "Entity #" + selectedEntity[0] : "-"}
             </Typography>
-        <ToggleButton size="small" selected={filtering[0] !== -1}  onChange={() => filtering[1](filtering[0] === -1 ? selectedEntity[0] : -1)}  value={"filtered"} aria-label="search"><FilterAlt/></ToggleButton>
+        <ToggleButton size="small" selected={filtering[0] !== -1} onChange={toggleFiltering} value={"filtered"} aria-label="search"><FilterAlt/></ToggleButton>
         </Box>
         
         {/*<Box sx={{ width: '100%', maxWidth: 360, bgcolor: 'background.paper' }}>*/}
@@ -82,4 +88,8 @@ export function EntityDetails() {
             {/*    </Table>*/}
             {/*</TableContainer>*/}
     </>
+
+    function toggleFiltering() {
+        return filtering[1](filtering[0] === -1 ? selectedEntity[0] : -1);
+    }
 }

@@ -57,6 +57,9 @@ export class SignalRConnection {
 // @ts-ignore
 // export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void], records: Record[]}>(null);
 interface State {
+    handleKeyPress: (this:Window, ev: KeyboardEvent) => any;
+    keyboardEvent?: KeyboardEvent;
+    clearEvent: () => void;
     year: number;
     connected: boolean;
     conn?: SignalRConnection;
@@ -112,6 +115,10 @@ export const useMoiraiStore = create<State>((set, get) => {
         connected: false,
         records: [],
 
+        clearEvent: () => set({keyboardEvent: undefined}),
+        handleKeyPress: e => {
+            set({keyboardEvent: e});
+        },
         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
             const clientData = get().clientData!;
             if (switchAll) {

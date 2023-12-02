@@ -18,6 +18,7 @@ import {
     Icon
 } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
+import { useEffect } from 'react';
 function InnerApp() {
     const conn = useMoiraiStore(s => s.conn!);
     const year = useMoiraiStore(s => s.year);
@@ -90,7 +91,12 @@ function App() {
     // }, [conn]);
     
     const connected = useMoiraiStore(s => s.connected);
+    const handleKeyPress = useMoiraiStore(s => s.handleKeyPress);
+    useEffect(() => {
+        window.addEventListener("keydown", handleKeyPress);
 
+        return () => window.removeEventListener("keydown", handleKeyPress);
+    }, []);
     return connected ? (
                 <Routes>
                     <Route path="/" element={<InnerApp/>}/>
