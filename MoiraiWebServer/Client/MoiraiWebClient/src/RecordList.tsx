@@ -4,7 +4,7 @@ import TableCell from "@mui/material/TableCell";
 // import {SignalRConnectionContext} from "./SignalRConnection.tsx";
 import {TableComponents, TableVirtuoso} from "react-virtuoso";
 import TableRow from "@mui/material/TableRow";
-import {makeEntityLink, useSelectedEntity} from "./utils.tsx";
+import {makeEntityLink, useFiltering, useSelectedEntity} from "./utils.tsx";
 import TableContainer from "@mui/material/TableContainer";
 import Paper from "@mui/material/Paper";
 import Table from "@mui/material/Table";
@@ -32,8 +32,8 @@ function fixedHeaderContent() {
     );
 }
 
-function rowContent(_index: number, row: Record, selectedEntity: Property<number>) {
-    const text = makeEntityLink(row.text, selectedEntity);
+function rowContent(_index: number, row: Record, [selectedEntity, filteredEntity]: [Property<number>,Property<number>]) {
+    const text = makeEntityLink(row.text, selectedEntity, filteredEntity);
     return (
         <React.Fragment>
             {columns.map((column) => (
@@ -75,7 +75,7 @@ const columns: ColumnData[] = [
 
 ];
 
-const RecordTable: TableComponents<Record, Property<number>> = {
+const RecordTable: TableComponents<Record, [Property<number>, Property<number>]> = {
     Scroller: React.forwardRef<HTMLDivElement>((props, ref) => (
         <TableContainer  component={Paper} {...props} ref={ref}/>
     )),
@@ -91,11 +91,14 @@ const RecordTable: TableComponents<Record, Property<number>> = {
 
 export function RecordList() {
     const selectedEntity = useSelectedEntity();
+    const [filteredEntity, setFilteredEntity] = useFiltering();
+    const clientData = useMoiraiStore(s=>s.clientData!);
     // connState.
-    const filteredRecords = useMoiraiStore(s => s.records);
+    const records = useMoiraiStore(s => s.records);
+    const filteredRecords = records.filter(r => !clientData.actions[r.actionId-1].hidden && (filteredEntity === -1 || r.text.indexOf("#"+filteredEntity) !== -1));
     // const {conn, data:[clientData,_setClientData], records} = useContext(SignalRConnectionContext);
     return <TableVirtuoso
-        context={selectedEntity}
+        context={[selectedEntity, [filteredEntity, setFilteredEntity]]}
         data={filteredRecords}
         components={RecordTable}
         fixedHeaderContent={fixedHeaderContent}

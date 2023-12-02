@@ -3,7 +3,7 @@ import * as React from "react";
 import {Chip, Tooltip} from "@mui/material";
 import {useSearchParams} from "react-router-dom";
 
-export function makeEntityLink(str: string, selectedEntity: Property<number>): React.JSX.Element[] {
+export function makeEntityLink(str: string, selectedEntity: Property<number>, filteredEntity: Property<number>): React.JSX.Element[] {
     const rx = /(?:(?:<#(?<id>\d+)>(?<link>[^<]+)<\/>)|(?<text>[^<\n]+))/ig;
     return [...str.matchAll(rx)].map((match: RegExpMatchArray, i) => {
         if (!match?.groups)
@@ -13,19 +13,35 @@ export function makeEntityLink(str: string, selectedEntity: Property<number>): R
         } else {
             let id: number = Number(match.groups["id"]);
             return <Tooltip title={"#" + id}
-                            key={i}>{makeEntityChip(id, match.groups["link"], selectedEntity)}</Tooltip>
+                            key={i}>{makeEntityChip(id, match.groups["link"], selectedEntity, filteredEntity)}</Tooltip>
         }
     });
 }
-export function makeEntityChip(id: number, label: string, selectedEntity: Property<number>) {
+export function makeEntityChip(id: number, label: string, selectedEntity: Property<number>, filteredEntity: Property<number>) {
     return <Chip size="small" color="primary"
                  variant={selectedEntity[0] == id ? "filled" : "outlined"} clickable
                  onClick={() => selectedEntity[1](id)}
+                 onDoubleClick={() => filteredEntity[1](id)}
                  label={label}/>;
 }
 
 export function useSelectedEntity(): Property<number>{
     let [searchParams, setSearchParams] = useSearchParams({eid:0});
     let eid = Number(searchParams.get("eid"));
-    return [eid, (x:number) => setSearchParams({eid: x})];
+    return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
+        p.set("eid", x.toString());
+        return p;
+    })];
+}
+// export enum Filtering {
+//     None,
+//     Entity,
+// }
+export function useFiltering(): Property<number>{
+    let [searchParams, setSearchParams] = useSearchParams({f:null});
+    let eid = Number(searchParams.get("f") ?? -1);
+    return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
+        p.set("f", x.toString());
+        return p;
+    })];
 }

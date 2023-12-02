@@ -106,8 +106,11 @@ trigger inherit items {
     when Person and alive = false and $old.alive
     // record('{$new.name} died')
     set $new.deathdate = #Time.year
+    each $child: (type = Person,  parent1 = $new or parent2 = $new, alive) {
+        record('{$child.name} lose their parent, {$new.name}')
+    }
     each $i: (type = Item, owner = $new){
-        pick $child: (type = Person, parent1 = $new or parent2 = $new)
+        pick $child: (type = Person, alive, parent1 = $new or parent2 = $new)
         // pick $child:( type=Person, id = $l.child, alive)
         set $i.owner = $child
         record('{$child.name} inherits the {$i.name} from {$new.name}')

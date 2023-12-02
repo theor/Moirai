@@ -5,7 +5,18 @@ import {RecordList} from "./RecordList.tsx";
 import {EventList} from "./EventList.tsx";
 import {EntityDetails} from "./EntityDetails.tsx";
 import Box from '@mui/material/Box';
-import {AppBar, Grid, Stack, Toolbar,IconButton, Typography, Button} from "@mui/material";
+import {
+    AppBar,
+    Grid,
+    Stack,
+    Toolbar,
+    IconButton,
+    Typography,
+    Button,
+    CircularProgress,
+    Backdrop,
+    Icon
+} from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 function InnerApp() {
     const conn = useMoiraiStore(s => s.conn!);
@@ -86,7 +97,16 @@ function App() {
                 </Routes>
 
         ) :
-        <span>{connected + ""}</span>
+        <Backdrop
+            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+            open={true}
+        >
+            
+            <Stack sx={{alignItems:"center"}} gap={4}>
+            <img width="64px" src="/icon.png" />
+            <CircularProgress color="inherit" />
+            </Stack>
+        </Backdrop>
 }
 
 export default App
