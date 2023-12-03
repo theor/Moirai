@@ -1,3 +1,5 @@
+@display('Item',type = Item and owner = $self)
+@display('Child',type = Person and (parent1 = $self or parent2 = $self))
 entity Person
 entity Item
 entity Faction

@@ -8,6 +8,7 @@ options {
 
 }
 r: (event|trigger|prop_definition|enum_definition|type_definition|LINE_BREAK)+ EOF;
+attribute: AT ID PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE LINE_BREAK;
 filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
 event: filter? EVENT  ID categories scope;
 categories: ID* ;
@@ -38,7 +39,7 @@ expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     ;
 
-type_definition: ENTITY TYPE_ID (SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE)? LINE_BREAK+ ;
+type_definition: attribute* ENTITY TYPE_ID (SCOPE_OPEN LINE_BREAK* SCOPE_CLOSE)? LINE_BREAK+ ;
 
 //range: (PAREN_OPEN number COMMA number PAREN_CLOSE);
 prop_definition: PROP ID COLON (ID|TYPE_ID) LINE_BREAK+ ;

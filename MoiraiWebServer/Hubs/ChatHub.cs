@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
@@ -54,12 +55,13 @@ public class ChatHub : Hub
     }
 
     public record EntityPropertyDisplay(string Label, string Value);
+    private static List<EntityId> results = new();
 
-    public EntityPropertyDisplay[] GetEntityDetails(uint eid)
+    public IList<EntityPropertyDisplay> GetEntityDetails(uint eid)
     {
         if (!_db.TryGetEntity(new EntityId(eid), out var e))
-            return Array.Empty<EntityPropertyDisplay>();
-        return e.Properties.Where(p => p.Id.IsValid)
+            return ImmutableList<EntityPropertyDisplay>.Empty;
+        var details = e.Properties.Where(p => p.Id.IsValid)
             .Select(p =>
             {
                 var print = _db.Printer.Print(p.Value);
@@ -77,7 +79,19 @@ public class ChatHub : Hub
 
                 return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
                     value);
-            }).ToArray();
+            }).ToList();
+        var t = _db.GetEntityType(e.Type);
+        foreach (var display in t.Attributes)
+        {
+            _db.Ctx.SetArgument(display.VarIndex, e.Id);
+            _db.FindAll(display.Value, ref results);
+            foreach (var id in results)
+            {
+                if(_db.TryGetEntity(id, out var ee))
+                    details.Add(new EntityPropertyDisplay(display.Label, $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>"));
+            }
+        }
+        return details;
     }
 
     public async Task NewMessage(string username, string message)

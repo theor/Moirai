@@ -9,6 +9,30 @@ public interface IValue
     (string where, string? joins) ToSql(PredicateContext ctx);
 }
 
+public class Display : IValue
+{
+    public readonly int VarIndex;
+    public readonly string Label;
+    public readonly IValue Value;
+
+    public Display(int varIndex, string label, IValue value)
+    {
+        VarIndex = varIndex;
+        Label = label;
+        Value = value;
+    }
+
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+
+    public (string where, string? joins) ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+}
+
 public interface IValueCall : IValue
 {
     public IFunctionDescriptor? FunctionDescriptor { get; set; }

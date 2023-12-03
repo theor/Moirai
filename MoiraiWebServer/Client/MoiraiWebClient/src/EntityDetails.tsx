@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import Box from "@mui/material/Box";
 import FilterAlt from '@mui/icons-material/FilterAlt';
+import * as _ from "lodash";
 export function EntityDetails() {
     let selectedEntity = useSelectedEntity();
     let filtering = useFiltering();
@@ -55,13 +56,17 @@ export function EntityDetails() {
 
         <Box display="grid" gap={1} sx={{maxHeight: "50vh", overflowY: "auto", overflowX:"none"}}
              gridTemplateRows='auto' gridTemplateColumns={ matches ? "1fr 2fr" : "1fr"}>
-            {details.map((d, i) => <Fragment key={i}>
-                <Box >
-                    <Divider sx={{display:matches ? "none" : "inherit"}}/>
-                    <Typography align={!matches ?  "left" : "right"} fontWeight="bold" >{d.label.toUpperCase()}</Typography>
-                </Box>
-                    <Box >{makeEntityLink(d.value, selectedEntity, filtering)}</Box>
-                </Fragment>
+            {_.map(_.groupBy(details, x => x.label),(d, i) => 
+                d.map((d,j) =><Fragment key={i + '_' + j}>
+                    <Box >
+                        {j == 0 ? <>
+                            <Divider sx={{display:matches ? "none" : "inherit"}}/>
+                        <Typography align={!matches ?  "left" : "right"} fontWeight="bold" >{d.label.toUpperCase()}</Typography>
+                        </> : <></>}
+                    </Box>
+                    <Box>{makeEntityLink(d.value, selectedEntity, filtering)}</Box>
+                    
+                </Fragment>)
             )}
         </Box>
         

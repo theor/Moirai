@@ -305,7 +305,8 @@ public static class StoryParser
         WeightMatchTakesOnlyOneValue,
         MatchNullWeight,
         MatchAnyValueMustBeLast,
-        MissingVariable
+        MissingVariable,
+        UnknownAttribute
     }
 
     public struct Error
@@ -417,6 +418,7 @@ public static class StoryParser
 
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
+       
         public (int offsetLine, int offsetColumn) offset { get; set; }
 
         private List<string> _variables = new();
@@ -426,6 +428,8 @@ public static class StoryParser
         protected override object? DefaultResult => null;
 
         public readonly Database _database;
+        private bool passTwo = false;
+        private List<(EntityTypeId, MoiraiParser.AttributeContext)> _deferredTypeAttributes = new();
 
         // private int _implicitVariableIndex = -1;
         public AstVisitor(Database database)
@@ -433,21 +437,56 @@ public static class StoryParser
             _database = database;
         }
 
+        public override object? VisitR(MoiraiParser.RContext context)
+        {
+            var firstPass = base.VisitR(context);
+            passTwo = true;
+            foreach (var (tid, attr) in _deferredTypeAttributes)
+            {
+                var id = attr.ID();
+                if (id.GetText() != "display")
+                {
+                    AddError(ErrorCode.UnknownAttribute, id, id?.GetText() ?? "??");
+                    continue;
+                }
+                if (attr.expr().Length != 2)
+                {
+                    AddError(ErrorCode.MissingArgument, attr, "display expects two arguments, a string and and expression");
+                    continue;
+                }
+
+                using (new VariableDeclarationScope(this, true))
+                {
+                    DeclareVar("$self", null, out var varIndex);
+                    var expr = ParseExpr(attr.expr(1));
+                    Display d = new Display(varIndex, attr.expr(0).GetText(), expr);
+                    var t = _database.Types[(int)(tid.Id - 1)];
+
+                    t.Attributes.Add(d);
+                }
+            }
+
+            return firstPass;
+        }
+
         public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
         {
             if (context.TYPE_ID() == null)
                 return AddError(ErrorCode.TypeNameMustStartWithUpperCase, context, context.GetText());
 
-            var typeName = context.TYPE_ID().GetText();
-            DeclareEntityType(typeName);
+            string? typeName = context.TYPE_ID().GetText();
+            EntityTypeId id = DeclareEntityType(typeName);
+            foreach(var attr in context.attribute())
+                _deferredTypeAttributes.Add((id, attr));
             return null;
         }
 
-        public uint DeclareEntityType(string typeName)
+        public EntityTypeId DeclareEntityType(string typeName)
         {
             var id = (uint)_database.Types.Count;
-            _database.Types.Add(new EntityType(typeName, id));
-            return id;
+            var entityType = new EntityType(typeName, id);
+            _database.Types.Add(entityType);
+            return entityType.Id;
         }
 
         public override object? VisitProp_definition(MoiraiParser.Prop_definitionContext context)

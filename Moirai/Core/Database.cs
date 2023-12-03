@@ -231,6 +231,10 @@ WHERE id = $id;";
             return default;
         return Types[type.Index];
     }
+    public EntityType GetEntityType(EntityTypeId id)
+    {
+        return Types[(int)(id.Id - 1)];
+    }
     public EntityType GetEntityType(string typeName)
     {
         for (uint i = 1; i < Types.Count; i++)

@@ -9,4 +9,6 @@ public readonly struct EntityType
     }
     public PropertyValue.ValueType RefType =>
         new PropertyValue.ValueType(PropertyValue.ValueBaseType.Ref, (ushort)Id.Id);
+
+    public readonly List<Display> Attributes { get; } = new();
 }

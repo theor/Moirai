@@ -228,12 +228,27 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     }
     public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
     {
-       
+        foreach (var attributeContext in context.attribute())
+        {
+            attributeContext.Accept(this);
+        }
         PushSymbol(context.TYPE_ID().Symbol, SymbolKind.Class);
         Definitions.Add( context.TYPE_ID().GetText(), new Definition(context.TYPE_ID().Symbol, context));
         PushSemanticToken(context.ENTITY().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
         return base.VisitType_definition(context);
+    }
+
+    public override object? VisitAttribute(MoiraiParser.AttributeContext context)
+    {
+        // PushSemanticToken(context.AT().Symbol, SemanticTokenType.Decorator);
+        PushSemanticToken(context.ID().Symbol, SemanticTokenType.Decorator);
+        foreach (var expr in context.expr())
+        {
+            expr.Accept(this);
+        }
+
+        return null;
     }
 
     public override object? VisitEnum_definition(MoiraiParser.Enum_definitionContext context)
@@ -397,13 +412,14 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         if (context.paren_expr != null)
             return context.paren_expr.Accept(this);
 
-        context.left.Accept(this);
+        context.left?.Accept(this);
         if (context.op != null)
         {
             PushSemanticToken(context.op, SemanticTokenType.Operator);
             context.right.Accept(this);
         }
-        return base.VisitExpr(context);
+
+        return null;//base.VisitExpr(context);
     }
     public override object? VisitValue(MoiraiParser.ValueContext context)
     {
