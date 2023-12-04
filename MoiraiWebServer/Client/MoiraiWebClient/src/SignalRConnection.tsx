@@ -119,6 +119,7 @@ export const useMoiraiStore = create<State>((set, get) => {
         handleKeyPress: e => {
             set({keyboardEvent: e});
         },
+        
         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
             const clientData = get().clientData!;
             if (switchAll) {

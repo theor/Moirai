@@ -15,18 +15,22 @@ import {
     Button,
     CircularProgress,
     Backdrop,
-    Icon
 } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import { useEffect } from 'react';
+import { ChangesetList } from './ChangesetList.tsx';
+import {useMainListDisplay} from "./utils.tsx";
 function InnerApp() {
     const conn = useMoiraiStore(s => s.conn!);
     const year = useMoiraiStore(s => s.year);
+    const [showChangesets, setShowChangesets] = useMainListDisplay();
+    console.log("APP", showChangesets)
     return <>
         {/*<Box>*/}
             <AppBar position="relative" sx={{marginBottom:"12px"}}>
                 <Toolbar>
                     <IconButton
+                        onClick={() => setShowChangesets(!showChangesets)}
                         size="large"
                         edge="start"
                         color="inherit"
@@ -60,7 +64,7 @@ function InnerApp() {
                 </Stack>
             </Grid>
             <Grid item xs={8} sx={{paddingBottom:"64px"}}>
-                <RecordList/>
+                {showChangesets ? <ChangesetList/>: <RecordList/>}
             </Grid>
         </Grid>
         {/*<Box sx={{flexGrow: 1}} display="grid" gridTemplateColumns="repeat(3, 1fr)" gridAutoRows="50%"*/}

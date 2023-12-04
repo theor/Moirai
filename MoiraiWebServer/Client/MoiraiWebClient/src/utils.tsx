@@ -26,7 +26,7 @@ export function makeEntityChip(id: number, label: string, selectedEntity: Proper
 }
 
 export function useSelectedEntity(): Property<number>{
-    let [searchParams, setSearchParams] = useSearchParams({eid:0});
+    let [searchParams, setSearchParams] = useSearchParams({eid:'0'});
     let eid = Number(searchParams.get("eid"));
     return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
         p.set("eid", x.toString());
@@ -38,10 +38,20 @@ export function useSelectedEntity(): Property<number>{
 //     Entity,
 // }
 export function useFiltering(): Property<number>{
-    let [searchParams, setSearchParams] = useSearchParams({f:null});
+    let [searchParams, setSearchParams] = useSearchParams({f:'-1'});
     let eid = Number(searchParams.get("f") ?? -1);
     return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
         p.set("f", x.toString());
+        return p;
+    })];
+}
+
+export function useMainListDisplay() : Property<boolean> {
+    let [searchParams, setSearchParams] = useSearchParams({showChangesets:String(false)});
+    let eid = (searchParams.get("showChangesets") === 'true');
+    return [eid, (x:boolean) => setSearchParams((p:URLSearchParams) => {
+        console.log("show", x);
+        p.set("showChangesets", x.toString());
         return p;
     })];
 }
