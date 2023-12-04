@@ -1,5 +1,6 @@
-@display('Item',type = Item and owner = $self)
-@display('Child',type = Person and (parent1 = $self or parent2 = $self))
+@display('Items owned',type = Item and owner = $self)
+@display('Items made',type = Item and maker = $self)
+@display('Children',type = Person and (parent1 = $self or parent2 = $self))
 entity Person
 entity Item
 entity Faction
@@ -35,6 +36,7 @@ prop faction: Faction
 prop birthplace: Country
 prop place: Country
 prop job: Job
+prop maker: Person
 prop item_type: ItemSource
 prop prosperity: percentage
 prop health: CountryHealth
@@ -126,12 +128,12 @@ trigger buries_children death {
     var $parent: $new.parent1
     if $parent and $parent.alive {
         set $parent.prosperity = $parent.prosperity - 20%
-        record('++ {$parent.name} buries their child, {$new.name}')
+        record('{$parent.name} bury their child, {$new.name}')
     }
     var $parent2: $new.parent2
     if $parent2 and $parent2.alive {
         set $parent2.prosperity = $parent2.prosperity - 20%
-        record('++ {$parent2.name} buries their child, {$new.name}')
+        record('{$parent2.name} bury their child, {$new.name}')
     }
 }
 
@@ -416,24 +418,33 @@ event parent_child_quarrel {
     set $x.prosperity = $p.prosperity - 10%
     record('{$x.name} and {$p.name} got into a quarrel')
 }
-@1 per 2 year
-event make_item items {
+@1 per 8 year
+event item_forged items {
     pick $p: (type = Person, alive = true, job = Job.Smith, age > Age.Child)
     set $p.prestige = $p.prestige + 10%
     create $i: (Item, '{random(ItemType)} of {random(Name)}')
     set $i.item_type = ItemSource.Forged
+    set $i.maker = $p
+    set $i.birthdate = #Time.year
     set $i.owner = $p
     record('{$p.name} crafts the {$i.name}')
 }
-@1 per 2 year
-event paint_item items {
+@1 per 8 year
+event item_painted items {
     pick $p: (type = Person, alive = true, job = Job.Painter, age > Age.Child)
     set $p.prestige = $p.prestige + 10%
     pick $t: (type = Person, alive = true, id != $p)
     create $i: (Item, 'Portrait of {$t.name}')
+    set $i.maker = $p
     set $i.item_type = ItemSource.Painted
-    set $i.owner = $p
-    record('{$p.name} paints the {$i.name}')
+    set $i.birthdate = #Time.year
+    if (random 10 > 5){
+        set $i.owner = $p
+        record('{$p.name} depicts {$t.name} in the {$i.name}')
+    } else {
+        set $i.owner = $t
+        record('{$t.name} have their portrait painted by {$p.name}')
+    }
 }
 @1 per 8 year
 event item_lost items {

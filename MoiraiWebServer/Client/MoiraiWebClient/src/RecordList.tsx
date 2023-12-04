@@ -94,8 +94,9 @@ export function RecordList() {
     const [filteredEntity, setFilteredEntity] = useFiltering();
     const clientData = useMoiraiStore(s=>s.clientData!);
     // connState.
+    console.log(filteredEntity, "F")
     const records = useMoiraiStore(s => s.records);
-    const filteredRecords = records.filter(r => !clientData.actions[r.actionId-1].hidden && (filteredEntity === -1 || r.text.indexOf(`#${filteredEntity}>`) !== -1));
+    const filteredRecords = records.filter(r => !clientData.actions[r.actionId-1].hidden && (filteredEntity === -1 || isNaN(filteredEntity) || r.text.indexOf(`#${filteredEntity}>`) !== -1));
     // const {conn, data:[clientData,_setClientData], records} = useContext(SignalRConnectionContext);
     return <TableVirtuoso
         context={[selectedEntity, [filteredEntity, setFilteredEntity]]}
