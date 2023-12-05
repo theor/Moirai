@@ -33,7 +33,7 @@ export interface Changeset {
     actionName: string;
     year: number;
     // cats: CategoryId[];
-    // changes: Changed[];
+    changes: Changed[];
 }
 
 export interface Changed {

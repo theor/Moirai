@@ -127,7 +127,8 @@ export const useMoiraiStore = create<State>((set, get) => {
             set({keyboardEvent: e});
         },
         addChangesets(changesets: Changeset[]){
-          set({changesets: [...get().changesets, ...changesets]})  
+            if(changesets.length > 0)
+          set({changesets: changesets})  
         },
         
         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
