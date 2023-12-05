@@ -32,7 +32,7 @@ public struct Changeset(int id, string actionName, long year, CategoryId[] cats)
     // public readonly List<Change> Changes = new();
     private List<Changed>? _changes;
     public IReadOnlyCollection<Changed> Changes => _changes as IReadOnlyCollection<Changed> ?? ArraySegment<Changed>.Empty;
-    public ulong Categories = cats.Aggregate(0ul, (x, y) => x | (1ul<< (int)(y.Id - 1)));
+    public readonly ulong Categories = cats.Aggregate(0ul, (x, y) => x | (1ul<< (int)(y.Id - 1)));
     // public string? Description { get; private set; } = null;
     // public bool HasDescription => !String.IsNullOrEmpty(Description);
 

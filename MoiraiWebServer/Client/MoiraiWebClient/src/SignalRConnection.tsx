@@ -1,6 +1,6 @@
 ﻿import * as signalR from "@microsoft/signalr";
 import {HubConnection, HubConnectionState, IStreamResult} from "@microsoft/signalr";
-import {ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
+import {Changeset, ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
 import {create} from "zustand";
 
 export class SignalRConnection {
@@ -29,6 +29,10 @@ export class SignalRConnection {
         // connection.send("newMessage", "theoir", "test")
 
 
+    }
+    
+    getChangesets(start:number, count: number): Promise<[remaining: number, cs: Changeset[]]> {
+        return this.connection.invoke("GetChangesets", start, count).then(({item1, item2})=> [item1, item2]);
     }
 
     reset() {
@@ -64,8 +68,10 @@ interface State {
     connected: boolean;
     conn?: SignalRConnection;
     records: Record[];
+    changesets: Changeset[];
     clientData?: ClientData;
 
+    addChangesets: (changesets: Changeset[]) => void;
     toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => void;
 }
 
@@ -114,10 +120,14 @@ export const useMoiraiStore = create<State>((set, get) => {
         year: 0,
         connected: false,
         records: [],
+        changesets: [],
 
         clearEvent: () => set({keyboardEvent: undefined}),
         handleKeyPress: e => {
             set({keyboardEvent: e});
+        },
+        addChangesets(changesets: Changeset[]){
+          set({changesets: [...get().changesets, ...changesets]})  
         },
         
         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {

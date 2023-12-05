@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Moirai.Core;
 
 namespace MoiraiWebServer.Hubs;
 
@@ -25,6 +26,7 @@ public class ChatHub : Hub
     public void Reset()
     {
         _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
+        _db.History = new();
         _db.Init();
         _reset = true;
     }
@@ -98,6 +100,17 @@ public class ChatHub : Hub
     {
         Debug.WriteLine($"Received {username} {message}");
         await Clients.All.SendAsync("messageReceived", username, message);
+    }
+
+    public (int remaining, IEnumerable<Changeset> changesets) GetChangesets(int start, int count)
+    {
+        if(_db.History == null)            return (0, ArraySegment<Changeset>.Empty);
+
+        var r = _db.History.Changesets.Count - start;
+        if (r <= 0)
+            return (0, ArraySegment<Changeset>.Empty);
+        var c = Math.Min(count, r);
+        return (r - count, _db.History.Changesets.Skip(start).Take(c));
     }
 
     public ChannelReader<Message> Stream(
