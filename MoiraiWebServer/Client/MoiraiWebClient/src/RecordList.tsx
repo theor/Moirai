@@ -1,4 +1,4 @@
-﻿import { Property, Record} from "./types.ts";
+﻿import {GetSetProperty, Record} from "./types.ts";
 import * as React from "react";
 import TableCell from "@mui/material/TableCell";
 // import {SignalRConnectionContext} from "./SignalRConnection.tsx";
@@ -32,7 +32,7 @@ function fixedHeaderContent() {
     );
 }
 
-function rowContent(_index: number, row: Record, [selectedEntity, filteredEntity]: [Property<number>,Property<number>]) {
+function rowContent(_index: number, row: Record, [selectedEntity, filteredEntity]: [GetSetProperty<number>,GetSetProperty<number>]) {
     const text = makeEntityLink(row.text, selectedEntity, filteredEntity);
     return (
         <React.Fragment>
@@ -75,7 +75,7 @@ const columns: ColumnData[] = [
 
 ];
 
-const RecordTable: TableComponents<Record, [Property<number>, Property<number>]> = {
+const RecordTable: TableComponents<Record, [GetSetProperty<number>, GetSetProperty<number>]> = {
     Scroller: React.forwardRef<HTMLDivElement>((props, ref) => (
         <TableContainer  component={Paper} {...props} ref={ref}/>
     )),

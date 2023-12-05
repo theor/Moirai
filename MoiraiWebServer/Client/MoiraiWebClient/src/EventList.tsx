@@ -17,6 +17,7 @@ export function EventList() {
     // console.log("AL ", ctx);
     if (!clientData)
         return <span>loading</span>
+    console.log(clientData)
     const handleToggle = (value: ActionData) => (e: React.MouseEvent<HTMLButtonElement>) => {
         toggleActionFiltering(value.id, value.hidden, e.ctrlKey)
         // if (e.ctrlKey) {
@@ -37,7 +38,7 @@ export function EventList() {
         <TableContainer sx={{overflow: 'auto'}}>
             <Table sx={{overflow: "auto"}} size="small">
                 <TableBody>
-                    {clientData.actions.map(a => {
+                    {clientData.actions?.map(a => {
                         return <TableRow key={a.id}>
                             <TableCell>
                                 <Switch size="small" checked={!a.hidden} onClick={handleToggle(a)}/>

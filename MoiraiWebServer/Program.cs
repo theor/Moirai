@@ -1,4 +1,7 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Connections;
+using Moirai.Core;
 using MoiraiWebServer.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,12 +12,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR(hubOptions => {
+        
     hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(15);
     hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(15);
     hubOptions.EnableDetailedErrors = true;})
     .AddJsonProtocol(options =>
     {
         options.PayloadSerializerOptions.IncludeFields = true;
+        options.PayloadSerializerOptions.IgnoreReadOnlyProperties = true; // WriteIndented = true,
+        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        options.PayloadSerializerOptions.Converters.Add(new EntityIdConverter());
+        options.PayloadSerializerOptions.Converters.Add(new PropertyIdConverter());
+        options.PayloadSerializerOptions.Converters.Add(new EntityTypeIdConverter());
+        options.PayloadSerializerOptions.Converters.Add(new ValueTypeConverter());
     });
 builder.Services.AddCors(options =>
 {
@@ -34,29 +44,9 @@ else
     app.UseHsts();
 }
 
-// app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
 app.MapHub<ChatHub>("/hub"
     // , x => x.Transports = HttpTransportType.LongPolling
     );
-app.MapGet("/weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast")
-    .WithOpenApi();
 
 app.Run();
 

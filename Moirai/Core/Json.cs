@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Moirai.Core;
 
-internal class EntityIdConverter : JsonConverter<EntityId>
+public class EntityIdConverter : JsonConverter<EntityId>
 {
     public override EntityId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -14,7 +14,7 @@ internal class EntityIdConverter : JsonConverter<EntityId>
         writer.WriteNumberValue(value.Id);
     }
 }
-internal class PropertyIdConverter : JsonConverter<PropertyId>
+public class PropertyIdConverter : JsonConverter<PropertyId>
 {
     public override PropertyId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -26,7 +26,7 @@ internal class PropertyIdConverter : JsonConverter<PropertyId>
     }
 }
 
-internal class ValueTypeConverter : JsonConverter<PropertyValue.ValueType>
+public class ValueTypeConverter : JsonConverter<PropertyValue.ValueType>
 {
     // private JsonStringEnumConverter _e = new();
     public override PropertyValue.ValueType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -54,7 +54,7 @@ internal class ValueTypeConverter : JsonConverter<PropertyValue.ValueType>
     }
 }
 
-internal class EntityTypeIdConverter : JsonConverter<EntityTypeId>
+public class EntityTypeIdConverter : JsonConverter<EntityTypeId>
 {
     public override EntityTypeId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {

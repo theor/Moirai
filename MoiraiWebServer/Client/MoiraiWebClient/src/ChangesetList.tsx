@@ -1,5 +1,5 @@
-﻿import {useMoiraiStore} from "./SignalRConnection.tsx";
-import {useCallback, useEffect} from "react";
+﻿import {EntityChangeDisplay, useMoiraiStore} from "./SignalRConnection.tsx";
+import {useEffect} from "react";
 import {Changeset} from "./types.ts";
 import {TableComponents, TableVirtuoso} from "react-virtuoso";
 import * as React from "react";
@@ -10,6 +10,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
+import {Simulate} from "react-dom/test-utils";
 
 // const columnHelper = createColumnHelper<Changeset>();
 // const columns = [
@@ -24,7 +25,7 @@ import TableCell from "@mui/material/TableCell";
 //     }),
 // ];
 
-const RecordTable: TableComponents<Changeset> = {
+const RecordTable: TableComponents<EntityChangeDisplay> = {
     Scroller: React.forwardRef<HTMLDivElement>((props, ref) => (
         <TableContainer  component={Paper} {...props} ref={ref}/>
     )),
@@ -39,7 +40,7 @@ const RecordTable: TableComponents<Changeset> = {
 };
 
 interface ColumnData {
-    dataKey: keyof Changeset;
+    dataKey: keyof EntityChangeDisplay;
     label: string;
     numeric?: boolean;
     width?: number;
@@ -92,42 +93,67 @@ function fixedHeaderContent() {
     );
 }
 
-function rowContent(_index: number, row: Changeset) {
-    // const text = makeEntityLink(row.text, selectedEntity, filteredEntity);
-    return (
-        <React.Fragment>
-            {columns.map((column) => (
-                <TableCell
-                    key={column.dataKey}
-                    align={column.numeric || false ? 'right' : 'left'}
-                >
-
-                    {row ? (column.dataKey === "changes" ? (row['changes']?.length ?? 0) :
-                         row[column.dataKey]) : "_"
-                    }
-                </TableCell>
-            ))}
-        </React.Fragment>
-    );
-}
-
 export function ChangesetList() {
-    const conn = useMoiraiStore(s => s.conn);
+
+    // function change(c:Changed) {
+    //     if(c.prev.id === 0)
+    //         return <span>NEW {c.new.properties.filter(p => p.id !== 0).map(p => <span>{JSON.stringify(p)}</span>)}</span>
+    //         return <span>SET {c.new.properties.filter(p => p.id !== 0).map(p => <span>{JSON.stringify(p)}</span>)}</span>
+    // }
+    function rowContent(index: number, row: EntityChangeDisplay) {
+        // const text = makeEntityLink(row.text, selectedEntity, filteredEntity);
+       
+        return (
+            <React.Fragment key={index}>
+                {columns.map((column) => {
+                    let content: JSX.Element;
+                    if (row) {
+                        if (column.dataKey === "changes") {
+                            content = <ul>{row["changes"]?.map((c,i) => <li key={i}>{JSON.stringify(c)}</li>)}</ul>
+                            // content = row['changes']?.length ?? 0;
+                        } else {
+                            content = <>{row[column.dataKey]}</>;
+                        }
+                    } else {
+                        content = <>{"_"}</>;
+                    }
+                    return (
+                        <TableCell
+                            key={column.dataKey}
+                            align={column.numeric || false ? 'right' : 'left'}
+                        >
+                            {content}
+                        </TableCell>
+                    );
+                })}
+            </React.Fragment>
+        );
+    }
+    const conn = useMoiraiStore(s => s.conn!);
     const changesets = useMoiraiStore(s => s.changesets);
-    const addChangesets = useMoiraiStore(s => s.addChangesets);
-    
-    const loadMore = useCallback(() => setTimeout(() => {
-        console.log("load more", changesets.length)
-        conn?.getChangesets(changesets.length, 20).then(([c,x]) => {
-            console.log(c,x); addChangesets(x);})
-    }, 200), [changesets]);
-    
+    const pushChangesets = useMoiraiStore(s => s.pushChangesets);
+    // const addChangesets = useMoiraiStore(s => s.addChangesets);
+
     useEffect(() => {
-        console.log("EFFECT")
-         conn?.getChangesets(0, 20).then(([c,x]) => {
-             let a = Array(c + x.length).fill(null);
-             a.splice(0, 0, ...x);
-             console.log(c,x, a); addChangesets(a);})
+        let buffer: EntityChangeDisplay[] = [];
+        setInterval(() => {
+            if (buffer.length > 0) {
+                pushChangesets(buffer);
+                buffer = [];
+            }
+        }, 500);
+        conn?.getChangesets().subscribe({
+            next(value: EntityChangeDisplay) {
+              
+                        buffer.push(value);
+                  
+            },
+            error(err: any) {
+                console.error(err)
+            },
+            complete() {
+            }
+        })
     }, []);
     // const table = useReactTable<Changeset>({
     //     data:changesets,
@@ -137,9 +163,9 @@ export function ChangesetList() {
     return  <TableVirtuoso
         data={changesets}
         // endReached={loadMore}
-        overscan={200}
-        // totalCount={1000}
-        increaseViewportBy={{ top: 800, bottom: 300 }}
+        // overscan={200}
+        // rangeChanged={rangeChanged}
+        // increaseViewportBy={{ top: 800, bottom: 300 }}
         components={RecordTable}
         fixedHeaderContent={fixedHeaderContent}
         itemContent={rowContent}

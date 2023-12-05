@@ -3,7 +3,7 @@ import * as React from "react";
 import {Chip, Tooltip} from "@mui/material";
 import {useSearchParams} from "react-router-dom";
 
-export function makeEntityLink(str: string, selectedEntity: Property<number>, filteredEntity: Property<number>): React.JSX.Element[] {
+export function makeEntityLink(str: string, selectedEntity: GetSetProperty<number>, filteredEntity: GetSetProperty<number>): React.JSX.Element[] {
     const rx = /(?:(?:<#(?<id>\d+)>(?<link>[^<]+)<\/>)|(?<text>[^<\n]+))/ig;
     return [...str.matchAll(rx)].map((match: RegExpMatchArray, i) => {
         if (!match?.groups)
@@ -17,7 +17,7 @@ export function makeEntityLink(str: string, selectedEntity: Property<number>, fi
         }
     });
 }
-export function makeEntityChip(id: number, label: string, selectedEntity: Property<number>, filteredEntity: Property<number>) {
+export function makeEntityChip(id: number, label: string, selectedEntity: GetSetProperty<number>, filteredEntity: GetSetProperty<number>) {
     return <Chip size="small" color="primary"
                  variant={selectedEntity[0] == id ? "filled" : "outlined"} clickable
                  onClick={() => selectedEntity[1](id)}
@@ -25,7 +25,7 @@ export function makeEntityChip(id: number, label: string, selectedEntity: Proper
                  label={label}/>;
 }
 
-export function useSelectedEntity(): Property<number>{
+export function useSelectedEntity(): GetSetProperty<number>{
     let [searchParams, setSearchParams] = useSearchParams({eid:'0'});
     let eid = Number(searchParams.get("eid"));
     return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
@@ -37,7 +37,7 @@ export function useSelectedEntity(): Property<number>{
 //     None,
 //     Entity,
 // }
-export function useFiltering(): Property<number>{
+export function useFiltering(): GetSetProperty<number>{
     let [searchParams, setSearchParams] = useSearchParams({f:'-1'});
     let eid = Number(searchParams.get("f") ?? -1);
     return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
@@ -46,7 +46,7 @@ export function useFiltering(): Property<number>{
     })];
 }
 
-export function useMainListDisplay() : Property<boolean> {
+export function useMainListDisplay() : GetSetProperty<boolean> {
     let [searchParams, setSearchParams] = useSearchParams({showChangesets:String(false)});
     let eid = (searchParams.get("showChangesets") === 'true');
     return [eid, (x:boolean) => setSearchParams((p:URLSearchParams) => {

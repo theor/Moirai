@@ -1,6 +1,6 @@
 ﻿import * as signalR from "@microsoft/signalr";
 import {HubConnection, HubConnectionState, IStreamResult} from "@microsoft/signalr";
-import {Changeset, ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
+import { ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
 import {create} from "zustand";
 
 export class SignalRConnection {
@@ -31,8 +31,8 @@ export class SignalRConnection {
 
     }
     
-    getChangesets(start:number, count: number): Promise<[remaining: number, cs: Changeset[]]> {
-        return this.connection.invoke("GetChangesets", start, count).then(({item1, item2})=> [item1, item2]);
+    getChangesets(): IStreamResult<EntityChangeDisplay> {
+        return this.connection.stream<EntityChangeDisplay>("GetChangesets");
     }
 
     reset() {
@@ -61,6 +61,7 @@ export class SignalRConnection {
 // @ts-ignore
 // export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void], records: Record[]}>(null);
 interface State {
+    pushChangesets: (buffer: EntityChangeDisplay[]) => void;
     handleKeyPress: (this:Window, ev: KeyboardEvent) => any;
     keyboardEvent?: KeyboardEvent;
     clearEvent: () => void;
@@ -68,11 +69,16 @@ interface State {
     connected: boolean;
     conn?: SignalRConnection;
     records: Record[];
-    changesets: Changeset[];
+    changesets: EntityChangeDisplay[];
     clientData?: ClientData;
 
-    addChangesets: (changesets: Changeset[]) => void;
     toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => void;
+}
+export interface EntityChangeDisplay {
+    id: number;
+    year: number;
+    actionName: string;
+    changes: EntityPropertyDisplay[];
 }
 
 export const useMoiraiStore = create<State>((set, get) => {
@@ -126,9 +132,8 @@ export const useMoiraiStore = create<State>((set, get) => {
         handleKeyPress: e => {
             set({keyboardEvent: e});
         },
-        addChangesets(changesets: Changeset[]){
-            if(changesets.length > 0)
-          set({changesets: changesets})  
+        pushChangesets: (buffer: EntityChangeDisplay[]) =>  {
+            set({changesets: [...get().changesets, ...buffer]})
         },
         
         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
