@@ -4,8 +4,9 @@ public class NumberTests : TestsBase
 {
     [Test]
     public void Int_Add() => RunAssert(@"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
     create $p: (Person)
     set $p.f = 2 + 3
@@ -15,8 +16,9 @@ event r {
 
     [Test]
     public void Int_Negative() => RunAssert(@"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
     create $p: (Person)
     set $p.f = -2 + 3
@@ -26,8 +28,9 @@ event r {
 
     [Test]
     public void Int_Negative2() => RunAssert(@"
-entity Person {}
+entity Person {
 prop f: number
+}
 event r {
     create $p: (Person)
     set $p.f = -4 - -3
@@ -37,8 +40,9 @@ event r {
 
     [Test]
     public void Float_Add() => RunAssert(@"
-entity Person {}
+entity Person {
 prop f: float
+}
 event r {
     create $p: (Person)
     set $p.f = 2.1 + 3.2
@@ -49,8 +53,9 @@ event r {
 
     [Test]
     public void Float_Floor() => RunAssert(@"
-entity Person {}
-prop f: float
+entity Person {
+    prop f: float
+}
 event r {
     create $p: (Person)
     set $p.f = floor(2.1 + 3.2)
@@ -60,8 +65,9 @@ event r {
 
     [Test]
     public void Int_AddMul_Precedence() => RunAssert(@"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
     create $p: (Person)
     set f = 2 + 3 * 4
@@ -74,8 +80,9 @@ event r {
     public void Percent_PropertyDefinition()
     {
         Run(@"
-prop p: percentage
-entity E
+entity E {
+    prop p: percentage
+}
 @start
 event e {
     create $p: E
@@ -87,8 +94,9 @@ event e {
     public void Percent_SetProperty_CheckTypeIsPercentage()
     {
         Run(@"
-prop p: percentage
-entity E
+entity E {
+    prop p: percentage
+}
 @start
 event e {
     create $p: E
@@ -101,8 +109,9 @@ event e {
     public void Percent_PickPropertyDefinition()
     {
         Run(@"
-prop p: percentage
-entity E
+entity E {
+    prop p: percentage
+}
 @start
 event e {
     create $p: E

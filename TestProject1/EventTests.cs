@@ -7,9 +7,10 @@ public class EventTests : TestsBase
     public void Event()
     {
         var s = @"
-entity Person {}
-prop alive: bool
-prop test: bool
+entity Person {
+    prop alive: bool
+    prop test: bool
+}
 event born {
     create $p: (Person)
     set alive = true
@@ -37,7 +38,7 @@ trigger on_death {
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         Entity e = db.Entities.First();
-        PropertyId propTest = db.GetPropertyId("test");
+        PropertyId propTest = db.GetPropertyId("Person", "test");
         Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
         foreach (var historyChangeset in db.History.Changesets)
         {
@@ -49,9 +50,10 @@ trigger on_death {
     public void EventCompareOldNewValues()
     {
         var s = @"
-entity Person {}
-prop x: number
-prop test: number
+entity Person {
+    prop x: number
+    prop test: number
+}
 event born {
     create $p: (Person)
     set x = 1
@@ -85,7 +87,7 @@ trigger on_death2 {
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         Entity e = db.Entities.First();
-        PropertyId propTest = db.GetPropertyId("test");
+        PropertyId propTest = db.GetPropertyId("Person","test");
         Assert.That(e.GetProperty(propTest).IntValue, Is.EqualTo(10));
         foreach (var historyChangeset in db.History.Changesets)
         {
@@ -98,13 +100,16 @@ trigger on_death2 {
     public void Event2()
     {
         var s = @"
-entity Person {}
-entity Item {}
-entity Link {}
-prop alive: bool
-prop child: Person
-prop parent: Person
-prop owner: ref
+entity Person {
+    prop alive: bool
+}
+entity Item {
+    prop owner: ref
+}
+entity Link {
+    prop child: Person
+    prop parent: Person
+}
 
 trigger inherit {
     when Person and $new.alive = false

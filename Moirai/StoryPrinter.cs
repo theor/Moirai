@@ -23,7 +23,7 @@ public class StoryPrinter
                 sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
             }
 
-            sb.AppendLine("}}");
+            sb.AppendLine("}");
         }
 
         foreach (string en in _database.Tags.Skip(1))

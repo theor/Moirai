@@ -73,7 +73,7 @@ public class Database
     {
         Types = new List<EntityType>
         {
-            default,
+            new EntityType("default", 0),
             new EntityType("Time", 1).DeclareProperty("year", PropYear.Id,
                 PropertyValue.TypeString)
         };
@@ -214,7 +214,8 @@ WHERE id = $id;";
 
     public PropertyId GetPropertyId(string typename, string name)
     {
-        throw new System.NotImplementedException();
+        var t = GetEntityType(typename);
+        return t.GetPropertyId(name);
         // for (var index = 1; index < Properties.Count; index++)
         // {
         //     var property = Properties[index];
@@ -240,7 +241,7 @@ WHERE id = $id;";
 
     public EntityType GetEntityType(EntityTypeId id)
     {
-        return Types[(int) (id.Id - 1)];
+        return Types[(int) (id.Id)];
     }
 
     public EntityType GetEntityType(string typeName)
@@ -451,18 +452,19 @@ WHERE id = $id;";
         var cmd = _connection.CreateCommand();
 
         string indices = @"CREATE INDEX types ON entity (type);";
-        if (Properties.Any(p => p.Name == "owner"))
-            indices += @"
-CREATE INDEX owners ON entity (owner) WHERE type = 3;";
-        if (Properties.Any(p => p.Name == "alive"))
-            indices += @"
-CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
+//         if (Properties.Any(p => p.Name == "owner"))
+//             indices += @"
+// CREATE INDEX owners ON entity (owner) WHERE type = 3;";
+//         if (Properties.Any(p => p.Name == "alive"))
+//             indices += @"
+// CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
 
         cmd.CommandText = $@"
 CREATE TABLE entity (
     id INTEGER PRIMARY KEY,
     type INTEGER NOT NULL,
-    {string.Join(",\n  ", Properties.Skip(3).Select(p => {
+    name TEXT,
+    {string.Join(",\n  ",Types.Skip(1).SelectMany(t => t.Properties.Skip(4)).Select(p => {
         // if (p.Type.BaseType == PropertyValue.ValueBaseType.Ref)
         // return $"FOREIGN KEY({p.Name}) REFERENCES entity(id)";
         return $@"{p.Name} {ToSqlType(p.Type)}";

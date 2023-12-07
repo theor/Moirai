@@ -23,5 +23,11 @@ public readonly struct EntityType
     public EntityType DeclareProperty(string propertyDefinition, uint propYearId, PropertyValue.ValueType valueType)
     {
         Properties.Add(new PropertyDefinition(propertyDefinition, Id, propYearId, valueType));
+        return this;
+    }
+
+    public PropertyId GetPropertyId(string propName)
+    {
+        return Properties.FirstOrDefault(p => p.Name == propName).PropertyId;
     }
 }

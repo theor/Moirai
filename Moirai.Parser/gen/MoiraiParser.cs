@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theo.richart/Moirai/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theor/Moirai/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -146,6 +146,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_r; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterR(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitR(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitR(this);
@@ -242,6 +252,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_attribute; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterAttribute(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitAttribute(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitAttribute(this);
@@ -317,6 +337,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_filter; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterFilter(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitFilter(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitFilter(this);
@@ -391,6 +421,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_event; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterEvent(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitEvent(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEvent(this);
@@ -448,6 +488,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_categories; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterCategories(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitCategories(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitCategories(this);
@@ -504,6 +554,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_trigger; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterTrigger(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitTrigger(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -566,6 +626,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_when; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterWhen(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitWhen(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -670,6 +740,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_when_created; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterWhen_created(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitWhen_created(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitWhen_created(this);
@@ -769,6 +849,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_effect; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterEffect(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitEffect(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -892,6 +982,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_if; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterIf(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitIf(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitIf(this);
@@ -982,6 +1082,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_match; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterMatch(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitMatch(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1115,6 +1225,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_match_case; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterMatch_case(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitMatch_case(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitMatch_case(this);
@@ -1228,6 +1348,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_set; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterSet(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitSet(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitSet(this);
@@ -1275,6 +1405,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_var; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterVar(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitVar(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1335,6 +1475,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_call; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterCall(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitCall(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1438,6 +1588,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_scope; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterScope(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitScope(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1603,6 +1763,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_raw_call; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterRaw_call(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitRaw_call(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitRaw_call(this);
@@ -1685,6 +1855,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_value; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterValue(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitValue(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1817,6 +1997,16 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_expr; } }
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterExpr(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitExpr(this);
+		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -2051,6 +2241,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_type_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterType_definition(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitType_definition(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitType_definition(this);
@@ -2101,23 +2301,23 @@ public partial class MoiraiParser : Parser {
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 355;
+			State = 357;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			do {
+			while (_la==PROP) {
 				{
 				{
 				State = 354;
 				prop_definition();
 				}
 				}
-				State = 357;
+				State = 359;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-			} while ( _la==PROP );
-			State = 359;
+			}
+			State = 360;
 			Match(SCOPE_CLOSE);
-			State = 361;
+			State = 362;
 			ErrorHandler.Sync(this);
 			_alt = 1;
 			do {
@@ -2125,7 +2325,7 @@ public partial class MoiraiParser : Parser {
 				case 1:
 					{
 					{
-					State = 360;
+					State = 361;
 					Match(LINE_BREAK);
 					}
 					}
@@ -2133,7 +2333,7 @@ public partial class MoiraiParser : Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				State = 363;
+				State = 364;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,43,Context);
 			} while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
@@ -2168,6 +2368,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_prop_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterProp_definition(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitProp_definition(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitProp_definition(this);
@@ -2183,13 +2393,13 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 365;
-			Match(PROP);
 			State = 366;
-			Match(ID);
+			Match(PROP);
 			State = 367;
-			Match(COLON);
+			Match(ID);
 			State = 368;
+			Match(COLON);
+			State = 369;
 			_la = TokenStream.LA(1);
 			if ( !(_la==TYPE_ID || _la==ID) ) {
 			ErrorHandler.RecoverInline(this);
@@ -2198,17 +2408,17 @@ public partial class MoiraiParser : Parser {
 				ErrorHandler.ReportMatch(this);
 			    Consume();
 			}
-			State = 370;
+			State = 371;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
 				{
-				State = 369;
+				State = 370;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 372;
+				State = 373;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( _la==LINE_BREAK );
@@ -2247,6 +2457,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_enum_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterEnum_definition(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitEnum_definition(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEnum_definition(this);
@@ -2263,87 +2483,87 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 374;
-			Match(ENUM);
 			State = 375;
-			Match(TYPE_ID);
+			Match(ENUM);
 			State = 376;
+			Match(TYPE_ID);
+			State = 377;
 			Match(SCOPE_OPEN);
-			State = 380;
+			State = 381;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 377;
+				State = 378;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 382;
+				State = 383;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 383;
+			State = 384;
 			Match(TYPE_ID);
-			State = 394;
+			State = 395;
 			ErrorHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(TokenStream,47,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 384;
+					State = 385;
 					Match(COMMA);
-					State = 388;
+					State = 389;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 					while (_la==LINE_BREAK) {
 						{
 						{
-						State = 385;
+						State = 386;
 						Match(LINE_BREAK);
 						}
 						}
-						State = 390;
+						State = 391;
 						ErrorHandler.Sync(this);
 						_la = TokenStream.LA(1);
 					}
-					State = 391;
+					State = 392;
 					Match(TYPE_ID);
 					}
 					} 
 				}
-				State = 396;
+				State = 397;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,47,Context);
 			}
-			State = 398;
+			State = 399;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==COMMA) {
 				{
-				State = 397;
+				State = 398;
 				Match(COMMA);
 				}
 			}
 
-			State = 403;
+			State = 404;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 400;
+				State = 401;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 405;
+				State = 406;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 406;
+			State = 407;
 			Match(SCOPE_CLOSE);
-			State = 408;
+			State = 409;
 			ErrorHandler.Sync(this);
 			_alt = 1;
 			do {
@@ -2351,7 +2571,7 @@ public partial class MoiraiParser : Parser {
 				case 1:
 					{
 					{
-					State = 407;
+					State = 408;
 					Match(LINE_BREAK);
 					}
 					}
@@ -2359,7 +2579,7 @@ public partial class MoiraiParser : Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				State = 410;
+				State = 411;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,50,Context);
 			} while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
@@ -2384,6 +2604,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_string; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterString(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitString(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitString(this);
@@ -2398,7 +2628,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 412;
+			State = 413;
 			Match(STRING);
 			}
 		}
@@ -2422,6 +2652,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_bool; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterBool(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitBool(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitBool(this);
@@ -2437,7 +2677,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 414;
+			State = 415;
 			_la = TokenStream.LA(1);
 			if ( !(_la==TRUE || _la==FALSE) ) {
 			ErrorHandler.RecoverInline(this);
@@ -2476,6 +2716,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_path; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterPath(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitPath(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitPath(this);
@@ -2490,14 +2740,14 @@ public partial class MoiraiParser : Parser {
 		int _la;
 		try {
 			int _alt;
-			State = 425;
+			State = 426;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case SINGLETON_ID:
 			case VAR_ID:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 416;
+				State = 417;
 				_la = TokenStream.LA(1);
 				if ( !(_la==SINGLETON_ID || _la==VAR_ID) ) {
 				ErrorHandler.RecoverInline(this);
@@ -2506,21 +2756,21 @@ public partial class MoiraiParser : Parser {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 421;
+				State = 422;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,51,Context);
 				while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 					if ( _alt==1 ) {
 						{
 						{
-						State = 417;
-						Match(DOT);
 						State = 418;
+						Match(DOT);
+						State = 419;
 						Match(ID);
 						}
 						} 
 					}
-					State = 423;
+					State = 424;
 					ErrorHandler.Sync(this);
 					_alt = Interpreter.AdaptivePredict(TokenStream,51,Context);
 				}
@@ -2529,7 +2779,7 @@ public partial class MoiraiParser : Parser {
 			case ID:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 424;
+				State = 425;
 				Match(ID);
 				}
 				break;
@@ -2560,6 +2810,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_enum_value; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterEnum_value(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitEnum_value(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEnum_value(this);
@@ -2574,11 +2834,11 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 427;
-			Match(TYPE_ID);
 			State = 428;
-			Match(DOT);
+			Match(TYPE_ID);
 			State = 429;
+			Match(DOT);
+			State = 430;
 			Match(TYPE_ID);
 			}
 		}
@@ -2603,6 +2863,16 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_number; } }
 		[System.Diagnostics.DebuggerNonUserCode]
+		public override void EnterRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.EnterNumber(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
+		public override void ExitRule(IParseTreeListener listener) {
+			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
+			if (typedListener != null) typedListener.ExitNumber(this);
+		}
+		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitNumber(this);
@@ -2618,7 +2888,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 431;
+			State = 432;
 			_la = TokenStream.LA(1);
 			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 3940649673949184L) != 0)) ) {
 			ErrorHandler.RecoverInline(this);
@@ -2659,7 +2929,7 @@ public partial class MoiraiParser : Parser {
 	}
 
 	private static int[] _serializedATN = {
-		4,1,51,434,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
+		4,1,51,435,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
 		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,
 		2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,21,
 		2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,1,0,1,0,1,0,1,0,1,0,
@@ -2686,127 +2956,127 @@ public partial class MoiraiParser : Parser {
 		1,18,1,18,1,18,3,18,315,8,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,
 		18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,5,18,335,8,18,10,18,12,
 		18,338,9,18,1,19,5,19,341,8,19,10,19,12,19,344,9,19,1,19,1,19,1,19,1,19,
-		5,19,350,8,19,10,19,12,19,353,9,19,1,19,4,19,356,8,19,11,19,12,19,357,
-		1,19,1,19,4,19,362,8,19,11,19,12,19,363,1,20,1,20,1,20,1,20,1,20,4,20,
-		371,8,20,11,20,12,20,372,1,21,1,21,1,21,1,21,5,21,379,8,21,10,21,12,21,
-		382,9,21,1,21,1,21,1,21,5,21,387,8,21,10,21,12,21,390,9,21,1,21,5,21,393,
-		8,21,10,21,12,21,396,9,21,1,21,3,21,399,8,21,1,21,5,21,402,8,21,10,21,
-		12,21,405,9,21,1,21,1,21,4,21,409,8,21,11,21,12,21,410,1,22,1,22,1,23,
-		1,23,1,24,1,24,1,24,5,24,420,8,24,10,24,12,24,423,9,24,1,24,3,24,426,8,
-		24,1,25,1,25,1,25,1,25,1,26,1,26,1,26,0,1,36,27,0,2,4,6,8,10,12,14,16,
-		18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,0,8,1,0,21,22,1,
-		0,35,36,1,0,33,34,2,0,30,31,37,40,1,0,47,48,1,0,27,28,1,0,43,44,1,0,49,
-		51,477,0,59,1,0,0,0,2,65,1,0,0,0,4,79,1,0,0,0,6,90,1,0,0,0,8,100,1,0,0,
-		0,10,103,1,0,0,0,12,108,1,0,0,0,14,128,1,0,0,0,16,151,1,0,0,0,18,165,1,
-		0,0,0,20,178,1,0,0,0,22,206,1,0,0,0,24,224,1,0,0,0,26,229,1,0,0,0,28,234,
-		1,0,0,0,30,252,1,0,0,0,32,286,1,0,0,0,34,304,1,0,0,0,36,314,1,0,0,0,38,
-		342,1,0,0,0,40,365,1,0,0,0,42,374,1,0,0,0,44,412,1,0,0,0,46,414,1,0,0,
-		0,48,425,1,0,0,0,50,427,1,0,0,0,52,431,1,0,0,0,54,60,3,6,3,0,55,60,3,10,
-		5,0,56,60,3,42,21,0,57,60,3,38,19,0,58,60,5,4,0,0,59,54,1,0,0,0,59,55,
-		1,0,0,0,59,56,1,0,0,0,59,57,1,0,0,0,59,58,1,0,0,0,60,61,1,0,0,0,61,59,
-		1,0,0,0,61,62,1,0,0,0,62,63,1,0,0,0,63,64,5,0,0,1,64,1,1,0,0,0,65,66,5,
-		46,0,0,66,67,5,48,0,0,67,68,5,10,0,0,68,73,3,36,18,0,69,70,5,23,0,0,70,
-		72,3,36,18,0,71,69,1,0,0,0,72,75,1,0,0,0,73,71,1,0,0,0,73,74,1,0,0,0,74,
-		76,1,0,0,0,75,73,1,0,0,0,76,77,5,11,0,0,77,78,5,4,0,0,78,3,1,0,0,0,79,
-		83,5,46,0,0,80,81,5,51,0,0,81,82,5,48,0,0,82,84,5,51,0,0,83,80,1,0,0,0,
-		83,84,1,0,0,0,84,85,1,0,0,0,85,87,5,48,0,0,86,88,5,4,0,0,87,86,1,0,0,0,
-		87,88,1,0,0,0,88,5,1,0,0,0,89,91,3,4,2,0,90,89,1,0,0,0,90,91,1,0,0,0,91,
-		92,1,0,0,0,92,93,5,12,0,0,93,94,5,48,0,0,94,95,3,8,4,0,95,96,3,30,15,0,
-		96,7,1,0,0,0,97,99,5,48,0,0,98,97,1,0,0,0,99,102,1,0,0,0,100,98,1,0,0,
-		0,100,101,1,0,0,0,101,9,1,0,0,0,102,100,1,0,0,0,103,104,5,14,0,0,104,105,
-		5,48,0,0,105,106,3,8,4,0,106,107,3,30,15,0,107,11,1,0,0,0,108,109,5,17,
-		0,0,109,114,5,47,0,0,110,111,5,41,0,0,111,113,3,36,18,0,112,110,1,0,0,
-		0,113,116,1,0,0,0,114,112,1,0,0,0,114,115,1,0,0,0,115,120,1,0,0,0,116,
-		114,1,0,0,0,117,119,5,3,0,0,118,117,1,0,0,0,119,122,1,0,0,0,120,118,1,
-		0,0,0,120,121,1,0,0,0,121,124,1,0,0,0,122,120,1,0,0,0,123,125,5,4,0,0,
-		124,123,1,0,0,0,125,126,1,0,0,0,126,124,1,0,0,0,126,127,1,0,0,0,127,13,
-		1,0,0,0,128,129,5,18,0,0,129,134,5,47,0,0,130,131,5,41,0,0,131,133,3,36,
-		18,0,132,130,1,0,0,0,133,136,1,0,0,0,134,132,1,0,0,0,134,135,1,0,0,0,135,
-		140,1,0,0,0,136,134,1,0,0,0,137,139,5,3,0,0,138,137,1,0,0,0,139,142,1,
-		0,0,0,140,138,1,0,0,0,140,141,1,0,0,0,141,144,1,0,0,0,142,140,1,0,0,0,
-		143,145,5,4,0,0,144,143,1,0,0,0,145,146,1,0,0,0,146,144,1,0,0,0,146,147,
-		1,0,0,0,147,15,1,0,0,0,148,152,3,24,12,0,149,152,3,26,13,0,150,152,3,36,
-		18,0,151,148,1,0,0,0,151,149,1,0,0,0,151,150,1,0,0,0,152,156,1,0,0,0,153,
-		155,5,3,0,0,154,153,1,0,0,0,155,158,1,0,0,0,156,154,1,0,0,0,156,157,1,
-		0,0,0,157,162,1,0,0,0,158,156,1,0,0,0,159,161,5,4,0,0,160,159,1,0,0,0,
-		161,164,1,0,0,0,162,160,1,0,0,0,162,163,1,0,0,0,163,17,1,0,0,0,164,162,
-		1,0,0,0,165,166,5,25,0,0,166,167,3,36,18,0,167,176,3,30,15,0,168,172,5,
-		26,0,0,169,171,5,4,0,0,170,169,1,0,0,0,171,174,1,0,0,0,172,170,1,0,0,0,
-		172,173,1,0,0,0,173,175,1,0,0,0,174,172,1,0,0,0,175,177,3,30,15,0,176,
-		168,1,0,0,0,176,177,1,0,0,0,177,19,1,0,0,0,178,179,7,0,0,0,179,184,3,36,
-		18,0,180,181,5,23,0,0,181,183,3,36,18,0,182,180,1,0,0,0,183,186,1,0,0,
-		0,184,182,1,0,0,0,184,185,1,0,0,0,185,187,1,0,0,0,186,184,1,0,0,0,187,
-		191,5,8,0,0,188,190,5,4,0,0,189,188,1,0,0,0,190,193,1,0,0,0,191,189,1,
-		0,0,0,191,192,1,0,0,0,192,195,1,0,0,0,193,191,1,0,0,0,194,196,3,22,11,
-		0,195,194,1,0,0,0,196,197,1,0,0,0,197,195,1,0,0,0,197,198,1,0,0,0,198,
-		199,1,0,0,0,199,203,5,9,0,0,200,202,5,4,0,0,201,200,1,0,0,0,202,205,1,
-		0,0,0,203,201,1,0,0,0,203,204,1,0,0,0,204,21,1,0,0,0,205,203,1,0,0,0,206,
-		211,3,34,17,0,207,208,5,23,0,0,208,210,3,34,17,0,209,207,1,0,0,0,210,213,
-		1,0,0,0,211,209,1,0,0,0,211,212,1,0,0,0,212,214,1,0,0,0,213,211,1,0,0,
-		0,214,222,5,24,0,0,215,217,3,16,8,0,216,218,5,4,0,0,217,216,1,0,0,0,218,
-		219,1,0,0,0,219,217,1,0,0,0,219,220,1,0,0,0,220,223,1,0,0,0,221,223,3,
-		30,15,0,222,215,1,0,0,0,222,221,1,0,0,0,223,23,1,0,0,0,224,225,5,19,0,
-		0,225,226,3,48,24,0,226,227,5,31,0,0,227,228,3,36,18,0,228,25,1,0,0,0,
-		229,230,5,20,0,0,230,231,5,44,0,0,231,232,5,7,0,0,232,233,3,36,18,0,233,
-		27,1,0,0,0,234,237,5,48,0,0,235,236,5,44,0,0,236,238,5,7,0,0,237,235,1,
-		0,0,0,237,238,1,0,0,0,238,239,1,0,0,0,239,240,5,10,0,0,240,245,3,36,18,
-		0,241,242,5,23,0,0,242,244,3,36,18,0,243,241,1,0,0,0,244,247,1,0,0,0,245,
-		243,1,0,0,0,245,246,1,0,0,0,246,248,1,0,0,0,247,245,1,0,0,0,248,250,5,
-		11,0,0,249,251,3,30,15,0,250,249,1,0,0,0,250,251,1,0,0,0,251,29,1,0,0,
-		0,252,256,5,8,0,0,253,255,5,4,0,0,254,253,1,0,0,0,255,258,1,0,0,0,256,
-		254,1,0,0,0,256,257,1,0,0,0,257,261,1,0,0,0,258,256,1,0,0,0,259,262,3,
-		12,6,0,260,262,3,14,7,0,261,259,1,0,0,0,261,260,1,0,0,0,261,262,1,0,0,
-		0,262,278,1,0,0,0,263,264,3,16,8,0,264,265,5,9,0,0,265,279,1,0,0,0,266,
-		268,3,16,8,0,267,269,5,4,0,0,268,267,1,0,0,0,269,270,1,0,0,0,270,268,1,
-		0,0,0,270,271,1,0,0,0,271,273,1,0,0,0,272,266,1,0,0,0,273,276,1,0,0,0,
-		274,272,1,0,0,0,274,275,1,0,0,0,275,277,1,0,0,0,276,274,1,0,0,0,277,279,
-		5,9,0,0,278,263,1,0,0,0,278,274,1,0,0,0,279,283,1,0,0,0,280,282,5,4,0,
-		0,281,280,1,0,0,0,282,285,1,0,0,0,283,281,1,0,0,0,283,284,1,0,0,0,284,
-		31,1,0,0,0,285,283,1,0,0,0,286,289,5,48,0,0,287,288,5,44,0,0,288,290,5,
-		7,0,0,289,287,1,0,0,0,289,290,1,0,0,0,290,291,1,0,0,0,291,293,3,34,17,
-		0,292,294,3,30,15,0,293,292,1,0,0,0,293,294,1,0,0,0,294,33,1,0,0,0,295,
-		305,3,32,16,0,296,305,3,28,14,0,297,305,3,44,22,0,298,305,3,50,25,0,299,
-		305,5,47,0,0,300,305,3,48,24,0,301,305,3,46,23,0,302,305,3,52,26,0,303,
-		305,5,2,0,0,304,295,1,0,0,0,304,296,1,0,0,0,304,297,1,0,0,0,304,298,1,
-		0,0,0,304,299,1,0,0,0,304,300,1,0,0,0,304,301,1,0,0,0,304,302,1,0,0,0,
-		304,303,1,0,0,0,305,35,1,0,0,0,306,307,6,18,-1,0,307,315,3,18,9,0,308,
-		315,3,20,10,0,309,315,3,34,17,0,310,311,5,10,0,0,311,312,3,36,18,0,312,
-		313,5,11,0,0,313,315,1,0,0,0,314,306,1,0,0,0,314,308,1,0,0,0,314,309,1,
-		0,0,0,314,310,1,0,0,0,315,336,1,0,0,0,316,317,10,7,0,0,317,318,7,1,0,0,
-		318,335,3,36,18,8,319,320,10,6,0,0,320,321,7,2,0,0,321,335,3,36,18,7,322,
-		323,10,5,0,0,323,324,7,3,0,0,324,335,3,36,18,6,325,326,10,4,0,0,326,327,
-		5,32,0,0,327,335,3,36,18,5,328,329,10,3,0,0,329,330,5,41,0,0,330,335,3,
-		36,18,4,331,332,10,2,0,0,332,333,5,42,0,0,333,335,3,36,18,3,334,316,1,
-		0,0,0,334,319,1,0,0,0,334,322,1,0,0,0,334,325,1,0,0,0,334,328,1,0,0,0,
-		334,331,1,0,0,0,335,338,1,0,0,0,336,334,1,0,0,0,336,337,1,0,0,0,337,37,
-		1,0,0,0,338,336,1,0,0,0,339,341,3,2,1,0,340,339,1,0,0,0,341,344,1,0,0,
-		0,342,340,1,0,0,0,342,343,1,0,0,0,343,345,1,0,0,0,344,342,1,0,0,0,345,
-		346,5,13,0,0,346,347,5,47,0,0,347,351,5,8,0,0,348,350,5,4,0,0,349,348,
-		1,0,0,0,350,353,1,0,0,0,351,349,1,0,0,0,351,352,1,0,0,0,352,355,1,0,0,
-		0,353,351,1,0,0,0,354,356,3,40,20,0,355,354,1,0,0,0,356,357,1,0,0,0,357,
-		355,1,0,0,0,357,358,1,0,0,0,358,359,1,0,0,0,359,361,5,9,0,0,360,362,5,
-		4,0,0,361,360,1,0,0,0,362,363,1,0,0,0,363,361,1,0,0,0,363,364,1,0,0,0,
-		364,39,1,0,0,0,365,366,5,15,0,0,366,367,5,48,0,0,367,368,5,7,0,0,368,370,
-		7,4,0,0,369,371,5,4,0,0,370,369,1,0,0,0,371,372,1,0,0,0,372,370,1,0,0,
-		0,372,373,1,0,0,0,373,41,1,0,0,0,374,375,5,16,0,0,375,376,5,47,0,0,376,
-		380,5,8,0,0,377,379,5,4,0,0,378,377,1,0,0,0,379,382,1,0,0,0,380,378,1,
-		0,0,0,380,381,1,0,0,0,381,383,1,0,0,0,382,380,1,0,0,0,383,394,5,47,0,0,
-		384,388,5,23,0,0,385,387,5,4,0,0,386,385,1,0,0,0,387,390,1,0,0,0,388,386,
-		1,0,0,0,388,389,1,0,0,0,389,391,1,0,0,0,390,388,1,0,0,0,391,393,5,47,0,
-		0,392,384,1,0,0,0,393,396,1,0,0,0,394,392,1,0,0,0,394,395,1,0,0,0,395,
-		398,1,0,0,0,396,394,1,0,0,0,397,399,5,23,0,0,398,397,1,0,0,0,398,399,1,
-		0,0,0,399,403,1,0,0,0,400,402,5,4,0,0,401,400,1,0,0,0,402,405,1,0,0,0,
-		403,401,1,0,0,0,403,404,1,0,0,0,404,406,1,0,0,0,405,403,1,0,0,0,406,408,
-		5,9,0,0,407,409,5,4,0,0,408,407,1,0,0,0,409,410,1,0,0,0,410,408,1,0,0,
-		0,410,411,1,0,0,0,411,43,1,0,0,0,412,413,5,1,0,0,413,45,1,0,0,0,414,415,
-		7,5,0,0,415,47,1,0,0,0,416,421,7,6,0,0,417,418,5,29,0,0,418,420,5,48,0,
-		0,419,417,1,0,0,0,420,423,1,0,0,0,421,419,1,0,0,0,421,422,1,0,0,0,422,
-		426,1,0,0,0,423,421,1,0,0,0,424,426,5,48,0,0,425,416,1,0,0,0,425,424,1,
-		0,0,0,426,49,1,0,0,0,427,428,5,47,0,0,428,429,5,29,0,0,429,430,5,47,0,
-		0,430,51,1,0,0,0,431,432,7,7,0,0,432,53,1,0,0,0,53,59,61,73,83,87,90,100,
-		114,120,126,134,140,146,151,156,162,172,176,184,191,197,203,211,219,222,
-		237,245,250,256,261,270,274,278,283,289,293,304,314,334,336,342,351,357,
-		363,372,380,388,394,398,403,410,421,425
+		5,19,350,8,19,10,19,12,19,353,9,19,1,19,5,19,356,8,19,10,19,12,19,359,
+		9,19,1,19,1,19,4,19,363,8,19,11,19,12,19,364,1,20,1,20,1,20,1,20,1,20,
+		4,20,372,8,20,11,20,12,20,373,1,21,1,21,1,21,1,21,5,21,380,8,21,10,21,
+		12,21,383,9,21,1,21,1,21,1,21,5,21,388,8,21,10,21,12,21,391,9,21,1,21,
+		5,21,394,8,21,10,21,12,21,397,9,21,1,21,3,21,400,8,21,1,21,5,21,403,8,
+		21,10,21,12,21,406,9,21,1,21,1,21,4,21,410,8,21,11,21,12,21,411,1,22,1,
+		22,1,23,1,23,1,24,1,24,1,24,5,24,421,8,24,10,24,12,24,424,9,24,1,24,3,
+		24,427,8,24,1,25,1,25,1,25,1,25,1,26,1,26,1,26,0,1,36,27,0,2,4,6,8,10,
+		12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,0,8,1,0,
+		21,22,1,0,35,36,1,0,33,34,2,0,30,31,37,40,1,0,47,48,1,0,27,28,1,0,43,44,
+		1,0,49,51,478,0,59,1,0,0,0,2,65,1,0,0,0,4,79,1,0,0,0,6,90,1,0,0,0,8,100,
+		1,0,0,0,10,103,1,0,0,0,12,108,1,0,0,0,14,128,1,0,0,0,16,151,1,0,0,0,18,
+		165,1,0,0,0,20,178,1,0,0,0,22,206,1,0,0,0,24,224,1,0,0,0,26,229,1,0,0,
+		0,28,234,1,0,0,0,30,252,1,0,0,0,32,286,1,0,0,0,34,304,1,0,0,0,36,314,1,
+		0,0,0,38,342,1,0,0,0,40,366,1,0,0,0,42,375,1,0,0,0,44,413,1,0,0,0,46,415,
+		1,0,0,0,48,426,1,0,0,0,50,428,1,0,0,0,52,432,1,0,0,0,54,60,3,6,3,0,55,
+		60,3,10,5,0,56,60,3,42,21,0,57,60,3,38,19,0,58,60,5,4,0,0,59,54,1,0,0,
+		0,59,55,1,0,0,0,59,56,1,0,0,0,59,57,1,0,0,0,59,58,1,0,0,0,60,61,1,0,0,
+		0,61,59,1,0,0,0,61,62,1,0,0,0,62,63,1,0,0,0,63,64,5,0,0,1,64,1,1,0,0,0,
+		65,66,5,46,0,0,66,67,5,48,0,0,67,68,5,10,0,0,68,73,3,36,18,0,69,70,5,23,
+		0,0,70,72,3,36,18,0,71,69,1,0,0,0,72,75,1,0,0,0,73,71,1,0,0,0,73,74,1,
+		0,0,0,74,76,1,0,0,0,75,73,1,0,0,0,76,77,5,11,0,0,77,78,5,4,0,0,78,3,1,
+		0,0,0,79,83,5,46,0,0,80,81,5,51,0,0,81,82,5,48,0,0,82,84,5,51,0,0,83,80,
+		1,0,0,0,83,84,1,0,0,0,84,85,1,0,0,0,85,87,5,48,0,0,86,88,5,4,0,0,87,86,
+		1,0,0,0,87,88,1,0,0,0,88,5,1,0,0,0,89,91,3,4,2,0,90,89,1,0,0,0,90,91,1,
+		0,0,0,91,92,1,0,0,0,92,93,5,12,0,0,93,94,5,48,0,0,94,95,3,8,4,0,95,96,
+		3,30,15,0,96,7,1,0,0,0,97,99,5,48,0,0,98,97,1,0,0,0,99,102,1,0,0,0,100,
+		98,1,0,0,0,100,101,1,0,0,0,101,9,1,0,0,0,102,100,1,0,0,0,103,104,5,14,
+		0,0,104,105,5,48,0,0,105,106,3,8,4,0,106,107,3,30,15,0,107,11,1,0,0,0,
+		108,109,5,17,0,0,109,114,5,47,0,0,110,111,5,41,0,0,111,113,3,36,18,0,112,
+		110,1,0,0,0,113,116,1,0,0,0,114,112,1,0,0,0,114,115,1,0,0,0,115,120,1,
+		0,0,0,116,114,1,0,0,0,117,119,5,3,0,0,118,117,1,0,0,0,119,122,1,0,0,0,
+		120,118,1,0,0,0,120,121,1,0,0,0,121,124,1,0,0,0,122,120,1,0,0,0,123,125,
+		5,4,0,0,124,123,1,0,0,0,125,126,1,0,0,0,126,124,1,0,0,0,126,127,1,0,0,
+		0,127,13,1,0,0,0,128,129,5,18,0,0,129,134,5,47,0,0,130,131,5,41,0,0,131,
+		133,3,36,18,0,132,130,1,0,0,0,133,136,1,0,0,0,134,132,1,0,0,0,134,135,
+		1,0,0,0,135,140,1,0,0,0,136,134,1,0,0,0,137,139,5,3,0,0,138,137,1,0,0,
+		0,139,142,1,0,0,0,140,138,1,0,0,0,140,141,1,0,0,0,141,144,1,0,0,0,142,
+		140,1,0,0,0,143,145,5,4,0,0,144,143,1,0,0,0,145,146,1,0,0,0,146,144,1,
+		0,0,0,146,147,1,0,0,0,147,15,1,0,0,0,148,152,3,24,12,0,149,152,3,26,13,
+		0,150,152,3,36,18,0,151,148,1,0,0,0,151,149,1,0,0,0,151,150,1,0,0,0,152,
+		156,1,0,0,0,153,155,5,3,0,0,154,153,1,0,0,0,155,158,1,0,0,0,156,154,1,
+		0,0,0,156,157,1,0,0,0,157,162,1,0,0,0,158,156,1,0,0,0,159,161,5,4,0,0,
+		160,159,1,0,0,0,161,164,1,0,0,0,162,160,1,0,0,0,162,163,1,0,0,0,163,17,
+		1,0,0,0,164,162,1,0,0,0,165,166,5,25,0,0,166,167,3,36,18,0,167,176,3,30,
+		15,0,168,172,5,26,0,0,169,171,5,4,0,0,170,169,1,0,0,0,171,174,1,0,0,0,
+		172,170,1,0,0,0,172,173,1,0,0,0,173,175,1,0,0,0,174,172,1,0,0,0,175,177,
+		3,30,15,0,176,168,1,0,0,0,176,177,1,0,0,0,177,19,1,0,0,0,178,179,7,0,0,
+		0,179,184,3,36,18,0,180,181,5,23,0,0,181,183,3,36,18,0,182,180,1,0,0,0,
+		183,186,1,0,0,0,184,182,1,0,0,0,184,185,1,0,0,0,185,187,1,0,0,0,186,184,
+		1,0,0,0,187,191,5,8,0,0,188,190,5,4,0,0,189,188,1,0,0,0,190,193,1,0,0,
+		0,191,189,1,0,0,0,191,192,1,0,0,0,192,195,1,0,0,0,193,191,1,0,0,0,194,
+		196,3,22,11,0,195,194,1,0,0,0,196,197,1,0,0,0,197,195,1,0,0,0,197,198,
+		1,0,0,0,198,199,1,0,0,0,199,203,5,9,0,0,200,202,5,4,0,0,201,200,1,0,0,
+		0,202,205,1,0,0,0,203,201,1,0,0,0,203,204,1,0,0,0,204,21,1,0,0,0,205,203,
+		1,0,0,0,206,211,3,34,17,0,207,208,5,23,0,0,208,210,3,34,17,0,209,207,1,
+		0,0,0,210,213,1,0,0,0,211,209,1,0,0,0,211,212,1,0,0,0,212,214,1,0,0,0,
+		213,211,1,0,0,0,214,222,5,24,0,0,215,217,3,16,8,0,216,218,5,4,0,0,217,
+		216,1,0,0,0,218,219,1,0,0,0,219,217,1,0,0,0,219,220,1,0,0,0,220,223,1,
+		0,0,0,221,223,3,30,15,0,222,215,1,0,0,0,222,221,1,0,0,0,223,23,1,0,0,0,
+		224,225,5,19,0,0,225,226,3,48,24,0,226,227,5,31,0,0,227,228,3,36,18,0,
+		228,25,1,0,0,0,229,230,5,20,0,0,230,231,5,44,0,0,231,232,5,7,0,0,232,233,
+		3,36,18,0,233,27,1,0,0,0,234,237,5,48,0,0,235,236,5,44,0,0,236,238,5,7,
+		0,0,237,235,1,0,0,0,237,238,1,0,0,0,238,239,1,0,0,0,239,240,5,10,0,0,240,
+		245,3,36,18,0,241,242,5,23,0,0,242,244,3,36,18,0,243,241,1,0,0,0,244,247,
+		1,0,0,0,245,243,1,0,0,0,245,246,1,0,0,0,246,248,1,0,0,0,247,245,1,0,0,
+		0,248,250,5,11,0,0,249,251,3,30,15,0,250,249,1,0,0,0,250,251,1,0,0,0,251,
+		29,1,0,0,0,252,256,5,8,0,0,253,255,5,4,0,0,254,253,1,0,0,0,255,258,1,0,
+		0,0,256,254,1,0,0,0,256,257,1,0,0,0,257,261,1,0,0,0,258,256,1,0,0,0,259,
+		262,3,12,6,0,260,262,3,14,7,0,261,259,1,0,0,0,261,260,1,0,0,0,261,262,
+		1,0,0,0,262,278,1,0,0,0,263,264,3,16,8,0,264,265,5,9,0,0,265,279,1,0,0,
+		0,266,268,3,16,8,0,267,269,5,4,0,0,268,267,1,0,0,0,269,270,1,0,0,0,270,
+		268,1,0,0,0,270,271,1,0,0,0,271,273,1,0,0,0,272,266,1,0,0,0,273,276,1,
+		0,0,0,274,272,1,0,0,0,274,275,1,0,0,0,275,277,1,0,0,0,276,274,1,0,0,0,
+		277,279,5,9,0,0,278,263,1,0,0,0,278,274,1,0,0,0,279,283,1,0,0,0,280,282,
+		5,4,0,0,281,280,1,0,0,0,282,285,1,0,0,0,283,281,1,0,0,0,283,284,1,0,0,
+		0,284,31,1,0,0,0,285,283,1,0,0,0,286,289,5,48,0,0,287,288,5,44,0,0,288,
+		290,5,7,0,0,289,287,1,0,0,0,289,290,1,0,0,0,290,291,1,0,0,0,291,293,3,
+		34,17,0,292,294,3,30,15,0,293,292,1,0,0,0,293,294,1,0,0,0,294,33,1,0,0,
+		0,295,305,3,32,16,0,296,305,3,28,14,0,297,305,3,44,22,0,298,305,3,50,25,
+		0,299,305,5,47,0,0,300,305,3,48,24,0,301,305,3,46,23,0,302,305,3,52,26,
+		0,303,305,5,2,0,0,304,295,1,0,0,0,304,296,1,0,0,0,304,297,1,0,0,0,304,
+		298,1,0,0,0,304,299,1,0,0,0,304,300,1,0,0,0,304,301,1,0,0,0,304,302,1,
+		0,0,0,304,303,1,0,0,0,305,35,1,0,0,0,306,307,6,18,-1,0,307,315,3,18,9,
+		0,308,315,3,20,10,0,309,315,3,34,17,0,310,311,5,10,0,0,311,312,3,36,18,
+		0,312,313,5,11,0,0,313,315,1,0,0,0,314,306,1,0,0,0,314,308,1,0,0,0,314,
+		309,1,0,0,0,314,310,1,0,0,0,315,336,1,0,0,0,316,317,10,7,0,0,317,318,7,
+		1,0,0,318,335,3,36,18,8,319,320,10,6,0,0,320,321,7,2,0,0,321,335,3,36,
+		18,7,322,323,10,5,0,0,323,324,7,3,0,0,324,335,3,36,18,6,325,326,10,4,0,
+		0,326,327,5,32,0,0,327,335,3,36,18,5,328,329,10,3,0,0,329,330,5,41,0,0,
+		330,335,3,36,18,4,331,332,10,2,0,0,332,333,5,42,0,0,333,335,3,36,18,3,
+		334,316,1,0,0,0,334,319,1,0,0,0,334,322,1,0,0,0,334,325,1,0,0,0,334,328,
+		1,0,0,0,334,331,1,0,0,0,335,338,1,0,0,0,336,334,1,0,0,0,336,337,1,0,0,
+		0,337,37,1,0,0,0,338,336,1,0,0,0,339,341,3,2,1,0,340,339,1,0,0,0,341,344,
+		1,0,0,0,342,340,1,0,0,0,342,343,1,0,0,0,343,345,1,0,0,0,344,342,1,0,0,
+		0,345,346,5,13,0,0,346,347,5,47,0,0,347,351,5,8,0,0,348,350,5,4,0,0,349,
+		348,1,0,0,0,350,353,1,0,0,0,351,349,1,0,0,0,351,352,1,0,0,0,352,357,1,
+		0,0,0,353,351,1,0,0,0,354,356,3,40,20,0,355,354,1,0,0,0,356,359,1,0,0,
+		0,357,355,1,0,0,0,357,358,1,0,0,0,358,360,1,0,0,0,359,357,1,0,0,0,360,
+		362,5,9,0,0,361,363,5,4,0,0,362,361,1,0,0,0,363,364,1,0,0,0,364,362,1,
+		0,0,0,364,365,1,0,0,0,365,39,1,0,0,0,366,367,5,15,0,0,367,368,5,48,0,0,
+		368,369,5,7,0,0,369,371,7,4,0,0,370,372,5,4,0,0,371,370,1,0,0,0,372,373,
+		1,0,0,0,373,371,1,0,0,0,373,374,1,0,0,0,374,41,1,0,0,0,375,376,5,16,0,
+		0,376,377,5,47,0,0,377,381,5,8,0,0,378,380,5,4,0,0,379,378,1,0,0,0,380,
+		383,1,0,0,0,381,379,1,0,0,0,381,382,1,0,0,0,382,384,1,0,0,0,383,381,1,
+		0,0,0,384,395,5,47,0,0,385,389,5,23,0,0,386,388,5,4,0,0,387,386,1,0,0,
+		0,388,391,1,0,0,0,389,387,1,0,0,0,389,390,1,0,0,0,390,392,1,0,0,0,391,
+		389,1,0,0,0,392,394,5,47,0,0,393,385,1,0,0,0,394,397,1,0,0,0,395,393,1,
+		0,0,0,395,396,1,0,0,0,396,399,1,0,0,0,397,395,1,0,0,0,398,400,5,23,0,0,
+		399,398,1,0,0,0,399,400,1,0,0,0,400,404,1,0,0,0,401,403,5,4,0,0,402,401,
+		1,0,0,0,403,406,1,0,0,0,404,402,1,0,0,0,404,405,1,0,0,0,405,407,1,0,0,
+		0,406,404,1,0,0,0,407,409,5,9,0,0,408,410,5,4,0,0,409,408,1,0,0,0,410,
+		411,1,0,0,0,411,409,1,0,0,0,411,412,1,0,0,0,412,43,1,0,0,0,413,414,5,1,
+		0,0,414,45,1,0,0,0,415,416,7,5,0,0,416,47,1,0,0,0,417,422,7,6,0,0,418,
+		419,5,29,0,0,419,421,5,48,0,0,420,418,1,0,0,0,421,424,1,0,0,0,422,420,
+		1,0,0,0,422,423,1,0,0,0,423,427,1,0,0,0,424,422,1,0,0,0,425,427,5,48,0,
+		0,426,417,1,0,0,0,426,425,1,0,0,0,427,49,1,0,0,0,428,429,5,47,0,0,429,
+		430,5,29,0,0,430,431,5,47,0,0,431,51,1,0,0,0,432,433,7,7,0,0,433,53,1,
+		0,0,0,53,59,61,73,83,87,90,100,114,120,126,134,140,146,151,156,162,172,
+		176,184,191,197,203,211,219,222,237,245,250,256,261,270,274,278,283,289,
+		293,304,314,334,336,342,351,357,364,373,381,389,395,399,404,411,422,426
 	};
 
 	public static readonly ATN _ATN =

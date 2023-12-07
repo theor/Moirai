@@ -39,7 +39,7 @@ expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     ;
 
-type_definition: attribute* ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* prop_definition+ SCOPE_CLOSE LINE_BREAK+ ;
+type_definition: attribute* ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* prop_definition* SCOPE_CLOSE LINE_BREAK+ ;
 
 //range: (PAREN_OPEN number COMMA number PAREN_CLOSE);
 prop_definition: PROP ID COLON (ID|TYPE_ID) LINE_BREAK+ ;

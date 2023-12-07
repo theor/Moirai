@@ -125,16 +125,16 @@ public static class Profiler
         // {
         //     Debug.WriteLine($"{property.p.Name ?? ""}: get {property.Item2.Get} / set {property.Item2.Set}");
         // }
-        foreach (var type in Enum.GetValues<PropertyValue.ValueBaseType>())
-        {
-            Debug.WriteLine($"{type,10}: {ValueHits[(int)type]}");
-
-        }
-        for (var index = 0; index < HitsOfType.Length; index++)
-        {
-            var (total, success) = HitsOfType[index];
-            Debug.WriteLine($"{_db.Types[index].Name,10}: {100 * success / (float)total}% {success} / {total}");
-        }
+        // foreach (var type in Enum.GetValues<PropertyValue.ValueBaseType>())
+        // {
+        //     Debug.WriteLine($"{type,10}: {ValueHits[(int)type]}");
+        //
+        // }
+        // for (var index = 0; index < HitsOfType.Length; index++)
+        // {
+        //     var (total, success) = HitsOfType[index];
+        //     Debug.WriteLine($"{_db.Types[index].Name,10}: {100 * success / (float)total}% {success} / {total}");
+        // }
         Debug.WriteLine($"Events: {Database.EventAttemptSuccess} / {Database.EventAttemptCount} = {100f*Database.EventAttemptSuccess/Database.EventAttemptCount}%");
     }
 }

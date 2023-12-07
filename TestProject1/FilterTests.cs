@@ -6,8 +6,9 @@ public class MarkTests : TestsBase
     public void MarkCurrentEvent()
     {
         var s = @"
-entity Person {}
+entity Person {
 prop x: number
+}
 @start
 event create {
     create $t: (Time)
@@ -28,8 +29,9 @@ event e {
     public void MarkCurrentEventAndQuery()
     {
         var s = @"
-entity Person {}
+entity Person {
 prop x: number
+}
 @start
 event e {
     create $p: (Person)
@@ -40,7 +42,8 @@ event since {
     var $since: since_last($p)
     mark($p)
     record('since last: {$since}')
-}";
+}
+";
 
         var db = Run(s, out _);
         db.History = new();
@@ -64,8 +67,9 @@ public class FilterTests : TestsBase
     public void Filter_Start()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 @start
 event char_dies {
     pick $p: (type=Person, alive = true)
@@ -80,8 +84,9 @@ event char_dies {
     public void Filter_Every()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 @1 every 1 year
 event char_dies {
     pick $p: (type=Person, alive = true)
@@ -95,8 +100,9 @@ event char_dies {
     public void Filter_Frequency()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 @1 per 2 years
 event char_dies {
     pick $p: (type=Person, alive = true)

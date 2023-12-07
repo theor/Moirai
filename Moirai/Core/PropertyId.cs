@@ -20,7 +20,7 @@ public readonly struct PropertyId : IEquatable<PropertyId>
     }
 
     public static readonly PropertyId Null = new PropertyId();
-    public bool IsValid => Id != 0 && TypeId.IsValid;
+    public bool IsValid => Id != 0;// && TypeId.IsValid;
     public readonly uint Id;
     public readonly EntityTypeId TypeId;
     public PropertyId(uint id, EntityTypeId entityTypeId)

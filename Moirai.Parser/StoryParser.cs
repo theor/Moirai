@@ -481,12 +481,11 @@ public static class StoryParser
             foreach (var propDefinitionContext in context.prop_definition())
             {
                 var propName = propDefinitionContext.ID(0).GetText();
-                if (_database.GetPropertyId(propName).Id != 0)
+                if (type.GetPropertyId(propName).Id != 0)
                     return AddError(ErrorCode.DuplicatePropertyDefinition, context, propName);
 
                 PropertyValue.ValueType proptype = ParseType(propDefinitionContext.ID(1) ?? context.TYPE_ID());
-                type.Properties.Add(new PropertyDefinition(propName, (uint)type.Properties.Count, proptype));
-                return null;
+                type.Properties.Add(new PropertyDefinition(propName, type.Id, (uint)type.Properties.Count, proptype));
             }
             return null;
         }

@@ -105,8 +105,9 @@ public class Tests : TestsBase
     public void Int_Set()
     {
         var s = @"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
     create $p: (Person)
     set $p.f = 42
@@ -130,9 +131,10 @@ event rr {
     public void Int_FromEnum()
     {
         var s = @"
-entity Person {}
-enum E { A, B, C }
+entity Person {
 prop f: number
+}
+enum E { A, B, C }
 event r {
     create $p: (Person)
     set f = E.B
@@ -151,8 +153,9 @@ event r {
     public void Int_Cmp()
     {
         var s = @"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
     create $p: (Person)
     set f = 42 > 4
@@ -169,8 +172,9 @@ event r {
     public void Int_Increment()
     {
         var s = @"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
     create $p: (Person)
     set f = 42
@@ -188,8 +192,9 @@ event r {
     public void Test1()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 event born_char {
     create $p: ( Person, '{random Name}')
     set $p.alive = true
@@ -207,7 +212,7 @@ event born_char {
         Assert.IsInstanceOf<SetProperty>(action.Effects[1]);
 
 
-        PropertyId propId = db.GetPropertyId("alive");
+        PropertyId propId = db.GetPropertyId("Person","alive");
         Assert.IsTrue(propId.IsValid);
         db.RunAction(action.Name);
         db.Printer.PrintDb();
@@ -219,8 +224,9 @@ event born_char {
     public void FilterByType()
     {
         var s = @"
-entity Person {}
-prop alive: number
+entity Person {
+    prop alive: number
+}
 event born_char {
     create $p: ( Person, '{random Name}')
 }
@@ -241,15 +247,16 @@ event r {
         db.Printer.PrintDb();
         // db.Commit();
         Assert.AreEqual(10, db.Entities.Count());
-        Assert.AreEqual(2, db.Entities.Last().GetProperty(db.GetPropertyId("alive")).IntValue);
+        Assert.AreEqual(2, db.Entities.Last().GetProperty(db.GetPropertyId("Person","alive")).IntValue);
     }
 
     [Test]
     public void TypeQuery()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 event r {
     pick $p: (type = Person)
     set $p.alive = true
@@ -263,7 +270,7 @@ event r {
         Assert.AreEqual(1, db.Actions.Count);
         var action = db.Actions[0];
 
-        PropertyId propId = db.GetPropertyId("alive");
+        PropertyId propId = db.GetPropertyId("Person","alive");
         Assert.IsTrue(propId.IsValid);
         db.RunAction(action.Name);
         db.Printer.PrintDb();
@@ -276,8 +283,9 @@ event r {
     public void Test2()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 event char_dies {
     pick $p: (type = Person, alive = true)
     set $p.alive = false
@@ -294,7 +302,9 @@ event char_dies {
     public void Test3()
     {
         var s = @"
-prop alive: bool
+entity E {
+    prop alive: bool
+}
 event char_dies {
     pick $x: (alive = true)
     pick $y: (id != $x)
@@ -313,8 +323,9 @@ event char_dies {
     public void Each()
     {
         var s = @"
-entity Person {}
-prop test: bool
+entity Person {
+    prop test: bool
+}
 event foreach {
     each $x: (type=Person) {
         set $x.test = true
@@ -323,7 +334,7 @@ event foreach {
 }";
         var db = Run(s, out var errors);
         db.History = new();
-        var propId = db.GetPropertyId("test");
+        var propId = db.GetPropertyId("Person","test");
         var typePerson = db.GetEntityType("Person");
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
@@ -351,9 +362,10 @@ event foreach {
     public void Each_Multiple()
     {
         var s = @"
-entity Person {}
-prop x: bool
-prop y: bool
+entity Person {
+    prop x: bool
+    prop y: bool
+}
 event foreach {
     each $x: (type=Person) {
         set $x.x = true
@@ -366,8 +378,8 @@ event foreach {
 }";
         var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
         db.History = new();
-        var propX = db.GetPropertyId("x");
-        var propY = db.GetPropertyId("y");
+        var propX = db.GetPropertyId("Person","x");
+        var propY = db.GetPropertyId("Person","y");
         var typePerson = db.GetEntityType("Person");
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
@@ -393,9 +405,10 @@ event foreach {
     public void Each_Multiple_Unnamed()
     {
         var s = @"
-entity Person {}
-prop x: bool
-prop y: bool
+entity Person {
+    prop x: bool
+    prop y: bool
+}
 event foreach {
     each $p: (type=Person) {
         set $p.x = true
@@ -408,8 +421,8 @@ event foreach {
 }";
         var db = Run(s, out var errors, src => Assert.That(src.Contains("$1") || src.Contains("$2"), Is.False));
         db.History = new();
-        var propX = db.GetPropertyId("x");
-        var propY = db.GetPropertyId("y");
+        var propX = db.GetPropertyId("Person","x");
+        var propY = db.GetPropertyId("Person","y");
         var typePerson = db.GetEntityType("Person");
         db.AllocateEntity(typePerson.Id, "A");
         db.AllocateEntity(typePerson.Id, "B");
@@ -435,8 +448,9 @@ event foreach {
     public void DuplicateVarNoError()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 event char_dies {
     pick $p: (type=Person, alive = true)
     pick $p: (type=Person, alive = true)
@@ -471,9 +485,10 @@ event create {
     public void PropertyPath_Var()
     {
         string s = @"
-entity Person {}
+entity Person {
 prop x: number
 prop link: ref
+}
 
 event create {
     create $p: (Person)
@@ -494,9 +509,10 @@ event create {
     public void Enum_Set()
     {
         string s = @"
-entity Person {}
+entity Person {
+    prop job: Job
+}
 enum Job { None, Farmer, Smith }
-prop job: Job
 
 event create {
     create $p: (Person)
@@ -507,7 +523,7 @@ event create {
         db.RunAction("create");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
-        PropertyId jobProp = db.GetPropertyId("job");
+        PropertyId jobProp = db.GetPropertyId("Person","job");
         var value = e.GetProperty(jobProp);
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
@@ -516,12 +532,37 @@ event create {
     }
 
     [Test]
+    public void FAILPARSE()
+    {
+        throw new Exception("Enum after type");
+        string s = @"
+entity Person {
+    prop job: Job
+}
+enum Job { None, Farmer, Smith }
+
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.Printer.PrintDb();
+        var e = db.Entities.Single();
+        PropertyId jobProp = db.GetPropertyId("Person","job");
+        var value = e.GetProperty(jobProp);
+        Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
+        Assert.AreEqual(enumDefinition.ValueType, value.Type);
+        Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
+        Assert.AreEqual(1, value.IntValue);
+    }
+
+    
+    [Test]
     public void Enum_Set_CastInt()
     {
         string s = @"
-entity Person {}
 enum Job { None, Farmer, Smith }
-prop job: Job
+entity Person {
+    prop job: Job
+}
 
 event create {
     create $p: (Person)
@@ -532,7 +573,7 @@ event create {
         db.RunAction("create");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
-        PropertyId jobProp = db.GetPropertyId("job");
+        PropertyId jobProp = db.GetPropertyId("Person","job");
         var value = e.GetProperty(jobProp);
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
@@ -544,9 +585,10 @@ event create {
     public void Prop_WrongEnum()
     {
         string s = @"
-entity Person {}
+entity Person {
+    prop job: Job
+}
 enum Job { None, Farmer, Smith }
-prop job: Job
 
 event create {
     create $p: (Person)
@@ -557,7 +599,7 @@ event create {
         db.RunAction("create");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
-        PropertyId jobProp = db.GetPropertyId("job");
+        PropertyId jobProp = db.GetPropertyId("Person","job");
         var value = e.GetProperty(jobProp);
     }
 
@@ -565,9 +607,10 @@ event create {
     public void AssignRandomEnum()
     {
         string s = @"
-entity Person {}
+entity Person {
+    prop job: Job
+}
 enum Job { Farmer, Smith, Mayor }
-prop job: Job
 
 event create {
     create $p: (Person)
@@ -584,7 +627,7 @@ event create {
 
         db.Printer.PrintDb();
         var e = db.Entities.First();
-        PropertyId jobProp = db.GetPropertyId("job");
+        PropertyId jobProp = db.GetPropertyId("Person","job");
         var value = e.GetProperty(jobProp);
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
@@ -596,10 +639,12 @@ event create {
     public void AssignCreate()
     {
         var s = @"
-entity Person {}
-entity Faction {}
+entity Person {
 prop faction: ref
+}
+entity Faction {
 prop owner: ref
+}
 event create_faction {
     pick $p: (type=Person, faction = null)
     create $f: (Faction)
@@ -617,8 +662,8 @@ event create_faction {
 entity Person {
 }
 entity Faction {
-}
 prop owner: ref
+}
 event create_faction {
     create $f: ( Faction, 'Faction of {random Name}')
     create $g: Faction
@@ -642,8 +687,8 @@ event create_faction {
     {
         var s = @"
 entity Person {
-}
 prop owner: ref
+}
 event create_faction {
     create $p: ( Person, '{random Name}-{random Name} of {random Name}')
     assert_eq($p.name, 'Cerelia-Hecate of River')
@@ -715,8 +760,9 @@ event call {
     public void SetLiteral()
     {
         var s = @"
-entity E {}
+entity E {
 prop x: number
+}
 
 event call {
     var $w:  42
@@ -777,11 +823,12 @@ event born {
     public void Time()
     {
         var s = @"
-entity Person {}
 enum Age { Child, Young, Adult, Old }
-prop alive: bool
-prop birthdate: number
-prop age: Age
+entity Person {
+    prop alive: bool
+    prop birthdate: number
+    prop age: Age
+}
 event create_time {
     create $t: ( Time, 'time')
     set $t.year = 1000
@@ -834,8 +881,9 @@ event pass_15_years {
     public void SetVar2XEqVar1Y()
     {
         string s = @"
-entity Person {}
+entity Person {
 prop birthdate: number
+}
 event born {
     pick $t: (type=Time)
     create $p: (Person)
@@ -848,8 +896,9 @@ event born {
     public void SetVar2XEqVar1Y_ImplicitVar()
     {
         string s = @"
-entity Person {}
-prop birthdate: number
+entity Person {
+    prop birthdate: number
+}
 event born {
     pick $t: (type=Time)
     create $p: (Person)
@@ -862,11 +911,12 @@ event born {
     public void Time2()
     {
         var s = @"
-entity Person {}
 enum Age { Child, Young, Adult, Old }
-prop alive: bool
-prop birthdate: number
-prop age: Age
+entity Person {
+    prop alive: bool
+    prop birthdate: number
+    prop age: Age
+}
 event create_time {
     create $t: ( Time, 'time')
     set $t.year = 1000
@@ -897,7 +947,7 @@ event pass_15_years {
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         db.Commit();
-        Assert.AreEqual(1000, db.Entities.Last().GetProperty(db.GetPropertyId("birthdate")).IntValue);
+        Assert.AreEqual(1000, db.Entities.Last().GetProperty(db.GetPropertyId("Person","birthdate")).IntValue);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
         db.Printer.PrintDb();
