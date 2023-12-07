@@ -95,7 +95,6 @@ public class Database
     {
         Entity e = new(GetEntityType(entityType));
 
-        e.Type = entityType;
         if (!String.IsNullOrEmpty(name))
         {
             e.SetProperty(PropName, name);

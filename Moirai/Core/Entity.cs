@@ -14,6 +14,7 @@ public struct Entity
     private Property[] _properties;
     public Entity(EntityType type) : this()
     {
+        Type = type.Id;
         _properties = new Property[type.Properties.Count];
     }
 
@@ -57,7 +58,9 @@ public struct Entity
 
     public PropertyValue SetProperty(PropertyId propertyId, PropertyValue value)
     {
-        
+        if (propertyId.TypeId.Id != Type.Id && propertyId.TypeId.Id != 0)
+            throw new InvalidOperationException(
+                $"Cannot set property {propertyId.TypeId.ToString()}.{propertyId} on entity {Id} of type {Type}");
         ref var p = ref _properties[propertyId.Id];
         var prev = p.Value;
         p.Id = propertyId;

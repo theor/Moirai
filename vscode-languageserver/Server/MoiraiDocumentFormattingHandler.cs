@@ -205,9 +205,9 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
 
         public override IEnumerable<TextEdit> VisitType_definition(MoiraiParser.Type_definitionContext context)
         {
-            if (context.SCOPE_OPEN() != null)
-                yield return new TextEdit
-                    { NewText = "", Range = GetRange(context.SCOPE_OPEN().Symbol, context.SCOPE_CLOSE().Symbol) };
+            // if (context.SCOPE_OPEN() != null)
+            //     yield return new TextEdit
+            //         { NewText = "", Range = GetRange(context.SCOPE_OPEN().Symbol, context.SCOPE_CLOSE().Symbol) };
             foreach (var e in  base.VisitType_definition(context))
                 yield return e;
         }
@@ -251,7 +251,7 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
         public override IEnumerable<TextEdit> VisitProp_definition(MoiraiParser.Prop_definitionContext context)
         {
             return EnsureSpaces(
-                (context.PROP(), 1, null),
+                (context.PROP(), 1, 4),
                 (context.ID(0), 0, null),
                 (context.COLON(), 1, null),
                 (context.TYPE_ID() ?? context.ID(1), 0, null)

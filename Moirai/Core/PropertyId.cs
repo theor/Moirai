@@ -33,10 +33,10 @@ public readonly struct PropertyId : IEquatable<PropertyId>
 
     public override string ToString()
     {
-        // if (Database.Instance != null)
-        // {
-            // return $"p{Id}:{Database.Instance.Properties[(int)Id].Name}";
-        // }
+        if (Database.Instance != null)
+        {
+            return $"p{Id}:{Database.Instance.GetPropertyName(this)}";
+        }
         return $"p{Id}";
     }
 }
