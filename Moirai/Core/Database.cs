@@ -252,7 +252,7 @@ WHERE id = $id;";
                 return Types[(int) i];
         }
 
-        return default;
+        return Types[0];
     }
 
     public string GetEntityTypeName(EntityTypeId typeId)

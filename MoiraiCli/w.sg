@@ -1,11 +1,40 @@
 @display('Items owned',type = Item and owner = $self)
 @display('Items made',type = Item and maker = $self)
 @display('Children',type = Person and (parent1 = $self or parent2 = $self))
-entity Person
-entity Item
-entity Faction
-entity Country
-entity God
+entity Person {
+    prop age: Age
+    prop first_name: string
+    prop alive: bool
+    prop birthdate: number
+    prop prestige: percentage
+    prop mastery: Mastery
+    prop deathdate: number
+    prop partner: Person
+    prop god: God
+    prop faction: Faction
+    prop birthplace: Country
+    prop place: Country
+    prop job: Job
+    prop parent1: Person
+    prop parent2: Person
+}
+entity Item {
+    prop maker: Person
+    prop item_type: ItemSource
+    prop owner: Person
+}
+entity Faction {
+    prop founder: Person
+
+}
+entity Country {
+    prop war_with: Country
+    prop health: CountryHealth
+    prop prosperity: percentage
+
+}
+entity God {
+}
 
 enum Job {
     Farmer, Fisher, Hunter,
@@ -22,29 +51,8 @@ enum ItemSource { Forged, Painted, Sculpted }
 enum Mastery { Novice, Seasoned, Master, Legendary }
 enum CountryHealth { Disarray, Recession, Neutral, Emerging, Prosperous }
 
-prop age: Age
-prop first_name: string
-prop alive: bool
-prop birthdate: number
-prop prestige: percentage
-prop mastery: Mastery
-prop deathdate: number
-prop partner: Person
-prop war_with: Country
-prop god: God
-prop faction: Faction
-prop birthplace: Country
-prop place: Country
-prop job: Job
-prop maker: Person
-prop item_type: ItemSource
-prop prosperity: percentage
-prop health: CountryHealth
 
-prop parent1: Person
-prop parent2: Person
 
-prop owner: Person
 
 enum CountryName {
     The_Land_of,
@@ -474,7 +482,7 @@ event item_sold items {
 event create_faction {
     pick $p: (type = Person, alive, faction = null, age > Age.Child)
     create $f: (Faction, 'Faction of {random(Name)}')
-    set $f.owner = $p
+    set $f.founder = $p
     set $p.faction = $f
     record('{$p.name} creates the {$f.name}')
 }

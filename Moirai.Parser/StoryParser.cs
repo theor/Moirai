@@ -428,8 +428,6 @@ public static class StoryParser
         protected override object? DefaultResult => null;
 
         public readonly Database _database;
-        private bool passTwo = false;
-        private List<(EntityTypeId, MoiraiParser.AttributeContext)> _deferredTypeAttributes = new();
 
         // private int _implicitVariableIndex = -1;
         public AstVisitor(Database database)
@@ -439,9 +437,40 @@ public static class StoryParser
 
         public override object? VisitR(MoiraiParser.RContext context)
         {
-            var firstPass = base.VisitR(context);
-            passTwo = true;
-            foreach (var (tid, attr) in _deferredTypeAttributes)
+            foreach (var enumDefinitionContext in context.enum_definition())
+            {
+                enumDefinitionContext.Accept(this);
+            }
+            List<(EntityType Id, MoiraiParser.Type_definitionContext attr)> typesContexts = new();
+            List<(EntityType Id, MoiraiParser.AttributeContext attr)> deferredTypeAttributes = new();
+      
+            foreach (var typeDefinitionContext in context.type_definition())
+            {
+                if (typeDefinitionContext.TYPE_ID() == null)
+                    return AddError(ErrorCode.TypeNameMustStartWithUpperCase,
+                        typeDefinitionContext,
+                        typeDefinitionContext.GetText());
+
+                string? typeName = typeDefinitionContext.TYPE_ID().GetText();
+                EntityType type = DeclareEntityType(typeName);
+                
+                typesContexts.Add((type, typeDefinitionContext));
+                foreach(var attr in typeDefinitionContext.attribute())
+                    deferredTypeAttributes.Add((type,  attr));
+            }
+            foreach (var (type, typeDefinitionContext) in typesContexts)
+            {
+                foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
+                {
+                    var propName = propDefinitionContext.ID(0).GetText();
+                    if (type.GetPropertyId(propName).Id != 0)
+                        return AddError(ErrorCode.DuplicatePropertyDefinition, typeDefinitionContext, propName);
+
+                    PropertyValue.ValueType proptype = ParseType(propDefinitionContext.ID(1) ?? propDefinitionContext.TYPE_ID());
+                    type.Properties.Add(new PropertyDefinition(propName, type.Id, (uint)type.Properties.Count, proptype));
+                }
+            }
+            foreach (var (tid, attr) in deferredTypeAttributes)
             {
                 var id = attr.ID();
                 if (id.GetText() != "display")
@@ -460,34 +489,26 @@ public static class StoryParser
                     DeclareVar("$self", null, out var varIndex);
                     var expr = ParseExpr(attr.expr(1));
                     Display d = new Display(varIndex, attr.expr(0).GetText(), expr);
-                    var t = _database.Types[(int)(tid.Id - 1)];
+                    var t = _database.Types[(int)(tid.Id.Id - 1)];
 
                     t.Attributes.Add(d);
                 }
             }
 
-            return firstPass;
+            foreach (var child in context.children)
+            {
+                if (child is MoiraiParser.EventContext e)
+                    e.Accept(this);
+                else if (child is MoiraiParser.TriggerContext t)
+                    t.Accept(this);
+            }
+
+            return null;
         }
 
         public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
         {
-            if (context.TYPE_ID() == null)
-                return AddError(ErrorCode.TypeNameMustStartWithUpperCase, context, context.GetText());
-
-            string? typeName = context.TYPE_ID().GetText();
-            EntityType type = DeclareEntityType(typeName);
-            foreach(var attr in context.attribute())
-                _deferredTypeAttributes.Add((type.Id, attr));
-            foreach (var propDefinitionContext in context.prop_definition())
-            {
-                var propName = propDefinitionContext.ID(0).GetText();
-                if (type.GetPropertyId(propName).Id != 0)
-                    return AddError(ErrorCode.DuplicatePropertyDefinition, context, propName);
-
-                PropertyValue.ValueType proptype = ParseType(propDefinitionContext.ID(1) ?? context.TYPE_ID());
-                type.Properties.Add(new PropertyDefinition(propName, type.Id, (uint)type.Properties.Count, proptype));
-            }
-            return null;
+            throw new NotImplementedException();
         }
 
         public EntityType DeclareEntityType(string typeName)

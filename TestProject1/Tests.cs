@@ -532,26 +532,40 @@ event create {
     }
 
     [Test]
-    public void FAILPARSE()
+    public void TypeDeclarationBeforeEnumDefinition()
     {
-        throw new Exception("Enum after type");
         string s = @"
 entity Person {
     prop job: Job
 }
-enum Job { None, Farmer, Smith }
+enum Job { X }
 
 ";
+        
         var db = Run(s, out var errors);
-        db.RunAction("create");
-        db.Printer.PrintDb();
-        var e = db.Entities.Single();
-        PropertyId jobProp = db.GetPropertyId("Person","job");
-        var value = e.GetProperty(jobProp);
-        Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
-        Assert.AreEqual(enumDefinition.ValueType, value.Type);
-        Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
-        Assert.AreEqual(1, value.IntValue);
+        var p = db.GetPropertyId("Person", "job");
+        db.GetPropertyType(p, out var t);
+        Assert.That(t.BaseType, Is.EqualTo(PropertyValue.ValueBaseType.Enum));
+
+    }
+
+    [Test]
+    public void TypeDeclarationBeforeUsedTypeReference()
+    {
+        string s = @"
+entity Person {
+    prop job: Job
+}
+entity Job { }
+
+";
+        
+        var db = Run(s, out var errors);
+        var p = db.GetPropertyId("Person", "job");
+        db.GetPropertyType(p, out var t);
+        Assert.That(t.BaseType, Is.EqualTo(PropertyValue.ValueBaseType.Ref));
+        Assert.That(t, Is.EqualTo(db.GetEntityType("Job").RefType));
+
     }
 
     
@@ -662,7 +676,7 @@ event create_faction {
 entity Person {
 }
 entity Faction {
-prop owner: ref
+    prop owner: ref
 }
 event create_faction {
     create $f: ( Faction, 'Faction of {random Name}')
@@ -687,7 +701,7 @@ event create_faction {
     {
         var s = @"
 entity Person {
-prop owner: ref
+    prop owner: ref
 }
 event create_faction {
     create $p: ( Person, '{random Name}-{random Name} of {random Name}')
@@ -736,8 +750,9 @@ event call {
     public void CallRuleReturnValue()
     {
         var s = @"
-entity E {}
-prop x: number
+entity E {
+    prop x: number
+}
 event called {
     create $x: E
 }
@@ -761,7 +776,7 @@ event call {
     {
         var s = @"
 entity E {
-prop x: number
+    prop x: number
 }
 
 event call {

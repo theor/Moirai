@@ -1,5 +1,12 @@
-entity Object
-entity System
+entity Object {
+    prop system: ref
+    prop dead: bool
+    prop kind: Kind
+    prop distance_to_sun: number
+}
+entity System {
+
+}
 
 enum Kind {
     Asteroid,
@@ -9,10 +16,6 @@ enum Kind {
 }
 
 
-prop system: ref
-prop dead: bool
-prop kind: Kind
-prop distance_to_sun: number
 
 @start
 event create_time {

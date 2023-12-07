@@ -37,7 +37,9 @@ public class TestsBase
         {
             printed = db.Printer.Print();
             Console.WriteLine("### REPRINT");
-            Console.WriteLine(printed);
+            Console.WriteLine(string.Join("\n", printed.Split('\n').Select((s1, i) =>
+                $"{i,3} {s1}"
+            )));
         }
         catch (Exception e)
         {

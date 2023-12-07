@@ -1,4 +1,4 @@
-public readonly struct EntityType
+public class EntityType
 {
     public readonly string Name;
     public readonly EntityTypeId Id;
@@ -12,7 +12,7 @@ public readonly struct EntityType
     public PropertyValue.ValueType RefType =>
         new PropertyValue.ValueType(PropertyValue.ValueBaseType.Ref, (ushort)Id.Id);
 
-    public readonly List<Display> Attributes { get; } = new();
+    public List<Display> Attributes { get; } = new();
 
     public EntityType DeclareProperty(PropertyDefinition propertyDefinition)
     {
