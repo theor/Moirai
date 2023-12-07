@@ -18,11 +18,12 @@ public class PropertyIdConverter : JsonConverter<PropertyId>
 {
     public override PropertyId Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        return new PropertyId(reader.GetUInt32());
+        var u64 = reader.GetUInt64();
+        return new PropertyId((uint) (u64 << 32 >> 32), new EntityTypeId((uint) (u64 >> 32)));
     }
     public override void Write(Utf8JsonWriter writer, PropertyId value, JsonSerializerOptions options)
     {
-        writer.WriteNumberValue(value.Id);
+        writer.WriteNumberValue(((ulong) value.Id) | ((ulong)value.TypeId.Id << 32));
     }
 }
 

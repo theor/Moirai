@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/Moirai/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theo.richart/Moirai/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162

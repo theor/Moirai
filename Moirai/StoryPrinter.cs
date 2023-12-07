@@ -6,67 +6,76 @@ using Moirai.Core;
 public class StoryPrinter
 {
     private readonly Database _database;
+
     public StoryPrinter(Database database)
     {
         _database = database;
     }
+
     public string Print()
     {
         StringBuilder sb = new();
         foreach (EntityType type in _database.Types.Skip(_database.BuiltinTypes))
         {
-            sb.AppendLine($"entity {type.Name} {{ }}");
+            sb.AppendLine(@$"entity {type.Name} {{");
+            foreach (var property in type.Properties.Skip(Database.DefaultProperties().Count))
+            {
+                sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
+            }
 
+            sb.AppendLine("}}");
         }
+
         foreach (string en in _database.Tags.Skip(1))
         {
             sb.AppendLine($"tag {en}");
-
         }
+
         foreach (EnumDefinition en in _database.Enums.Skip(Database.BuiltinEnumCount))
         {
             sb.AppendLine($"enum {en.Name} {{ {string.Join(", ", en.Values)} }}");
+        }
 
-        }
-        foreach (var property in _database.Properties.Skip(Database.DefaultProperties().Count))
-        {
-            sb.AppendLine($"prop {property.Name}: {Print(property.Type)}");
-        }
         foreach (var action in _database.Actions.Concat(_database.Triggers))
         {
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
-            sb.AppendLine($"{(action.IsTrigger ? "trigger" : "event")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
-            if(action.IsTrigger)
-                sb.AppendLine($"  when{(action.When.Item1 == EventTrigger.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");
+            sb.AppendLine(
+                $"{(action.IsTrigger ? "trigger" : "event")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
+            if (action.IsTrigger)
+                sb.AppendLine(
+                    $"  when{(action.When.Item1 == EventTrigger.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");
             foreach (var effect in action.Effects)
             {
                 PrintEffect(effect, sb, 1);
             }
+
             sb.AppendLine("}");
         }
+
         return sb.ToString();
     }
+
     private string Print(IFilter actionFilter)
     {
         switch (actionFilter)
         {
             case FilterAtStart:
-               return "@start";
+                return "@start";
             case FilterExactlyXEveryYYears filterExactlyXEveryYYears:
-               return $"@ {filterExactlyXEveryYYears.Count} every {filterExactlyXEveryYYears.Years} years";
+                return $"@ {filterExactlyXEveryYYears.Count} every {filterExactlyXEveryYYears.Years} years";
             case FilterProbabilityXPerYears filterProbabilityXPerYears:
-                return $"@ {filterProbabilityXPerYears.Event.ExpectedOccurences} every {filterProbabilityXPerYears.Event.ExpectedInterval} years";
+                return
+                    $"@ {filterProbabilityXPerYears.Event.ExpectedOccurences} every {filterProbabilityXPerYears.Event.ExpectedInterval} years";
             default:
                 throw new ArgumentOutOfRangeException(nameof(actionFilter));
-
         }
     }
+
     private string Print(PropertyValue.ValueType propertyType)
     {
         switch (propertyType.BaseType)
         {
-
             case PropertyValue.ValueBaseType.Ref:
                 return propertyType.Index == 0
                     ? propertyType.BaseType.ToString().ToLowerInvariant()
@@ -85,6 +94,7 @@ public class StoryPrinter
                 throw new ArgumentOutOfRangeException();
         }
     }
+
     public string PrintEffect(IInstruction instruction)
     {
         StringBuilder sb = new();
@@ -98,14 +108,14 @@ public class StoryPrinter
         switch (instruction)
         {
             case CallInstruction call:
-                
+
                 sb.Append(Print(call.Value, indent) + Environment.NewLine);
                 break;
             case SetProperty setProperty:
                 sb.AppendLine(
-                    $"{indentStr}{(setProperty.IsLocalVar ? "var" :"set")} {Print(setProperty.PropertySet)}{(setProperty.IsLocalVar ? ":" : " =")} {Print(setProperty.Parameter)}");
+                    $"{indentStr}{(setProperty.IsLocalVar ? "var" : "set")} {Print(setProperty.PropertySet)}{(setProperty.IsLocalVar ? ":" : " =")} {Print(setProperty.Parameter)}");
                 break;
-            
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(instruction), $"instr: '{instruction}'");
         }
@@ -116,20 +126,27 @@ public class StoryPrinter
         return new string(' ', indent * 4);
     }
 
-    private string GetPropertyName(PropertyId p)
+    public string GetPropertyName(PropertyId p)
     {
-        if (p.IsValid && p.Id < _database.Properties.Count)
-            return _database.Properties[(int)p.Id].Name;
+        
+        if (p.IsValid)
+        {
+            var entityType = _database.GetEntityType(p.TypeId);
+            return entityType.Properties[(int) p.Id].Name;
+        }
 
         return "<??>";
     }
+
     private string Print(PropertyPath path)
     {
-        if(path.Mode == PropertyPath.PropertyPathMode.Singleton)
+        if (path.Mode == PropertyPath.PropertyPathMode.Singleton)
             return $"#{_database.GetEntityTypeName(path.SingletonType)}.{GetPropertyName(path.Property)}";
         if (path.VariableIndex == -1)
             return GetPropertyName(path.Property);
-        return path.Property != PropertyId.Null ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}" : $"${path.VariableIndex}";
+        return path.Property != PropertyId.Null
+            ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}"
+            : $"${path.VariableIndex}";
     }
 
     public string Print(PropertyValue value, History.HistoryMode storyMode = History.HistoryMode.Default)
@@ -137,7 +154,7 @@ public class StoryPrinter
         var s = value.Value;
         if (s != null)
             return s;
-        
+
 
         switch (value.Type.BaseType)
         {
@@ -146,8 +163,8 @@ public class StoryPrinter
                 var e = _database.Enums[value.Type.Index];
                 if (value.IntValue == 0) return "null";
                 return (storyMode & History.HistoryMode.Story) != 0
-                    ? e.FormattedValues[(int)value.IntValue - 1]
-                    : $"{e.Name}.{e.Values[(int)value.IntValue - 1]}";
+                    ? e.FormattedValues[(int) value.IntValue - 1]
+                    : $"{e.Name}.{e.Values[(int) value.IntValue - 1]}";
             }
             case PropertyValue.ValueBaseType.EnumType:
             {
@@ -177,9 +194,10 @@ public class StoryPrinter
             default:
                 throw new ArgumentOutOfRangeException();
         }
+
         return value.IntValue.ToString();
     }
-    
+
     public string Print(IValue value, int indent = 0)
     {
         string indentStr = IndentStr(indent);
@@ -187,12 +205,14 @@ public class StoryPrinter
         {
             return indentStr + call.Print(this, indent);
         }
+
         StringBuilder sb = new StringBuilder();
-        
+
         switch (value)
         {
             case CreateEntity createEntity:
-                sb.AppendLine($"{indentStr}create ${createEntity.VariableIndex}: ({_database.GetEntityTypeName(createEntity.Type)}, {Print(createEntity.Name)})");
+                sb.AppendLine(
+                    $"{indentStr}create ${createEntity.VariableIndex}: ({_database.GetEntityTypeName(createEntity.Type)}, {Print(createEntity.Name)})");
                 break;
             // case NameEntity nameEntity:
             case AssignPick predicateParameter:
@@ -205,22 +225,23 @@ public class StoryPrinter
                     {
                         PrintEffect(nestedEffect, sb, indent + 1);
                     }
+
                     sb.AppendLine($"{indentStr}}}");
                 }
                 else
                     sb.AppendLine();
+
                 break;
             // case Sequence sequence:
             case Record formatAction:
                 sb.AppendLine($"{indentStr}record {Print(formatAction.String)}");
                 break;
             case CallRule callRule:
-                sb.AppendLine( $"{indentStr}callRule " + _database.Actions[callRule.RuleIndex].Name);
+                sb.AppendLine($"{indentStr}callRule " + _database.Actions[callRule.RuleIndex].Name);
                 break;
             case AssertInstr assert:
                 switch (assert.Mode)
                 {
-
                     case AssertInstr.AssertMode.True:
                         sb.AppendLine($"{indentStr}assert " + Print(assert.Value));
                         break;
@@ -230,6 +251,7 @@ public class StoryPrinter
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
+
                 break;
             case If @if:
                 sb.AppendLine($"{indentStr}if {Print(@if.Condition)} {{");
@@ -237,6 +259,7 @@ public class StoryPrinter
                 {
                     PrintEffect(nestedEffect, sb, indent + 1);
                 }
+
                 if (@if.IfFalse.Length > 0)
                 {
                     sb.AppendLine($"{indentStr}}} else {{");
@@ -244,8 +267,8 @@ public class StoryPrinter
                     {
                         PrintEffect(nestedEffect, sb, indent + 1);
                     }
-                    
                 }
+
                 sb.AppendLine($"{indentStr}}}");
 
                 break;
@@ -280,7 +303,6 @@ public class StoryPrinter
                 int accWeight = 0;
                 foreach (var matchCase in match.CumulativeWeights)
                 {
-                    
                     var w = matchCase.Item1 == -1 ? -1 : (matchCase.Item1 - accWeight);
                     accWeight = matchCase.Item1;
                     sb.Append($"{caseIndent}{(w == -1 ? "_" : w.ToString())} => ");
@@ -297,27 +319,27 @@ public class StoryPrinter
                         sb.AppendLine($"{caseIndent}}}");
                     }
                 }
+
                 sb.AppendLine($"{indentStr}}}");
 
                 break;
             }
             case InterpolatedString interpolatedString:
                 return
-                    $"'{string.Format(interpolatedString.FormatString, interpolatedString.Arguments.Select(a => (object)($"{{{Print(a)}}}")).ToArray())}'";
+                    $"'{string.Format(interpolatedString.FormatString, interpolatedString.Arguments.Select(a => (object) ($"{{{Print(a)}}}")).ToArray())}'";
             case Literal literal:
                 return Print(literal.Value);
             case PropertyPath path:
                 return Print(path);
             case RandomEnum rnd:
                 return "random " + _database.Enums[rnd.EnumID.Id].Name;
-           
+
             case And and:
                 return string.Join(", ", and.Predicates.Select(Print));
-            
+
             case BinaryOperator propertyEquals:
                 string op = propertyEquals.Op switch
                 {
-
                     BinaryOperator.Operator.And => "and",
                     BinaryOperator.Operator.Or => "or",
                     BinaryOperator.Operator.Equals => "=",
@@ -334,15 +356,14 @@ public class StoryPrinter
                     _ => throw new ArgumentOutOfRangeException()
                 };
                 return $"({Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)})";
-            case IsOfType ofType :
+            case IsOfType ofType:
                 return $"({Print(ofType.Entity)} = {Print(ofType.ValueTypeId)})";
             case MatchAnyValue _: return "_";
             // case True @true:
             // break;
             default:
                 return "// !!!!!!!!!!!";
-                // throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
-
+            // throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
         }
 
         return sb.ToString();
@@ -367,18 +388,19 @@ public class StoryPrinter
         // TODO CS
         // foreach (var change in cs.Changes)
         // {
-            // write("  " + change.ToString(_database));
+        // write("  " + change.ToString(_database));
         // }
         if (oneLine)
             Console.WriteLine();
     }
+
     public void PrintEntity(Entity e)
     {
-
-        var type = _database.GetEntityTypeName(e.GetProperty(Database.PropType).TypeId);
+        var type = _database.GetEntityType(e.Type);
+        var typeName = type.Name;
         string name = e.TryGetProperty(Database.PropName, out var nameprop) ? (nameprop.Value ?? "") : "";
         Console.ForegroundColor = Colors[e.GetProperty(Database.PropType).IntValue % Colors.Length];
-        Console.WriteLine($"{e.Id} {type} {name}");
+        Console.WriteLine($"{e.Id} {typeName} {name}");
         Console.ResetColor();
         if (e.Properties != null)
             foreach (var property in e.Properties)
@@ -386,14 +408,18 @@ public class StoryPrinter
                 if (property.Id == Database.PropType || property.Id == Database.PropName || !property.Id.IsValid)
                     continue;
 
-                Console.Write($"  {_database.Properties[(int)property.Id.Id].Name}: {Print(property.Value)}");
-                if (property.Value.Type == PropertyValue.TypeRef && _database.TryGetEntity(property.Value.Id, out var other) &&
+                Console.Write($"  {type.Properties[(int) property.Id.Id].Name}: {Print(property.Value)}");
+                if (property.Value.Type == PropertyValue.TypeRef &&
+                    _database.TryGetEntity(property.Value.Id, out var other) &&
                     other.TryGetProperty(Database.PropName, out var otherName))
                     Console.Write(" " + otherName.Value);
                 Console.WriteLine();
             }
     }
-    private static readonly ConsoleColor[] Colors = { ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow };
+
+    private static readonly ConsoleColor[] Colors =
+        {ConsoleColor.Cyan, ConsoleColor.Magenta, ConsoleColor.Green, ConsoleColor.Yellow};
+
     public void PrintDb()
     {
         // Console.WriteLine("[DB]");
@@ -403,10 +429,12 @@ public class StoryPrinter
             any = true;
             this.PrintEntity(e);
         }
+
         if (!any)
             Console.WriteLine("<Empty>");
         Console.WriteLine();
     }
+
     public void PrintHistory()
     {
         foreach (var cs in _database.History.Changesets)
@@ -414,18 +442,19 @@ public class StoryPrinter
             this.PrintChangeset(cs);
         }
     }
+
     public string Format(InterpolatedString formatAction, Database database, bool injectIdTags = false)
     {
         var propertyValues = formatAction.Arguments.Select(v =>
         {
-
             var print = Print(v.Compute(database.Ctx), History.HistoryMode.Story);
             if (injectIdTags && v is PropertyPath path && path.Mode == PropertyPath.PropertyPathMode.Variable)
             {
                 var entity = database.Ctx.Argument(path.VariableIndex);
-                if(entity.Type == PropertyValue.TypeRef)
+                if (entity.Type == PropertyValue.TypeRef)
                     return $"<{entity.Id}>{print}</>";
             }
+
             return print;
         }).Cast<object?>().ToArray();
         return String.Format(formatAction.FormatString, propertyValues);
@@ -437,7 +466,7 @@ public class StoryPrinter
     {
         foreach (var ((eid, index), year) in _database._marked)
         {
-            Console.WriteLine($"{eid,6}{GetRuleName(index-1),20} : {year}");
+            Console.WriteLine($"{eid,6}{GetRuleName(index - 1),20} : {year}");
         }
     }
 

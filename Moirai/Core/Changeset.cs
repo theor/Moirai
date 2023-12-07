@@ -76,7 +76,7 @@ public struct Changeset(int id, string actionName, long year, CategoryId[] cats)
         if (i == -1)
         {
             // TODO remove db singleton
-            var prevEntity = new Entity(Database.Instance){Id = modifiedEntity.Id};
+            var prevEntity = new Entity(Database.Instance.GetEntityType(modifiedEntity.Type)){Id = modifiedEntity.Id};
             prevEntity.SetProperty(property, prev);
             _changes.Add(new Changed(prevEntity, modifiedEntity));
         }

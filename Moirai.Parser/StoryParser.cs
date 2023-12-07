@@ -475,29 +475,33 @@ public static class StoryParser
                 return AddError(ErrorCode.TypeNameMustStartWithUpperCase, context, context.GetText());
 
             string? typeName = context.TYPE_ID().GetText();
-            EntityTypeId id = DeclareEntityType(typeName);
+            EntityType type = DeclareEntityType(typeName);
             foreach(var attr in context.attribute())
-                _deferredTypeAttributes.Add((id, attr));
+                _deferredTypeAttributes.Add((type.Id, attr));
+            foreach (var propDefinitionContext in context.prop_definition())
+            {
+                var propName = propDefinitionContext.ID(0).GetText();
+                if (_database.GetPropertyId(propName).Id != 0)
+                    return AddError(ErrorCode.DuplicatePropertyDefinition, context, propName);
+
+                PropertyValue.ValueType proptype = ParseType(propDefinitionContext.ID(1) ?? context.TYPE_ID());
+                type.Properties.Add(new PropertyDefinition(propName, (uint)type.Properties.Count, proptype));
+                return null;
+            }
             return null;
         }
 
-        public EntityTypeId DeclareEntityType(string typeName)
+        public EntityType DeclareEntityType(string typeName)
         {
             var id = (uint)_database.Types.Count;
             var entityType = new EntityType(typeName, id);
             _database.Types.Add(entityType);
-            return entityType.Id;
+            return entityType;
         }
 
         public override object? VisitProp_definition(MoiraiParser.Prop_definitionContext context)
         {
-            var propName = context.ID(0).GetText();
-            if (_database.GetPropertyId(propName).Id != 0)
-                return AddError(ErrorCode.DuplicatePropertyDefinition, context, propName);
-
-            PropertyValue.ValueType type = ParseType(context.ID(1) ?? context.TYPE_ID());
-            _database.Properties.Add(new PropertyDefinition(propName, (uint)_database.Properties.Count, type));
-            return null;
+         throw new System.NotImplementedException();
         }
 
         private PropertyValue.ValueType ParseType(ITerminalNode id)
@@ -1060,7 +1064,8 @@ public static class StoryParser
             if (context.ID(0) != null)
             {
                 var propertyName = context.ID(0)?.GetText();
-                propertyId = _database.GetPropertyId(propertyName.ToLowerInvariant());
+                // TODO support non-unique property names across entity types
+                propertyId = _database.Types.Skip(1).SelectMany(t => t.Properties).FirstOrDefault(p => p.Name == propertyName.ToLowerInvariant()).PropertyId;
                 if (!propertyId.IsValid)
                 {
                     AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);

@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/Moirai/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theo.richart/Moirai/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -124,12 +124,6 @@ public partial class MoiraiParser : Parser {
 		[System.Diagnostics.DebuggerNonUserCode] public TriggerContext trigger(int i) {
 			return GetRuleContext<TriggerContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext[] prop_definition() {
-			return GetRuleContexts<Prop_definitionContext>();
-		}
-		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext prop_definition(int i) {
-			return GetRuleContext<Prop_definitionContext>(i);
-		}
 		[System.Diagnostics.DebuggerNonUserCode] public Enum_definitionContext[] enum_definition() {
 			return GetRuleContexts<Enum_definitionContext>();
 		}
@@ -152,16 +146,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_r; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterR(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitR(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitR(this);
@@ -177,12 +161,12 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 60;
+			State = 59;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
-				State = 60;
+				State = 59;
 				ErrorHandler.Sync(this);
 				switch ( Interpreter.AdaptivePredict(TokenStream,0,Context) ) {
 				case 1:
@@ -200,34 +184,28 @@ public partial class MoiraiParser : Parser {
 				case 3:
 					{
 					State = 56;
-					prop_definition();
+					enum_definition();
 					}
 					break;
 				case 4:
 					{
 					State = 57;
-					enum_definition();
+					type_definition();
 					}
 					break;
 				case 5:
 					{
 					State = 58;
-					type_definition();
-					}
-					break;
-				case 6:
-					{
-					State = 59;
 					Match(LINE_BREAK);
 					}
 					break;
 				}
 				}
-				State = 62;
+				State = 61;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 70368744304656L) != 0) );
-			State = 64;
+			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 70368744271888L) != 0) );
+			State = 63;
 			Match(Eof);
 			}
 		}
@@ -264,16 +242,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_attribute; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterAttribute(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitAttribute(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitAttribute(this);
@@ -289,33 +257,33 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 66;
+			State = 65;
 			Match(AT);
-			State = 67;
+			State = 66;
 			Match(ID);
-			State = 68;
+			State = 67;
 			Match(PAREN_OPEN);
-			State = 69;
+			State = 68;
 			expr(0);
-			State = 74;
+			State = 73;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 70;
+				State = 69;
 				Match(COMMA);
-				State = 71;
+				State = 70;
 				expr(0);
 				}
 				}
-				State = 76;
+				State = 75;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 77;
+			State = 76;
 			Match(PAREN_CLOSE);
-			State = 78;
+			State = 77;
 			Match(LINE_BREAK);
 			}
 		}
@@ -349,16 +317,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_filter; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterFilter(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitFilter(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitFilter(this);
@@ -374,30 +332,30 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 80;
+			State = 79;
 			Match(AT);
-			State = 84;
+			State = 83;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==NUMBER) {
 				{
-				State = 81;
+				State = 80;
 				_localctx.occurence = Match(NUMBER);
-				State = 82;
+				State = 81;
 				Match(ID);
-				State = 83;
+				State = 82;
 				_localctx.years = Match(NUMBER);
 				}
 			}
 
-			State = 86;
+			State = 85;
 			Match(ID);
-			State = 88;
+			State = 87;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==LINE_BREAK) {
 				{
-				State = 87;
+				State = 86;
 				Match(LINE_BREAK);
 				}
 			}
@@ -433,16 +391,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_event; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEvent(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEvent(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEvent(this);
@@ -458,23 +406,23 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 91;
+			State = 90;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==AT) {
 				{
-				State = 90;
+				State = 89;
 				filter();
 				}
 			}
 
-			State = 93;
+			State = 92;
 			Match(EVENT);
-			State = 94;
+			State = 93;
 			Match(ID);
-			State = 95;
+			State = 94;
 			categories();
-			State = 96;
+			State = 95;
 			scope();
 			}
 		}
@@ -500,16 +448,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_categories; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterCategories(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitCategories(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitCategories(this);
@@ -525,17 +463,17 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 101;
+			State = 100;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==ID) {
 				{
 				{
-				State = 98;
+				State = 97;
 				Match(ID);
 				}
 				}
-				State = 103;
+				State = 102;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
@@ -567,16 +505,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_trigger; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterTrigger(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitTrigger(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitTrigger(this);
@@ -591,13 +519,13 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 104;
+			State = 103;
 			Match(TRIGGER);
-			State = 105;
+			State = 104;
 			Match(ID);
-			State = 106;
+			State = 105;
 			categories();
-			State = 107;
+			State = 106;
 			scope();
 			}
 		}
@@ -639,16 +567,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_when; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterWhen(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitWhen(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitWhen(this);
@@ -664,51 +582,51 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 109;
+			State = 108;
 			Match(WHEN);
-			State = 110;
+			State = 109;
 			Match(TYPE_ID);
-			State = 115;
+			State = 114;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==AND) {
 				{
 				{
-				State = 111;
+				State = 110;
 				Match(AND);
-				State = 112;
+				State = 111;
 				expr(0);
 				}
 				}
-				State = 117;
+				State = 116;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 121;
+			State = 120;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==SPACE) {
 				{
 				{
-				State = 118;
+				State = 117;
 				Match(SPACE);
 				}
 				}
-				State = 123;
+				State = 122;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 125;
+			State = 124;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
 				{
-				State = 124;
+				State = 123;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 127;
+				State = 126;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( _la==LINE_BREAK );
@@ -752,16 +670,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_when_created; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterWhen_created(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitWhen_created(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitWhen_created(this);
@@ -777,51 +685,51 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 129;
+			State = 128;
 			Match(WHEN_CREATED);
-			State = 130;
+			State = 129;
 			Match(TYPE_ID);
-			State = 135;
+			State = 134;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==AND) {
 				{
 				{
-				State = 131;
+				State = 130;
 				Match(AND);
-				State = 132;
+				State = 131;
 				expr(0);
 				}
 				}
-				State = 137;
+				State = 136;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 141;
+			State = 140;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==SPACE) {
 				{
 				{
-				State = 138;
+				State = 137;
 				Match(SPACE);
 				}
 				}
-				State = 143;
+				State = 142;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 145;
+			State = 144;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
 				{
-				State = 144;
+				State = 143;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 147;
+				State = 146;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( _la==LINE_BREAK );
@@ -862,16 +770,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_effect; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEffect(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEffect(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEffect(this);
@@ -888,18 +786,18 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 152;
+			State = 151;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case SET:
 				{
-				State = 149;
+				State = 148;
 				set();
 				}
 				break;
 			case VAR:
 				{
-				State = 150;
+				State = 149;
 				var();
 				}
 				break;
@@ -919,40 +817,40 @@ public partial class MoiraiParser : Parser {
 			case NUMBER_FLOAT:
 			case NUMBER:
 				{
-				State = 151;
+				State = 150;
 				expr(0);
 				}
 				break;
 			default:
 				throw new NoViableAltException(this);
 			}
-			State = 157;
+			State = 156;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==SPACE) {
 				{
 				{
-				State = 154;
+				State = 153;
 				Match(SPACE);
 				}
 				}
-				State = 159;
+				State = 158;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 163;
+			State = 162;
 			ErrorHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(TokenStream,15,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 160;
+					State = 159;
 					Match(LINE_BREAK);
 					}
 					} 
 				}
-				State = 165;
+				State = 164;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,15,Context);
 			}
@@ -994,16 +892,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_if; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterIf(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitIf(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitIf(this);
@@ -1019,34 +907,34 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 166;
+			State = 165;
 			Match(IF);
-			State = 167;
+			State = 166;
 			_localctx.cond = expr(0);
-			State = 168;
+			State = 167;
 			_localctx.then = scope();
-			State = 177;
+			State = 176;
 			ErrorHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(TokenStream,17,Context) ) {
 			case 1:
 				{
-				State = 169;
+				State = 168;
 				Match(ELSE);
-				State = 173;
+				State = 172;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 				while (_la==LINE_BREAK) {
 					{
 					{
-					State = 170;
+					State = 169;
 					Match(LINE_BREAK);
 					}
 					}
-					State = 175;
+					State = 174;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 				}
-				State = 176;
+				State = 175;
 				_localctx.@else = scope();
 				}
 				break;
@@ -1095,16 +983,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_match; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterMatch(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitMatch(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitMatch(this);
@@ -1121,7 +999,7 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 179;
+			State = 178;
 			_la = TokenStream.LA(1);
 			if ( !(_la==MATCH || _la==MATCH_WEIGHT) ) {
 			ErrorHandler.RecoverInline(this);
@@ -1130,69 +1008,69 @@ public partial class MoiraiParser : Parser {
 				ErrorHandler.ReportMatch(this);
 			    Consume();
 			}
-			State = 180;
+			State = 179;
 			expr(0);
-			State = 185;
+			State = 184;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 181;
+				State = 180;
 				Match(COMMA);
-				State = 182;
+				State = 181;
 				expr(0);
 				}
 				}
-				State = 187;
+				State = 186;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 188;
+			State = 187;
 			Match(SCOPE_OPEN);
-			State = 192;
+			State = 191;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 189;
+				State = 188;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 194;
+				State = 193;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 196;
+			State = 195;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			do {
 				{
 				{
-				State = 195;
+				State = 194;
 				match_case();
 				}
 				}
-				State = 198;
+				State = 197;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			} while ( (((_la) & ~0x3f) == 0 && ((1L << _la) & 4389250820734982L) != 0) );
-			State = 200;
+			State = 199;
 			Match(SCOPE_CLOSE);
-			State = 204;
+			State = 203;
 			ErrorHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(TokenStream,21,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 201;
+					State = 200;
 					Match(LINE_BREAK);
 					}
 					} 
 				}
-				State = 206;
+				State = 205;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,21,Context);
 			}
@@ -1237,16 +1115,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_match_case; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterMatch_case(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitMatch_case(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitMatch_case(this);
@@ -1262,27 +1130,27 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 207;
+			State = 206;
 			value();
-			State = 212;
+			State = 211;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 208;
+				State = 207;
 				Match(COMMA);
-				State = 209;
+				State = 208;
 				value();
 				}
 				}
-				State = 214;
+				State = 213;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 215;
+			State = 214;
 			Match(ARROW);
-			State = 223;
+			State = 222;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case STRING:
@@ -1304,19 +1172,19 @@ public partial class MoiraiParser : Parser {
 			case NUMBER:
 				{
 				{
-				State = 216;
+				State = 215;
 				effect();
-				State = 218;
+				State = 217;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 				do {
 					{
 					{
-					State = 217;
+					State = 216;
 					Match(LINE_BREAK);
 					}
 					}
-					State = 220;
+					State = 219;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 				} while ( _la==LINE_BREAK );
@@ -1325,7 +1193,7 @@ public partial class MoiraiParser : Parser {
 				break;
 			case SCOPE_OPEN:
 				{
-				State = 222;
+				State = 221;
 				scope();
 				}
 				break;
@@ -1360,16 +1228,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_set; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterSet(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitSet(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitSet(this);
@@ -1384,13 +1242,13 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 225;
+			State = 224;
 			Match(SET);
-			State = 226;
+			State = 225;
 			path();
-			State = 227;
+			State = 226;
 			Match(EQ);
-			State = 228;
+			State = 227;
 			expr(0);
 			}
 		}
@@ -1418,16 +1276,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_var; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterVar(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitVar(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitVar(this);
@@ -1442,13 +1290,13 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 230;
+			State = 229;
 			Match(VAR);
-			State = 231;
+			State = 230;
 			Match(VAR_ID);
-			State = 232;
+			State = 231;
 			Match(COLON);
-			State = 233;
+			State = 232;
 			expr(0);
 			}
 		}
@@ -1488,16 +1336,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_call; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterCall(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitCall(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitCall(this);
@@ -1513,52 +1351,52 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 235;
+			State = 234;
 			Match(ID);
-			State = 238;
+			State = 237;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==VAR_ID) {
 				{
-				State = 236;
+				State = 235;
 				Match(VAR_ID);
-				State = 237;
+				State = 236;
 				Match(COLON);
 				}
 			}
 
-			State = 240;
+			State = 239;
 			Match(PAREN_OPEN);
 			{
 			{
-			State = 241;
+			State = 240;
 			expr(0);
-			State = 246;
+			State = 245;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==COMMA) {
 				{
 				{
-				State = 242;
+				State = 241;
 				Match(COMMA);
-				State = 243;
+				State = 242;
 				expr(0);
 				}
 				}
-				State = 248;
+				State = 247;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
 			}
 			}
-			State = 249;
+			State = 248;
 			Match(PAREN_CLOSE);
-			State = 251;
+			State = 250;
 			ErrorHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(TokenStream,27,Context) ) {
 			case 1:
 				{
-				State = 250;
+				State = 249;
 				scope();
 				}
 				break;
@@ -1601,16 +1439,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_scope; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterScope(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitScope(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitScope(this);
@@ -1627,34 +1455,34 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 253;
+			State = 252;
 			Match(SCOPE_OPEN);
-			State = 257;
+			State = 256;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 254;
+				State = 253;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 259;
+				State = 258;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 262;
+			State = 261;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case WHEN:
 				{
-				State = 260;
+				State = 259;
 				when();
 				}
 				break;
 			case WHEN_CREATED:
 				{
-				State = 261;
+				State = 260;
 				when_created();
 				}
 				break;
@@ -1680,15 +1508,15 @@ public partial class MoiraiParser : Parser {
 			default:
 				break;
 			}
-			State = 279;
+			State = 278;
 			ErrorHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(TokenStream,32,Context) ) {
 			case 1:
 				{
 				{
-				State = 264;
+				State = 263;
 				effect();
-				State = 265;
+				State = 264;
 				Match(SCOPE_CLOSE);
 				}
 				}
@@ -1696,53 +1524,53 @@ public partial class MoiraiParser : Parser {
 			case 2:
 				{
 				{
-				State = 275;
+				State = 274;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 				while ((((_la) & ~0x3f) == 0 && ((1L << _la) & 4389250862154758L) != 0)) {
 					{
 					{
-					State = 267;
+					State = 266;
 					effect();
-					State = 269;
+					State = 268;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 					do {
 						{
 						{
-						State = 268;
+						State = 267;
 						Match(LINE_BREAK);
 						}
 						}
-						State = 271;
+						State = 270;
 						ErrorHandler.Sync(this);
 						_la = TokenStream.LA(1);
 					} while ( _la==LINE_BREAK );
 					}
 					}
-					State = 277;
+					State = 276;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 				}
-				State = 278;
+				State = 277;
 				Match(SCOPE_CLOSE);
 				}
 				}
 				break;
 			}
-			State = 284;
+			State = 283;
 			ErrorHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(TokenStream,33,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 281;
+					State = 280;
 					Match(LINE_BREAK);
 					}
 					} 
 				}
-				State = 286;
+				State = 285;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,33,Context);
 			}
@@ -1775,16 +1603,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_raw_call; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterRaw_call(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitRaw_call(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitRaw_call(this);
@@ -1799,28 +1617,28 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 287;
+			State = 286;
 			Match(ID);
-			State = 290;
+			State = 289;
 			ErrorHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(TokenStream,34,Context) ) {
 			case 1:
 				{
-				State = 288;
+				State = 287;
 				Match(VAR_ID);
-				State = 289;
+				State = 288;
 				Match(COLON);
 				}
 				break;
 			}
-			State = 292;
+			State = 291;
 			value();
-			State = 294;
+			State = 293;
 			ErrorHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(TokenStream,35,Context) ) {
 			case 1:
 				{
-				State = 293;
+				State = 292;
 				scope();
 				}
 				break;
@@ -1868,16 +1686,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_value; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterValue(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitValue(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitValue(this);
@@ -1890,69 +1698,69 @@ public partial class MoiraiParser : Parser {
 		ValueContext _localctx = new ValueContext(Context, State);
 		EnterRule(_localctx, 34, RULE_value);
 		try {
-			State = 305;
+			State = 304;
 			ErrorHandler.Sync(this);
 			switch ( Interpreter.AdaptivePredict(TokenStream,36,Context) ) {
 			case 1:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 296;
+				State = 295;
 				raw_call();
 				}
 				break;
 			case 2:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 297;
+				State = 296;
 				call();
 				}
 				break;
 			case 3:
 				EnterOuterAlt(_localctx, 3);
 				{
-				State = 298;
+				State = 297;
 				@string();
 				}
 				break;
 			case 4:
 				EnterOuterAlt(_localctx, 4);
 				{
-				State = 299;
+				State = 298;
 				enum_value();
 				}
 				break;
 			case 5:
 				EnterOuterAlt(_localctx, 5);
 				{
-				State = 300;
+				State = 299;
 				Match(TYPE_ID);
 				}
 				break;
 			case 6:
 				EnterOuterAlt(_localctx, 6);
 				{
-				State = 301;
+				State = 300;
 				path();
 				}
 				break;
 			case 7:
 				EnterOuterAlt(_localctx, 7);
 				{
-				State = 302;
+				State = 301;
 				@bool();
 				}
 				break;
 			case 8:
 				EnterOuterAlt(_localctx, 8);
 				{
-				State = 303;
+				State = 302;
 				number();
 				}
 				break;
 			case 9:
 				EnterOuterAlt(_localctx, 9);
 				{
-				State = 304;
+				State = 303;
 				Match(NULL);
 				}
 				break;
@@ -2010,16 +1818,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_expr; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterExpr(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitExpr(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitExpr(this);
@@ -2044,19 +1842,19 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 315;
+			State = 314;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case IF:
 				{
-				State = 308;
+				State = 307;
 				@if();
 				}
 				break;
 			case MATCH:
 			case MATCH_WEIGHT:
 				{
-				State = 309;
+				State = 308;
 				match();
 				}
 				break;
@@ -2072,18 +1870,18 @@ public partial class MoiraiParser : Parser {
 			case NUMBER_FLOAT:
 			case NUMBER:
 				{
-				State = 310;
+				State = 309;
 				value();
 				}
 				break;
 			case PAREN_OPEN:
 				{
 				{
-				State = 311;
+				State = 310;
 				Match(PAREN_OPEN);
-				State = 312;
+				State = 311;
 				_localctx.paren_expr = expr(0);
-				State = 313;
+				State = 312;
 				Match(PAREN_CLOSE);
 				}
 				}
@@ -2092,7 +1890,7 @@ public partial class MoiraiParser : Parser {
 				throw new NoViableAltException(this);
 			}
 			Context.Stop = TokenStream.LT(-1);
-			State = 337;
+			State = 336;
 			ErrorHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(TokenStream,39,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
@@ -2101,7 +1899,7 @@ public partial class MoiraiParser : Parser {
 						TriggerExitRuleEvent();
 					_prevctx = _localctx;
 					{
-					State = 335;
+					State = 334;
 					ErrorHandler.Sync(this);
 					switch ( Interpreter.AdaptivePredict(TokenStream,38,Context) ) {
 					case 1:
@@ -2109,9 +1907,9 @@ public partial class MoiraiParser : Parser {
 						_localctx = new ExprContext(_parentctx, _parentState);
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
-						State = 317;
+						State = 316;
 						if (!(Precpred(Context, 7))) throw new FailedPredicateException(this, "Precpred(Context, 7)");
-						State = 318;
+						State = 317;
 						_localctx.op = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
 						if ( !(_la==MUL || _la==DIV) ) {
@@ -2121,7 +1919,7 @@ public partial class MoiraiParser : Parser {
 							ErrorHandler.ReportMatch(this);
 						    Consume();
 						}
-						State = 319;
+						State = 318;
 						_localctx.right = expr(8);
 						}
 						break;
@@ -2130,9 +1928,9 @@ public partial class MoiraiParser : Parser {
 						_localctx = new ExprContext(_parentctx, _parentState);
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
-						State = 320;
+						State = 319;
 						if (!(Precpred(Context, 6))) throw new FailedPredicateException(this, "Precpred(Context, 6)");
-						State = 321;
+						State = 320;
 						_localctx.op = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
 						if ( !(_la==ADD || _la==SUB) ) {
@@ -2142,7 +1940,7 @@ public partial class MoiraiParser : Parser {
 							ErrorHandler.ReportMatch(this);
 						    Consume();
 						}
-						State = 322;
+						State = 321;
 						_localctx.right = expr(7);
 						}
 						break;
@@ -2151,9 +1949,9 @@ public partial class MoiraiParser : Parser {
 						_localctx = new ExprContext(_parentctx, _parentState);
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
-						State = 323;
+						State = 322;
 						if (!(Precpred(Context, 5))) throw new FailedPredicateException(this, "Precpred(Context, 5)");
-						State = 324;
+						State = 323;
 						_localctx.op = TokenStream.LT(1);
 						_la = TokenStream.LA(1);
 						if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 2064805527552L) != 0)) ) {
@@ -2163,7 +1961,7 @@ public partial class MoiraiParser : Parser {
 							ErrorHandler.ReportMatch(this);
 						    Consume();
 						}
-						State = 325;
+						State = 324;
 						_localctx.right = expr(6);
 						}
 						break;
@@ -2172,11 +1970,11 @@ public partial class MoiraiParser : Parser {
 						_localctx = new ExprContext(_parentctx, _parentState);
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
-						State = 326;
+						State = 325;
 						if (!(Precpred(Context, 4))) throw new FailedPredicateException(this, "Precpred(Context, 4)");
-						State = 327;
+						State = 326;
 						_localctx.op = Match(QQ);
-						State = 328;
+						State = 327;
 						_localctx.right = expr(5);
 						}
 						break;
@@ -2185,11 +1983,11 @@ public partial class MoiraiParser : Parser {
 						_localctx = new ExprContext(_parentctx, _parentState);
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
-						State = 329;
+						State = 328;
 						if (!(Precpred(Context, 3))) throw new FailedPredicateException(this, "Precpred(Context, 3)");
-						State = 330;
+						State = 329;
 						_localctx.op = Match(AND);
-						State = 331;
+						State = 330;
 						_localctx.right = expr(4);
 						}
 						break;
@@ -2198,18 +1996,18 @@ public partial class MoiraiParser : Parser {
 						_localctx = new ExprContext(_parentctx, _parentState);
 						_localctx.left = _prevctx;
 						PushNewRecursionContext(_localctx, _startState, RULE_expr);
-						State = 332;
+						State = 331;
 						if (!(Precpred(Context, 2))) throw new FailedPredicateException(this, "Precpred(Context, 2)");
-						State = 333;
+						State = 332;
 						_localctx.op = Match(OR);
-						State = 334;
+						State = 333;
 						_localctx.right = expr(3);
 						}
 						break;
 					}
 					} 
 				}
-				State = 339;
+				State = 338;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,39,Context);
 			}
@@ -2229,33 +2027,29 @@ public partial class MoiraiParser : Parser {
 	public partial class Type_definitionContext : ParserRuleContext {
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode ENTITY() { return GetToken(MoiraiParser.ENTITY, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode TYPE_ID() { return GetToken(MoiraiParser.TYPE_ID, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(MoiraiParser.SCOPE_OPEN, 0); }
+		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(MoiraiParser.SCOPE_CLOSE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public AttributeContext[] attribute() {
 			return GetRuleContexts<AttributeContext>();
 		}
 		[System.Diagnostics.DebuggerNonUserCode] public AttributeContext attribute(int i) {
 			return GetRuleContext<AttributeContext>(i);
 		}
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_OPEN() { return GetToken(MoiraiParser.SCOPE_OPEN, 0); }
-		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode SCOPE_CLOSE() { return GetToken(MoiraiParser.SCOPE_CLOSE, 0); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode[] LINE_BREAK() { return GetTokens(MoiraiParser.LINE_BREAK); }
 		[System.Diagnostics.DebuggerNonUserCode] public ITerminalNode LINE_BREAK(int i) {
 			return GetToken(MoiraiParser.LINE_BREAK, i);
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext[] prop_definition() {
+			return GetRuleContexts<Prop_definitionContext>();
+		}
+		[System.Diagnostics.DebuggerNonUserCode] public Prop_definitionContext prop_definition(int i) {
+			return GetRuleContext<Prop_definitionContext>(i);
 		}
 		public Type_definitionContext(ParserRuleContext parent, int invokingState)
 			: base(parent, invokingState)
 		{
 		}
 		public override int RuleIndex { get { return RULE_type_definition; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterType_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitType_definition(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -2273,51 +2067,57 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 343;
+			State = 342;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==AT) {
 				{
 				{
-				State = 340;
+				State = 339;
 				attribute();
 				}
 				}
-				State = 345;
+				State = 344;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 346;
+			State = 345;
 			Match(ENTITY);
-			State = 347;
+			State = 346;
 			Match(TYPE_ID);
-			State = 356;
+			State = 347;
+			Match(SCOPE_OPEN);
+			State = 351;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
-			if (_la==SCOPE_OPEN) {
+			while (_la==LINE_BREAK) {
+				{
 				{
 				State = 348;
-				Match(SCOPE_OPEN);
-				State = 352;
+				Match(LINE_BREAK);
+				}
+				}
+				State = 353;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
-				while (_la==LINE_BREAK) {
-					{
-					{
-					State = 349;
-					Match(LINE_BREAK);
-					}
-					}
-					State = 354;
-					ErrorHandler.Sync(this);
-					_la = TokenStream.LA(1);
-				}
-				State = 355;
-				Match(SCOPE_CLOSE);
-				}
 			}
-
+			State = 355;
+			ErrorHandler.Sync(this);
+			_la = TokenStream.LA(1);
+			do {
+				{
+				{
+				State = 354;
+				prop_definition();
+				}
+				}
+				State = 357;
+				ErrorHandler.Sync(this);
+				_la = TokenStream.LA(1);
+			} while ( _la==PROP );
 			State = 359;
+			Match(SCOPE_CLOSE);
+			State = 361;
 			ErrorHandler.Sync(this);
 			_alt = 1;
 			do {
@@ -2325,7 +2125,7 @@ public partial class MoiraiParser : Parser {
 				case 1:
 					{
 					{
-					State = 358;
+					State = 360;
 					Match(LINE_BREAK);
 					}
 					}
@@ -2333,7 +2133,7 @@ public partial class MoiraiParser : Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				State = 361;
+				State = 363;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,43,Context);
 			} while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
@@ -2368,16 +2168,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_prop_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterProp_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitProp_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitProp_definition(this);
@@ -2391,16 +2181,15 @@ public partial class MoiraiParser : Parser {
 		EnterRule(_localctx, 40, RULE_prop_definition);
 		int _la;
 		try {
-			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 363;
-			Match(PROP);
-			State = 364;
-			Match(ID);
 			State = 365;
-			Match(COLON);
+			Match(PROP);
 			State = 366;
+			Match(ID);
+			State = 367;
+			Match(COLON);
+			State = 368;
 			_la = TokenStream.LA(1);
 			if ( !(_la==TYPE_ID || _la==ID) ) {
 			ErrorHandler.RecoverInline(this);
@@ -2409,26 +2198,20 @@ public partial class MoiraiParser : Parser {
 				ErrorHandler.ReportMatch(this);
 			    Consume();
 			}
-			State = 368;
+			State = 370;
 			ErrorHandler.Sync(this);
-			_alt = 1;
+			_la = TokenStream.LA(1);
 			do {
-				switch (_alt) {
-				case 1:
-					{
-					{
-					State = 367;
-					Match(LINE_BREAK);
-					}
-					}
-					break;
-				default:
-					throw new NoViableAltException(this);
+				{
+				{
+				State = 369;
+				Match(LINE_BREAK);
 				}
-				State = 370;
+				}
+				State = 372;
 				ErrorHandler.Sync(this);
-				_alt = Interpreter.AdaptivePredict(TokenStream,44,Context);
-			} while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
+				_la = TokenStream.LA(1);
+			} while ( _la==LINE_BREAK );
 			}
 		}
 		catch (RecognitionException re) {
@@ -2464,16 +2247,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_enum_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEnum_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEnum_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEnum_definition(this);
@@ -2490,87 +2263,87 @@ public partial class MoiraiParser : Parser {
 			int _alt;
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 372;
-			Match(ENUM);
-			State = 373;
-			Match(TYPE_ID);
 			State = 374;
+			Match(ENUM);
+			State = 375;
+			Match(TYPE_ID);
+			State = 376;
 			Match(SCOPE_OPEN);
-			State = 378;
+			State = 380;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 375;
+				State = 377;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 380;
+				State = 382;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 381;
+			State = 383;
 			Match(TYPE_ID);
-			State = 392;
+			State = 394;
 			ErrorHandler.Sync(this);
 			_alt = Interpreter.AdaptivePredict(TokenStream,47,Context);
 			while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 				if ( _alt==1 ) {
 					{
 					{
-					State = 382;
+					State = 384;
 					Match(COMMA);
-					State = 386;
+					State = 388;
 					ErrorHandler.Sync(this);
 					_la = TokenStream.LA(1);
 					while (_la==LINE_BREAK) {
 						{
 						{
-						State = 383;
+						State = 385;
 						Match(LINE_BREAK);
 						}
 						}
-						State = 388;
+						State = 390;
 						ErrorHandler.Sync(this);
 						_la = TokenStream.LA(1);
 					}
-					State = 389;
+					State = 391;
 					Match(TYPE_ID);
 					}
 					} 
 				}
-				State = 394;
+				State = 396;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,47,Context);
 			}
-			State = 396;
+			State = 398;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			if (_la==COMMA) {
 				{
-				State = 395;
+				State = 397;
 				Match(COMMA);
 				}
 			}
 
-			State = 401;
+			State = 403;
 			ErrorHandler.Sync(this);
 			_la = TokenStream.LA(1);
 			while (_la==LINE_BREAK) {
 				{
 				{
-				State = 398;
+				State = 400;
 				Match(LINE_BREAK);
 				}
 				}
-				State = 403;
+				State = 405;
 				ErrorHandler.Sync(this);
 				_la = TokenStream.LA(1);
 			}
-			State = 404;
-			Match(SCOPE_CLOSE);
 			State = 406;
+			Match(SCOPE_CLOSE);
+			State = 408;
 			ErrorHandler.Sync(this);
 			_alt = 1;
 			do {
@@ -2578,7 +2351,7 @@ public partial class MoiraiParser : Parser {
 				case 1:
 					{
 					{
-					State = 405;
+					State = 407;
 					Match(LINE_BREAK);
 					}
 					}
@@ -2586,7 +2359,7 @@ public partial class MoiraiParser : Parser {
 				default:
 					throw new NoViableAltException(this);
 				}
-				State = 408;
+				State = 410;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,50,Context);
 			} while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER );
@@ -2611,16 +2384,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_string; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterString(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitString(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitString(this);
@@ -2635,7 +2398,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 410;
+			State = 412;
 			Match(STRING);
 			}
 		}
@@ -2659,16 +2422,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_bool; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterBool(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitBool(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitBool(this);
@@ -2684,7 +2437,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 412;
+			State = 414;
 			_la = TokenStream.LA(1);
 			if ( !(_la==TRUE || _la==FALSE) ) {
 			ErrorHandler.RecoverInline(this);
@@ -2723,16 +2476,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_path; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterPath(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitPath(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitPath(this);
@@ -2747,14 +2490,14 @@ public partial class MoiraiParser : Parser {
 		int _la;
 		try {
 			int _alt;
-			State = 423;
+			State = 425;
 			ErrorHandler.Sync(this);
 			switch (TokenStream.LA(1)) {
 			case SINGLETON_ID:
 			case VAR_ID:
 				EnterOuterAlt(_localctx, 1);
 				{
-				State = 414;
+				State = 416;
 				_la = TokenStream.LA(1);
 				if ( !(_la==SINGLETON_ID || _la==VAR_ID) ) {
 				ErrorHandler.RecoverInline(this);
@@ -2763,21 +2506,21 @@ public partial class MoiraiParser : Parser {
 					ErrorHandler.ReportMatch(this);
 				    Consume();
 				}
-				State = 419;
+				State = 421;
 				ErrorHandler.Sync(this);
 				_alt = Interpreter.AdaptivePredict(TokenStream,51,Context);
 				while ( _alt!=2 && _alt!=global::Antlr4.Runtime.Atn.ATN.INVALID_ALT_NUMBER ) {
 					if ( _alt==1 ) {
 						{
 						{
-						State = 415;
+						State = 417;
 						Match(DOT);
-						State = 416;
+						State = 418;
 						Match(ID);
 						}
 						} 
 					}
-					State = 421;
+					State = 423;
 					ErrorHandler.Sync(this);
 					_alt = Interpreter.AdaptivePredict(TokenStream,51,Context);
 				}
@@ -2786,7 +2529,7 @@ public partial class MoiraiParser : Parser {
 			case ID:
 				EnterOuterAlt(_localctx, 2);
 				{
-				State = 422;
+				State = 424;
 				Match(ID);
 				}
 				break;
@@ -2817,16 +2560,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_enum_value; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEnum_value(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEnum_value(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEnum_value(this);
@@ -2841,11 +2574,11 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 425;
-			Match(TYPE_ID);
-			State = 426;
-			Match(DOT);
 			State = 427;
+			Match(TYPE_ID);
+			State = 428;
+			Match(DOT);
+			State = 429;
 			Match(TYPE_ID);
 			}
 		}
@@ -2870,16 +2603,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_number; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterNumber(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitNumber(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitNumber(this);
@@ -2895,7 +2618,7 @@ public partial class MoiraiParser : Parser {
 		try {
 			EnterOuterAlt(_localctx, 1);
 			{
-			State = 429;
+			State = 431;
 			_la = TokenStream.LA(1);
 			if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & 3940649673949184L) != 0)) ) {
 			ErrorHandler.RecoverInline(this);
@@ -2936,153 +2659,154 @@ public partial class MoiraiParser : Parser {
 	}
 
 	private static int[] _serializedATN = {
-		4,1,51,432,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
+		4,1,51,434,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,7,
 		7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,14,
 		2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,21,
 		2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,1,0,1,0,1,0,1,0,1,0,
-		1,0,4,0,61,8,0,11,0,12,0,62,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,5,1,73,8,1,
-		10,1,12,1,76,9,1,1,1,1,1,1,1,1,2,1,2,1,2,1,2,3,2,85,8,2,1,2,1,2,3,2,89,
-		8,2,1,3,3,3,92,8,3,1,3,1,3,1,3,1,3,1,3,1,4,5,4,100,8,4,10,4,12,4,103,9,
-		4,1,5,1,5,1,5,1,5,1,5,1,6,1,6,1,6,1,6,5,6,114,8,6,10,6,12,6,117,9,6,1,
-		6,5,6,120,8,6,10,6,12,6,123,9,6,1,6,4,6,126,8,6,11,6,12,6,127,1,7,1,7,
-		1,7,1,7,5,7,134,8,7,10,7,12,7,137,9,7,1,7,5,7,140,8,7,10,7,12,7,143,9,
-		7,1,7,4,7,146,8,7,11,7,12,7,147,1,8,1,8,1,8,3,8,153,8,8,1,8,5,8,156,8,
-		8,10,8,12,8,159,9,8,1,8,5,8,162,8,8,10,8,12,8,165,9,8,1,9,1,9,1,9,1,9,
-		1,9,5,9,172,8,9,10,9,12,9,175,9,9,1,9,3,9,178,8,9,1,10,1,10,1,10,1,10,
-		5,10,184,8,10,10,10,12,10,187,9,10,1,10,1,10,5,10,191,8,10,10,10,12,10,
-		194,9,10,1,10,4,10,197,8,10,11,10,12,10,198,1,10,1,10,5,10,203,8,10,10,
-		10,12,10,206,9,10,1,11,1,11,1,11,5,11,211,8,11,10,11,12,11,214,9,11,1,
-		11,1,11,1,11,4,11,219,8,11,11,11,12,11,220,1,11,3,11,224,8,11,1,12,1,12,
-		1,12,1,12,1,12,1,13,1,13,1,13,1,13,1,13,1,14,1,14,1,14,3,14,239,8,14,1,
-		14,1,14,1,14,1,14,5,14,245,8,14,10,14,12,14,248,9,14,1,14,1,14,3,14,252,
-		8,14,1,15,1,15,5,15,256,8,15,10,15,12,15,259,9,15,1,15,1,15,3,15,263,8,
-		15,1,15,1,15,1,15,1,15,1,15,4,15,270,8,15,11,15,12,15,271,5,15,274,8,15,
-		10,15,12,15,277,9,15,1,15,3,15,280,8,15,1,15,5,15,283,8,15,10,15,12,15,
-		286,9,15,1,16,1,16,1,16,3,16,291,8,16,1,16,1,16,3,16,295,8,16,1,17,1,17,
-		1,17,1,17,1,17,1,17,1,17,1,17,1,17,3,17,306,8,17,1,18,1,18,1,18,1,18,1,
-		18,1,18,1,18,1,18,3,18,316,8,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,
-		1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,5,18,336,8,18,10,18,
-		12,18,339,9,18,1,19,5,19,342,8,19,10,19,12,19,345,9,19,1,19,1,19,1,19,
-		1,19,5,19,351,8,19,10,19,12,19,354,9,19,1,19,3,19,357,8,19,1,19,4,19,360,
-		8,19,11,19,12,19,361,1,20,1,20,1,20,1,20,1,20,4,20,369,8,20,11,20,12,20,
-		370,1,21,1,21,1,21,1,21,5,21,377,8,21,10,21,12,21,380,9,21,1,21,1,21,1,
-		21,5,21,385,8,21,10,21,12,21,388,9,21,1,21,5,21,391,8,21,10,21,12,21,394,
-		9,21,1,21,3,21,397,8,21,1,21,5,21,400,8,21,10,21,12,21,403,9,21,1,21,1,
-		21,4,21,407,8,21,11,21,12,21,408,1,22,1,22,1,23,1,23,1,24,1,24,1,24,5,
-		24,418,8,24,10,24,12,24,421,9,24,1,24,3,24,424,8,24,1,25,1,25,1,25,1,25,
-		1,26,1,26,1,26,0,1,36,27,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,
-		34,36,38,40,42,44,46,48,50,52,0,8,1,0,21,22,1,0,35,36,1,0,33,34,2,0,30,
-		31,37,40,1,0,47,48,1,0,27,28,1,0,43,44,1,0,49,51,476,0,60,1,0,0,0,2,66,
-		1,0,0,0,4,80,1,0,0,0,6,91,1,0,0,0,8,101,1,0,0,0,10,104,1,0,0,0,12,109,
-		1,0,0,0,14,129,1,0,0,0,16,152,1,0,0,0,18,166,1,0,0,0,20,179,1,0,0,0,22,
-		207,1,0,0,0,24,225,1,0,0,0,26,230,1,0,0,0,28,235,1,0,0,0,30,253,1,0,0,
-		0,32,287,1,0,0,0,34,305,1,0,0,0,36,315,1,0,0,0,38,343,1,0,0,0,40,363,1,
-		0,0,0,42,372,1,0,0,0,44,410,1,0,0,0,46,412,1,0,0,0,48,423,1,0,0,0,50,425,
-		1,0,0,0,52,429,1,0,0,0,54,61,3,6,3,0,55,61,3,10,5,0,56,61,3,40,20,0,57,
-		61,3,42,21,0,58,61,3,38,19,0,59,61,5,4,0,0,60,54,1,0,0,0,60,55,1,0,0,0,
-		60,56,1,0,0,0,60,57,1,0,0,0,60,58,1,0,0,0,60,59,1,0,0,0,61,62,1,0,0,0,
-		62,60,1,0,0,0,62,63,1,0,0,0,63,64,1,0,0,0,64,65,5,0,0,1,65,1,1,0,0,0,66,
-		67,5,46,0,0,67,68,5,48,0,0,68,69,5,10,0,0,69,74,3,36,18,0,70,71,5,23,0,
-		0,71,73,3,36,18,0,72,70,1,0,0,0,73,76,1,0,0,0,74,72,1,0,0,0,74,75,1,0,
-		0,0,75,77,1,0,0,0,76,74,1,0,0,0,77,78,5,11,0,0,78,79,5,4,0,0,79,3,1,0,
-		0,0,80,84,5,46,0,0,81,82,5,51,0,0,82,83,5,48,0,0,83,85,5,51,0,0,84,81,
-		1,0,0,0,84,85,1,0,0,0,85,86,1,0,0,0,86,88,5,48,0,0,87,89,5,4,0,0,88,87,
-		1,0,0,0,88,89,1,0,0,0,89,5,1,0,0,0,90,92,3,4,2,0,91,90,1,0,0,0,91,92,1,
-		0,0,0,92,93,1,0,0,0,93,94,5,12,0,0,94,95,5,48,0,0,95,96,3,8,4,0,96,97,
-		3,30,15,0,97,7,1,0,0,0,98,100,5,48,0,0,99,98,1,0,0,0,100,103,1,0,0,0,101,
-		99,1,0,0,0,101,102,1,0,0,0,102,9,1,0,0,0,103,101,1,0,0,0,104,105,5,14,
-		0,0,105,106,5,48,0,0,106,107,3,8,4,0,107,108,3,30,15,0,108,11,1,0,0,0,
-		109,110,5,17,0,0,110,115,5,47,0,0,111,112,5,41,0,0,112,114,3,36,18,0,113,
-		111,1,0,0,0,114,117,1,0,0,0,115,113,1,0,0,0,115,116,1,0,0,0,116,121,1,
-		0,0,0,117,115,1,0,0,0,118,120,5,3,0,0,119,118,1,0,0,0,120,123,1,0,0,0,
-		121,119,1,0,0,0,121,122,1,0,0,0,122,125,1,0,0,0,123,121,1,0,0,0,124,126,
-		5,4,0,0,125,124,1,0,0,0,126,127,1,0,0,0,127,125,1,0,0,0,127,128,1,0,0,
-		0,128,13,1,0,0,0,129,130,5,18,0,0,130,135,5,47,0,0,131,132,5,41,0,0,132,
-		134,3,36,18,0,133,131,1,0,0,0,134,137,1,0,0,0,135,133,1,0,0,0,135,136,
-		1,0,0,0,136,141,1,0,0,0,137,135,1,0,0,0,138,140,5,3,0,0,139,138,1,0,0,
-		0,140,143,1,0,0,0,141,139,1,0,0,0,141,142,1,0,0,0,142,145,1,0,0,0,143,
-		141,1,0,0,0,144,146,5,4,0,0,145,144,1,0,0,0,146,147,1,0,0,0,147,145,1,
-		0,0,0,147,148,1,0,0,0,148,15,1,0,0,0,149,153,3,24,12,0,150,153,3,26,13,
-		0,151,153,3,36,18,0,152,149,1,0,0,0,152,150,1,0,0,0,152,151,1,0,0,0,153,
-		157,1,0,0,0,154,156,5,3,0,0,155,154,1,0,0,0,156,159,1,0,0,0,157,155,1,
-		0,0,0,157,158,1,0,0,0,158,163,1,0,0,0,159,157,1,0,0,0,160,162,5,4,0,0,
-		161,160,1,0,0,0,162,165,1,0,0,0,163,161,1,0,0,0,163,164,1,0,0,0,164,17,
-		1,0,0,0,165,163,1,0,0,0,166,167,5,25,0,0,167,168,3,36,18,0,168,177,3,30,
-		15,0,169,173,5,26,0,0,170,172,5,4,0,0,171,170,1,0,0,0,172,175,1,0,0,0,
-		173,171,1,0,0,0,173,174,1,0,0,0,174,176,1,0,0,0,175,173,1,0,0,0,176,178,
-		3,30,15,0,177,169,1,0,0,0,177,178,1,0,0,0,178,19,1,0,0,0,179,180,7,0,0,
-		0,180,185,3,36,18,0,181,182,5,23,0,0,182,184,3,36,18,0,183,181,1,0,0,0,
-		184,187,1,0,0,0,185,183,1,0,0,0,185,186,1,0,0,0,186,188,1,0,0,0,187,185,
-		1,0,0,0,188,192,5,8,0,0,189,191,5,4,0,0,190,189,1,0,0,0,191,194,1,0,0,
-		0,192,190,1,0,0,0,192,193,1,0,0,0,193,196,1,0,0,0,194,192,1,0,0,0,195,
-		197,3,22,11,0,196,195,1,0,0,0,197,198,1,0,0,0,198,196,1,0,0,0,198,199,
-		1,0,0,0,199,200,1,0,0,0,200,204,5,9,0,0,201,203,5,4,0,0,202,201,1,0,0,
-		0,203,206,1,0,0,0,204,202,1,0,0,0,204,205,1,0,0,0,205,21,1,0,0,0,206,204,
-		1,0,0,0,207,212,3,34,17,0,208,209,5,23,0,0,209,211,3,34,17,0,210,208,1,
-		0,0,0,211,214,1,0,0,0,212,210,1,0,0,0,212,213,1,0,0,0,213,215,1,0,0,0,
-		214,212,1,0,0,0,215,223,5,24,0,0,216,218,3,16,8,0,217,219,5,4,0,0,218,
-		217,1,0,0,0,219,220,1,0,0,0,220,218,1,0,0,0,220,221,1,0,0,0,221,224,1,
-		0,0,0,222,224,3,30,15,0,223,216,1,0,0,0,223,222,1,0,0,0,224,23,1,0,0,0,
-		225,226,5,19,0,0,226,227,3,48,24,0,227,228,5,31,0,0,228,229,3,36,18,0,
-		229,25,1,0,0,0,230,231,5,20,0,0,231,232,5,44,0,0,232,233,5,7,0,0,233,234,
-		3,36,18,0,234,27,1,0,0,0,235,238,5,48,0,0,236,237,5,44,0,0,237,239,5,7,
-		0,0,238,236,1,0,0,0,238,239,1,0,0,0,239,240,1,0,0,0,240,241,5,10,0,0,241,
-		246,3,36,18,0,242,243,5,23,0,0,243,245,3,36,18,0,244,242,1,0,0,0,245,248,
-		1,0,0,0,246,244,1,0,0,0,246,247,1,0,0,0,247,249,1,0,0,0,248,246,1,0,0,
-		0,249,251,5,11,0,0,250,252,3,30,15,0,251,250,1,0,0,0,251,252,1,0,0,0,252,
-		29,1,0,0,0,253,257,5,8,0,0,254,256,5,4,0,0,255,254,1,0,0,0,256,259,1,0,
-		0,0,257,255,1,0,0,0,257,258,1,0,0,0,258,262,1,0,0,0,259,257,1,0,0,0,260,
-		263,3,12,6,0,261,263,3,14,7,0,262,260,1,0,0,0,262,261,1,0,0,0,262,263,
-		1,0,0,0,263,279,1,0,0,0,264,265,3,16,8,0,265,266,5,9,0,0,266,280,1,0,0,
-		0,267,269,3,16,8,0,268,270,5,4,0,0,269,268,1,0,0,0,270,271,1,0,0,0,271,
-		269,1,0,0,0,271,272,1,0,0,0,272,274,1,0,0,0,273,267,1,0,0,0,274,277,1,
-		0,0,0,275,273,1,0,0,0,275,276,1,0,0,0,276,278,1,0,0,0,277,275,1,0,0,0,
-		278,280,5,9,0,0,279,264,1,0,0,0,279,275,1,0,0,0,280,284,1,0,0,0,281,283,
-		5,4,0,0,282,281,1,0,0,0,283,286,1,0,0,0,284,282,1,0,0,0,284,285,1,0,0,
-		0,285,31,1,0,0,0,286,284,1,0,0,0,287,290,5,48,0,0,288,289,5,44,0,0,289,
-		291,5,7,0,0,290,288,1,0,0,0,290,291,1,0,0,0,291,292,1,0,0,0,292,294,3,
-		34,17,0,293,295,3,30,15,0,294,293,1,0,0,0,294,295,1,0,0,0,295,33,1,0,0,
-		0,296,306,3,32,16,0,297,306,3,28,14,0,298,306,3,44,22,0,299,306,3,50,25,
-		0,300,306,5,47,0,0,301,306,3,48,24,0,302,306,3,46,23,0,303,306,3,52,26,
-		0,304,306,5,2,0,0,305,296,1,0,0,0,305,297,1,0,0,0,305,298,1,0,0,0,305,
-		299,1,0,0,0,305,300,1,0,0,0,305,301,1,0,0,0,305,302,1,0,0,0,305,303,1,
-		0,0,0,305,304,1,0,0,0,306,35,1,0,0,0,307,308,6,18,-1,0,308,316,3,18,9,
-		0,309,316,3,20,10,0,310,316,3,34,17,0,311,312,5,10,0,0,312,313,3,36,18,
-		0,313,314,5,11,0,0,314,316,1,0,0,0,315,307,1,0,0,0,315,309,1,0,0,0,315,
-		310,1,0,0,0,315,311,1,0,0,0,316,337,1,0,0,0,317,318,10,7,0,0,318,319,7,
-		1,0,0,319,336,3,36,18,8,320,321,10,6,0,0,321,322,7,2,0,0,322,336,3,36,
-		18,7,323,324,10,5,0,0,324,325,7,3,0,0,325,336,3,36,18,6,326,327,10,4,0,
-		0,327,328,5,32,0,0,328,336,3,36,18,5,329,330,10,3,0,0,330,331,5,41,0,0,
-		331,336,3,36,18,4,332,333,10,2,0,0,333,334,5,42,0,0,334,336,3,36,18,3,
-		335,317,1,0,0,0,335,320,1,0,0,0,335,323,1,0,0,0,335,326,1,0,0,0,335,329,
-		1,0,0,0,335,332,1,0,0,0,336,339,1,0,0,0,337,335,1,0,0,0,337,338,1,0,0,
-		0,338,37,1,0,0,0,339,337,1,0,0,0,340,342,3,2,1,0,341,340,1,0,0,0,342,345,
-		1,0,0,0,343,341,1,0,0,0,343,344,1,0,0,0,344,346,1,0,0,0,345,343,1,0,0,
-		0,346,347,5,13,0,0,347,356,5,47,0,0,348,352,5,8,0,0,349,351,5,4,0,0,350,
-		349,1,0,0,0,351,354,1,0,0,0,352,350,1,0,0,0,352,353,1,0,0,0,353,355,1,
-		0,0,0,354,352,1,0,0,0,355,357,5,9,0,0,356,348,1,0,0,0,356,357,1,0,0,0,
-		357,359,1,0,0,0,358,360,5,4,0,0,359,358,1,0,0,0,360,361,1,0,0,0,361,359,
-		1,0,0,0,361,362,1,0,0,0,362,39,1,0,0,0,363,364,5,15,0,0,364,365,5,48,0,
-		0,365,366,5,7,0,0,366,368,7,4,0,0,367,369,5,4,0,0,368,367,1,0,0,0,369,
-		370,1,0,0,0,370,368,1,0,0,0,370,371,1,0,0,0,371,41,1,0,0,0,372,373,5,16,
-		0,0,373,374,5,47,0,0,374,378,5,8,0,0,375,377,5,4,0,0,376,375,1,0,0,0,377,
-		380,1,0,0,0,378,376,1,0,0,0,378,379,1,0,0,0,379,381,1,0,0,0,380,378,1,
-		0,0,0,381,392,5,47,0,0,382,386,5,23,0,0,383,385,5,4,0,0,384,383,1,0,0,
-		0,385,388,1,0,0,0,386,384,1,0,0,0,386,387,1,0,0,0,387,389,1,0,0,0,388,
-		386,1,0,0,0,389,391,5,47,0,0,390,382,1,0,0,0,391,394,1,0,0,0,392,390,1,
-		0,0,0,392,393,1,0,0,0,393,396,1,0,0,0,394,392,1,0,0,0,395,397,5,23,0,0,
-		396,395,1,0,0,0,396,397,1,0,0,0,397,401,1,0,0,0,398,400,5,4,0,0,399,398,
-		1,0,0,0,400,403,1,0,0,0,401,399,1,0,0,0,401,402,1,0,0,0,402,404,1,0,0,
-		0,403,401,1,0,0,0,404,406,5,9,0,0,405,407,5,4,0,0,406,405,1,0,0,0,407,
-		408,1,0,0,0,408,406,1,0,0,0,408,409,1,0,0,0,409,43,1,0,0,0,410,411,5,1,
-		0,0,411,45,1,0,0,0,412,413,7,5,0,0,413,47,1,0,0,0,414,419,7,6,0,0,415,
-		416,5,29,0,0,416,418,5,48,0,0,417,415,1,0,0,0,418,421,1,0,0,0,419,417,
-		1,0,0,0,419,420,1,0,0,0,420,424,1,0,0,0,421,419,1,0,0,0,422,424,5,48,0,
-		0,423,414,1,0,0,0,423,422,1,0,0,0,424,49,1,0,0,0,425,426,5,47,0,0,426,
-		427,5,29,0,0,427,428,5,47,0,0,428,51,1,0,0,0,429,430,7,7,0,0,430,53,1,
-		0,0,0,53,60,62,74,84,88,91,101,115,121,127,135,141,147,152,157,163,173,
-		177,185,192,198,204,212,220,223,238,246,251,257,262,271,275,279,284,290,
-		294,305,315,335,337,343,352,356,361,370,378,386,392,396,401,408,419,423
+		4,0,60,8,0,11,0,12,0,61,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,5,1,72,8,1,10,
+		1,12,1,75,9,1,1,1,1,1,1,1,1,2,1,2,1,2,1,2,3,2,84,8,2,1,2,1,2,3,2,88,8,
+		2,1,3,3,3,91,8,3,1,3,1,3,1,3,1,3,1,3,1,4,5,4,99,8,4,10,4,12,4,102,9,4,
+		1,5,1,5,1,5,1,5,1,5,1,6,1,6,1,6,1,6,5,6,113,8,6,10,6,12,6,116,9,6,1,6,
+		5,6,119,8,6,10,6,12,6,122,9,6,1,6,4,6,125,8,6,11,6,12,6,126,1,7,1,7,1,
+		7,1,7,5,7,133,8,7,10,7,12,7,136,9,7,1,7,5,7,139,8,7,10,7,12,7,142,9,7,
+		1,7,4,7,145,8,7,11,7,12,7,146,1,8,1,8,1,8,3,8,152,8,8,1,8,5,8,155,8,8,
+		10,8,12,8,158,9,8,1,8,5,8,161,8,8,10,8,12,8,164,9,8,1,9,1,9,1,9,1,9,1,
+		9,5,9,171,8,9,10,9,12,9,174,9,9,1,9,3,9,177,8,9,1,10,1,10,1,10,1,10,5,
+		10,183,8,10,10,10,12,10,186,9,10,1,10,1,10,5,10,190,8,10,10,10,12,10,193,
+		9,10,1,10,4,10,196,8,10,11,10,12,10,197,1,10,1,10,5,10,202,8,10,10,10,
+		12,10,205,9,10,1,11,1,11,1,11,5,11,210,8,11,10,11,12,11,213,9,11,1,11,
+		1,11,1,11,4,11,218,8,11,11,11,12,11,219,1,11,3,11,223,8,11,1,12,1,12,1,
+		12,1,12,1,12,1,13,1,13,1,13,1,13,1,13,1,14,1,14,1,14,3,14,238,8,14,1,14,
+		1,14,1,14,1,14,5,14,244,8,14,10,14,12,14,247,9,14,1,14,1,14,3,14,251,8,
+		14,1,15,1,15,5,15,255,8,15,10,15,12,15,258,9,15,1,15,1,15,3,15,262,8,15,
+		1,15,1,15,1,15,1,15,1,15,4,15,269,8,15,11,15,12,15,270,5,15,273,8,15,10,
+		15,12,15,276,9,15,1,15,3,15,279,8,15,1,15,5,15,282,8,15,10,15,12,15,285,
+		9,15,1,16,1,16,1,16,3,16,290,8,16,1,16,1,16,3,16,294,8,16,1,17,1,17,1,
+		17,1,17,1,17,1,17,1,17,1,17,1,17,3,17,305,8,17,1,18,1,18,1,18,1,18,1,18,
+		1,18,1,18,1,18,3,18,315,8,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,
+		18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,1,18,5,18,335,8,18,10,18,12,
+		18,338,9,18,1,19,5,19,341,8,19,10,19,12,19,344,9,19,1,19,1,19,1,19,1,19,
+		5,19,350,8,19,10,19,12,19,353,9,19,1,19,4,19,356,8,19,11,19,12,19,357,
+		1,19,1,19,4,19,362,8,19,11,19,12,19,363,1,20,1,20,1,20,1,20,1,20,4,20,
+		371,8,20,11,20,12,20,372,1,21,1,21,1,21,1,21,5,21,379,8,21,10,21,12,21,
+		382,9,21,1,21,1,21,1,21,5,21,387,8,21,10,21,12,21,390,9,21,1,21,5,21,393,
+		8,21,10,21,12,21,396,9,21,1,21,3,21,399,8,21,1,21,5,21,402,8,21,10,21,
+		12,21,405,9,21,1,21,1,21,4,21,409,8,21,11,21,12,21,410,1,22,1,22,1,23,
+		1,23,1,24,1,24,1,24,5,24,420,8,24,10,24,12,24,423,9,24,1,24,3,24,426,8,
+		24,1,25,1,25,1,25,1,25,1,26,1,26,1,26,0,1,36,27,0,2,4,6,8,10,12,14,16,
+		18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,0,8,1,0,21,22,1,
+		0,35,36,1,0,33,34,2,0,30,31,37,40,1,0,47,48,1,0,27,28,1,0,43,44,1,0,49,
+		51,477,0,59,1,0,0,0,2,65,1,0,0,0,4,79,1,0,0,0,6,90,1,0,0,0,8,100,1,0,0,
+		0,10,103,1,0,0,0,12,108,1,0,0,0,14,128,1,0,0,0,16,151,1,0,0,0,18,165,1,
+		0,0,0,20,178,1,0,0,0,22,206,1,0,0,0,24,224,1,0,0,0,26,229,1,0,0,0,28,234,
+		1,0,0,0,30,252,1,0,0,0,32,286,1,0,0,0,34,304,1,0,0,0,36,314,1,0,0,0,38,
+		342,1,0,0,0,40,365,1,0,0,0,42,374,1,0,0,0,44,412,1,0,0,0,46,414,1,0,0,
+		0,48,425,1,0,0,0,50,427,1,0,0,0,52,431,1,0,0,0,54,60,3,6,3,0,55,60,3,10,
+		5,0,56,60,3,42,21,0,57,60,3,38,19,0,58,60,5,4,0,0,59,54,1,0,0,0,59,55,
+		1,0,0,0,59,56,1,0,0,0,59,57,1,0,0,0,59,58,1,0,0,0,60,61,1,0,0,0,61,59,
+		1,0,0,0,61,62,1,0,0,0,62,63,1,0,0,0,63,64,5,0,0,1,64,1,1,0,0,0,65,66,5,
+		46,0,0,66,67,5,48,0,0,67,68,5,10,0,0,68,73,3,36,18,0,69,70,5,23,0,0,70,
+		72,3,36,18,0,71,69,1,0,0,0,72,75,1,0,0,0,73,71,1,0,0,0,73,74,1,0,0,0,74,
+		76,1,0,0,0,75,73,1,0,0,0,76,77,5,11,0,0,77,78,5,4,0,0,78,3,1,0,0,0,79,
+		83,5,46,0,0,80,81,5,51,0,0,81,82,5,48,0,0,82,84,5,51,0,0,83,80,1,0,0,0,
+		83,84,1,0,0,0,84,85,1,0,0,0,85,87,5,48,0,0,86,88,5,4,0,0,87,86,1,0,0,0,
+		87,88,1,0,0,0,88,5,1,0,0,0,89,91,3,4,2,0,90,89,1,0,0,0,90,91,1,0,0,0,91,
+		92,1,0,0,0,92,93,5,12,0,0,93,94,5,48,0,0,94,95,3,8,4,0,95,96,3,30,15,0,
+		96,7,1,0,0,0,97,99,5,48,0,0,98,97,1,0,0,0,99,102,1,0,0,0,100,98,1,0,0,
+		0,100,101,1,0,0,0,101,9,1,0,0,0,102,100,1,0,0,0,103,104,5,14,0,0,104,105,
+		5,48,0,0,105,106,3,8,4,0,106,107,3,30,15,0,107,11,1,0,0,0,108,109,5,17,
+		0,0,109,114,5,47,0,0,110,111,5,41,0,0,111,113,3,36,18,0,112,110,1,0,0,
+		0,113,116,1,0,0,0,114,112,1,0,0,0,114,115,1,0,0,0,115,120,1,0,0,0,116,
+		114,1,0,0,0,117,119,5,3,0,0,118,117,1,0,0,0,119,122,1,0,0,0,120,118,1,
+		0,0,0,120,121,1,0,0,0,121,124,1,0,0,0,122,120,1,0,0,0,123,125,5,4,0,0,
+		124,123,1,0,0,0,125,126,1,0,0,0,126,124,1,0,0,0,126,127,1,0,0,0,127,13,
+		1,0,0,0,128,129,5,18,0,0,129,134,5,47,0,0,130,131,5,41,0,0,131,133,3,36,
+		18,0,132,130,1,0,0,0,133,136,1,0,0,0,134,132,1,0,0,0,134,135,1,0,0,0,135,
+		140,1,0,0,0,136,134,1,0,0,0,137,139,5,3,0,0,138,137,1,0,0,0,139,142,1,
+		0,0,0,140,138,1,0,0,0,140,141,1,0,0,0,141,144,1,0,0,0,142,140,1,0,0,0,
+		143,145,5,4,0,0,144,143,1,0,0,0,145,146,1,0,0,0,146,144,1,0,0,0,146,147,
+		1,0,0,0,147,15,1,0,0,0,148,152,3,24,12,0,149,152,3,26,13,0,150,152,3,36,
+		18,0,151,148,1,0,0,0,151,149,1,0,0,0,151,150,1,0,0,0,152,156,1,0,0,0,153,
+		155,5,3,0,0,154,153,1,0,0,0,155,158,1,0,0,0,156,154,1,0,0,0,156,157,1,
+		0,0,0,157,162,1,0,0,0,158,156,1,0,0,0,159,161,5,4,0,0,160,159,1,0,0,0,
+		161,164,1,0,0,0,162,160,1,0,0,0,162,163,1,0,0,0,163,17,1,0,0,0,164,162,
+		1,0,0,0,165,166,5,25,0,0,166,167,3,36,18,0,167,176,3,30,15,0,168,172,5,
+		26,0,0,169,171,5,4,0,0,170,169,1,0,0,0,171,174,1,0,0,0,172,170,1,0,0,0,
+		172,173,1,0,0,0,173,175,1,0,0,0,174,172,1,0,0,0,175,177,3,30,15,0,176,
+		168,1,0,0,0,176,177,1,0,0,0,177,19,1,0,0,0,178,179,7,0,0,0,179,184,3,36,
+		18,0,180,181,5,23,0,0,181,183,3,36,18,0,182,180,1,0,0,0,183,186,1,0,0,
+		0,184,182,1,0,0,0,184,185,1,0,0,0,185,187,1,0,0,0,186,184,1,0,0,0,187,
+		191,5,8,0,0,188,190,5,4,0,0,189,188,1,0,0,0,190,193,1,0,0,0,191,189,1,
+		0,0,0,191,192,1,0,0,0,192,195,1,0,0,0,193,191,1,0,0,0,194,196,3,22,11,
+		0,195,194,1,0,0,0,196,197,1,0,0,0,197,195,1,0,0,0,197,198,1,0,0,0,198,
+		199,1,0,0,0,199,203,5,9,0,0,200,202,5,4,0,0,201,200,1,0,0,0,202,205,1,
+		0,0,0,203,201,1,0,0,0,203,204,1,0,0,0,204,21,1,0,0,0,205,203,1,0,0,0,206,
+		211,3,34,17,0,207,208,5,23,0,0,208,210,3,34,17,0,209,207,1,0,0,0,210,213,
+		1,0,0,0,211,209,1,0,0,0,211,212,1,0,0,0,212,214,1,0,0,0,213,211,1,0,0,
+		0,214,222,5,24,0,0,215,217,3,16,8,0,216,218,5,4,0,0,217,216,1,0,0,0,218,
+		219,1,0,0,0,219,217,1,0,0,0,219,220,1,0,0,0,220,223,1,0,0,0,221,223,3,
+		30,15,0,222,215,1,0,0,0,222,221,1,0,0,0,223,23,1,0,0,0,224,225,5,19,0,
+		0,225,226,3,48,24,0,226,227,5,31,0,0,227,228,3,36,18,0,228,25,1,0,0,0,
+		229,230,5,20,0,0,230,231,5,44,0,0,231,232,5,7,0,0,232,233,3,36,18,0,233,
+		27,1,0,0,0,234,237,5,48,0,0,235,236,5,44,0,0,236,238,5,7,0,0,237,235,1,
+		0,0,0,237,238,1,0,0,0,238,239,1,0,0,0,239,240,5,10,0,0,240,245,3,36,18,
+		0,241,242,5,23,0,0,242,244,3,36,18,0,243,241,1,0,0,0,244,247,1,0,0,0,245,
+		243,1,0,0,0,245,246,1,0,0,0,246,248,1,0,0,0,247,245,1,0,0,0,248,250,5,
+		11,0,0,249,251,3,30,15,0,250,249,1,0,0,0,250,251,1,0,0,0,251,29,1,0,0,
+		0,252,256,5,8,0,0,253,255,5,4,0,0,254,253,1,0,0,0,255,258,1,0,0,0,256,
+		254,1,0,0,0,256,257,1,0,0,0,257,261,1,0,0,0,258,256,1,0,0,0,259,262,3,
+		12,6,0,260,262,3,14,7,0,261,259,1,0,0,0,261,260,1,0,0,0,261,262,1,0,0,
+		0,262,278,1,0,0,0,263,264,3,16,8,0,264,265,5,9,0,0,265,279,1,0,0,0,266,
+		268,3,16,8,0,267,269,5,4,0,0,268,267,1,0,0,0,269,270,1,0,0,0,270,268,1,
+		0,0,0,270,271,1,0,0,0,271,273,1,0,0,0,272,266,1,0,0,0,273,276,1,0,0,0,
+		274,272,1,0,0,0,274,275,1,0,0,0,275,277,1,0,0,0,276,274,1,0,0,0,277,279,
+		5,9,0,0,278,263,1,0,0,0,278,274,1,0,0,0,279,283,1,0,0,0,280,282,5,4,0,
+		0,281,280,1,0,0,0,282,285,1,0,0,0,283,281,1,0,0,0,283,284,1,0,0,0,284,
+		31,1,0,0,0,285,283,1,0,0,0,286,289,5,48,0,0,287,288,5,44,0,0,288,290,5,
+		7,0,0,289,287,1,0,0,0,289,290,1,0,0,0,290,291,1,0,0,0,291,293,3,34,17,
+		0,292,294,3,30,15,0,293,292,1,0,0,0,293,294,1,0,0,0,294,33,1,0,0,0,295,
+		305,3,32,16,0,296,305,3,28,14,0,297,305,3,44,22,0,298,305,3,50,25,0,299,
+		305,5,47,0,0,300,305,3,48,24,0,301,305,3,46,23,0,302,305,3,52,26,0,303,
+		305,5,2,0,0,304,295,1,0,0,0,304,296,1,0,0,0,304,297,1,0,0,0,304,298,1,
+		0,0,0,304,299,1,0,0,0,304,300,1,0,0,0,304,301,1,0,0,0,304,302,1,0,0,0,
+		304,303,1,0,0,0,305,35,1,0,0,0,306,307,6,18,-1,0,307,315,3,18,9,0,308,
+		315,3,20,10,0,309,315,3,34,17,0,310,311,5,10,0,0,311,312,3,36,18,0,312,
+		313,5,11,0,0,313,315,1,0,0,0,314,306,1,0,0,0,314,308,1,0,0,0,314,309,1,
+		0,0,0,314,310,1,0,0,0,315,336,1,0,0,0,316,317,10,7,0,0,317,318,7,1,0,0,
+		318,335,3,36,18,8,319,320,10,6,0,0,320,321,7,2,0,0,321,335,3,36,18,7,322,
+		323,10,5,0,0,323,324,7,3,0,0,324,335,3,36,18,6,325,326,10,4,0,0,326,327,
+		5,32,0,0,327,335,3,36,18,5,328,329,10,3,0,0,329,330,5,41,0,0,330,335,3,
+		36,18,4,331,332,10,2,0,0,332,333,5,42,0,0,333,335,3,36,18,3,334,316,1,
+		0,0,0,334,319,1,0,0,0,334,322,1,0,0,0,334,325,1,0,0,0,334,328,1,0,0,0,
+		334,331,1,0,0,0,335,338,1,0,0,0,336,334,1,0,0,0,336,337,1,0,0,0,337,37,
+		1,0,0,0,338,336,1,0,0,0,339,341,3,2,1,0,340,339,1,0,0,0,341,344,1,0,0,
+		0,342,340,1,0,0,0,342,343,1,0,0,0,343,345,1,0,0,0,344,342,1,0,0,0,345,
+		346,5,13,0,0,346,347,5,47,0,0,347,351,5,8,0,0,348,350,5,4,0,0,349,348,
+		1,0,0,0,350,353,1,0,0,0,351,349,1,0,0,0,351,352,1,0,0,0,352,355,1,0,0,
+		0,353,351,1,0,0,0,354,356,3,40,20,0,355,354,1,0,0,0,356,357,1,0,0,0,357,
+		355,1,0,0,0,357,358,1,0,0,0,358,359,1,0,0,0,359,361,5,9,0,0,360,362,5,
+		4,0,0,361,360,1,0,0,0,362,363,1,0,0,0,363,361,1,0,0,0,363,364,1,0,0,0,
+		364,39,1,0,0,0,365,366,5,15,0,0,366,367,5,48,0,0,367,368,5,7,0,0,368,370,
+		7,4,0,0,369,371,5,4,0,0,370,369,1,0,0,0,371,372,1,0,0,0,372,370,1,0,0,
+		0,372,373,1,0,0,0,373,41,1,0,0,0,374,375,5,16,0,0,375,376,5,47,0,0,376,
+		380,5,8,0,0,377,379,5,4,0,0,378,377,1,0,0,0,379,382,1,0,0,0,380,378,1,
+		0,0,0,380,381,1,0,0,0,381,383,1,0,0,0,382,380,1,0,0,0,383,394,5,47,0,0,
+		384,388,5,23,0,0,385,387,5,4,0,0,386,385,1,0,0,0,387,390,1,0,0,0,388,386,
+		1,0,0,0,388,389,1,0,0,0,389,391,1,0,0,0,390,388,1,0,0,0,391,393,5,47,0,
+		0,392,384,1,0,0,0,393,396,1,0,0,0,394,392,1,0,0,0,394,395,1,0,0,0,395,
+		398,1,0,0,0,396,394,1,0,0,0,397,399,5,23,0,0,398,397,1,0,0,0,398,399,1,
+		0,0,0,399,403,1,0,0,0,400,402,5,4,0,0,401,400,1,0,0,0,402,405,1,0,0,0,
+		403,401,1,0,0,0,403,404,1,0,0,0,404,406,1,0,0,0,405,403,1,0,0,0,406,408,
+		5,9,0,0,407,409,5,4,0,0,408,407,1,0,0,0,409,410,1,0,0,0,410,408,1,0,0,
+		0,410,411,1,0,0,0,411,43,1,0,0,0,412,413,5,1,0,0,413,45,1,0,0,0,414,415,
+		7,5,0,0,415,47,1,0,0,0,416,421,7,6,0,0,417,418,5,29,0,0,418,420,5,48,0,
+		0,419,417,1,0,0,0,420,423,1,0,0,0,421,419,1,0,0,0,421,422,1,0,0,0,422,
+		426,1,0,0,0,423,421,1,0,0,0,424,426,5,48,0,0,425,416,1,0,0,0,425,424,1,
+		0,0,0,426,49,1,0,0,0,427,428,5,47,0,0,428,429,5,29,0,0,429,430,5,47,0,
+		0,430,51,1,0,0,0,431,432,7,7,0,0,432,53,1,0,0,0,53,59,61,73,83,87,90,100,
+		114,120,126,134,140,146,151,156,162,172,176,184,191,197,203,211,219,222,
+		237,245,250,256,261,270,274,278,283,289,293,304,314,334,336,342,351,357,
+		363,372,380,388,394,398,403,410,421,425
 	};
 
 	public static readonly ATN _ATN =
