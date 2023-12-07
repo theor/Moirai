@@ -26,7 +26,7 @@ public struct Entity
             _properties[i] = default;
         }
     }
-    public bool TryGetProperty(PropertyId property, out PropertyValue value)
+    public readonly bool TryGetProperty(PropertyId property, out PropertyValue value)
     {
         Profiler.Get(property);
         if (property == Database.PropId)
@@ -49,7 +49,7 @@ public struct Entity
         value = _properties[property.Id].Value;
         return _properties[property.Id].Id.IsValid;
     }
-    public PropertyValue GetProperty(PropertyId property)
+    public readonly PropertyValue GetProperty(PropertyId property)
     {
         TryGetProperty(property, out var val);
         return val;

@@ -1,6 +1,6 @@
 ﻿import {EntityChangeDisplay, useMoiraiStore} from "./SignalRConnection.tsx";
 import {useEffect} from "react";
-import {Changeset} from "./types.ts";
+import {Changeset, GetSetProperty} from "./types.ts";
 import {TableComponents, TableVirtuoso} from "react-virtuoso";
 import * as React from "react";
 import TableContainer from "@mui/material/TableContainer";
@@ -11,6 +11,7 @@ import TableRow from "@mui/material/TableRow";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import {Simulate} from "react-dom/test-utils";
+import {makeEntityChip, makeEntityLink, useFiltering, useSelectedEntity} from "./utils.tsx";
 
 // const columnHelper = createColumnHelper<Changeset>();
 // const columns = [
@@ -25,7 +26,7 @@ import {Simulate} from "react-dom/test-utils";
 //     }),
 // ];
 
-const RecordTable: TableComponents<EntityChangeDisplay> = {
+const RecordTable: TableComponents<EntityChangeDisplay, [GetSetProperty<number>, GetSetProperty<number>]> = {
     Scroller: React.forwardRef<HTMLDivElement>((props, ref) => (
         <TableContainer  component={Paper} {...props} ref={ref}/>
     )),
@@ -52,7 +53,7 @@ const columns: ColumnData[] = [
     //     dataKey: 'id',
     // },
     {
-        width: 60,
+        width: 100,
         label: 'Id',
         dataKey: 'id',
     },
@@ -100,7 +101,7 @@ export function ChangesetList() {
     //         return <span>NEW {c.new.properties.filter(p => p.id !== 0).map(p => <span>{JSON.stringify(p)}</span>)}</span>
     //         return <span>SET {c.new.properties.filter(p => p.id !== 0).map(p => <span>{JSON.stringify(p)}</span>)}</span>
     // }
-    function rowContent(index: number, row: EntityChangeDisplay) {
+    function rowContent(index: number, row: EntityChangeDisplay, [selectedEntity, filteredEntity]: [GetSetProperty<number>,GetSetProperty<number>]) {
         // const text = makeEntityLink(row.text, selectedEntity, filteredEntity);
        
         return (
@@ -108,8 +109,11 @@ export function ChangesetList() {
                 {columns.map((column) => {
                     let content: JSX.Element;
                     if (row) {
+                        if (column.dataKey === "id") {
+                            content = makeEntityChip(row["id"], '#'+row["id"].toString(), selectedEntity, filteredEntity);
+                        } else
                         if (column.dataKey === "changes") {
-                            content = <ul>{row["changes"]?.map((c,i) => <li key={i}>{JSON.stringify(c)}</li>)}</ul>
+                            content = <ul>{row["changes"]?.map((c,i) => <li key={i}><b>{c.label}</b>: {makeEntityLink(c.value, selectedEntity, filteredEntity)}</li>)}</ul>
                             // content = row['changes']?.length ?? 0;
                         } else {
                             content = <>{row[column.dataKey]}</>;
@@ -133,16 +137,20 @@ export function ChangesetList() {
     const changesets = useMoiraiStore(s => s.changesets);
     const pushChangesets = useMoiraiStore(s => s.pushChangesets);
     // const addChangesets = useMoiraiStore(s => s.addChangesets);
-
+    const selectedEntity = useSelectedEntity();
+    const [filteredEntity, setFilteredEntity] = useFiltering();
+    const filteredChangesets = changesets.filter(r => (filteredEntity === -1 || isNaN(filteredEntity) || r.id === filteredEntity));
     useEffect(() => {
+        console.log("CS")
+        pushChangesets([]);
         let buffer: EntityChangeDisplay[] = [];
         setInterval(() => {
             if (buffer.length > 0) {
-                pushChangesets(buffer);
+                pushChangesets([...changesets, ...buffer]);
                 buffer = [];
             }
         }, 500);
-        conn?.getChangesets().subscribe({
+        const stream = conn?.getChangesets().subscribe({
             next(value: EntityChangeDisplay) {
               
                         buffer.push(value);
@@ -154,6 +162,7 @@ export function ChangesetList() {
             complete() {
             }
         })
+        return () => stream?.dispose();
     }, []);
     // const table = useReactTable<Changeset>({
     //     data:changesets,
@@ -161,7 +170,8 @@ export function ChangesetList() {
     //     getCoreRowModel: getCoreRowModel(),
     // });
     return  <TableVirtuoso
-        data={changesets}
+        context={[selectedEntity, [filteredEntity, setFilteredEntity]]}
+        data={filteredChangesets}
         // endReached={loadMore}
         // overscan={200}
         // rangeChanged={rangeChanged}

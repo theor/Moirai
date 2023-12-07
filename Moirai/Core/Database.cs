@@ -311,7 +311,8 @@ WHERE id = $id;";
             if (!e.Execute(_ctx))
             {
                 // Console.WriteLine($"  ABORT [{action.Name}]");
-                History?.Changesets.Add(CurrentChangeset);
+                // TODO option to keep empty changesets
+                // History?.Changesets.Add(CurrentChangeset);
                 if (CurrentChangeset.Changes.Count != 0)
                 {
                     Console.Error.WriteLine("Action failed but left changes:");

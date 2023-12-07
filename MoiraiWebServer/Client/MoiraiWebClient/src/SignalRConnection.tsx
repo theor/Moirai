@@ -1,6 +1,6 @@
 ﻿import * as signalR from "@microsoft/signalr";
 import {HubConnection, HubConnectionState, IStreamResult} from "@microsoft/signalr";
-import { ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
+import {ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
 import {create} from "zustand";
 
 export class SignalRConnection {
@@ -95,12 +95,14 @@ export const useMoiraiStore = create<State>((set, get) => {
         let buffer: Record[] = [];
         setInterval(() => {
             if (buffer.length > 0) {
+                console.log("BUFFER RECORDs")
                 set({records: [...get().records, ...buffer]});
                 buffer = []
             }
         }, 500);
         x.streamRecords().subscribe({
             next(value: Message) {
+                // console.log(value, value.type === MessageType.Record);
                 switch (value.type) {
                     case MessageType.Reset:
                         set({year: 0, records: []})
@@ -111,7 +113,7 @@ export const useMoiraiStore = create<State>((set, get) => {
                     case MessageType.Year:
                         set({year: value.year})
                         break;
-
+                    default: console.error("UNKNOWN MESSAGE TYPE", value.type)
                 }
             },
             error(err: any) {
@@ -133,7 +135,7 @@ export const useMoiraiStore = create<State>((set, get) => {
             set({keyboardEvent: e});
         },
         pushChangesets: (buffer: EntityChangeDisplay[]) =>  {
-            set({changesets: [...get().changesets, ...buffer]})
+            set({changesets:  [...buffer]})
         },
         
         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {

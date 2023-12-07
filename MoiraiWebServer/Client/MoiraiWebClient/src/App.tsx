@@ -14,7 +14,7 @@ import {
     Typography,
     Button,
     CircularProgress,
-    Backdrop,
+    Backdrop, ToggleButton,
 } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import { useEffect } from 'react';
@@ -27,8 +27,8 @@ function InnerApp() {
     console.log("APP", showChangesets)
     return <>
         {/*<Box>*/}
-            <AppBar position="relative" sx={{marginBottom:"12px"}}>
-                <Toolbar>
+            <AppBar  position="relative" sx={{marginBottom:"12px"}}>
+                <Toolbar variant={"dense"}>
                     <IconButton
                         onClick={() => setShowChangesets(!showChangesets)}
                         size="large"
@@ -39,11 +39,14 @@ function InnerApp() {
                     >
                         <MenuIcon/>
                     </IconButton>
-                    <Typography variant="h6" component="div" sx={{flexGrow: 1}}/>
-                    <Typography variant="h6" component="div">
+                    <ToggleButton value="check" selected={!true} >
                         Year: {year}
-                    </Typography>
-                    <Button color="inherit" onClick={() => conn.passYears(100)}>Pass years</Button>
+                    </ToggleButton>
+                    <Typography variant="h6" component="div" sx={{flexGrow: 1}}/>
+                    <Button color="inherit" >
+                        Year: {year}
+                    </Button>
+                    <Button color="inherit" onClick={() => conn.passYears(5)}>Pass years</Button>
                     <Button color="inherit" onClick={() => conn.save()}>Save</Button>
                     <Button color="inherit" onClick={() => {
                         conn.reset();

@@ -68,12 +68,12 @@ public class ChatHub : Hub
             return c.New.Properties.Where(p => p.Id.IsValid)
                 .Select(p => new EntityPropertyDisplay(_db.GetPropertyName(p.Id), PrintValue(p.Id, p.Value))).ToList();
         }
-        return c.New.Properties.Where(p => p.Id.IsValid)
+        return c.Prev.Properties.Where(p => p.Id.IsValid)
             .Select(p =>
             {
-                var p1 = c.Prev.GetProperty(p.Id);
+                var p1 = c.New.GetProperty(p.Id);
                 return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
-                    PrintValue(p.Id, p1) + " -> " + PrintValue(p.Id, p.Value));
+                    PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
             }).ToList();
     }
 
