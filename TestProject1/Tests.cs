@@ -94,6 +94,151 @@ public class SQLiteTests
     }
 }
 
+public class DeclarationTests : TestsBase
+{
+    [Test]
+    public void SetPropertyOfWrongType_ShouldThrow()
+    {
+        string s = @"
+entity A {
+    prop x: number
+}
+entity B {
+    prop y: number
+}
+
+event create {
+    create $p: A
+    set y = 12
+}
+";
+        Run(s, out var e, 1);
+    }
+    [Test]
+    public void SetPropertyOfRightType()
+    {
+        string s = @"
+entity A {
+    prop x: number
+}
+
+event create {
+    create $p: A
+    set x = 12
+}
+";
+        Run(s, out var e, 0);
+    }
+    [Test]
+    public void SetEnumProperty_UnknownEnum()
+    {
+        string s = @"
+entity Person {
+    prop job: Job
+}
+enum Job { None, Farmer, Smith }
+
+event create {
+    create $p: (Person)
+    set job = Asd
+}
+";
+        var db = Run(s, out var errors, 1);
+        db.RunAction("create");
+        db.Printer.PrintDb();
+        var e = db.Entities.Single();
+        PropertyId jobProp = db.GetPropertyId("Person","job");
+        var value = e.GetProperty(jobProp);
+    } [Test]
+    public void SetEnumProperty_WrongEnum()
+    {
+        string s = @"
+entity Person {
+    prop job: Job
+}
+enum Job { None,  Smith }
+enum A { None, Farmer,}
+
+event create {
+    create $p: (Person)
+    set job = A.Farmer
+}
+";
+        var db = Run(s, out var errors, 1);
+        db.RunAction("create");
+        db.Printer.PrintDb();
+        var e = db.Entities.Single();
+        PropertyId jobProp = db.GetPropertyId("Person","job");
+        var value = e.GetProperty(jobProp);
+    }
+    [Test]
+    public void TypeDeclarationBeforeEnumDefinition()
+    {
+        string s = @"
+entity Person {
+    prop job: Job
+}
+enum Job { X }
+
+";
+        
+        var db = Run(s, out var errors);
+        var p = db.GetPropertyId("Person", "job");
+        db.GetPropertyType(p, out var t);
+        Assert.That(t.BaseType, Is.EqualTo(PropertyValue.ValueBaseType.Enum));
+
+    }
+
+    [Test]
+    public void TypeDeclarationBeforeUsedTypeReference()
+    {
+        string s = @"
+entity Person {
+    prop job: Job
+}
+entity Job { }
+
+";
+        
+        var db = Run(s, out var errors);
+        var p = db.GetPropertyId("Person", "job");
+        db.GetPropertyType(p, out var t);
+        Assert.That(t.BaseType, Is.EqualTo(PropertyValue.ValueBaseType.Ref));
+        Assert.That(t, Is.EqualTo(db.GetEntityType("Job").RefType));
+
+    }
+
+
+    [Test]
+    public void TypeQuery()
+    {
+        var s = @"
+entity Person {
+    prop alive: bool
+}
+event r {
+    pick $p: (type = Person)
+    set $p.alive = true
+}
+";
+
+        var db = Run(s, out var errors);
+
+        EntityTypeId typePerson = db.GetEntityType("Person").Id;
+        db.AllocateEntity(typePerson, "A");
+        Assert.AreEqual(1, db.Actions.Count);
+        var action = db.Actions[0];
+
+        PropertyId propId = db.GetPropertyId("Person","alive");
+        Assert.IsTrue(propId.IsValid);
+        db.RunAction(action.Name);
+        db.Printer.PrintDb();
+        db.Commit();
+        Assert.AreEqual(1, db.Entities.Count());
+        Assert.AreEqual(true, db.Entities.Single().GetProperty(propId).BoolValue);
+    }
+
+}
 public class Tests : TestsBase
 {
     [SetUp]
@@ -248,35 +393,6 @@ event r {
         // db.Commit();
         Assert.AreEqual(10, db.Entities.Count());
         Assert.AreEqual(2, db.Entities.Last().GetProperty(db.GetPropertyId("Person","alive")).IntValue);
-    }
-
-    [Test]
-    public void TypeQuery()
-    {
-        var s = @"
-entity Person {
-    prop alive: bool
-}
-event r {
-    pick $p: (type = Person)
-    set $p.alive = true
-}
-";
-
-        var db = Run(s, out var errors);
-
-        EntityTypeId typePerson = db.GetEntityType("Person").Id;
-        db.AllocateEntity(typePerson, "A");
-        Assert.AreEqual(1, db.Actions.Count);
-        var action = db.Actions[0];
-
-        PropertyId propId = db.GetPropertyId("Person","alive");
-        Assert.IsTrue(propId.IsValid);
-        db.RunAction(action.Name);
-        db.Printer.PrintDb();
-        db.Commit();
-        Assert.AreEqual(1, db.Entities.Count());
-        Assert.AreEqual(true, db.Entities.Single().GetProperty(propId).BoolValue);
     }
 
     [Test]
@@ -532,44 +648,6 @@ event create {
     }
 
     [Test]
-    public void TypeDeclarationBeforeEnumDefinition()
-    {
-        string s = @"
-entity Person {
-    prop job: Job
-}
-enum Job { X }
-
-";
-        
-        var db = Run(s, out var errors);
-        var p = db.GetPropertyId("Person", "job");
-        db.GetPropertyType(p, out var t);
-        Assert.That(t.BaseType, Is.EqualTo(PropertyValue.ValueBaseType.Enum));
-
-    }
-
-    [Test]
-    public void TypeDeclarationBeforeUsedTypeReference()
-    {
-        string s = @"
-entity Person {
-    prop job: Job
-}
-entity Job { }
-
-";
-        
-        var db = Run(s, out var errors);
-        var p = db.GetPropertyId("Person", "job");
-        db.GetPropertyType(p, out var t);
-        Assert.That(t.BaseType, Is.EqualTo(PropertyValue.ValueBaseType.Ref));
-        Assert.That(t, Is.EqualTo(db.GetEntityType("Job").RefType));
-
-    }
-
-    
-    [Test]
     public void Enum_Set_CastInt()
     {
         string s = @"
@@ -595,27 +673,6 @@ event create {
         Assert.AreEqual(1, value.IntValue);
     }
 
-    [Test]
-    public void Prop_WrongEnum()
-    {
-        string s = @"
-entity Person {
-    prop job: Job
-}
-enum Job { None, Farmer, Smith }
-
-event create {
-    create $p: (Person)
-    set job = Asd
-}
-";
-        var db = Run(s, out var errors, 1);
-        db.RunAction("create");
-        db.Printer.PrintDb();
-        var e = db.Entities.Single();
-        PropertyId jobProp = db.GetPropertyId("Person","job");
-        var value = e.GetProperty(jobProp);
-    }
 
     [Test]
     public void AssignRandomEnum()

@@ -1107,7 +1107,7 @@ public static class StoryParser
                 return new PropertyPath(singletonType.Id, propertyId);
             }
 
-            int variableIndex = -1;
+            int variableIndex;
             var varId = context.VAR_ID();
             if (varId != null)
             {
@@ -1124,6 +1124,8 @@ public static class StoryParser
                 if (context.ID().Length == 0)
                     return new PropertyPath(variableIndex);
             }
+            else
+                variableIndex = _variables.Count - 1;
 
             return new PropertyPath(variableIndex, propertyId);
         }

@@ -1,6 +1,5 @@
 ﻿# TODO
 - [ ] nested property paths. add a ppath nested fieldto ppath ? make a separate NestedPropPath class ?
-
 - [ ] `pick?` optional value ?
 - [ ] flag enum properties - `flag F { A,B,C }` `set_flag $x.f, F.B` `remove_flag $x.f, F.B` `has_flag $x.f, F.B `?
 - [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
@@ -9,7 +8,6 @@
 
 
 # Tech debt
-- [ ] fix shaky implicit variables (equal to -1 or variable.count)
 - [ ] filtering of records per entity not accurate because of how records depends on the source action changeset
 
 # Backlog
@@ -21,6 +19,7 @@
 - [ ] arrays ? are links good enough ?
 
 # Done
+- [x] fix shaky implicit variables (equal to -1 or variable.count)
 - [x] percentage type and literals, clamped
 - [x] assign factor per entity to impact history ? - Possible with a percentage
 - [x] filter sinceLastEvent ? avoid having 4 children in the same year
