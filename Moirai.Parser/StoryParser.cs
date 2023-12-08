@@ -29,16 +29,16 @@ public class FunctionDescriptor : IFunctionDescriptor
 {
     public record ParseContext(StoryParser.AstVisitor Visitor, ParserRuleContext CallContext)
     {
-        public int ParseVariable()
+        public int ParseVariable(PropertyValue.ValueType varType)
         {
             int varIndex;
             if (CallContext is MoiraiParser.CallContext c)
             {
-                 Visitor.DeclareVar(c.VAR_ID().GetText(), c.VAR_ID().Symbol, out varIndex);
+                 Visitor.DeclareVar(c.VAR_ID().GetText(), varType, c.VAR_ID().Symbol, out varIndex);
             } else
             {
                 var rawCallContext = (MoiraiParser.Raw_callContext)CallContext;
-                Visitor.DeclareVar(rawCallContext.VAR_ID().GetText(), rawCallContext.VAR_ID().Symbol, out varIndex);
+                Visitor.DeclareVar(rawCallContext.VAR_ID().GetText(),varType, rawCallContext.VAR_ID().Symbol, out varIndex);
             }
 
             return varIndex;
@@ -55,22 +55,22 @@ public class FunctionDescriptor : IFunctionDescriptor
             }
             return CallContext;
         }
-        public IValue? ParseArgument(int index)
+        public IValue ParseArgument(int index)
         {
             if (CallContext is MoiraiParser.CallContext c)
             {
-                return Visitor.ParseExpr(c.expr(index));
+                return Visitor.ParseExpr(c.expr(index))!;
             } else if (CallContext is MoiraiParser.Raw_callContext r)
             {
                 if (index != 0)
                 {
                     Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext,
                         "Expected more arguments, convert to () syntax");
-                    return default;
+                    return default!;
                 }
-                return Visitor.ParseValue(r.value());
+                return Visitor.ParseValue(r.value(), out var _);
             }
-            return default;
+            return default!;
         }
 
         public int ArgCount => CallContext is MoiraiParser.CallContext c ? c.expr().Length : 1;
@@ -83,7 +83,7 @@ public class FunctionDescriptor : IFunctionDescriptor
                 Visitor.AddError(StoryParser.ErrorCode.UnknownEntityType, GetArgumentToken(0), $"'{type}'");
             }
 
-            return this.Visitor._database.Types[(int)type.Id];
+            return this.Visitor.Database.Types[(int)type.Id];
         }
 
         public string GetText(RuleContext expr) => Visitor.Parser.TokenStream.GetText(expr);
@@ -160,12 +160,12 @@ public class FunctionDescriptor : IFunctionDescriptor
 
 public static class StoryParser
 {
-    private static FunctionDescriptor[] Functions = new FunctionDescriptor[]
+    private static readonly FunctionDescriptor[] Functions = new FunctionDescriptor[]
     {
         new("create", true, ctx =>
         {
             var typeId = ctx.ParseEntityType();
-            return new CreateEntity(ctx.ParseVariable(), typeId.Id,ctx.ArgCount == 1 ? null : (InterpolatedString)ctx.ParseArgument(1));
+            return new CreateEntity(ctx.ParseVariable(typeId.RefType), typeId.Id,ctx.ArgCount == 1 ? null : (InterpolatedString)ctx.ParseArgument(1));
         }),
         new("each", true,
             ctx => new AssignPick(ctx.ParseVariable(), ctx.ParsePredicate(),
@@ -208,7 +208,7 @@ public static class StoryParser
                 ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, "event name");
             }
 
-            var eventIndex = ctx.Visitor._database.Actions.FindIndex(r => r.Name == eventName);
+            var eventIndex = ctx.Visitor.Database.Actions.FindIndex(r => r.Name == eventName);
             if (eventIndex == -1)
             {
                 ctx.Visitor.AddError(ErrorCode.UnknownRule, arg, eventName);
@@ -242,13 +242,13 @@ public static class StoryParser
 
             var arg = ctx.ParseArgument(0);
 
-            if (arg is Literal l && l is Literal { Value: {Type: { BaseType: PropertyValue.ValueBaseType.EnumType}}})
+            if (arg is Literal { Value.Type.BaseType: PropertyValue.ValueBaseType.EnumType } l)
             {
                 ctx.ExpectArgcount(1);
                 return new RandomEnum(new EnumDefinitionId((ushort)l.Value.IntValue));
             }
 
-            if (arg is Literal l2 && l2 is Literal { Value: {Type: { BaseType: PropertyValue.ValueBaseType.Number}}})
+            if (arg is Literal { Value.Type.BaseType: PropertyValue.ValueBaseType.Number })
             {
                 ctx.ExpectArgcount(2, true);
                 var min = argCount == 1 ? new Literal(0) : arg;
@@ -379,7 +379,7 @@ public static class StoryParser
         }
     }
 
-    internal static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn,
+    private static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn,
         out List<Error> errors)
     {
         var prevOffset = visitor.offset;
@@ -418,21 +418,31 @@ public static class StoryParser
 
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
-       
+        public record struct VariableDeclaration(string Name, PropertyValue.ValueType Type)
+        {
+            // private sealed class NameEqualityComparer : IEqualityComparer<VariableDeclaration>
+            // {
+            //     public bool Equals(VariableDeclaration x, VariableDeclaration y) => x.Name == y.Name;
+            //
+            //     public int GetHashCode(VariableDeclaration obj) => obj.Name.GetHashCode();
+            // }
+            //
+            // public static IEqualityComparer<VariableDeclaration> NameComparer { get; } = new NameEqualityComparer();
+        }
         public (int offsetLine, int offsetColumn) offset { get; set; }
 
-        private List<string> _variables = new();
-        private List<Error> _errors = new();
-        public List<Error> Errors => _errors;
+        private readonly List<VariableDeclaration> _variables = new();
+        public List<Error> Errors { get; } = new();
+
         public MoiraiParser Parser { get; set; }
         protected override object? DefaultResult => null;
 
-        public readonly Database _database;
+        public readonly Database Database;
 
         // private int _implicitVariableIndex = -1;
         public AstVisitor(Database database)
         {
-            _database = database;
+            Database = database;
         }
 
         public override object? VisitR(MoiraiParser.RContext context)
@@ -486,10 +496,10 @@ public static class StoryParser
 
                 using (new VariableDeclarationScope(this, true))
                 {
-                    DeclareVar("$self", null, out var varIndex);
+                    DeclareVar("$self", tid.RefType, null, out var varIndex);
                     var expr = ParseExpr(attr.expr(1));
                     Display d = new Display(varIndex, attr.expr(0).GetText(), expr);
-                    var t = _database.Types[(int)(tid.Id.Id - 1)];
+                    var t = Database.Types[(int)(tid.Id.Id - 1)];
 
                     t.Attributes.Add(d);
                 }
@@ -513,9 +523,9 @@ public static class StoryParser
 
         public EntityType DeclareEntityType(string typeName)
         {
-            var id = (uint)_database.Types.Count;
+            var id = (uint)Database.Types.Count;
             var entityType = new EntityType(typeName, id);
-            _database.Types.Add(entityType);
+            Database.Types.Add(entityType);
             return entityType;
         }
 
@@ -535,9 +545,9 @@ public static class StoryParser
                 case "string": return PropertyValue.TypeString;
                 case "percentage": return PropertyValue.TypePercent;
                 default:
-                    if (_database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
+                    if (Database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
                         return PropertyValue.TypeEnum(enumDefinition.Index);
-                    var entityType = _database.GetEntityType(id.GetText());
+                    var entityType = Database.GetEntityType(id.GetText());
                     if (entityType.Id.IsValid)
                         return entityType.RefType;
                     AddError(ErrorCode.UnknownPropertyType, id, id.GetText());
@@ -547,9 +557,9 @@ public static class StoryParser
 
         public override object? VisitEnum_definition(MoiraiParser.Enum_definitionContext context)
         {
-            EnumDefinition en = new(new EnumDefinitionId((ushort)_database.Enums.Count), context.TYPE_ID(0).GetText(),
+            EnumDefinition en = new(new EnumDefinitionId((ushort)Database.Enums.Count), context.TYPE_ID(0).GetText(),
                 context.TYPE_ID().Skip(1).Select(v => v.GetText()).ToList());
-            _database.Enums.Add(en);
+            Database.Enums.Add(en);
             return null;
         }
 
@@ -588,7 +598,7 @@ public static class StoryParser
 
             var cats = ParseCategories(context.categories());
 
-            CurrentEventTrigger = new EventTrigger(_database.Actions.Count + 1, actionId, false, f, cats);
+            CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f, cats);
             foreach (MoiraiParser.EffectContext effectContext in context.scope().effect())
             {
                 // if (effectContext.comment() != null)
@@ -603,7 +613,7 @@ public static class StoryParser
                 CurrentEventTrigger.Effects.Add(effect);
             }
 
-            _database.Actions.Add(CurrentEventTrigger);
+            Database.Actions.Add(CurrentEventTrigger);
             CurrentEventTrigger = null;
             return null;
         }
@@ -615,7 +625,7 @@ public static class StoryParser
             for (var index = 0; index < nodes.ID().Length; index++)
             {
                 var cat = tagIds.ID(index);
-                tags[index] = _database.GetCategoryId(cat.GetText());
+                tags[index] = Database.GetCategoryId(cat.GetText());
             }
 
             return tags;
@@ -628,29 +638,32 @@ public static class StoryParser
             string actionId = context.ID().GetText();
             //Console.WriteLine("@ " + actionId);
             var categories = ParseCategories(context.categories());
-            CurrentEventTrigger = new EventTrigger(_database.Triggers.Count + 1, actionId, true, null, categories);
+            CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, categories);
             _variables.Clear();
 
-            using (new VariableDeclarationScope(this, true)) ;
-            if (context.scope().when() != null)
-                DeclareVar("$old", null, out var oldIndex);
-            DeclareVar("$new", null, out var newIndex);
+            using var _ = new VariableDeclarationScope(this, true);
             if (context.scope().when_created() is { } createdContext)
             {
-                EntityType type = _database.GetEntityType(createdContext.TYPE_ID().GetText());
+                EntityType type = Database.GetEntityType(createdContext.TYPE_ID().GetText());
                 if (!type.Id.IsValid)
                     AddError(ErrorCode.UnknownPropertyType, createdContext, createdContext.TYPE_ID()?.GetText() ?? createdContext.GetText());
+               
+                DeclareVar("$new", type.RefType,null, out var _);
                 CurrentEventTrigger.When = (EventTrigger.WhenType.Created, type.Id, ParsePredicate(createdContext.expr()));
             }
             else if (context.scope().when() is { } whenContext)
             {
-                EntityType type = _database.GetEntityType(whenContext.TYPE_ID().GetText());
+                EntityType type = Database.GetEntityType(whenContext.TYPE_ID().GetText());
                 if (!type.Id.IsValid)
                     AddError(ErrorCode.UnknownPropertyType, whenContext, whenContext.TYPE_ID().GetText());
+                
+                if (context.scope().when() != null)
+                    DeclareVar("$old", type.RefType, null, out var _);
+                DeclareVar("$new", type.RefType,null, out var _);
                 CurrentEventTrigger.When = (EventTrigger.WhenType.Changed, type.Id, ParsePredicate(whenContext.expr()));
             }
 
-            _database.Triggers.Add(CurrentEventTrigger);
+            Database.Triggers.Add(CurrentEventTrigger);
             foreach (var effectContext in context.scope().effect())
             {
                 // if (effectContext.comment() != null)
@@ -674,7 +687,7 @@ public static class StoryParser
             }
 
             if (effectContext.var() != null)
-                return ParseVar(effectContext.var());
+                return ParseLocalVar(effectContext.var());
             if (effectContext.set() != null)
                 return ParseSet(effectContext.set());
 
@@ -710,7 +723,8 @@ public static class StoryParser
                 IValue[] caseValues;
                 try
                 {
-                    caseValues = caseCtx.value().Select(ParseValue).ToArray();
+                    // TODO type ?
+                    caseValues = caseCtx.value().Select(x => ParseValue(x, out var _)).ToArray();
                 }
                 finally
                 {
@@ -778,95 +792,136 @@ public static class StoryParser
             return null;
         }
 
-        private SetProperty ParseVar(MoiraiParser.VarContext context)
+        private SetProperty ParseLocalVar(MoiraiParser.VarContext context)
         {
             var name = context.VAR_ID();
-            DeclareVar(name.GetText(), name.Symbol, out var varIndex);
-            var expr = ParseExpr(context.expr());
+            var expr = ParseExpr(context.expr(), out var type);
+            DeclareVar(name.GetText(), type, name.Symbol, out var varIndex);
             return new SetProperty(new PropertyPath(varIndex), expr, true);
         }
 
         private SetProperty ParseSet(MoiraiParser.SetContext context)
         {
-            var left = ParsePath(context.path());
+            var left = ParsePath(context.path(), out _);
             var right = ParseExpr(context.expr()); //, left.Property);
             return new SetProperty(left, right, false);
         }
 
-        public IValue ParseValue(MoiraiParser.ValueContext value)
+        public IValue ParseValue(MoiraiParser.ValueContext value, out PropertyValue.ValueType type)
         {
             if (_parsingMatchCase && value.path()?.GetText() == "_")
+            {
+                // TODO ?
+                type = default;
                 return MatchAnyValue.Instance;
+            }
             if (value.TYPE_ID() != null)
             {
-                var type = _database.GetEntityType(value.TYPE_ID().GetText());
-                if (!type.Id.IsValid)
+                var etype = Database.GetEntityType(value.TYPE_ID().GetText());
+                if (!etype.Id.IsValid)
                 {
-                    if (_database.GetEnumDefinition(value.TYPE_ID().GetText(), out var ed))
+                    if (Database.GetEnumDefinition(value.TYPE_ID().GetText(), out var ed))
+                    {
+                        // TODO really ?
+                        type = ed.ValueType;
                         return new Literal(ed.EnumType);
+                    }
                     AddError(ErrorCode.UnknownPropertyType, value, value.TYPE_ID().GetText());
                 }
-                return new Literal(type.Id);
+
+                type = etype.RefType;
+                return new Literal(etype.Id);
             }
 
             if (value.call() != null)
             {
+                type = default;
                 return ParseCall(value.call());
             }
 
             if (value.raw_call() != null)
+            {
+                type = default;
                 return ParseRawCall(value.raw_call());
+            }
 
             if (value.path() != null)
             {
-                PropertyPath path = ParsePath(value.path());
+                PropertyPath path = ParsePath(value.path(), out type);
                 return path;
             }
 
             if (value.@string() != null)
+            {
+                type = PropertyValue.TypeString;
                 return ParseInterpolatedString(value.@string());
+            }
+
             if (value.NULL() != null)
+            {
+                type = PropertyValue.TypeRef;
                 return new Literal(EntityId.Null);
+            }
             if (value.number() is { } number)
             {
+                
                 if (number.NUMBER_FLOAT() != null)
+                {
+                    type = PropertyValue.TypeFloat;
                     return new Literal(float.Parse(number.NUMBER_FLOAT().GetText()));
+                }
                 if (number.PERCENT() != null)
+                {
+                    type = PropertyValue.TypePercent;
                     return new Literal(PropertyValue.Percent(int.Parse(number.PERCENT().GetText()
-                        .Substring(0, number.PERCENT().GetText().Length - 1))));
+                        .Substring(0, number.PERCENT().GetText().Length - 1))));}
+                type = PropertyValue.TypeNumber;
                 return new Literal(int.Parse(number.GetText()));
             }
 
             if (value.@bool() != null)
+            {
+                type = PropertyValue.TypeBool;
                 return new Literal(value.@bool().TRUE() != null);
+            }
 
             if (value.enum_value() != null)
             {
                 var enumType = value.enum_value().TYPE_ID(0);
-                if (!_database.GetEnumDefinition(enumType.GetText(), out var enumDef))
+                if (!Database.GetEnumDefinition(enumType.GetText(), out var enumDef))
+                {
+                    type = default;
                     return (AddError(ErrorCode.UnknownEnum, enumType, enumType.GetText()) as IValue)!;
+                }
 
                 var enumValue = value.enum_value().TYPE_ID(1);
                 if (!enumDef.GetValueFromName(enumValue.GetText(), out var val))
+                {
+                    type = default;
                     return (AddError(ErrorCode.UnknownEnumValue, enumValue,
-                        enumValue.GetText() + " in enum " + enumDef.Name) as IValue)!;
-
+                        enumValue.GetText() + " in enum " + enumDef.Name) as IValue)!;}
+                type = enumDef.ValueType;
                 return new Literal(val);
             }
 
             throw new ArgumentOutOfRangeException();
         }
 
-        public bool DeclareVar(string variable, IToken contextStart, out int varIndex)
+        private int GetVariableIndexByName(string name)
         {
-            if ((varIndex = _variables.IndexOf(variable)) != -1)
+            return _variables.FindIndex(v => v.Name == name);
+        }
+        
+        public bool DeclareVar(string variable,PropertyValue.ValueType type, IToken? contextStart, out int varIndex)
+        {
+            if ((varIndex = GetVariableIndexByName(variable)) != -1)
             {
                 // AddError(ErrorCode.DuplicateVariableDefinition,  contextStart, " Duplicate variable " + variable);
                 // varIndex = 0;
                 return true;
             }
 
-            _variables.Add(variable);
+            _variables.Add(new VariableDeclaration(variable, type));
             varIndex = _variables.Count - 1;
             return true;
         }
@@ -970,77 +1025,100 @@ public static class StoryParser
 
         public IValue? ParseExpr(MoiraiParser.ExprContext context)
         {
+            return ParseExpr(context, out var _);
+        }
+        public IValue? ParseExpr(MoiraiParser.ExprContext context, out PropertyValue.ValueType type)
+        {
+            
+            // TODO type
+            type = default;
             if (context.@if() != null)
                 return ParseIf(context.@if());
             if (context.match() != null)
                 return ParseMatch(context.match());
             if (context.value() != null)
             {
-                return ParseValue(context.value());
+                return ParseValue(context.value(), out type);
                 // ComputedValue v = ParseValue(context.value(0), PropertyValue.TypeBool);
             }
 
             if (context.paren_expr != null)
-                return ParseExpr(context.paren_expr);
+                return ParseExpr(context.paren_expr, out type);
 
             string op = context.op.Text;
             // left, alive
             IValue leftPath = ParseExpr(context.left)!;
 
             // right, true or $x -  not alive or $x.alive
-            IValue rightValue = ParseExpr(context.right)!;
+            IValue rightValue = ParseExpr(context.right, out var rightType)!;
 
             BinaryOperator.Operator pop;
             switch (op)
             {
                 case "and":
                     pop = BinaryOperator.Operator.And;
+                    type = PropertyValue.TypeBool;
                     break;
                 case "or":
                     pop = BinaryOperator.Operator.Or;
+                    type = PropertyValue.TypeBool;
                     break;
                 case "??":
                     pop = BinaryOperator.Operator.Coalesce;
+                    type = rightType;
                     break;
                 case "=":
+                    type = PropertyValue.TypeBool;
                     pop = BinaryOperator.Operator.Equals;
 
                     if (leftPath is PropertyPath { Nested: false } p && p.Property == Database.PropType &&
                         rightValue is Literal l &&
                         l.Value.Type == PropertyValue.TypeEntityType)
                     {
+                        type = l.Value.Type;
                         return new IsOfType(leftPath, l.Value.TypeId);
                     }
 
                     break;
                 case "!=":
+                    type = PropertyValue.TypeBool;
                     pop = BinaryOperator.Operator.NotEquals;
                     break;
                 case "+":
+                    type = rightType;
                     pop = BinaryOperator.Operator.Add;
                     break;
                 case "-":
+                    type = rightType;
                     pop = BinaryOperator.Operator.Sub;
                     break;
                 case "/":
+                    type = rightType;
                     pop = BinaryOperator.Operator.Div;
                     break;
                 case "*":
+                    type = rightType;
                     pop = BinaryOperator.Operator.Mul;
                     break;
                 case ">":
+                    type = PropertyValue.TypeBool;
                     pop = BinaryOperator.Operator.Gt;
                     break;
                 case "<":
+                    type = PropertyValue.TypeBool;
                     pop = BinaryOperator.Operator.Lt;
                     break;
                 case ">=":
+                    type = PropertyValue.TypeBool;
                     pop = BinaryOperator.Operator.Ge;
                     break;
                 case "<=":
+                    type = PropertyValue.TypeBool;
                     pop = BinaryOperator.Operator.Le;
                     break;
-                default: return (IValue?)AddError(ErrorCode.UnknownExpressionOperator, context, op);
+                default:
+                    type = default;
+                    return (IValue?)AddError(ErrorCode.UnknownExpressionOperator, context, op);
             }
 
             return new BinaryOperator(pop, leftPath, rightValue);
@@ -1075,35 +1153,37 @@ public static class StoryParser
         }
 
 
-        public PropertyPath ParsePath(MoiraiParser.PathContext context)
+        public PropertyPath ParsePath(MoiraiParser.PathContext context, out PropertyValue.ValueType type)
         {
             if (context.ID().Length > 1)
                 throw new Exception("expected two parts, got " + (context.ID().Length + 1));
 
             var propertyId = PropertyId.Null;
-            if (context.ID(0) != null)
-            {
-                var propertyName = context.ID(0)?.GetText();
-                // TODO support non-unique property names across entity types
-                propertyId = _database.Types.Skip(1).SelectMany(t => t.Properties).FirstOrDefault(p => p.Name == propertyName.ToLowerInvariant()).PropertyId;
-                if (!propertyId.IsValid)
-                {
-                    AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
-                    return default;
-                }
-            }
+            var propertyName = context.ID(0) != null ? context.ID(0)?.GetText() : null;
 
             var singletonId = context.SINGLETON_ID();
             if (singletonId != null)
             {
                 var typeName = singletonId.GetText().Substring(1);
-                var singletonType = _database.GetEntityType(typeName);
+                var singletonType = Database.GetEntityType(typeName);
                 if (!singletonType.Id.IsValid)
                 {
                     AddError(ErrorCode.UnknownEntityType, singletonId, typeName);
+                    type = default;
+
+                    return default;
+                }
+                
+                // TODO support non-unique property names across entity types
+                propertyId = singletonType.GetPropertyId(propertyName);
+                if (!propertyId.IsValid)
+                {
+                    type = default;
+                    AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
                     return default;
                 }
 
+                type = singletonType.GetPropertyType(propertyName);
                 return new PropertyPath(singletonType.Id, propertyId);
             }
 
@@ -1113,20 +1193,34 @@ public static class StoryParser
             {
                 if (!int.TryParse(varId.GetText().Substring(1), out variableIndex))
                 {
-                    variableIndex = _variables.IndexOf(varId.GetText());
+                    variableIndex = GetVariableIndexByName(varId.GetText());
                     if (variableIndex == -1)
                     {
                         AddError(ErrorCode.VariableNotDeclared, context, varId.GetText());
+                        type = default;
                         return new PropertyPath();
                     }
                 }
 
                 if (context.ID().Length == 0)
+                {
+                    type = _variables[variableIndex].Type;
                     return new PropertyPath(variableIndex);
+                }
             }
             else
                 variableIndex = _variables.Count - 1;
 
+            var etype = Database.GetEntityType(_variables[variableIndex].Type);
+            propertyId = etype.GetPropertyId(propertyName);
+            if (!propertyId.IsValid)
+            {
+                AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
+                type = default;
+                return default;
+            }
+
+            type = etype.GetPropertyType(propertyName);
             return new PropertyPath(variableIndex, propertyId);
         }
     }

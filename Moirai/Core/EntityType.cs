@@ -30,4 +30,9 @@ public class EntityType
     {
         return Properties.FirstOrDefault(p => p.Name == propName).PropertyId;
     }
+
+    public PropertyValue.ValueType GetPropertyType(string propName)
+    {
+        return Properties.FirstOrDefault(p => p.Name == propName).Type;
+    }
 }
