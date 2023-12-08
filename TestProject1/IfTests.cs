@@ -87,7 +87,7 @@ entity T {
 }
 
 event r {
-    create $t: (T)
+    create T $t
     if true {
         set $t.p = 1
     }
@@ -103,7 +103,7 @@ entity T {
 prop p: number
 }
 event r {
-    create $t: (T)
+    create T $t
     
     set $t.p = if true { 1 }
 }", out _);
@@ -119,7 +119,7 @@ entity T {
 prop p: number
 }
 event r {
-    create $t: (T)
+    create T $t
     if false {
         set $t.p = 1
     } else {
@@ -139,9 +139,9 @@ entity T {
 }
 event r {
     if false {
-        create $x: (T)
+        create T $x
     } else {
-        create $x: (T)
+        create T $x
     }
     set $x.p = 2
 }", out _, 1);
@@ -155,9 +155,9 @@ entity T {
 }
 event r {
     var $x: if false {
-        create $x: (T)
+        create T $x
     } else {
-        create $x: (T)
+        create T $x
     }
     set $x.p = 2
 }", out _);

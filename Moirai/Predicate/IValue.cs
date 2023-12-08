@@ -36,7 +36,7 @@ public class Display : IValue
 public interface IValueCall : IValue
 {
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
-    int? VariableIndex => null;
+    (int,PropertyValue.ValueType)? VariableIndex => null;
     string Print(StoryPrinter printer, int indent)
     {
         return FunctionDescriptor?.Print(printer, this) ?? "";

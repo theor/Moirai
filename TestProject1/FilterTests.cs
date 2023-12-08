@@ -11,10 +11,10 @@ prop x: number
 }
 @start
 event create {
-    create $t: (Time)
+    create Time $t
 }
 event e {
-    create $p: (Person)
+    create Person $p
     mark($p)
 }";
 
@@ -34,11 +34,11 @@ prop x: number
 }
 @start
 event e {
-    create $p: (Person)
-    create $t: (Time)
+    create Person $p
+    create Time $t
 }
 event since {
-    pick $p: (type = Person)
+    pick Person $p
     var $since: since_last($p)
     mark($p)
     record('since last: {$since}')
@@ -72,7 +72,7 @@ entity Person {
 }
 @start
 event char_dies {
-    pick $p: (type=Person, alive = true)
+    pick Person $p: (alive = true)
     set $p.alive = false
 }";
 
@@ -89,7 +89,7 @@ entity Person {
 }
 @1 every 1 year
 event char_dies {
-    pick $p: (type=Person, alive = true)
+    pick Person $p: (alive = true)
     set $p.alive = false
 }";
 
@@ -105,7 +105,7 @@ entity Person {
 }
 @1 per 2 years
 event char_dies {
-    pick $p: (type=Person, alive = true)
+    pick Person $p: (alive = true)
     set $p.alive = false
 }";
 

@@ -509,9 +509,18 @@ CREATE TABLE marked (
     private Dictionary<string, SqliteCommand> _commands = new();
     private Dictionary<string, SqliteCommand> _commands2 = new();
 
-    public bool PickRandom(IValue value, out EntityId id)
+    public bool PickRandom(EntityTypeId entityTypeId, IValue? predicate, out EntityId id)
     {
-        var (where, joins) = value.ToSql(_ctx);
+        if (predicate == null && !entityTypeId.IsValid)
+        {
+            id = default;
+            return false;
+        }
+        var (where, joins) = predicate.ToSql(_ctx);
+        if (string.IsNullOrEmpty(where))
+            where = "type = " + entityTypeId.Id;
+        else
+            where = $"type = {entityTypeId.Id} AND {where}";
         var sql = $@"SELECT id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
         if (!_commands.TryGetValue(sql, out var cmd))
         {
@@ -535,15 +544,19 @@ CREATE TABLE marked (
         return false;
     }
 
-    public bool FindAll(IValue? predicate, ref List<EntityId> results)
+    public bool FindAll(EntityTypeId entityTypeId, IValue? predicate, ref List<EntityId> results)
     {
         results.Clear();
-        if (predicate == null)
+        if (predicate == null && !entityTypeId.IsValid)
         {
             return false;
         }
 
         var (where, joins) = predicate.ToSql(_ctx);
+        if (string.IsNullOrEmpty(where))
+            where = "type = " + entityTypeId.Id;
+        else
+            where = $"type = {entityTypeId.Id} AND {where}";
         var sql = $@"SELECT id FROM entity {(joins ?? "")} WHERE {where}";
 
         if (!_commands2.TryGetValue(sql, out var cmd))

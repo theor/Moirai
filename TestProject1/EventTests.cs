@@ -12,12 +12,12 @@ entity Person {
     prop test: bool
 }
 event born {
-    create $p: (Person)
+    create Person $p
     set alive = true
 }
 
 event die {
-    each $p: (type=Person, alive = true) {
+    each Person $p: (alive = true) {
         set alive = false
         record('{$p} dies')
     }
@@ -55,13 +55,13 @@ entity Person {
     prop test: number
 }
 event born {
-    create $p: (Person)
+    create Person $p
     set x = 1
     set test = 1
 }
 
 event die {
-    each $p: (type=Person, x = 1) {
+    each Person $p: (x = 1) {
         set x = 2
         record('{$p} dies')
     }
@@ -104,7 +104,7 @@ entity Person {
     prop alive: bool
 }
 entity Item {
-    prop owner: ref
+    prop owner: Person
 }
 entity Link {
     prop child: Person
@@ -113,9 +113,9 @@ entity Link {
 
 trigger inherit {
     when Person and $new.alive = false
-    each $i: (type = Item, owner = $new) {
-        pick $l: (type = Link, $l.parent = $new) 
-        pick $c: (type = Person, alive = true, id = $l.child)
+    each Item $i: (owner = $new) {
+        pick Link $l: ($l.parent = $new) 
+        pick Person $c: (alive = true, id = $l.child)
             set $i.owner = $c
             record('{$c.name} inherits the {$i.name} from {$new.name}')
     }
@@ -177,7 +177,7 @@ trigger inherit {
 
 @1 every 1 year
 event olds_dies {
-    each $p: (type=Person), alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
+    each Person $p: alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
         set $p.alive = false
         record('{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}')
     }

@@ -1,5 +1,5 @@
 entity Object {
-    prop system: ref
+    prop system: System
     prop dead: bool
     prop kind: Kind
     prop distance_to_sun: number
@@ -19,59 +19,59 @@ enum Kind {
 
 @start
 event create_time {
-    create $t: (Time, 'time')
+    create Time $t: 'time'
     set year = 0
 }
 @start
 event create_solar_system {
-    create $s: (System, "Solar System")
-    create $p: (Object, "Sun")
+    create System $s: "Solar System"
+    create Object $p: "Sun"
     set kind = Kind.Star
     set system = $s
 
-    create $p: (Object, "Mercury")
+    create Object $p: ("Mercury")
     set kind = Kind.Planet
     set distance_to_sun = 57
     set system = $s
-    create $p: (Object, "Venus")
+    create Object $p: ("Venus")
     set kind = Kind.Planet
     set distance_to_sun = 108
     set system = $s
-    create $p: (Object, "Earth")
+    create Object $p: ("Earth")
     set kind = Kind.Planet
     set distance_to_sun = 149
     set system = $s
-    create $p: (Object, "Mars")
+    create Object $p: ("Mars")
     set kind = Kind.Planet
     set distance_to_sun = 227
     set system = $s
-    create $p: (Object, "Jupiter")
+    create Object $p: ("Jupiter")
     set kind = Kind.Planet
     set distance_to_sun = 778
     set system = $s
-    create $p: (Object, "Saturn")
+    create Object $p: ("Saturn")
     set kind = Kind.Planet
     set distance_to_sun = 1433
     set system = $s
-    create $p: (Object, "Uranus")
+    create Object $p: ("Uranus")
     set kind = Kind.Planet
     set distance_to_sun = 2872
     set system = $s
-    create $p: (Object, "Neptune")
+    create Object $p: ("Neptune")
     set kind = Kind.Planet
     set distance_to_sun = 4495
     set system = $s
 
-    create $p: (Object, "Moon")
+    create Object $p: ("Moon")
     set kind = Kind.Satelite
     set system = $s
 }
 
 @start
 event star_dies {
-    pick $sun: (type = Object, kind = Kind.Star, dead = false)
+    pick Object $sun: (kind = Kind.Star, dead = false)
     var $s: $sun.system
-    each $p: (type = Object, system = $s) {
+    each Object $p: (system = $s) {
         set $p.dead = true
 
     }

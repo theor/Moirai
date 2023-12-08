@@ -361,7 +361,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 
     public override object? VisitCall(MoiraiParser.CallContext context)
     {
-        PushSemanticToken(context.ID().Symbol, SemanticTokenType.Function);
+        PushSemanticToken(context.ID(0).Symbol, SemanticTokenType.Function);
         if (context.VAR_ID() != null)
             PushSemanticToken(context.VAR_ID().Symbol, SemanticTokenType.Variable);
         return base.VisitCall(context);

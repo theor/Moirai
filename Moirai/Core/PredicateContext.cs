@@ -47,12 +47,12 @@ public class PredicateContext
     }
 
 
-    public bool PickRandom(IValue value, out EntityId id)
+    public bool PickRandom(EntityTypeId entityTypeId, IValue value, out EntityId id)
     {
         // Console.ForegroundColor = ConsoleColor.Blue;
         // Console.WriteLine($"PICK {Database.Printer.Print(value)}  VAL COUNT {ValueCount} OFFSET {ValueOffset}");
         // Console.ResetColor();
-        return Database.PickRandom(value, out id);
+        return Database.PickRandom(entityTypeId, value, out id);
         // Database.FindAll(value, ref _pool);
         // if (_pool.Count == 0)
         // {
@@ -62,7 +62,8 @@ public class PredicateContext
         // id = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
         // return true;
     }
-    public bool _FindAll(IValue? predicate, ref List<EntityId> results)
+
+    private bool _FindAll(IValue? predicate, ref List<EntityId> results)
     {
         results.Clear();
         if (predicate == null)

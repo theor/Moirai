@@ -8,7 +8,7 @@ entity Person {
     prop f: number
 }
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = 2 + 3
     assert $p.f = 5
 }
@@ -20,7 +20,7 @@ entity Person {
     prop f: number
 }
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = -2 + 3
     assert $p.f = 1
 }
@@ -32,7 +32,7 @@ entity Person {
 prop f: number
 }
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = -4 - -3
     assert $p.f = -1
 }
@@ -44,7 +44,7 @@ entity Person {
 prop f: float
 }
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = 2.1 + 3.2
     assert $p.f = 5.3
 }
@@ -57,7 +57,7 @@ entity Person {
     prop f: float
 }
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = floor(2.1 + 3.2)
     assert $p.f = 5
 }
@@ -69,7 +69,7 @@ entity Person {
     prop f: number
 }
 event r {
-    create $p: (Person)
+    create Person $p
     set f = 2 + 3 * 4
     assert_eq ($0.f, 14)
 }
@@ -85,7 +85,7 @@ entity E {
 }
 @start
 event e {
-    create $p: E
+    create E $p
     set $p.p = 50%
     assert_eq(50%, $p.p)
 }", out _);
@@ -99,7 +99,7 @@ entity E {
 }
 @start
 event e {
-    create $p: E
+    create E $p
     set $p.p = 50% + 10
     assert_eq(60%, $p.p)
     debug($p.p)
@@ -114,11 +114,11 @@ entity E {
 }
 @start
 event e {
-    create $p: E
+    create E $p
     set $p.p = 50%
-    create $p2: E
+    create E $p2
     set $p2.p = 60%
-    assert(pick $x: (type = E, p < 55%))
+    assert(pick E $x: (p < 55%))
     
     debug($x)
 }", out _);

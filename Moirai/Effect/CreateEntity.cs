@@ -276,11 +276,11 @@ public class CreateEntity : IValueCall
         throw new NotImplementedException();
     }
 
-    int? IValueCall.VariableIndex => VariableIndex;
+    (int, PropertyValue.ValueType)? IValueCall.VariableIndex => (VariableIndex, new PropertyValue.ValueType(PropertyValue.ValueBaseType.Ref, (ushort)Type.Id));
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
-        yield return new Literal(Type);
+        // yield return new Literal(Type);
         if(Name != null)
             yield return Name;
     }

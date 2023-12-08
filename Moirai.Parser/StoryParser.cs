@@ -29,18 +29,22 @@ public class FunctionDescriptor : IFunctionDescriptor
 {
     public record ParseContext(StoryParser.AstVisitor Visitor, ParserRuleContext CallContext)
     {
-        public int ParseVariable(PropertyValue.ValueType varType)
+        public int ParseVariable(out EntityTypeId entityTypeId, out PropertyValue.ValueType type)
         {
+            EntityType varType = ParseEntityType();
+
             int varIndex;
             if (CallContext is MoiraiParser.CallContext c)
             {
-                 Visitor.DeclareVar(c.VAR_ID().GetText(), varType, c.VAR_ID().Symbol, out varIndex);
+                 Visitor.DeclareVar(c.VAR_ID().GetText(), varType.RefType, c.VAR_ID().Symbol, out varIndex);
             } else
             {
                 var rawCallContext = (MoiraiParser.Raw_callContext)CallContext;
-                Visitor.DeclareVar(rawCallContext.VAR_ID().GetText(),varType, rawCallContext.VAR_ID().Symbol, out varIndex);
+                Visitor.DeclareVar(rawCallContext.VAR_ID().GetText(),varType.RefType, rawCallContext.VAR_ID().Symbol, out varIndex);
             }
 
+            entityTypeId = varType.Id;
+            type = varType.RefType;
             return varIndex;
         }
 
@@ -73,11 +77,17 @@ public class FunctionDescriptor : IFunctionDescriptor
             return default!;
         }
 
-        public int ArgCount => CallContext is MoiraiParser.CallContext c ? c.expr().Length : 1;
+        public int ArgCount => CallContext is MoiraiParser.CallContext c ? c.expr().Length : (CallContext is MoiraiParser.Raw_callContext r && r.value() != null ? 1 : 0);
 
         public EntityType ParseEntityType()
         {
-            var type = ((Literal)ParseArgument(0)).Value.TypeId;
+            ITerminalNode t;
+            if (CallContext is MoiraiParser.CallContext c)
+                t = c.TYPE_ID() ?? c.ID(1);
+            else
+                t = ((MoiraiParser.Raw_callContext)CallContext).TYPE_ID() ??
+                    ((MoiraiParser.Raw_callContext)CallContext).ID(1);
+            EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(t))?.Id ?? default;
             if (type == EntityTypeId.Null)
             {
                 Visitor.AddError(StoryParser.ErrorCode.UnknownEntityType, GetArgumentToken(0), $"'{type}'");
@@ -104,7 +114,7 @@ public class FunctionDescriptor : IFunctionDescriptor
                     $"Expected {i} arguments{(isMaxCount ? " max" : "")}, got {ArgCount}");
         }
 
-        public IValue ParsePredicate()
+        public IValue ParsePredicate(EntityTypeId entityTypeId)
         {
             if (ArgCount == 1)
                 return ParseArgument(0);
@@ -152,9 +162,22 @@ public class FunctionDescriptor : IFunctionDescriptor
 
     public string Print(StoryPrinter printer, IValueCall call)
     {
-        var print = $"{FuncName}{(call.VariableIndex.HasValue ? $" ${call.VariableIndex.Value}:" : "")} ({string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))})";
-        return
-            print;
+        // call (1,2)
+        // call X $x: (12)
+        // call X $x
+        var args = call.GetArgs(printer);
+        switch ((call.VariableIndex.HasValue, args.Count()))
+        {
+            case (false, 0):
+                return ("not a call??");
+            case(false, _):
+                return $"{FuncName} ({string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))})";
+            case (true, 0):
+                return $"{FuncName} {printer.Print(call.VariableIndex.Value.Item2)} ${call.VariableIndex.Value.Item1}";
+            case(true, _):
+                return $"{FuncName} {printer.Print(call.VariableIndex.Value.Item2)} ${call.VariableIndex.Value.Item1}: ({string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))})";
+                
+        }
     }
 }
 
@@ -164,15 +187,22 @@ public static class StoryParser
     {
         new("create", true, ctx =>
         {
-            var typeId = ctx.ParseEntityType();
-            return new CreateEntity(ctx.ParseVariable(typeId.RefType), typeId.Id,ctx.ArgCount == 1 ? null : (InterpolatedString)ctx.ParseArgument(1));
+            return new CreateEntity(ctx.ParseVariable(out var etid, out _), etid,ctx.ArgCount == 0 ? null : (InterpolatedString)ctx.ParseArgument(0));
         }),
         new("each", true,
-            ctx => new AssignPick(ctx.ParseVariable(), ctx.ParsePredicate(),
-                CallType.Each, ctx.ParseScope(true))),
+            ctx =>
+            {
+                var variableIndex = ctx.ParseVariable(out var etid, out _);
+                return new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
+                    CallType.Each, ctx.ParseScope(true));
+            }),
         new("pick", true,
-            ctx => new AssignPick(ctx.ParseVariable(), ctx.ParsePredicate(),
-                CallType.Pick)),
+            ctx =>
+            {
+                var variableIndex = ctx.ParseVariable(out var etid, out _);
+                return new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
+                    CallType.Pick);
+            }),
 
         new("assert", false, ctx =>
             new AssertInstr(ctx.ParseArgument(0)!, ctx.GetText(ctx.GetArgumentToken(0)))),
@@ -534,12 +564,12 @@ public static class StoryParser
          throw new System.NotImplementedException();
         }
 
-        private PropertyValue.ValueType ParseType(ITerminalNode id)
+        public PropertyValue.ValueType ParseType(ITerminalNode id)
         {
             switch (id.GetText())
             {
                 case "bool": return PropertyValue.TypeBool;
-                case "ref": return PropertyValue.TypeRef;
+                // case "ref": return PropertyValue.TypeRef;
                 case "number": return PropertyValue.TypeNumber;
                 case "float": return PropertyValue.TypeFloat;
                 case "string": return PropertyValue.TypeString;
@@ -909,17 +939,17 @@ public static class StoryParser
 
         private int GetVariableIndexByName(string name)
         {
-            return _variables.FindIndex(v => v.Name == name);
+            return _variables.FindLastIndex(v => v.Name == name);
         }
         
         public bool DeclareVar(string variable,PropertyValue.ValueType type, IToken? contextStart, out int varIndex)
         {
-            if ((varIndex = GetVariableIndexByName(variable)) != -1)
-            {
-                // AddError(ErrorCode.DuplicateVariableDefinition,  contextStart, " Duplicate variable " + variable);
-                // varIndex = 0;
-                return true;
-            }
+            // if ((varIndex = GetVariableIndexByName(variable)) != -1)
+            // {
+            //     // AddError(ErrorCode.DuplicateVariableDefinition,  contextStart, " Duplicate variable " + variable);
+            //     // varIndex = 0;
+            //     return true;
+            // }
 
             _variables.Add(new VariableDeclaration(variable, type));
             varIndex = _variables.Count - 1;
@@ -953,7 +983,7 @@ public static class StoryParser
 
         private IValue ParseRawCall(MoiraiParser.Raw_callContext context)
         {
-            var funcName = context.ID().GetText();
+            var funcName = context.ID(0).GetText();
             var f = Functions.FirstOrDefault(f => f.FuncName == funcName);
             if (f != null)
             {
@@ -964,7 +994,7 @@ public static class StoryParser
         }
         private IValue ParseCall(MoiraiParser.CallContext context)
         {
-            var funcName = context.ID().GetText();
+            var funcName = context.ID(0).GetText();
             var f = Functions.FirstOrDefault(f => f.FuncName == funcName);
             if (f != null)
             {
@@ -1202,9 +1232,9 @@ public static class StoryParser
                     }
                 }
 
+                type = _variables[variableIndex].Type;
                 if (context.ID().Length == 0)
                 {
-                    type = _variables[variableIndex].Type;
                     return new PropertyPath(variableIndex);
                 }
             }

@@ -10,7 +10,7 @@ entity T {
     prop p: number
 }
 event r {
-    create $t: (T)
+    create T $t
     match 2 {
         _ => set $t.p = 20
         2 => set $t.p = 30
@@ -28,7 +28,7 @@ entity T {
     prop p: number
 }
 event r {
-    create $t: (T)
+    create T $t
     match 2 {
         1 => set $t.p = 10
         2 => set $t.p = 20
@@ -47,7 +47,7 @@ entity T {
     prop p: number
 }
 event r {
-    create $t: (T)
+    create T $t
     set $t.p = match 2 {
         1 => 10
         2 => 20
@@ -67,7 +67,7 @@ entity T {
     prop p: number
 }
 event r {
-    create $t: (T)
+    create T $t
     match 2,(3>4) {
         1,true => set $t.p = 10
         2,true => set $t.p = 20
@@ -89,7 +89,7 @@ prop z: number
 }
 @start
 event create {
-    create $t: (T)
+    create T $t
 }
 event r {
     random_weighted 10 {
@@ -118,7 +118,7 @@ prop z: number
 }
 @start
 event create {
-    create $t: (T)
+    create T $t
 }
 event r {
     random_weighted 10 {
@@ -146,10 +146,10 @@ entity Planet {}
 entity Satelite {}
 event create {
     random_weighted 10 {
-        1 => create $x: (Star)
-        6 => create $x: (Asteroid)
-        2 => create $x: (Planet)
-        1 => create $x: (Satelite)
+        1 => create Star $x
+        6 => create Asteroid $x
+        2 => create Planet $x
+        1 => create Satelite $x
     }
 }", out _);
         for (int i = 0; i < 100; i++)
@@ -176,7 +176,7 @@ enum Job {
     King,
 }
 event create {
-    create $p: (Person)
+    create Person $p
     random_weighted 10 {
         6 => set job = Job.Farmer
         1 => set job = Job.Smith

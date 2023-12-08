@@ -72,7 +72,7 @@ public class StoryPrinter
         }
     }
 
-    private string Print(PropertyValue.ValueType propertyType)
+    public string Print(PropertyValue.ValueType propertyType)
     {
         switch (propertyType.BaseType)
         {

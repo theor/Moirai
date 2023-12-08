@@ -47,6 +47,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
     public static readonly ValueType TypeFloat = new ValueType(ValueBaseType.Float, 0);
     public static readonly ValueType TypeBool = new ValueType(ValueBaseType.Bool, 0);
     public static readonly ValueType TypeEntityType = new ValueType(ValueBaseType.EntityType, 0);
+    public static ValueType TypeTypedRef(EntityTypeId ed) => new ValueType(ValueBaseType.Ref, (ushort)ed.Id);
     public static ValueType TypeEnumType(EnumDefinitionId ed) => new ValueType(ValueBaseType.EnumType, ed.Id);
     public static ValueType TypeEnum(EnumDefinitionId index) => new ValueType(ValueBaseType.Enum, index.Id);
 
