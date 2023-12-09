@@ -22,6 +22,7 @@ entity Item {
     prop maker: Person
     prop item_type: ItemSource
     prop owner: Person
+    prop creation_date: number
 }
 entity Faction {
     prop founder: Person
@@ -263,7 +264,7 @@ event char_prestige_update items {
             }
         }
     }
-    each Perosn $p: (prosperity < 10%) {
+    each Person $p: (prosperity < 10%) {
         random_weighted 100 {
             10 => {
                 record('{$p.name} commit suicide')
@@ -433,7 +434,7 @@ event item_forged items {
     create Item $i: ('{random(ItemType)} of {random(Name)}')
     set $i.item_type = ItemSource.Forged
     set $i.maker = $p
-    set $i.birthdate = #Time.year
+    set $i.creation_date = #Time.year
     set $i.owner = $p
     record('{$p.name} crafts the {$i.name}')
 }
@@ -445,7 +446,7 @@ event item_painted items {
     create Item $i: ('Portrait of {$t.name}')
     set $i.maker = $p
     set $i.item_type = ItemSource.Painted
-    set $i.birthdate = #Time.year
+    set $i.creation_date = #Time.year
     if (random 10 > 5){
         set $i.owner = $p
         record('{$p.name} depicts {$t.name} in the {$i.name}')
