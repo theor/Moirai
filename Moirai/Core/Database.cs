@@ -108,9 +108,9 @@ public class Database
         // CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
 
         var cmd = _connection.CreateCommand();
-        cmd.CommandText = @"INSERT INTO entity (name, type)
+        cmd.CommandText = @"INSERT INTO entity (default__name, default__type)
                     VALUES ($name, $type)
-                    RETURNING id";
+                    RETURNING default__id";
         cmd.Parameters.AddWithValue("$name", name ?? "?");
         cmd.Parameters.AddWithValue("$type", entityType.Id);
         cmd.ExecuteScalar();
@@ -134,7 +134,7 @@ public class Database
     public bool GetProperty(EntityId entityId, PropertyId property, out PropertyValue value)
     {
         var cmd = _connection.CreateCommand();
-        cmd.CommandText = $@"SELECT {GetPropertyName(property)} FROM entity WHERE id = $id  LIMIT 1;";
+        cmd.CommandText = $@"SELECT {GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)} FROM entity WHERE default__id = $id  LIMIT 1;";
         // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
         cmd.Parameters.AddWithValue("$id", entityId.Id);
         // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
@@ -153,8 +153,8 @@ public class Database
     {
         var cmd = _connection.CreateCommand();
         cmd.CommandText = $@"UPDATE entity
-SET {GetPropertyName(property)} = {(value.Type.BaseType == PropertyValue.ValueBaseType.String ? ("'" + value.Value + "'") : (int) value.IntValue)}
-WHERE id = $id;";
+SET {GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)} = {(value.Type.BaseType == PropertyValue.ValueBaseType.String ? ("'" + value.Value + "'") : (int) value.IntValue)}
+WHERE default__id = $id;";
         // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
         cmd.Parameters.AddWithValue("$id", entityId.Id);
         // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
@@ -165,9 +165,9 @@ WHERE id = $id;";
             return false;
 
         if (property == PropId)
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         if (property == PropType)
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
 
         // if (entity.Properties == null)
         // {
@@ -450,7 +450,7 @@ WHERE id = $id;";
         _connection.Open();
         var cmd = _connection.CreateCommand();
 
-        string indices = @"CREATE INDEX types ON entity (type);";
+        string indices = @"CREATE INDEX types ON entity (default__type);";
 //         if (Properties.Any(p => p.Name == "owner"))
 //             indices += @"
 // CREATE INDEX owners ON entity (owner) WHERE type = 3;";
@@ -460,14 +460,14 @@ WHERE id = $id;";
 
         cmd.CommandText = $@"
 CREATE TABLE entity (
-    id INTEGER PRIMARY KEY,
-    type INTEGER NOT NULL,
-    name TEXT,
-    {string.Join(",\n  ",Types.Skip(1).SelectMany(t => t.Properties.Skip(4)).Select(p => {
+    default__id INTEGER PRIMARY KEY,
+    default__type INTEGER NOT NULL,
+    default__name TEXT,
+    {string.Join(",\n  ",Types.Skip(1).SelectMany(t => t.Properties.Skip(4).Select(p => {
         // if (p.Type.BaseType == PropertyValue.ValueBaseType.Ref)
         // return $"FOREIGN KEY({p.Name}) REFERENCES entity(id)";
-        return $@"{p.Name} {ToSqlType(p.Type)}";
-    }))}
+        return $@"{t.Name}__{p.Name} {ToSqlType(p.Type)}";
+    })))}
 );
 {indices}
 CREATE TABLE marked (
@@ -518,10 +518,10 @@ CREATE TABLE marked (
         }
         var (where, joins) = predicate.ToSql(_ctx);
         if (string.IsNullOrEmpty(where))
-            where = "type = " + entityTypeId.Id;
+            where = "default__type = " + entityTypeId.Id;
         else
-            where = $"type = {entityTypeId.Id} AND {where}";
-        var sql = $@"SELECT id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
+            where = $"default__type = {entityTypeId.Id} AND {where}";
+        var sql = $@"SELECT default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
         if (!_commands.TryGetValue(sql, out var cmd))
         {
             // Console.WriteLine(sql);
@@ -554,10 +554,10 @@ CREATE TABLE marked (
 
         var (where, joins) = predicate.ToSql(_ctx);
         if (string.IsNullOrEmpty(where))
-            where = "type = " + entityTypeId.Id;
+            where = "default__type = " + entityTypeId.Id;
         else
-            where = $"type = {entityTypeId.Id} AND {where}";
-        var sql = $@"SELECT id FROM entity {(joins ?? "")} WHERE {where}";
+            where = $"default__type = {entityTypeId.Id} AND {where}";
+        var sql = $@"SELECT default__id FROM entity {(joins ?? "")} WHERE {where}";
 
         if (!_commands2.TryGetValue(sql, out var cmd))
         {

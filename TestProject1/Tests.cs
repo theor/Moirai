@@ -108,9 +108,45 @@ event e {
     each A $a { }
     debug $a
 }
-", out var errors);
+", out var errors, 1);
         db.RunAction("e");
         Assert.AreEqual(1, errors.Count);
+    }   [Test]
+    public void PickVariableShouldExistAfterScope()
+    {
+        var db = Run(@"
+entity A {
+    prop x: number
+}
+event e {
+    create A $asd: 'asd'
+    pick A $a { }
+    debug $a
+}
+", out var errors, 0);
+        db.RunAction("e");
+    }
+    [Test]
+    public void EachVariableShouldNotExistAfterScope3()
+    {
+        var db = Run(@"
+entity Person {
+    prop alive: bool
+}
+entity Item {
+    prop x: number
+}
+event e {
+   each Person $child {
+        record ''
+    }
+    each Item $i {
+        pick Person $child: (alive)
+    }
+}
+", out var errors);
+        db.RunAction("e");
+        Assert.AreEqual(0, errors.Count);
     }
     [Test]
     public void ReuseVariableName()
@@ -125,6 +161,28 @@ event e {
         pick A $a: (x = 11)
         record ''
     }
+    
+}", out _);
+        db.RunAction("e");
+    }
+    
+    [Test]
+    public void ReusePropertyName()
+    {
+        var db = Run(@"
+entity A {
+    prop x: number
+}
+entity B {
+    prop x: number
+}
+event e {
+    create A $a
+    set $a.x = 1
+    create B $b
+    set $b.x = 2
+    assert_eq($a.x, 1)
+    assert_eq($b.x, 2)
     
 }", out _);
         db.RunAction("e");
@@ -467,6 +525,23 @@ event char_dies {
         Assert.AreEqual(2, action.Effects.Count);
     }
 
+    [Test]
+    public void Each_ExplicitPRedicateVar()
+    {
+        var s = @"
+entity Person {
+    prop test: bool
+}
+event foreach {
+    create Person $p
+    each Person $x: ($x.test = false) {
+        set $x.test = true
+        record('{$x.name} {$x.test}')
+    }
+}";
+        var db = Run(s, out var errors);
+        db.RunAction("foreach");
+    }
 
     [Test]
     public void Each()
@@ -784,6 +859,19 @@ event create_faction {
         Console.WriteLine(db.Records.Last().Text);
         Assert.AreEqual("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>",
             db.Records.Last().Text);
+    }
+
+    [Test]
+    public void SQL_DefaultTypeProp()
+    {
+        Run(@"
+entity Person {}
+@1 every 1 year
+event youngs_grow {
+    each Person $p: (type = Person){
+        record ''
+    }
+}", out _).RunAction("youngs_grow");
     }
 
     [Test]

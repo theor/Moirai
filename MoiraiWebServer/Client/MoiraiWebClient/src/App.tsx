@@ -19,34 +19,35 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import { useEffect } from 'react';
 import { ChangesetList } from './ChangesetList.tsx';
-import {useMainListDisplay} from "./utils.tsx";
+import {useMainListDisplay, useYearsDelta} from "./utils.tsx";
 function InnerApp() {
     const conn = useMoiraiStore(s => s.conn!);
     const year = useMoiraiStore(s => s.year);
     const [showChangesets, setShowChangesets] = useMainListDisplay();
+    const [yearsDelta,] = useYearsDelta();
     console.log("APP", showChangesets)
     return <>
         {/*<Box>*/}
             <AppBar  position="relative" sx={{marginBottom:"12px"}}>
                 <Toolbar variant={"dense"}>
-                    <IconButton
-                        onClick={() => setShowChangesets(!showChangesets)}
-                        size="large"
-                        edge="start"
-                        color="inherit"
-                        aria-label="menu"
-                        sx={{mr: 2}}
-                    >
-                        <MenuIcon/>
-                    </IconButton>
-                    <ToggleButton value="check" selected={!true} >
-                        Year: {year}
+                    {/*<IconButton*/}
+                    {/*    onClick={() => setShowChangesets(!showChangesets)}*/}
+                    {/*    size="large"*/}
+                    {/*    edge="start"*/}
+                    {/*    color="inherit"*/}
+                    {/*    aria-label="menu"*/}
+                    {/*    sx={{mr: 2}}*/}
+                    {/*>*/}
+                    {/*    <MenuIcon/>*/}
+                    {/*</IconButton>*/}
+                    <ToggleButton  value="check" selected={showChangesets} onClick={() => setShowChangesets(!showChangesets)} >
+                        Show changesets
                     </ToggleButton>
                     <Typography variant="h6" component="div" sx={{flexGrow: 1}}/>
                     <Button color="inherit" >
                         Year: {year}
                     </Button>
-                    <Button color="inherit" onClick={() => conn.passYears(5)}>Pass years</Button>
+                    <Button color="inherit" onClick={() => conn.passYears(yearsDelta)}>Pass {yearsDelta} years</Button>
                     <Button color="inherit" onClick={() => conn.save()}>Save</Button>
                     <Button color="inherit" onClick={() => {
                         conn.reset();

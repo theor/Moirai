@@ -13,14 +13,18 @@ public class ChatHub : Hub
     private static Database _db;
     private static bool _reset;
 
+    private static Mutex _mutex = new();
     public ChatHub()
     {
+        if (!_mutex.WaitOne(1000))
+            return;
         if (_db == null)
         {
             Reset();
         }
 
         Debug.WriteLine("Ctor");
+        _mutex.ReleaseMutex();
     }
 
     public void Reset()

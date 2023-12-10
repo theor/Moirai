@@ -91,7 +91,7 @@ public class IsOfType : IValue
         type = ValueTypeId;
         return true;
     }
-    public (string where, string? joins) ToSql(PredicateContext ctx) => ($"type = " + ValueTypeId.Id, null);
+    public (string where, string? joins) ToSql(PredicateContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
 }
 
 public interface IFilter{

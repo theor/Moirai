@@ -1,4 +1,4 @@
-﻿import {Property} from "./types.ts";
+﻿import {GetSetProperty} from "./types.ts";
 import * as React from "react";
 import {Chip, Tooltip} from "@mui/material";
 import {useSearchParams} from "react-router-dom";
@@ -42,6 +42,14 @@ export function useFiltering(): GetSetProperty<number>{
     let eid = Number(searchParams.get("f") ?? -1);
     return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
         p.set("f", x.toString());
+        return p;
+    })];
+}
+export function useYearsDelta(): GetSetProperty<number>{
+    let [searchParams, setSearchParams] = useSearchParams({delta:'10'});
+    let eid = Number(searchParams.get("delta") ?? 10);
+    return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
+        p.set("delta", x.toString());
         return p;
     })];
 }

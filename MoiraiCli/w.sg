@@ -17,6 +17,7 @@ entity Person {
     prop job: Job
     prop parent1: Person
     prop parent2: Person
+    prop prosperity: percentage
 }
 entity Item {
     prop maker: Person

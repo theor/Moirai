@@ -42,6 +42,8 @@
         PropertyValue varValue = ctx.Argument(VariableIndex);
         if (varValue.Type != PropertyValue.TypeRef)
             return varValue;
+        if (Property == PropertyId.Null)
+            return varValue;
         if (!ctx.Database.TryGetEntity(varValue.Id, out var e))
         {
             if (varValue.Id.Id == Database.ChangePrevEntityId.Id)
@@ -50,8 +52,6 @@
             }
             return default;
         }
-        if (Property == PropertyId.Null)
-            return varValue;
 
         return e.GetProperty(Property);
     }
@@ -65,7 +65,7 @@
         // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
         // TODO ugly
         if (Mode == PropertyPathMode.Variable && (VariableIndex == -1 || VariableIndex == ctx.ValueCount - ctx.ValueOffset))
-            return (ctx.Database.GetPropertyName(Property), null);
+            return ($"{ctx.Database.GetEntityTypeName(Property.TypeId)}__{ctx.Database.GetPropertyName(Property)}", null);
         // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
         return (Compute(ctx).ToSql(), null);
     }

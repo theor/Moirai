@@ -192,9 +192,10 @@ public static class StoryParser
         new("each", true,
             ctx =>
             {
+                using var vs = new AstVisitor.VariableDeclarationScope(ctx.Visitor, true);
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
                 return new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
-                    CallType.Each, ctx.ParseScope(true));
+                    CallType.Each, ctx.ParseScope(false));
             }),
         new("pick", true,
             ctx =>
@@ -956,7 +957,7 @@ public static class StoryParser
             return true;
         }
 
-        struct VariableDeclarationScope : IDisposable
+        public struct VariableDeclarationScope : IDisposable
         {
             private readonly AstVisitor _astVisitor;
             private readonly bool _autoCleanup;
@@ -1242,7 +1243,7 @@ public static class StoryParser
                 variableIndex = _variables.Count - 1;
 
             var etype = Database.GetEntityType(_variables[variableIndex].Type);
-            propertyId = etype.GetPropertyId(propertyName);
+            propertyId = etype?.GetPropertyId(propertyName) ?? default;
             if (!propertyId.IsValid)
             {
                 AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);

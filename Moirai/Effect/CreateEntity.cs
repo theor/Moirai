@@ -206,7 +206,7 @@ public class SinceLast(IValue Entity, int EventIndex) : IValueCall
     public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
-        $"LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = {EventIndex}");
+        $"LEFT JOIN marked ON marked.eid = entity.default__id AND marked.marker = {EventIndex}");
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
