@@ -11,12 +11,14 @@ public interface IValue
 
 public class Display : IValue
 {
+    public readonly EntityType ReferencedType;
     public readonly int VarIndex;
     public readonly string Label;
     public readonly IValue Value;
 
-    public Display(int varIndex, string label, IValue value)
+    public Display(EntityType referencedType, int varIndex, string label, IValue value)
     {
+        ReferencedType = referencedType;
         VarIndex = varIndex;
         Label = label;
         Value = value;
@@ -60,11 +62,6 @@ public class MatchAnyValue : IValue
         throw new NotImplementedException();
     }
 
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        throw new NotImplementedException();
-    }
-
     public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         throw new NotImplementedException();
@@ -86,11 +83,7 @@ public class IsOfType : IValue
         Profiler.HitOfType(typeId, result);
         return result;
     }
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = ValueTypeId;
-        return true;
-    }
+
     public (string where, string? joins) ToSql(PredicateContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
 }
 

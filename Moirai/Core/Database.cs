@@ -309,10 +309,9 @@ WHERE default__id = $id;";
         CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year,
             eventTrigger.Categories);
         _currentActionId = eventTrigger.Id;
-        _ctx.ClearValueStack();
         // _ctx.Values.Clear();
 
-
+        using var s = _ctx.RunScope();
         for (var index = 0; index < eventTrigger.Effects.Count; index++)
         {
             var e = eventTrigger.Effects[index];
@@ -340,7 +339,7 @@ WHERE default__id = $id;";
         // _taggedEntities.Clear();
         // CurrentChangeset.GetTaggedEntities(_taggedEntities);
 
-        RunEvents(CurrentChangeset);
+        RunTriggers(CurrentChangeset);
 
         return true;
     }
@@ -349,7 +348,7 @@ WHERE default__id = $id;";
     internal static int EventAttemptCount;
     internal static int EventAttemptSuccess;
 
-    private void RunEvents(Changeset cs)
+    private void RunTriggers(Changeset cs)
     {
         foreach (Changeset.Changed changed in cs.Changes)
         {
@@ -365,37 +364,35 @@ WHERE default__id = $id;";
                 // if (!@event.WhenTags.Contains(tag))
                 //     continue;
                 EventAttemptCount++;
-                using (var s = _ctx.RunScope())
+                using var s = _ctx.RunScope();
+                if (trigger.When.Item2 == changed.New.Type)
                 {
-                    if (trigger.When.Item2 == changed.New.Type)
+                    // $old value
+                    int varIdx = 0;
+
+                    if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
+                        _ctx.SetArgument(varIdx++, ChangePrevEntityId);
+                    // $new value
+                    _ctx.SetArgument(varIdx, changed.New.Id);
+
+                    if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
                     {
-                        // $old value
-                        int varIdx = 0;
-
-                        if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
-                            _ctx.SetArgument(varIdx++, ChangePrevEntityId);
-                        // $new value
-                        _ctx.SetArgument(varIdx, changed.New.Id);
-
-                        if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
+                        EventAttemptSuccess++;
+                        // Console.WriteLine("  @ " + @event.Name);
+                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year, trigger.Categories);
+                        // using (var s2 = _ctx.RunScope())
                         {
-                            EventAttemptSuccess++;
-                            // Console.WriteLine("  @ " + @event.Name);
-                            CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year, trigger.Categories);
-                            // using (var s2 = _ctx.RunScope())
+                            foreach (var e in trigger.Effects)
                             {
-                                foreach (var e in trigger.Effects)
+                                if (!e.Execute(_ctx))
                                 {
-                                    if (!e.Execute(_ctx))
-                                    {
-                                        // continue;
-                                        break;
-                                    }
+                                    // continue;
+                                    break;
                                 }
                             }
-                            if (CurrentChangeset.Changes.Any())
-                                History?.Changesets?.Add(CurrentChangeset);
                         }
+                        if (CurrentChangeset.Changes.Any())
+                            History?.Changesets?.Add(CurrentChangeset);
                     }
                 }
             }

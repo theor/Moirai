@@ -69,11 +69,7 @@ public class BinaryOperator : IValue
             }
         }
     }
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
-    }
+
     public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         var (l,lj) = Left.ToSql(ctx);

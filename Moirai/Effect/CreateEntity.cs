@@ -16,12 +16,6 @@ public class InterpolatedString : IValue
         return ctx.Database.Printer.Format(this, ctx.Database) ?? "";
     }
 
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
-    }
-
     public (string where, string? joins) ToSql(PredicateContext ctx) => ($"'{Compute(ctx)}'", null);
 }
 

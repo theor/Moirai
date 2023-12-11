@@ -9,11 +9,7 @@ public struct Literal : IValue
         Value = value;
     }
     public PropertyValue Compute(PredicateContext ctx) => Value;
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
-    }
+
     public (string where, string joins) ToSql(PredicateContext ctx)
     {
         return (Value.ToSql(), null);

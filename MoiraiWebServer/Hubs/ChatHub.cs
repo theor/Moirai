@@ -97,7 +97,7 @@ public class ChatHub : Hub
         foreach (var display in t.Attributes)
         {
             _db.Ctx.SetArgument(display.VarIndex, e.Id);
-            _db.FindAll(default, display.Value, ref results);
+                _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
             foreach (var id in results)
             {
                 if(_db.TryGetEntity(id, out var ee))

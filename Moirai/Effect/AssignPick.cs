@@ -43,7 +43,8 @@ public struct AssignPick : IValueCall
                     {
                         for (var index = 0; index < _pool.Count; index++)
                         {
-                            int valueCountIterationStart = ctx.ValueCount;
+                            using var s = ctx.RunScope();
+                            // int valueCountIterationStart = ctx.ValueCount;
                             var entityId = _pool[index];
                             ctx.SetArgument(VariableIndex, entityId);
                             // Console.WriteLine($"{index + 1} / {_pool.Count} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
@@ -55,8 +56,9 @@ public struct AssignPick : IValueCall
                                     break;
                                 }
                             }
-                            while (ctx.ValueCount > valueCountIterationStart)
-                                ctx.PopArgument();
+                            // ctx.ClearValueStack();
+                            // while (ctx.ValueCount > valueCountIterationStart)
+                            //     ctx.PopArgument();
                         }
                     }
                 }

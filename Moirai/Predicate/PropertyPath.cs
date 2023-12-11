@@ -55,11 +55,7 @@
 
         return e.GetProperty(Property);
     }
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
-    }
+
     public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed

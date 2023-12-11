@@ -12,7 +12,7 @@ public class PredicateContext
     private List<EntityId> _pool = new();
     public int ValueOffset { get; set; }
     public int ValueCount => _values.Count;
-    public PropertyValue LastValue => _values.Last();
+    public PropertyValue LastValue => _values.LastOrDefault();
 
     public PredicateContext(Database database, ulong seed)
     {
@@ -63,57 +63,6 @@ public class PredicateContext
         // return true;
     }
 
-    private bool _FindAll(IValue? predicate, ref List<EntityId> results)
-    {
-        results.Clear();
-        if (predicate == null)
-        {
-            return false;
-        }
-
-        var (where,joins) = predicate.ToSql(this);
-        Debug.WriteLine(where,joins);
-        
-        // if (predicate.HasTypeFilter(out var typeFilter))
-        // {
-        //     var ids = Database.PerTypeIndices[(int)typeFilter.Id];
-        //     foreach (var id in ids)
-        //     {
-        //         PushArgument(id);
-        //         var isTrue = predicate.IsTrue(this);
-        //         if (isTrue)
-        //             results.Add(id);
-        //         PopArgument();
-        //
-        //     }
-        //     return true;
-        // }
-        foreach (var entity in Database.Entities)
-        {
-            PushArgument(entity.Id);
-            // Database.Printer.PrintEntity(entity);
-            var isTrue = predicate.IsTrue(this);
-            // Console.ForegroundColor = isTrue ? ConsoleColor.DarkGreen : ConsoleColor.DarkRed;
-            // Console.WriteLine($"  TEST #{entity.Id} {isTrue}");
-            // Console.ResetColor();
-            if (isTrue)
-            {
-                results.Add(entity.Id);
-            }
-            else
-            {
-            }
-            // Console.ResetColor();
-            PopArgument();
-        }
-
-        return true;
-    }
-    public int PopArgument()
-    {
-        _values.RemoveAt(_values.Count - 1);
-        return _values.Count - ValueOffset;
-    }
     public PropertyValue Argument(int idx)
     {
         if (idx == -1)
@@ -125,12 +74,6 @@ public class PredicateContext
         while (_values.Count <= argumentIndex + ValueOffset)
             _values.Add(default);
         _values[argumentIndex + ValueOffset] = value;
-    }
-    public int PushArgument(EntityId entity)
-    {
-        int count = _values.Count;
-        _values.Add(entity);
-        return count;
     }
     public void ClearValueStack()
     {

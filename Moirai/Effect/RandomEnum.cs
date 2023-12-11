@@ -42,11 +42,7 @@ public struct RandomEnum : IValueCall
         var def = ctx.Database.Enums[EnumID.Id];
         return def.GetRandomValue(ctx.Rnd);
     }
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
-    }
+
     public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         return (Compute(ctx).ToSql(), null);
