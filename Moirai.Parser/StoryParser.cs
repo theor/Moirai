@@ -525,9 +525,14 @@ public static class StoryParser
                     continue;
                 }
 
+                var refReferencedType = ParseType(attr.TYPE_ID());
+                if(!refReferencedType.IsRefType)
+                    AddError(ErrorCode.UnknownEntityType, attr, "expected an Entity type");
+
                 using (new VariableDeclarationScope(this, true))
                 {
                     DeclareVar("$self", tid.RefType, null, out var varIndex);
+                    DeclareVar("_implicit", refReferencedType, null, out _);
                     var expr = ParseExpr(attr.expr(1));
                     Display d = new Display(varIndex, attr.expr(0).GetText(), expr);
                     var t = Database.Types[(int)(tid.Id.Id - 1)];
@@ -547,6 +552,7 @@ public static class StoryParser
             return null;
         }
 
+        
         public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
         {
             throw new NotImplementedException();

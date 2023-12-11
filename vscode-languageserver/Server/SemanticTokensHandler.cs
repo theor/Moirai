@@ -103,6 +103,25 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     public List<StoryParser.Error> Errors { get; } = new();
     public MoiraiParser Parser { get; set; }
     public (int offsetLine, int offsetColumn) offset { get; set; }
+    
+    private ImplicitTypeScope ImplicitType(string typeName) => new ImplicitTypeScope(this, typeName);
+    struct ImplicitTypeScope : IDisposable
+    {
+        private readonly TokenVisitor _tokenVisitor;
+        private readonly string? _prevTypeName;
+
+        public ImplicitTypeScope(TokenVisitor tokenVisitor, string typeName)
+        {
+            _tokenVisitor = tokenVisitor;
+            _prevTypeName = tokenVisitor._implicitTypeName;
+            tokenVisitor._implicitTypeName = typeName;
+        }
+
+        public void Dispose()
+        {
+            _tokenVisitor._implicitTypeName = _prevTypeName;
+        }
+    }
 
     public TokenVisitor(ILogger logger, DocumentUri documentUri)
     {
@@ -302,10 +321,10 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         PushSemanticToken(context.AT().Symbol, SemanticTokenType.Decorator);
         PushSemanticToken(context.ID().Symbol, SemanticTokenType.Decorator);
-        foreach (var expr in context.expr())
-        {
-            expr.Accept(this);
-        }
+        PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
+        using(ImplicitType(context.TYPE_ID().GetText()))
+            foreach (var expr in context.expr())
+                expr.Accept(this);
 
         return null;
     }
@@ -414,25 +433,6 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol));
         using var x = ImplicitType(context.TYPE_ID().GetText());
         return base.VisitWhen(context);
-    }
-
-    private ImplicitTypeScope ImplicitType(string typeName) => new ImplicitTypeScope(this, typeName);
-    struct ImplicitTypeScope : IDisposable
-    {
-        private readonly TokenVisitor _tokenVisitor;
-        private readonly string? _prevTypeName;
-
-        public ImplicitTypeScope(TokenVisitor tokenVisitor, string typeName)
-        {
-            _tokenVisitor = tokenVisitor;
-            _prevTypeName = tokenVisitor._implicitTypeName;
-            tokenVisitor._implicitTypeName = typeName;
-        }
-
-        public void Dispose()
-        {
-            _tokenVisitor._implicitTypeName = _prevTypeName;
-        }
     }
     
     public override object? VisitWhen_created(MoiraiParser.When_createdContext context)

@@ -1,6 +1,6 @@
-// @display('Items owned',type = Item and owner = $self)
-// @display('Items made',type = Item and maker = $self)
-// @display('Children',type = Person and (parent1 = $self or parent2 = $self))
+@display Item ('Items made',maker = $self)
+@display Person ('Children',parent1 = $self or parent2 = $self)
+@display Item ('Items owned',owner = $self)
 entity Person {
     prop age: Age
     prop first_name: string
@@ -296,30 +296,30 @@ event wedding {
 }
 @1 per 15 year
 event divorce {
-    pick Person $x: ( alive = true, partner != null)
-    pick Person $y: ( alive = true, partner != null, id != $x)
+    pick Person $x: (alive = true, partner != null)
+    pick Person $y: (alive = true, partner != null, id != $x)
     set $x.partner = null
     set $y.partner = null
     record('{$x.name} and {$y.name} separate')
 }
 @1 per 15 year
 event murder {
-    pick Person $x: ( alive = true, age > Age.Child, prosperity < 20%)
-    pick Person $y: ( alive = true, id != $x)
+    pick Person $x: (alive = true, age > Age.Child, prosperity < 20%)
+    pick Person $y: (alive = true, id != $x)
     set $y.alive = false
     record('{$x} {$x.name} murders {$y} {$y.name}')
 }
 @1 per 4 year
 event char_migrates country {
-    pick Person $p: ( alive, partner = null)
-    pick Country $c: ( id != $p.place)
+    pick Person $p: (alive, partner = null)
+    pick Country $c: (id != $p.place)
     set $p.place = $c
     record('{$p.name} moves to {$c.name}')
 }
 @1 per 4 year
 event country_war_start war {
-    pick Country $x: ( war_with = null)
-    pick Country $y: ( id != $x, war_with = null)
+    pick Country $x: (war_with = null)
+    pick Country $y: (id != $x, war_with = null)
     set $x.war_with = $y
     set $y.war_with = $x
     record('{$x.name} and {$y.name} start a war')
@@ -328,8 +328,8 @@ event country_war_start war {
 }
 @5 per 1 year
 event soldier_war_distinction war country {
-    each Country $c: ( war_with != null){
-        pick Person $s: ( alive, job = Job.Soldier, place = $c)
+    each Country $c: (war_with != null){
+        pick Person $s: (alive, job = Job.Soldier, place = $c)
         var $o: $c.war_with
         random_weighted 100 {
             10 => {
@@ -430,7 +430,7 @@ event parent_child_quarrel {
 }
 @1 per 8 year
 event item_forged items {
-    pick Person $p: ( alive = true, job = Job.Smith, age > Age.Child)
+    pick Person $p: (alive = true, job = Job.Smith, age > Age.Child)
     set $p.prestige = $p.prestige + 10%
     create Item $i: ('{random(ItemType)} of {random(Name)}')
     set $i.item_type = ItemSource.Forged
@@ -441,9 +441,9 @@ event item_forged items {
 }
 @1 per 8 year
 event item_painted items {
-    pick Person $p: ( alive = true, job = Job.Painter, age > Age.Child)
+    pick Person $p: (alive = true, job = Job.Painter, age > Age.Child)
     set $p.prestige = $p.prestige + 10%
-    pick Person $t: ( alive = true, id != $p)
+    pick Person $t: (alive = true, id != $p)
     create Item $i: ('Portrait of {$t.name}')
     set $i.maker = $p
     set $i.item_type = ItemSource.Painted
@@ -466,23 +466,23 @@ event item_lost items {
 }
 @1 per 20 year
 event item_found items {
-    pick Person $p: ( alive = true)
-    pick Item $i: ( owner = null)
+    pick Person $p: (alive = true)
+    pick Item $i: (owner = null)
     set $i.owner = $p
     record('{$p.name} finds the {$i.name}')
 }
 @1 per 10 year
 event item_sold items {
-    pick Item $i: ( owner != null)
+    pick Item $i: (owner != null)
     pick Person $s: (id = $i.owner, alive)
-    pick Person $p: ( alive, id != $s)
+    pick Person $p: (alive, id != $s)
     var $prev: $i.owner
     set $i.owner = $p
     record('{$p.name} acquires the {$i.name} from {$prev.name}')
 }
 @1 per 20 year
 event create_faction {
-    pick Person $p: ( alive, faction = null, age > Age.Child)
+    pick Person $p: (alive, faction = null, age > Age.Child)
     create Faction $f: ('Faction of {random(Name)}')
     set $f.founder = $p
     set $p.faction = $f
@@ -490,7 +490,7 @@ event create_faction {
 }
 @1 per 2 year
 event char_joins_faction {
-    pick Person $p: ( alive, faction = null, age > Age.Child)
+    pick Person $p: (alive, faction = null, age > Age.Child)
     pick Faction $f: ()
     set $p.faction = $f
     record('{$p.name} joins the {$f.name}')
