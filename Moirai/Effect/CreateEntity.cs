@@ -1,5 +1,33 @@
 ﻿using Moirai.Core;
 
+public class InterpolatedStringLink : IValueCall
+{
+    public readonly IValue LinkValue;
+    public readonly IValue LinkText;
+
+    public InterpolatedStringLink(IValue linkValue, IValue linkText)
+    {
+        LinkValue = linkValue;
+        LinkText = linkText;
+    }
+
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        return $"<{LinkValue.Compute(ctx).Id}>{LinkText.Compute(ctx).Value}</>";
+    }
+
+    public (string where, string? joins) ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IFunctionDescriptor? FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs(StoryPrinter printer)
+    {
+        yield return LinkValue;
+        yield return LinkText;
+    }
+}
 public class InterpolatedString : IValue
 {
     public readonly string FormatString;

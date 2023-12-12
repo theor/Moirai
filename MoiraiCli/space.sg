@@ -24,45 +24,45 @@ event create_time {
 }
 @start
 event create_solar_system {
-    create System $s: "Solar System"
-    create Object $p: "Sun"
+    create System $s: 'Solar System'
+    create Object $p: 'Sun'
     set kind = Kind.Star
     set system = $s
 
-    create Object $p: ("Mercury")
+    create Object $p: ('Mercury')
     set kind = Kind.Planet
     set distance_to_sun = 57
     set system = $s
-    create Object $p: ("Venus")
+    create Object $p: ('Venus')
     set kind = Kind.Planet
     set distance_to_sun = 108
     set system = $s
-    create Object $p: ("Earth")
+    create Object $p: ('Earth')
     set kind = Kind.Planet
     set distance_to_sun = 149
     set system = $s
-    create Object $p: ("Mars")
+    create Object $p: ('Mars')
     set kind = Kind.Planet
     set distance_to_sun = 227
     set system = $s
-    create Object $p: ("Jupiter")
+    create Object $p: ('Jupiter')
     set kind = Kind.Planet
     set distance_to_sun = 778
     set system = $s
-    create Object $p: ("Saturn")
+    create Object $p: ('Saturn')
     set kind = Kind.Planet
     set distance_to_sun = 1433
     set system = $s
-    create Object $p: ("Uranus")
+    create Object $p: ('Uranus')
     set kind = Kind.Planet
     set distance_to_sun = 2872
     set system = $s
-    create Object $p: ("Neptune")
+    create Object $p: ('Neptune')
     set kind = Kind.Planet
     set distance_to_sun = 4495
     set system = $s
 
-    create Object $p: ("Moon")
+    create Object $p: ('Moon')
     set kind = Kind.Satelite
     set system = $s
 }

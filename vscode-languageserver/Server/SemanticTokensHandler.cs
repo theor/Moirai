@@ -553,8 +553,18 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             if (Definitions.TryGetValue(context.TYPE_ID().GetText(), out var loc))
                 Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol));
         }
-        else if (context.@string() != null)
-            PushSemanticToken(context.Start, SemanticTokenType.String);
+        else if (context.@string() is MoiraiParser.StringContext s)
+        {
+            PushSemanticToken(s.QUOTE(0).Symbol, SemanticTokenType.String);
+            foreach (var content in s.stringContent())
+            {
+             if(content.TEXT() != null)   
+                 PushSemanticToken(content.TEXT().Symbol, SemanticTokenType.String);
+             else if (content.expr() is MoiraiParser.ExprContext e)
+                 e.Accept(this);
+            }
+            PushSemanticToken(s.QUOTE(1).Symbol, SemanticTokenType.String);
+        }
         else if (context.@bool() != null || context.number() != null || context.NULL() != null)
             PushSemanticToken(context.Start, SemanticTokenType.Number);
         else

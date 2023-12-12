@@ -311,7 +311,7 @@ WHERE default__id = $id;";
         _currentActionId = eventTrigger.Id;
         // _ctx.Values.Clear();
 
-        using var s = _ctx.RunScope();
+        using var s = _ctx.RunScope(false);
         for (var index = 0; index < eventTrigger.Effects.Count; index++)
         {
             var e = eventTrigger.Effects[index];
@@ -364,7 +364,7 @@ WHERE default__id = $id;";
                 // if (!@event.WhenTags.Contains(tag))
                 //     continue;
                 EventAttemptCount++;
-                using var s = _ctx.RunScope();
+                using var s = _ctx.RunScope(false);
                 if (trigger.When.Item2 == changed.New.Type)
                 {
                     // $old value

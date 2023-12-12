@@ -130,6 +130,54 @@ trigger inherit {
         // Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
     }
 
+    [Test]
+    public void Inherit_ParentName()
+    {
+        var db = Run(@"
+entity Person {
+    prop alive: bool
+    prop parent1: Person
+    prop parent2: Person
+}
+entity Item {
+    prop owner: Person
+}
+@start
+event init {
+    create Person $a: 'parent'
+    set $a.alive = true  
+    create Item $i: 'item'
+    set $i.owner = $a
+    create Person $b: 'child'
+    set $b.alive = true  
+    set $b.parent1 = $a  
+
+}
+event parent_dies {
+    pick Person $p: (id = 1)
+    debug('{$p} {$p.name}')
+    set $p.alive = false
+    record '{$p.name} dies'
+    pick Person $child: (alive, parent1 = $p or parent2 = $p)
+    record 'child: {$child.name}'
+
+}
+trigger inherit {
+    when Person and alive = false and $old.alive
+    record '{$new.name} inherits'
+    each Item $i: (owner = $new){
+        record 'item {$i.name}, looking for children of {$new.name}'
+        pick Person $child: (alive and parent1 = $new or parent2 = $new)
+        record('{$child.name} inherits the {$i.name} from {$new.name}')
+    }
+}", out _);
+        db.History = new();
+        db.RunAction("parent_dies");
+        db.Printer.PrintDb();
+        db.Printer.PrintRecords();
+        Assert.That(db.Records.Last().Text, Is.EqualTo("<#3>child</> inherits the <#2>item</> from <#1>parent</>"));
+    }
+
 
     [Test, Ignore("obsolete json...")]
     public void Bug_Inherit()

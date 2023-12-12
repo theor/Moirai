@@ -81,9 +81,9 @@ public class PredicateContext
     }
 
 
-    public Scope RunScope()
+    public Scope RunScope(bool setOffset)
     {
-        return new Scope(this, _values.Count, ValueOffset);
+        return new Scope(this, _values.Count, ValueOffset, setOffset);
     }
     public void Assert(bool boolValue, string msg)
     {
@@ -97,13 +97,14 @@ public class PredicateContext
         private readonly PredicateContext _predicateContext;
         private readonly int _valuesCount;
         private readonly int _valueOffset;
-        public Scope(PredicateContext ctx, int valuesCount, int valueOffset)
+        public Scope(PredicateContext ctx, int valuesCount, int valueOffset, bool setOffset)
         {
             _predicateContext = ctx;
             _valuesCount = valuesCount;
             _valueOffset = valueOffset;
 
-            ctx.ValueOffset = _valuesCount;
+            if(setOffset)
+                ctx.ValueOffset = _valuesCount;
         }
         public void Dispose()
         {

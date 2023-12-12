@@ -451,9 +451,9 @@ event item_painted items {
     if (random 10 > 5){
         set $i.owner = $p
         record('{$p.name} depicts {$t.name} in the {$i.name}')
-    } else {
+    } else {    
         set $i.owner = $t
-        record('{$t.name} have their portrait painted by {$p.name}')
+        record('{$t.name} have their {link($i, 'portrait')} painted by {$p.name}')
     }
 }
 @1 per 8 year

@@ -835,6 +835,25 @@ event create_faction {
     }
 
     [Test]
+    public void FormatLink()
+    {
+        var s = @"
+entity E {
+}
+
+event e {
+    create E $e
+    record('{link($e, 'a link')} here')
+
+}";
+        var db = Run(s, out _);
+        db.History = new();
+        db.RunAction(db.Actions[0]);
+        Console.WriteLine(db.Records.Last().Text);
+        Assert.That(db.Records.Last().Text, Is.EqualTo("<#1>a link</> here"));
+    }
+
+    [Test]
     public void Format()
     {
         var s = @"
@@ -857,8 +876,7 @@ event create_faction {
         db.History = new();
         db.RunAction(db.Actions[0]);
         Console.WriteLine(db.Records.Last().Text);
-        Assert.AreEqual("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>",
-            db.Records.Last().Text);
+        Assert.That(db.Records.Last().Text, Is.EqualTo("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>"));
     }
 
     [Test]

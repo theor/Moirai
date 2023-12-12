@@ -46,7 +46,8 @@ prop_definition: PROP ID COLON (ID|TYPE_ID) LINE_BREAK+ ;
 
 enum_definition: ENUM TYPE_ID SCOPE_OPEN LINE_BREAK* TYPE_ID (COMMA LINE_BREAK* TYPE_ID)* COMMA? LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 
-string: STRING ;
+stringContent: (EXPR_OPEN expr SCOPE_CLOSE) | TEXT;
+string: QUOTE stringContent* QUOTE ;
 
 bool: TRUE | FALSE;
 path : (SINGLETON_ID | VAR_ID) (DOT ID)* | ID;

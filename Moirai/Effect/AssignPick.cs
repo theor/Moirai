@@ -43,7 +43,7 @@ public struct AssignPick : IValueCall
                     {
                         for (var index = 0; index < _pool.Count; index++)
                         {
-                            using var s = ctx.RunScope();
+                            using var s = ctx.RunScope(false);
                             // int valueCountIterationStart = ctx.ValueCount;
                             var entityId = _pool[index];
                             ctx.SetArgument(VariableIndex, entityId);

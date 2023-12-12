@@ -229,6 +229,12 @@ public static class StoryParser
             var interpolatedString = (InterpolatedString)ctx.ParseArgument(0);
             return new Record(interpolatedString);
         }),
+        new("link", false, ctx =>
+        {
+            var linkValue = ctx.ParseArgument(0);
+            var linkText = ctx.ParseArgument(1);
+            return new InterpolatedStringLink(linkValue, linkText);
+        }),
         new("call", false, ctx =>
         {
             var arg = ctx.GetArgumentToken(0);
@@ -1021,41 +1027,55 @@ public static class StoryParser
 
         public InterpolatedString ParseInterpolatedString(MoiraiParser.StringContext? stringContext)
         {
-            if (stringContext == null)
+            if (stringContext == null || stringContext.stringContent().Length == 0)
                 return new InterpolatedString("", Array.Empty<IValue>());
-            var str = stringContext.GetText().TrimQuotes();
+
             List<IValue> paths = new();
             string result = "";
-            int i = -1;
-            var prev = i + 1;
-
-            while (i < str.Length)
+            foreach (var part in stringContext.stringContent())
             {
-                i = str.IndexOf('{', i + 1);
-                if (i == -1)
-                    break;
-
-                int j = str.IndexOf('}', i + 1);
-                if (j == -1)
-                    throw new System.NotImplementedException(
-                        $"Missing curly brace in string: {str}, opening brace at {i}");
-
-                var pathStr = str.Substring(i + 1, j - i - 1);
-                var path = StoryParser.ParseExpr(this, pathStr,
-                    stringContext.Start.Line - 1 /* +1 somewhere in the pipeline */,
-                    stringContext.Start.Column + i + 1 + /*quote*/ 1, out _);
-                paths.Add(path!);
-                // Console.WriteLine($"'{pathStr}'");
-                if (i > prev)
-                    result += str.Substring(prev, i - prev);
-                result += $"{{{paths.Count - 1}}}";
-                i = j;
-                prev = i + 1;
+                if (part.TEXT() != null)
+                    result += part.TEXT().GetText();
+                else
+                {
+                    result += $"{{{paths.Count}}}";
+                    paths.Add(ParseExpr(part.expr())!);
+                }
             }
-
-            if (prev < str.Length)
-                result += (str.Substring(prev));
-            // Console.WriteLine($"res:'{result}'");
+            
+            // var str = stringContext.GetText().TrimQuotes();
+            // List<IValue> paths = new();
+            // string result = "";
+            // int i = -1;
+            // var prev = i + 1;
+            //
+            // while (i < str.Length)
+            // {
+            //     i = str.IndexOf('{', i + 1);
+            //     if (i == -1)
+            //         break;
+            //
+            //     int j = str.IndexOf('}', i + 1);
+            //     if (j == -1)
+            //         throw new System.NotImplementedException(
+            //             $"Missing curly brace in string: {str}, opening brace at {i}");
+            //
+            //     var pathStr = str.Substring(i + 1, j - i - 1);
+            //     var path = StoryParser.ParseExpr(this, pathStr,
+            //         stringContext.Start.Line - 1 /* +1 somewhere in the pipeline */,
+            //         stringContext.Start.Column + i + 1 + /*quote*/ 1, out _);
+            //     paths.Add(path!);
+            //     // Console.WriteLine($"'{pathStr}'");
+            //     if (i > prev)
+            //         result += str.Substring(prev, i - prev);
+            //     result += $"{{{paths.Count - 1}}}";
+            //     i = j;
+            //     prev = i + 1;
+            // }
+            //
+            // if (prev < str.Length)
+            //     result += (str.Substring(prev));
+            // // Console.WriteLine($"res:'{result}'");
             var interpolatedString = new InterpolatedString(result, paths.ToArray());
             return interpolatedString;
         }
@@ -1266,5 +1286,5 @@ public static class StoryParser
 internal static class ParsingExtensions
 {
     public static string TrimQuotes(this string s) => s.Trim('"', '\'');
-    public static string GetString(this MoiraiParser.StringContext context) => context.STRING().GetText().TrimQuotes();
+    public static string GetString(this MoiraiParser.StringContext context) => context.GetText().TrimQuotes();
 }

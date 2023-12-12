@@ -167,6 +167,12 @@ public interface IMoiraiParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitEnum_definition([NotNull] MoiraiParser.Enum_definitionContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="MoiraiParser.stringContent"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitStringContent([NotNull] MoiraiParser.StringContentContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="MoiraiParser.string"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
