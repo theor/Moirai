@@ -2,7 +2,10 @@
 import {HubConnection, HubConnectionState, IStreamResult} from "@microsoft/signalr";
 import {ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
 import {create} from "zustand";
-
+export interface Result {
+    eid: number;
+    description: string;
+}
 export class SignalRConnection {
     public connection: HubConnection;
 
@@ -30,6 +33,10 @@ export class SignalRConnection {
 
 
     }
+
+    runAction(actionId: number) {
+        return this.connection.send("RunAction", actionId);
+    }
     
     getChangesets(): IStreamResult<EntityChangeDisplay> {
         return this.connection.stream<EntityChangeDisplay>("GetChangesets");
@@ -38,6 +45,10 @@ export class SignalRConnection {
     reset() {
         return this.connection.send("Reset")
 
+    }
+    
+    query(q:string): Promise<Result[]> {
+        return this.connection.invoke<Result[]>("Query", q);
     }
 
     passYears(years: number) {
@@ -137,7 +148,6 @@ export const useMoiraiStore = create<State>((set, get) => {
         pushChangesets: (buffer: EntityChangeDisplay[]) =>  {
             set({changesets:  [...buffer]})
         },
-        
         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
             const clientData = get().clientData!;
             if (switchAll) {

@@ -9,27 +9,20 @@ import Table from "@mui/material/Table";
 import TableContainer from "@mui/material/TableContainer";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
+import IconButton  from "@mui/material/IconButton";
 import {ActionData} from "./types.ts";
 
+import PlayArrow from '@mui/icons-material/PlayArrow';
 export function EventList() {
     const clientData = useMoiraiStore(s=>s.clientData)
     const toggleActionFiltering = useMoiraiStore(s=>s.toggleActionFiltering)
-    // console.log("AL ", ctx);
+    const conn = useMoiraiStore(s=>s.conn!)
     if (!clientData)
         return <span>loading</span>
     console.log(clientData)
     const handleToggle = (value: ActionData) => (e: React.MouseEvent<HTMLButtonElement>) => {
         toggleActionFiltering(value.id, value.hidden, e.ctrlKey)
-        // if (e.ctrlKey) {
-        //     clientData.actions = clientData.actions.map(a => a.id === value.id ? {
-        //         ...a,
-        //         hidden: !value.hidden
-        //     } : {...a, hidden: value.hidden});
-        //     setClientData({...clientData})
-        //     return;
-        // }
-        // value.hidden = !value.hidden;
-        // setClientData({...clientData})
+    
     };
     return <>
         <Divider/>
@@ -45,6 +38,10 @@ export function EventList() {
                                 <span>
                             {a.name}
                                 </span>
+                            </TableCell>
+                            <TableCell>
+                                <IconButton onClick={() => conn.runAction(a.id)}><PlayArrow/></IconButton >
+                                
                             </TableCell>
                         </TableRow>
                     })}

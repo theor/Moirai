@@ -10,39 +10,56 @@ import {
     Grid,
     Stack,
     Toolbar,
-    IconButton,
     Typography,
     Button,
     CircularProgress,
-    Backdrop, ToggleButton,
+    Backdrop, Tabs, Tab,
 } from "@mui/material";
-import MenuIcon from '@mui/icons-material/Menu';
 import { useEffect } from 'react';
 import { ChangesetList } from './ChangesetList.tsx';
 import {useMainListDisplay, useYearsDelta} from "./utils.tsx";
+import {QueryView} from "./QueryView.tsx";
+interface TabPanelProps {
+    children?: React.ReactNode;
+    index: number;
+    value: number;
+}
+function CustomTabPanel(props: TabPanelProps) {
+    const { children, value, index, ...other } = props;
+    return (
+        <div
+            role="tabpanel"
+            hidden={value !== index}
+            id={`simple-tabpanel-${index}`}
+            aria-labelledby={`simple-tab-${index}`}
+            style={{height: "100%"}}
+            {...other}
+        >
+            {value === index && (
+                    children
+            )}
+        </div>
+    );
+}
+
 function InnerApp() {
     const conn = useMoiraiStore(s => s.conn!);
     const year = useMoiraiStore(s => s.year);
-    const [showChangesets, setShowChangesets] = useMainListDisplay();
+    const [mainListDisplay, setMainListDisplay] = useMainListDisplay();
     const [yearsDelta,] = useYearsDelta();
-    console.log("APP", showChangesets)
+    console.log("APP", mainListDisplay)
     return <>
         {/*<Box>*/}
             <AppBar  position="relative" sx={{marginBottom:"12px"}}>
                 <Toolbar variant={"dense"}>
-                    {/*<IconButton*/}
-                    {/*    onClick={() => setShowChangesets(!showChangesets)}*/}
-                    {/*    size="large"*/}
-                    {/*    edge="start"*/}
-                    {/*    color="inherit"*/}
-                    {/*    aria-label="menu"*/}
-                    {/*    sx={{mr: 2}}*/}
-                    {/*>*/}
-                    {/*    <MenuIcon/>*/}
-                    {/*</IconButton>*/}
-                    <ToggleButton  value="check" selected={showChangesets} onClick={() => setShowChangesets(!showChangesets)} >
-                        Show changesets
-                    </ToggleButton>
+                    <Tabs value={mainListDisplay} onChange={(_e,v) => setMainListDisplay(v)}
+                        indicatorColor="secondary"
+                        textColor="inherit">
+                        <Tab label="Records"/>
+                        <Tab label="Changesets"/>
+                        <Tab label="Query"/>
+                    </Tabs>
+                   
                     <Typography variant="h6" component="div" sx={{flexGrow: 1}}/>
                     <Button color="inherit" >
                         Year: {year}
@@ -63,28 +80,21 @@ function InnerApp() {
                     </Box>
                     <Box  sx={{overflow:"auto"}}>
                         <EventList/>
-                        {/*<Outlet/>*/}
                     </Box>
                 </Stack>
             </Grid>
             <Grid item xs={8} sx={{paddingBottom:"64px"}}>
-                {showChangesets ? <ChangesetList/>: <RecordList/>}
+                <CustomTabPanel value={mainListDisplay} index={0}>
+                    <RecordList/>
+                </CustomTabPanel>
+                <CustomTabPanel value={mainListDisplay} index={1}>
+                    <ChangesetList/>
+                </CustomTabPanel>
+                <CustomTabPanel value={mainListDisplay} index={2}>
+                   <QueryView/>
+                </CustomTabPanel>
             </Grid>
         </Grid>
-        {/*<Box sx={{flexGrow: 1}} display="grid" gridTemplateColumns="repeat(3, 1fr)" gridAutoRows="50%"*/}
-        {/*     gap={2} py={2} px={2}>*/}
-        {/*    <Box>*/}
-        {/*        <Outlet/>*/}
-        {/*    </Box>*/}
-        {/*    <Box gridColumn="span 2" gridRow="span 2">*/}
-        {/*        <RecordList/>*/}
-        {/*    </Box>*/}
-        {/*    <Box>*/}
-        {/*        /!*<Outlet/>*!/*/}
-        {/*        <ActionList/>*/}
-        {/*    </Box>*/}
-        {/*</Box>*/}
-
     </>
 }
 
@@ -115,10 +125,9 @@ function App() {
             sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
             open={true}
         >
-            
             <Stack sx={{alignItems:"center"}} gap={4}>
-            <img width="64px" src="/icon.png" />
-            <CircularProgress color="inherit" />
+                <img width="64px" src="/icon.png" />
+                <CircularProgress color="inherit" />
             </Stack>
         </Backdrop>
 }

@@ -13,36 +13,41 @@ public class ChatHub : Hub
     private static Database _db;
     private static bool _reset;
 
-    private static Mutex _mutex = new();
+    private static object _mutex = new();
     public ChatHub()
     {
-        if (!_mutex.WaitOne(1000))
-            return;
-        if (_db == null)
+        lock (_mutex)
         {
-            Reset();
-        }
+            if (_db == null)
+            {
+                Reset();
+            }
 
-        Debug.WriteLine("Ctor");
-        _mutex.ReleaseMutex();
+            Debug.WriteLine("Ctor");
+        }
     }
 
     public void Reset()
     {
-        _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
-        _db.History = new();
-        _db.Init();
-        _reset = true;
+        lock (_mutex)
+        {
+            _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
+            _db.History = new();
+            _db.Init();
+            _reset = true;
+        }
     }
 
     public async Task PassYears(int years)
     {
-        _db.Ctx.PassYears(years, true);
+        lock (_mutex)
+            _db.Ctx.PassYears(years, true);
     }
 
     public void Save()
     {
-        _db.Commit();
+        lock (_mutex)
+            _db.Commit();
     }
 
     public struct ClientData
@@ -54,10 +59,11 @@ public class ChatHub : Hub
 
     public async Task<ClientData> GetClientData()
     {
-        return new ClientData
-        {
-            Actions = _db.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
-        };
+        lock (_mutex)
+            return new ClientData
+            {
+                Actions = _db.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
+            };
     }
 
     public record EntityPropertyDisplay(string Label, string Value);
@@ -67,44 +73,96 @@ public class ChatHub : Hub
 
     private IList<EntityPropertyDisplay> GetChangeDetails(Changeset.Changed c)
     {
-        if (c.Prev.Id.IsNull) // new entity
+        lock (_mutex)
         {
-            return c.New.Properties.Where(p => p.Id.IsValid)
-                .Select(p => new EntityPropertyDisplay(_db.GetPropertyName(p.Id), PrintValue(p.Id, p.Value))).ToList();
-        }
-        return c.Prev.Properties.Where(p => p.Id.IsValid)
-            .Select(p =>
+            if (c.Prev.Id.IsNull) // new entity
             {
-                var p1 = c.New.GetProperty(p.Id);
-                return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
-                    PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
-            }).ToList();
+                return c.New.Properties.Where(p => p.Id.IsValid)
+                    .Select(p => new EntityPropertyDisplay(_db.GetPropertyName(p.Id), PrintValue(p.Id, p.Value)))
+                    .ToList();
+            }
+
+            return c.Prev.Properties.Where(p => p.Id.IsValid)
+                .Select(p =>
+                {
+                    var p1 = c.New.GetProperty(p.Id);
+                    return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
+                        PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
+                }).ToList();
+        }
+    }
+
+    public struct Result
+    {
+        public EntityId Eid;
+        public string Description;
+    }
+    public async Task<Result[]> Query(string q)
+    {
+        lock (_mutex)
+        {
+            try
+            {
+                StoryParser.AstVisitor v = new StoryParser.AstVisitor(_db);
+                var e = StoryParser.ParseExpr(v, q, 0, 0, out var errors);
+                if (errors.Any())
+                    return errors.Select(e => new Result { Eid = default, Description = e.ToString() }).ToArray();
+                if (e is AssignPick pick)
+                {
+                    _db.FindAll(pick.EntityType, pick.Value, ref results);
+                    return results.Select(eid => new Result{Eid = eid, Description = String.Join("\n",GetEntityDetails(eid.Id).Select(d =>
+                        $"{d.Label}:{d.Value}"))}).ToArray();
+                }
+                return new Result[] { new Result { Eid = default, Description = "Instruction unsuited for query: " + e.GetType() } };
+            }
+            catch (Exception e)
+            {
+                return new Result[] { new Result { Eid = default, Description = e.ToString() } };
+
+            }
+        }
+    }
+
+    public void RunAction(int actionId)
+    {
+        lock (_mutex)
+        {
+            var eventTrigger = _db.Actions.FirstOrDefault(a => a.Id == actionId);
+            if(eventTrigger != null)
+                _db.RunAction(eventTrigger);
+        }
     }
 
     private IList<EntityChangeDisplay> GetChangesetDetails(Changeset cs)
     {
+        lock (_mutex)
         return cs.Changes.Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x))).ToList();
     }
     public IList<EntityPropertyDisplay> GetEntityDetails(uint eid)
     {
-        if (!_db.TryGetEntity(new EntityId(eid), out var e))
-            return ImmutableList<EntityPropertyDisplay>.Empty;
-        var details = e.Properties.Where(p => p.Id.IsValid)
-            .Select(p => new EntityPropertyDisplay(
-                _db.GetPropertyName(p.Id),
-                PrintValue(p.Id, p.Value))).ToList();
-        var t = _db.GetEntityType(e.Type);
-        foreach (var display in t.Attributes)
+        lock (_mutex)
         {
-            _db.Ctx.SetArgument(display.VarIndex, e.Id);
-                _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
-            foreach (var id in results)
+            if (!_db.TryGetEntity(new EntityId(eid), out var e))
+                return ImmutableList<EntityPropertyDisplay>.Empty;
+            var details = e.Properties.Where(p => p.Id.IsValid)
+                .Select(p => new EntityPropertyDisplay(
+                    _db.GetPropertyName(p.Id),
+                    PrintValue(p.Id, p.Value))).ToList();
+            var t = _db.GetEntityType(e.Type);
+            foreach (var display in t.Attributes)
             {
-                if(_db.TryGetEntity(id, out var ee))
-                    details.Add(new EntityPropertyDisplay(display.Label, $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>"));
+                _db.Ctx.SetArgument(display.VarIndex, e.Id);
+                _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
+                foreach (var id in results)
+                {
+                    if (_db.TryGetEntity(id, out var ee))
+                        details.Add(new EntityPropertyDisplay(display.Label,
+                            $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>"));
+                }
             }
+
+            return details;
         }
-        return details;
     }
 
     private static string PrintValue(PropertyId propertyId, PropertyValue propertyValue)
@@ -123,12 +181,6 @@ public class ChatHub : Hub
             value = print;
 
         return value;
-    }
-
-    public async Task NewMessage(string username, string message)
-    {
-        Debug.WriteLine($"Received {username} {message}");
-        await Clients.All.SendAsync("messageReceived", username, message);
     }
 
     public ChannelReader<EntityChangeDisplay> GetChangesets(

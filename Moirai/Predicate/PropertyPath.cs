@@ -61,7 +61,7 @@
         // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
         // TODO ugly
         if (Mode == PropertyPathMode.Variable && (VariableIndex == -1 || VariableIndex == ctx.ValueCount - ctx.ValueOffset))
-            return ($"{ctx.Database.GetEntityTypeName(Property.TypeId)}__{ctx.Database.GetPropertyName(Property)}", null);
+            return (Property.IsValid ? $"{ctx.Database.GetEntityTypeName(Property.TypeId)}__{ctx.Database.GetPropertyName(Property)}" : "default__id", null);
         // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
         return (Compute(ctx).ToSql(), null);
     }

@@ -4,22 +4,23 @@
 - [ ] flag enum properties - `flag F { A,B,C }` `set_flag $x.f, F.B` `remove_flag $x.f, F.B` `has_flag $x.f, F.B `?
 - [ ] pick $x,$y multiple values at once ? avoid `pick $x...pick $y: $y != $x`
 - [ ] parse types props init `type person { alive = true }`
-- [ ] restrict props to type ? `type person { alive: number = true }` would allow overlap of prop indices across types and to index them directly
 
 
 # Tech debt
+- [ ] predicate var (the $p in pick $p: $p.alive) must be explicitly marked as such
 - [ ] filtering of records per entity not accurate because of how records depends on the source action changeset
 
 # Backlog
 - [ ] curves ?
-- [ ] format: prev value ? `set $i.owner = $p;`
-  - `format "from prev($i.owner.name) to $p.name" ?`
-  - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?`
 - [ ] tags ? are they arrays, bitflags, links, their own thing ?
-- [ ] arrays ? are links good enough ?
+- [ ] arrays ? are links good enough ? maybe entity Person { prop items Item[] } adds an itemCount to Person for quick access
 
 # Done
+- [x] restrict props to type ? `type person { alive: number = true }` would allow overlap of prop indices across types and to index them directly
 - [x] fix shaky implicit variables (equal to -1 or variable.count)
+- [x] WORKS IN TRIGGERS format: prev value ? `set $i.owner = $p;`
+    - `format "from prev($i.owner.name) to $p.name" ?`
+    - `$prev = $i.owner; $i.owner = $p; format "$prev $p"?`
 - [x] percentage type and literals, clamped
 - [x] assign factor per entity to impact history ? - Possible with a percentage
 - [x] filter sinceLastEvent ? avoid having 4 children in the same year

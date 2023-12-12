@@ -54,12 +54,12 @@ export function useYearsDelta(): GetSetProperty<number>{
     })];
 }
 
-export function useMainListDisplay() : GetSetProperty<boolean> {
-    let [searchParams, setSearchParams] = useSearchParams({showChangesets:String(false)});
-    let eid = (searchParams.get("showChangesets") === 'true');
-    return [eid, (x:boolean) => setSearchParams((p:URLSearchParams) => {
+export function useMainListDisplay() : GetSetProperty<number> {
+    let [searchParams, setSearchParams] = useSearchParams({tab:String(0)});
+    let eid = Number(searchParams.get("tab"));
+    return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
         console.log("show", x);
-        p.set("showChangesets", x.toString());
+        p.set("tab", x.toString());
         return p;
     })];
 }

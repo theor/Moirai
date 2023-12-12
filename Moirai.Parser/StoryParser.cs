@@ -416,7 +416,7 @@ public static class StoryParser
         }
     }
 
-    private static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn,
+    public static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn,
         out List<Error> errors)
     {
         var prevOffset = visitor.offset;

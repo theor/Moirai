@@ -17,6 +17,7 @@ entity Person {
     prop job: Job
     prop parent1: Person
     prop parent2: Person
+    prop killer: Person
     prop prosperity: percentage
 }
 entity Item {
@@ -44,6 +45,7 @@ enum Job {
     Merchant, Smith,
     Wizard,
     Soldier,
+    Bandit,
     Monk,
     Prince, King,
 }
@@ -122,6 +124,10 @@ trigger inherit items {
     set $new.deathdate = #Time.year
     each Person $child: (parent1 = $new or parent2 = $new, alive) {
         record('{$child.name} lose their parent, {$new.name}')
+        if $new.killer {
+            var $k: $new.killer
+            record '{$child.name} starts a vendetta with {$k.name}'
+        }
     }
     each Item $i: (owner = $new){
         pick Person $child: (alive, parent1 = $new or parent2 = $new)
@@ -180,6 +186,7 @@ event children_grow {
             10 => set $p.job = Job.Merchant
             10 => set $p.job = Job.Monk
             25 => set $p.job = Job.Soldier
+            10 => set $p.job = Job.Bandit
 
             5 => set $p.job = Job.Painter
             5 => set $p.job = Job.Sculptor
@@ -305,9 +312,21 @@ event divorce {
 @1 per 15 year
 event murder {
     pick Person $x: (alive = true, age > Age.Child, prosperity < 20%)
-    pick Person $y: (alive = true, id != $x)
+    pick Person $y: (alive = true, id != $x, place = $x.place)
     set $y.alive = false
-    record('{$x} {$x.name} murders {$y} {$y.name}')
+    set $y.killer = $x
+    record('{$x.name} murders {$y} {$y.name}')
+}
+@1 per 15 year
+event bandits_attack_town {
+    pick Person $x: (alive = true, job = Job.Bandit)
+    pick Country $c: ($x.place = $c)
+    pick Person $y: (alive = true, id != $x, place = $c)
+    set $y.alive = false
+    set $y.killer = $x
+    set $x.prosperity = $x.prosperity + 30%
+    record '{$x.name} bandits pillage a town of {$c.name}' 
+    record '{$y.name} die in the pillage of {$c.name}'
 }
 @1 per 4 year
 event char_migrates country {
@@ -316,7 +335,7 @@ event char_migrates country {
     set $p.place = $c
     record('{$p.name} moves to {$c.name}')
 }
-@1 per 4 year
+@1 per 25 year
 event country_war_start war {
     pick Country $x: (war_with = null)
     pick Country $y: (id != $x, war_with = null)
