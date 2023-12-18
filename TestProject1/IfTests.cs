@@ -144,7 +144,7 @@ event r {
         create T $x
     }
     set $x.p = 2
-}", out _, 1);
+}", out _, 2);
     }
     [Test]
     public void IfElseScopes()

@@ -66,6 +66,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
         }
 
         public bool IsRefType => BaseType == ValueBaseType.Ref || BaseType == ValueBaseType.EntityType;
+        public static readonly ValueType Null = default;
 
         public bool Equals(ValueType other)
         {

@@ -101,9 +101,9 @@ public class FunctionDescriptor : IFunctionDescriptor
         public IInstruction[]? ParseScope(bool autoCleanupVariableDeclarations)
         {
             if(CallContext is MoiraiParser.CallContext c)
-                return Visitor.ParseScope(c.scope(), autoCleanupVariableDeclarations);
+                return Visitor.ParseScope(c.scope(), autoCleanupVariableDeclarations, out _);
             else
-                return Visitor.ParseScope(((MoiraiParser.Raw_callContext)CallContext).scope(), autoCleanupVariableDeclarations);
+                return Visitor.ParseScope(((MoiraiParser.Raw_callContext)CallContext).scope(), autoCleanupVariableDeclarations, out _);
                 
         }
 
@@ -127,7 +127,7 @@ public class FunctionDescriptor : IFunctionDescriptor
         }
     }
 
-    public delegate IValueCall ParseCallDelegate(ParseContext context);
+    public delegate (IValueCall, PropertyValue.ValueType) ParseCallDelegate(ParseContext context);
 
     public string FuncName { get; }
     public bool ExpectVariable { get; }
@@ -140,23 +140,25 @@ public class FunctionDescriptor : IFunctionDescriptor
         _parse = parse;
     }
 
-    public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.Raw_callContext call)
+    public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.Raw_callContext call, out PropertyValue.ValueType returnType)
     {
         var c = _parse(new ParseContext(parser, call));
-        if (c != null)
-            c.FunctionDescriptor = this;
+        returnType = c.Item2;
+        if (c.Item1 != null)
+            c.Item1.FunctionDescriptor = this;
         else
             throw new InvalidOperationException(parser.Parser.TokenStream.GetText(call));
-        return c;
+        return c.Item1;
     }
-    public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.CallContext call)
+    public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.CallContext call, out PropertyValue.ValueType returnType)
     {
         var c = _parse(new ParseContext(parser, call));
-        if (c != null)
-            c.FunctionDescriptor = this;
+        returnType = c.Item2;
+        if (c.Item1 != null)
+            c.Item1.FunctionDescriptor = this;
         else
             throw new InvalidOperationException(parser.Parser.TokenStream.GetText(call));
-        return c;
+        return c.Item1;
     }
 
 
@@ -185,55 +187,58 @@ public static class StoryParser
 {
     private static readonly FunctionDescriptor[] Functions = new FunctionDescriptor[]
     {
-        new("create", true, ctx =>
+        new("create", true, (FunctionDescriptor.ParseContext ctx) =>
         {
-            return new CreateEntity(ctx.ParseVariable(out var etid, out _), etid,ctx.ArgCount == 0 ? null : (InterpolatedString)ctx.ParseArgument(0));
+            return (new CreateEntity(ctx.ParseVariable(out var etid, out _), etid,ctx.ArgCount == 0 ? null : (InterpolatedString)ctx.ParseArgument(0)),
+                    PropertyValue.TypeTypedRef(etid));
         }),
         new("each", true,
             ctx =>
             {
                 using var vs = new AstVisitor.VariableDeclarationScope(ctx.Visitor, true);
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
-                return new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
-                    CallType.Each, ctx.ParseScope(false));
+                return (new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
+                    CallType.Each, ctx.ParseScope(false)),
+                    PropertyValue.TypeTypedRef(etid));
             }),
         new("pick", true,
             ctx =>
             {
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
-                return new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
-                    CallType.Pick);
+                return (new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
+                    CallType.Pick),
+                PropertyValue.TypeTypedRef(etid));
             }),
 
         new("assert", false, ctx =>
-            new AssertInstr(ctx.ParseArgument(0)!, ctx.GetText(ctx.GetArgumentToken(0)))),
+            (new AssertInstr(ctx.ParseArgument(0)!, ctx.GetText(ctx.GetArgumentToken(0))), PropertyValue.ValueType.Null)!),
         new("assert_eq", false, ctx =>
-            new AssertInstr(
+            (new AssertInstr(
                 ctx.ParseArgument(0)!,
                 ctx.ParseArgument(1),
-                $"{ctx.GetText(ctx.GetArgumentToken(0))} = {ctx.GetText(ctx.GetArgumentToken(1))}")),
+                $"{ctx.GetText(ctx.GetArgumentToken(0))} = {ctx.GetText(ctx.GetArgumentToken(1))}"), PropertyValue.ValueType.Null)),
         new("mark", false, ctx =>
         {
             ctx.ExpectArgcount(1);
             var e = ctx.ParseArgument(0);
-            return new Mark(e, ctx.Visitor.CurrentEventTrigger.Id);
+            return (new Mark(e, ctx.Visitor.CurrentEventTrigger.Id), PropertyValue.ValueType.Null);
         }),
         new("since_last", false, ctx =>
         {
             ctx.ExpectArgcount(1);
             var e = ctx.ParseArgument(0);
-            return new SinceLast(e, ctx.Visitor.CurrentEventTrigger.Id);
+            return (new SinceLast(e, ctx.Visitor.CurrentEventTrigger.Id), PropertyValue.TypeNumber);
         }),
         new("record", false, ctx =>
         {
             var interpolatedString = (InterpolatedString)ctx.ParseArgument(0);
-            return new Record(interpolatedString);
+            return (new Record(interpolatedString), PropertyValue.ValueType.Null);
         }),
         new("link", false, ctx =>
         {
             var linkValue = ctx.ParseArgument(0);
             var linkText = ctx.ParseArgument(1);
-            return new InterpolatedStringLink(linkValue, linkText);
+            return (new InterpolatedStringLink(linkValue, linkText), PropertyValue.TypeString);
         }),
         new("call", false, ctx =>
         {
@@ -264,7 +269,8 @@ public static class StoryParser
                 }
             }
 
-            return new CallRule(eventIndex, count);
+            // TODO type calls ?
+            return (new CallRule(eventIndex, count), PropertyValue.ValueType.Null);
         }),
 
         new("random", false, ctx =>
@@ -274,7 +280,7 @@ public static class StoryParser
             {
                 ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext,
                     "'random' needs at least one argument");
-                return null;
+                return (null!, PropertyValue.ValueType.Null);
             }
 
             var arg = ctx.ParseArgument(0);
@@ -282,7 +288,8 @@ public static class StoryParser
             if (arg is Literal { Value.Type.BaseType: PropertyValue.ValueBaseType.EnumType } l)
             {
                 ctx.ExpectArgcount(1);
-                return new RandomEnum(new EnumDefinitionId((ushort)l.Value.IntValue));
+                var edid = new EnumDefinitionId((ushort)l.Value.IntValue);
+                return (new RandomEnum(edid), PropertyValue.TypeEnum(edid));
             }
 
             if (arg is Literal { Value.Type.BaseType: PropertyValue.ValueBaseType.Number })
@@ -290,23 +297,23 @@ public static class StoryParser
                 ctx.ExpectArgcount(2, true);
                 var min = argCount == 1 ? new Literal(0) : arg;
                 var max = ctx.ParseArgument(argCount == 1 ? 0 : 1);
-                return new RandomRange(min, max);
+                return (new RandomRange(min, max), PropertyValue.TypeNumber);
             }
 
             ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, ctx.GetText(ctx.CallContext));
-            return null!;
+            return (null!, PropertyValue.ValueType.Null);
         }),
         new("not", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Not, ctx.ParseArgument(0))),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Not, ctx.ParseArgument(0)), PropertyValue.TypeBool)),
         new("floor", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Floor, ctx.ParseArgument(0))),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Floor, ctx.ParseArgument(0)), PropertyValue.TypeNumber)),
         new("round", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Round, ctx.ParseArgument(0))),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Round, ctx.ParseArgument(0)), PropertyValue.TypeNumber)),
         new("ceiling", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.ParseArgument(0))),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.ParseArgument(0)), PropertyValue.TypeNumber)),
         new("clamp01", false,
-            ctx => new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.ParseArgument(0))),
-        new("debug", false, ctx=> new DebugPrint(Enumerable.Repeat((object?)null, ctx.ArgCount).Select((_,i) => ctx.ParseArgument(i))))
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.ParseArgument(0)), PropertyValue.TypeNumber)),
+        new("debug", false, ctx=> (new DebugPrint(Enumerable.Repeat((object?)null, ctx.ArgCount).Select((_,i) => ctx.ParseArgument(i))), PropertyValue.ValueType.Null))
     };
 
     public interface IVisitor
@@ -343,7 +350,8 @@ public static class StoryParser
         MatchNullWeight,
         MatchAnyValueMustBeLast,
         MissingVariable,
-        UnknownAttribute
+        UnknownAttribute,
+        MismatchedAssignmentTypes
     }
 
     public struct Error
@@ -646,7 +654,7 @@ public static class StoryParser
             {
                 // if (effectContext.comment() != null)
                 //     continue;
-                var effect = ParseEffect(effectContext);
+                var effect = ParseEffect(effectContext, out _);
                 if (effect == null)
                 {
                     AddError(ErrorCode.NullEffect, effectContext, effectContext.GetText());
@@ -711,7 +719,7 @@ public static class StoryParser
             {
                 // if (effectContext.comment() != null)
                 // continue;
-                var effect = ParseEffect(effectContext);
+                var effect = ParseEffect(effectContext, out var _);
                 if (effect != null)
                     CurrentEventTrigger.Effects.Add(effect);
             }
@@ -720,15 +728,16 @@ public static class StoryParser
             return null;
         }
 
-        private IInstruction ParseEffect(MoiraiParser.EffectContext effectContext)
+        private IInstruction ParseEffect(MoiraiParser.EffectContext effectContext, out PropertyValue.ValueType type)
         {
             if (effectContext.expr() != null)
             {
-                var value = ParseExpr(effectContext.expr());
+                var value = ParseExpr(effectContext.expr(), out type);
                 if (value != null)
                     return new CallInstruction(value);
             }
 
+            type = PropertyValue.ValueType.Null;
             if (effectContext.var() != null)
                 return ParseLocalVar(effectContext.var());
             if (effectContext.set() != null)
@@ -741,7 +750,7 @@ public static class StoryParser
 
         private bool _parsingMatchCase = false;
 
-        private IValue ParseMatch(MoiraiParser.MatchContext match)
+        private IValue ParseMatch(MoiraiParser.MatchContext match, out PropertyValue.ValueType valueType)
         {
             bool weight = match.MATCH_WEIGHT() != null;
             var values = match.expr().Select(ParseExpr).ToArray();
@@ -759,6 +768,7 @@ public static class StoryParser
             }
 
             int accWeight = 0;
+            valueType = PropertyValue.ValueType.Null;
             for (int i = 0; i < match.match_case().Length; i++)
             {
                 var caseCtx = match.match_case(i);
@@ -776,8 +786,8 @@ public static class StoryParser
 
                 using var _ = new VariableDeclarationScope(this, true);
                 var instrs = caseCtx.scope() == null
-                    ? new IInstruction[] { ParseEffect(caseCtx.effect()) }
-                    : ParseScope(caseCtx.scope(), false);
+                    ? new IInstruction[] { ParseEffect(caseCtx.effect(), out valueType) }
+                    : ParseScope(caseCtx.scope(), false, out valueType);
                 if (weight)
                 {
                     int w;
@@ -806,10 +816,13 @@ public static class StoryParser
             return new Match(values, cases);
         }
 
-        private If ParseIf(MoiraiParser.IfContext @if)
+        private If ParseIf(MoiraiParser.IfContext @if, out PropertyValue.ValueType valueType)
         {
-            return new If(ParseExpr(@if.cond), ParseScope(@if.then, true),
-                @if.@else == null ? Array.Empty<IInstruction>() : ParseScope(@if.@else, true));
+            var elseType = PropertyValue.ValueType.Null;
+            var iff = new If(ParseExpr(@if.cond), ParseScope(@if.then, true, out var ifType),
+                @if.@else == null ? Array.Empty<IInstruction>() : ParseScope(@if.@else, true, out elseType));
+            valueType = @if.@else == null ? ifType : Cast(ifType, elseType);
+            return iff;
         }
 
         public IValue ParsePredicate(MoiraiParser.ExprContext[] exprContexts)
@@ -845,9 +858,37 @@ public static class StoryParser
 
         private SetProperty ParseSet(MoiraiParser.SetContext context)
         {
-            var left = ParsePath(context.path(), out _);
-            var right = ParseExpr(context.expr()); //, left.Property);
+            var left = ParsePath(context.path(), out var assignedType);
+            var right = ParseExpr(context.expr(), out var rightType); //, left.Property);
+            if (assignedType != Cast(assignedType, rightType))
+                AddError(ErrorCode.MismatchedAssignmentTypes, context, $"{assignedType} != {rightType}");
             return new SetProperty(left, right, false);
+        }
+
+        static PropertyValue.ValueType Cast(PropertyValue.ValueType to, PropertyValue.ValueType from)
+        {
+            if (to == from)
+                return to;
+
+            if (to == PropertyValue.TypeFloat)
+            {
+                if (from == PropertyValue.TypeNumber || from == PropertyValue.TypePercent)
+                    return PropertyValue.TypeFloat;
+            }
+            if (to == PropertyValue.TypePercent)
+            {
+                if (from == PropertyValue.TypeNumber || from == PropertyValue.TypeFloat)
+                    return PropertyValue.TypePercent;
+            }
+
+            if (to.BaseType == PropertyValue.ValueBaseType.Enum && from == PropertyValue.TypeNumber)
+                return to;
+            if (from.BaseType == PropertyValue.ValueBaseType.Enum && to == PropertyValue.TypeNumber)
+                return to;
+            if (to.IsRefType && from.IsRefType && from.Index == 0) // null or (shaky) untyped ref
+                return to;
+
+            return from;
         }
 
         public IValue ParseValue(MoiraiParser.ValueContext value, out PropertyValue.ValueType type)
@@ -878,14 +919,12 @@ public static class StoryParser
 
             if (value.call() != null)
             {
-                type = default;
-                return ParseCall(value.call());
+                return ParseCall(value.call(), out type);
             }
 
             if (value.raw_call() != null)
             {
-                type = default;
-                return ParseRawCall(value.raw_call());
+                return ParseRawCall(value.raw_call(), out type);
             }
 
             if (value.path() != null)
@@ -994,35 +1033,45 @@ public static class StoryParser
             }
         }
 
-        private IValue ParseRawCall(MoiraiParser.Raw_callContext context)
+        private IValue ParseRawCall(MoiraiParser.Raw_callContext context, out PropertyValue.ValueType returnType)
         {
             var funcName = context.ID(0).GetText();
             var f = Functions.FirstOrDefault(f => f.FuncName == funcName);
             if (f != null)
             {
-                return f.Parse(this, context);
+                return f.Parse(this, context, out returnType);
             }
 
+            returnType = default!;
             return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
         }
-        private IValue ParseCall(MoiraiParser.CallContext context)
+        private IValue ParseCall(MoiraiParser.CallContext context, out PropertyValue.ValueType returnType)
         {
             var funcName = context.ID(0).GetText();
             var f = Functions.FirstOrDefault(f => f.FuncName == funcName);
             if (f != null)
             {
-                return f.Parse(this, context);
+                return f.Parse(this, context, out returnType);
             }
 
+            returnType = default!;
             return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
         }
 
-        public IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext, bool autoCleanupVariableDeclarations)
+        public IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext, bool autoCleanupVariableDeclarations, out PropertyValue.ValueType type)
         {
             using var vs = new VariableDeclarationScope(this, autoCleanupVariableDeclarations);
+            // TODO 
+            type = PropertyValue.ValueType.Null;
             if (scopeContext == null)
                 return Array.Empty<IInstruction>();
-            return scopeContext.effect().Select(ParseEffect).Where(e => e != null).ToArray();
+            var ttype = PropertyValue.ValueType.Null;
+            var instructions = scopeContext.effect().Select(x =>
+            {
+                return ParseEffect(x, out ttype);
+            }).Where(e => e != null).ToArray();
+            type = ttype;
+            return instructions;
         }
 
         public InterpolatedString ParseInterpolatedString(MoiraiParser.StringContext? stringContext)
@@ -1087,12 +1136,10 @@ public static class StoryParser
         public IValue? ParseExpr(MoiraiParser.ExprContext context, out PropertyValue.ValueType type)
         {
             
-            // TODO type
-            type = default;
             if (context.@if() != null)
-                return ParseIf(context.@if());
+                return ParseIf(context.@if(), out type);
             if (context.match() != null)
-                return ParseMatch(context.match());
+                return ParseMatch(context.match(), out type);
             if (context.value() != null)
             {
                 return ParseValue(context.value(), out type);
@@ -1104,7 +1151,7 @@ public static class StoryParser
 
             string op = context.op.Text;
             // left, alive
-            IValue leftPath = ParseExpr(context.left)!;
+            IValue leftPath = ParseExpr(context.left, out var leftType)!;
 
             // right, true or $x -  not alive or $x.alive
             IValue rightValue = ParseExpr(context.right, out var rightType)!;

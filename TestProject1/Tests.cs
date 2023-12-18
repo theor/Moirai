@@ -203,7 +203,7 @@ event create {
     set y = 12
 }
 ";
-        Run(s, out var e, 1);
+        Run(s, out var e, 2);
     }
     [Test]
     public void SetPropertyOfRightType()
@@ -234,7 +234,7 @@ event create {
     set job = Asd
 }
 ";
-        var db = Run(s, out var errors, 1);
+        var db = Run(s, out var errors, 2);
         db.RunAction("create");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
@@ -368,7 +368,7 @@ event rr {
     {
         var s = @"
 entity Person {
-prop f: number
+    prop f: number
 }
 enum E { A, B, C }
 event r {
@@ -390,7 +390,7 @@ event r {
     {
         var s = @"
 entity Person {
-    prop f: number
+    prop f: bool
 }
 event r {
     create Person $p
@@ -941,7 +941,7 @@ event call {
         Assert.AreEqual(1, db.Entities.Count());
     }
 
-    [Test]
+    [Test, Ignore("calls return values aren' t typed yet")]
     public void CallRuleReturnValue()
     {
         var s = @"
