@@ -75,7 +75,7 @@ public class Database
         {
             new EntityType("default", 0),
             new EntityType("Time", 1).DeclareProperty("year", PropYear.Id,
-                PropertyValue.TypeString)
+                PropertyValue.TypeNumber)
         };
         BuiltinTypes = Types.Count;
         _ctx = new PredicateContext(this, seed);
@@ -541,11 +541,14 @@ CREATE TABLE marked (
         return false;
     }
 
-    public bool FindAll(EntityTypeId entityTypeId, IValue? predicate, ref List<EntityId> results)
+    public bool FindAll(EntityTypeId entityTypeId, IValue? predicate, ref List<EntityId> results) =>
+        FindAll(entityTypeId, predicate, ref results, out _);
+    public bool FindAll(EntityTypeId entityTypeId, IValue? predicate, ref List<EntityId> results, out string? sql)
     {
         results.Clear();
         if (predicate == null && !entityTypeId.IsValid)
         {
+            sql = null;
             return false;
         }
 
@@ -554,7 +557,7 @@ CREATE TABLE marked (
             where = "default__type = " + entityTypeId.Id;
         else
             where = $"default__type = {entityTypeId.Id} AND {where}";
-        var sql = $@"SELECT default__id FROM entity {(joins ?? "")} WHERE {where}";
+        sql = $@"SELECT default__id FROM entity {(joins ?? "")} WHERE {where}";
 
         if (!_commands2.TryGetValue(sql, out var cmd))
         {

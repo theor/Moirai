@@ -81,19 +81,32 @@ event char_dies {
 
 
     [Test]
-    public void Filter_Every()
+    [TestCase(1,1,100,100)]
+    [TestCase(4,1,400,400)]
+    [TestCase(1,10,10,10)]
+    [TestCase(4,50,8,8)]
+    [TestCase(1,50,2,2)]
+    public void Filter_Every(int count, int years, int min, int max)
     {
-        var s = @"
-entity Person {
-    prop alive: bool
-}
-@1 every 1 year
-event char_dies {
-    pick Person $p: (alive = true)
-    set $p.alive = false
-}";
+        var s = $@"
+entity Person {{
+    prop count: number
+}}
+@start
+event create_time {{
+    create Time $t: 'time'
+    create Person $p: 'counter'
+}}
+@{count} every {years} year
+event char_dies {{
+    set #Person.count = #Person.count + 1
+}}";
 
-        Run(s, out _);
+        var db = Run(s, out _);
+        db.Ctx.PassYears(100, true);
+        db.Printer.PrintDb();
+        Assert.That(db.TryGetEntity(new EntityId(2), out var e), Is.True);
+        Assert.That(e.GetProperty(db.GetPropertyId("Person", "count")).IntValue, Is.InRange(min, max));
     }
 
     [Test]

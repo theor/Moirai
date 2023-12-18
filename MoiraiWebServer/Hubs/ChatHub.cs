@@ -1,6 +1,7 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Channels;
 using Moirai.Core;
 
@@ -92,33 +93,45 @@ public class ChatHub : Hub
         }
     }
 
+    public struct QueryResult
+    {
+        public string? Sql;
+        public Result[] Results;
+        public string[] Errors;
+    }
     public struct Result
     {
         public EntityId Eid;
-        public string Description;
+        public IList<EntityPropertyDisplay> Properties;
     }
-    public async Task<Result[]> Query(string q)
+    public async Task<QueryResult> Query(string q)
     {
         lock (_mutex)
         {
+            string? sql = null;
             try
             {
                 StoryParser.AstVisitor v = new StoryParser.AstVisitor(_db);
                 var e = StoryParser.ParseExpr(v, q, 0, 0, out var errors);
                 if (errors.Any())
-                    return errors.Select(e => new Result { Eid = default, Description = e.ToString() }).ToArray();
+                    return new QueryResult { Errors = errors.Select(e => e.ToString()).ToArray() };
                 if (e is AssignPick pick)
                 {
-                    _db.FindAll(pick.EntityType, pick.Value, ref results);
-                    return results.Select(eid => new Result{Eid = eid, Description = String.Join("\n",GetEntityDetails(eid.Id).Select(d =>
-                        $"{d.Label}:{d.Value}"))}).ToArray();
+                    _db.FindAll(pick.EntityType, pick.Value, ref results, out sql);
+                    return new QueryResult
+                    {
+                        Sql = sql,
+                        Results = results.Select(eid => new Result
+                        {
+                            Eid = eid, Properties = GetEntityDetails(eid.Id),
+                        }).ToArray()
+                    };
                 }
-                return new Result[] { new Result { Eid = default, Description = "Instruction unsuited for query: " + e.GetType() } };
+                return  new QueryResult() { Errors = new[]{ "Instruction unsuited for query: " + e.GetType() } };
             }
             catch (Exception e)
             {
-                return new Result[] { new Result { Eid = default, Description = e.ToString() } };
-
+                return  new QueryResult() { Sql = sql, Errors = new[]{ e.ToString() } };
             }
         }
     }
@@ -151,6 +164,7 @@ public class ChatHub : Hub
             var t = _db.GetEntityType(e.Type);
             foreach (var display in t.Attributes)
             {
+                using var _ = _db.Ctx.RunScope(false);
                 _db.Ctx.SetArgument(display.VarIndex, e.Id);
                 _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
                 foreach (var id in results)

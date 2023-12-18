@@ -4,7 +4,14 @@ import {ClientData, EntityPropertyDisplay, Message, MessageType, Record} from ".
 import {create} from "zustand";
 export interface Result {
     eid: number;
-    description: string;
+    properties: EntityPropertyDisplay[];
+}
+
+export interface QueryResult
+{
+sql: string ;
+results: Result[] ;
+errors: string[] ;
 }
 export class SignalRConnection {
     public connection: HubConnection;
@@ -47,8 +54,8 @@ export class SignalRConnection {
 
     }
     
-    query(q:string): Promise<Result[]> {
-        return this.connection.invoke<Result[]>("Query", q);
+    query(q:string): Promise<QueryResult> {
+        return this.connection.invoke<QueryResult>("Query", q);
     }
 
     passYears(years: number) {

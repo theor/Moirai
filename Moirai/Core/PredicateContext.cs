@@ -49,18 +49,7 @@ public class PredicateContext
 
     public bool PickRandom(EntityTypeId entityTypeId, IValue value, out EntityId id)
     {
-        // Console.ForegroundColor = ConsoleColor.Blue;
-        // Console.WriteLine($"PICK {Database.Printer.Print(value)}  VAL COUNT {ValueCount} OFFSET {ValueOffset}");
-        // Console.ResetColor();
         return Database.PickRandom(entityTypeId, value, out id);
-        // Database.FindAll(value, ref _pool);
-        // if (_pool.Count == 0)
-        // {
-        //     id = default;
-        //     return false;
-        // }
-        // id = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
-        // return true;
     }
 
     public PropertyValue Argument(int idx)
@@ -139,7 +128,7 @@ public class PredicateContext
                 if (action.Filter == null || action.Skip)
                     continue;
 
-                int count = (int)action.Filter.Compute(Database.Ctx).IntValue;
+                int count = (int)action.Filter.Compute(Database.Ctx, Year);
                 for (int j = 0; j < count; j++)
                 {
                     Database.RunAction(action);
@@ -150,10 +139,6 @@ public class PredicateContext
         Profiler.Dump();
     }
 
-    // public void TagEntity(EntityId id, TagId tagId)
-    // {
-    //     Database.CurrentChangeset.Changes.Add(Change.AddTag(id, tagId));
-    // }
     public Entity PrevEntity;
     internal PropertyValue GetPrevEntityProperty(PropertyId property)
     {

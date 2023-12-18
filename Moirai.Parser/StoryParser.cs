@@ -625,7 +625,7 @@ public static class StoryParser
                     {
                         var x = int.Parse(p.occurence.Text);
                         var y = int.Parse(p.years.Text);
-                        f = new FilterExactlyXEveryYYears(x, y);
+                        f = new FilterExactlyXEveryYYears(x, y, Database.Actions.Count + 1);
                         break;
                     }
                     case "per":
