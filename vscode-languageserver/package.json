@@ -25,9 +25,17 @@
 			{
 				"id": "moirai",
 				"extensions": [
-					".sg"
+					".sg",
+					".moi"
 				],
 				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "moirai",
+				"scopeName": "source.moirai",
+				"path": "./moirai.tmLanguage.json"
 			}
 		],
 		"configuration": {

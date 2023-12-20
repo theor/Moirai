@@ -224,7 +224,7 @@ public class MoiraiCache {
     {
         if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
         {
-            var loc = doc.Locations.FirstOrDefault(x => x.Item1.Contains(requestPosition)).Item2;
+            var loc = doc.Locations.FirstOrDefault(x => x.Item1.Contains(requestPosition)).Item3;
             if (loc != null)
                 return
                     new LocationOrLocationLink(new Location{Range =  loc, Uri = requestTextDocument.Uri});
@@ -238,7 +238,7 @@ public class MoiraiCache {
         {
             var lines = doc.Content.Split('\n');
             return string.Join("\n",
-                lines.Skip(locationRange.Start.Line).Take(1 + locationRange.Start.Line - locationRange.End.Line));
+                lines.Skip(locationRange.Start.Line).Take(1 + locationRange.End.Line - locationRange.Start.Line)).TrimEnd('\n', ' ');
         }
 
         return "";
@@ -277,7 +277,7 @@ internal class MoiraiDocument
     public int Version;
     public List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens { get; set; } = new();
     public List<StoryParser.Error> Errors = new();
-    public List<(Range, Range)> Locations = new();
+    public List<(Range, Range, Range)> Locations = new();
     public SymbolInformationOrDocumentSymbolContainer? Symbols;
 
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)

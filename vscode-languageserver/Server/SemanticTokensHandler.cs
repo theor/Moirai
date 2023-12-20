@@ -96,7 +96,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     private readonly DocumentUri _documentUri;
     public readonly List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens = new();
     public readonly Dictionary<string, Definition> Definitions = new();
-    public readonly List<(Range, Range)> Locations = new();
+    public readonly List<(Range, Range, Range)> Locations = new();
     public List<SymbolInformationOrDocumentSymbol> Symbols = new();
     private string? _implicitTypeName;
     private Dictionary<string, string> _variablesToTypenames = new();
@@ -245,10 +245,10 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         {
             PushSymbol(typeDefinitionContext.TYPE_ID().Symbol, SymbolKind.Class);
             var typeName = typeDefinitionContext.TYPE_ID().GetText();
-            Definitions.Add( typeName, new Definition(typeDefinitionContext.TYPE_ID().Symbol, context));
+            Definitions.Add( typeName, new Definition(typeDefinitionContext.TYPE_ID().Symbol, typeDefinitionContext));
             foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
             {
-                Definitions.Add(typeName + "__" + propDefinitionContext.ID(0).GetText(), new Definition(propDefinitionContext.ID(0).Symbol, context));
+                Definitions.Add(typeName + "__" + propDefinitionContext.ID(0).GetText(), new Definition(propDefinitionContext.ID(0).Symbol, propDefinitionContext));
             }
         }
         // TODO visit props
@@ -306,7 +306,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         {
             PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
             if (Definitions.TryGetValue(context.TYPE_ID().GetText(), out var loc))
-                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol));
+                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol, loc.FullDefinition));
         }
         else
             PushSemanticToken(context.ID(1).Symbol, SemanticTokenType.Type);
@@ -349,9 +349,9 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         PushSemanticToken(context.TYPE_ID(0).Symbol, SemanticTokenType.Enum);
         PushSemanticToken(context.TYPE_ID(1).Symbol, SemanticTokenType.EnumMember);
         if (Definitions.TryGetValue(context.TYPE_ID(0).GetText(), out var loc))
-            Locations.Add((GetRange(context.TYPE_ID(0).Symbol), loc.Symbol));
+            Locations.Add((GetRange(context.TYPE_ID(0).Symbol), loc.Symbol, loc.FullDefinition));
         if (Definitions.TryGetValue(context.GetText(), out var loc2))
-            Locations.Add((GetRange(context.TYPE_ID(1).Symbol), loc2.Symbol));
+            Locations.Add((GetRange(context.TYPE_ID(1).Symbol), loc2.Symbol, loc.FullDefinition));
         return base.VisitEnum_value(context);
     }
 
@@ -393,7 +393,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
             
             if (Definitions.TryGetValue(context.TYPE_ID().GetText(), out var loc))
-                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol));
+                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol, loc.FullDefinition));
             
             _variablesToTypenames[context.VAR_ID().GetText()] = context.TYPE_ID().GetText();
         }
@@ -412,7 +412,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
             
             if (Definitions.TryGetValue(context.TYPE_ID().GetText(), out var loc))
-                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol));
+                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol, loc.FullDefinition));
             _variablesToTypenames[context.VAR_ID().GetText()] = context.TYPE_ID().GetText();
 
         }
@@ -430,7 +430,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         _variablesToTypenames["$new"] = context.TYPE_ID().GetText();
         _variablesToTypenames["$old"] = context.TYPE_ID().GetText();
         if (Definitions.TryGetValue(context.TYPE_ID().GetText(), out var loc))
-            Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol));
+            Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol, loc.FullDefinition));
         using var x = ImplicitType(context.TYPE_ID().GetText());
         return base.VisitWhen(context);
     }
@@ -441,7 +441,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
         _variablesToTypenames["$new"] = context.TYPE_ID().GetText();
         if (Definitions.TryGetValue(context.TYPE_ID().GetText(), out var loc))
-            Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol));
+            Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol, loc.FullDefinition));
         using var x = ImplicitType(context.TYPE_ID().GetText());
         return base.VisitWhen_created(context);
     }
@@ -521,7 +521,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             else if (context.VAR_ID() == null && context.SINGLETON_ID() != null)
                 prop = $"{context.SINGLETON_ID().GetText()}__{prop}";
             if (Definitions.TryGetValue(prop, out var loc))
-                Locations.Add((GetRange(context.ID(0).Symbol), loc.Symbol));
+                Locations.Add((GetRange(context.ID(0).Symbol), loc.Symbol, loc.FullDefinition));
         }
         return base.VisitPath(context);
     }
@@ -551,7 +551,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         {
             PushSemanticToken(context.Start, SemanticTokenType.Type);
             if (Definitions.TryGetValue(context.TYPE_ID().GetText(), out var loc))
-                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol));
+                Locations.Add((GetRange(context.TYPE_ID().Symbol), loc.Symbol, loc.FullDefinition));
         }
         else if (context.@string() is MoiraiParser.StringContext s)
         {

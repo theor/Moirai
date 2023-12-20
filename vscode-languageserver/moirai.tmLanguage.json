@@ -1,0 +1,282 @@
+{
+  "fileTypes": [
+    "moi"
+  ],
+  "name": "moirai",
+  "patterns": [
+    {
+      "include": "#main"
+    }
+  ],
+  "scopeName": "source.moirai",
+  "uuid": "3266a898-9e92-11ee-8c90-0242ac120002",
+  "repository": {
+    "main": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "match": "(@.*)",
+          "name": "entity.other.attribute.moirai"
+        },
+        {
+          "match": "(entity\\W)([A-Z][0-9a-zA-Z_]*)(\\W\\{)",
+          "captures": {
+            "1": {
+              "name": "keyword.moirai"
+            },
+            "2": {
+              "name": "entity.name.moirai"
+            },
+            "3": {
+              "name": "keyword.moirai"
+            }
+          }
+        },
+        {
+          "match": "(\\})",
+          "name": "keyword.moirai"
+        },
+        {
+          "match": "(prop\\W)([a-z][0-9a-zA-Z_]*)(\\W*:\\W*)([a-zA-Z][0-9a-zA-Z_]*)",
+          "captures": {
+            "1": {
+              "name": "keyword.moirai"
+            },
+            "2": {
+              "name": "entity.name.moirai"
+            },
+            "3": {
+              "name": "keyword.moirai"
+            },
+            "4": {
+              "name": "entity.name.type.moirai"
+            }
+          }
+        },
+        {
+          "begin": "((?:event|trigger)\\W)([a-z][0-9a-zA-Z_]*)((?:\\W\\w+)*)(\\W\\{)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            },
+            "2": {
+              "name": "entity.name.moirai"
+            },
+            "3": {
+              "name": "entity.name.moirai"
+            },
+            "4": {
+              "name": "keyword.moirai"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#event_trigger"
+            }
+          ],
+          "end": "(\\})",
+          "endCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            }
+          }
+        },
+        {
+          "begin": "(enum\\W)([A-Z][0-9a-zA-Z_]*)(\\W\\{)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            },
+            "2": {
+              "name": "entity.name.type.moirai"
+            },
+            "3": {
+              "name": "keyword.moirai"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#main__1"
+            }
+          ],
+          "end": "(\\})",
+          "endCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            }
+          }
+        }
+      ]
+    },
+    "comments": {
+      "patterns": [
+        {
+          "match": "(//.*)",
+          "name": "comment.moirai"
+        }
+      ]
+    },
+    "effect": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "match": "(\\d+(?:\\.\\d+)?%?)",
+          "name": "constant.numeric.moirai"
+        },
+        {
+          "match": "(([A-Z][0-9a-zA-Z_]*))",
+          "name": "entity.name.type.moirai"
+        },
+        {
+          "match": "([\\$\\.]([a-z][0-9a-zA-Z_]*))",
+          "name": "variable.moirai"
+        },
+        {
+          "match": "(:|\\.|=>|\\+|-|/|\\*|,|and|or|<=|<|>=|>)",
+          "name": "keyword.moirai"
+        },
+        {
+          "begin": "(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#effect__1"
+            }
+          ],
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            }
+          }
+        },
+        {
+          "begin": "(\\{)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#effect__2"
+            }
+          ],
+          "end": "(\\})",
+          "endCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            }
+          }
+        },
+        {
+          "begin": "(')",
+          "beginCaptures": {
+            "1": {
+              "name": "text.moirai"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#effect__3"
+            }
+          ],
+          "end": "(')",
+          "endCaptures": {
+            "1": {
+              "name": "text.moirai"
+            }
+          }
+        },
+        {
+          "match": "(([a-z][0-9a-zA-Z_]*))",
+          "name": "function.moirai"
+        }
+      ]
+    },
+    "effect__1": {
+      "patterns": [
+        {
+          "include": "#effect"
+        }
+      ]
+    },
+    "effect__2": {
+      "patterns": [
+        {
+          "include": "#effect"
+        }
+      ]
+    },
+    "effect__3": {
+      "patterns": [
+        {
+          "begin": "(\\{)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#effect__4"
+            }
+          ],
+          "end": "(\\})",
+          "endCaptures": {
+            "1": {
+              "name": "keyword.moirai"
+            }
+          }
+        },
+        {
+          "match": "([^\\x{0027}]*)",
+          "name": "text.moirai"
+        }
+      ]
+    },
+    "effect__4": {
+      "patterns": [
+        {
+          "include": "#effect"
+        }
+      ]
+    },
+    "event_trigger": {
+      "patterns": [
+        {
+          "include": "#comments"
+        },
+        {
+          "include": "#effect"
+        }
+      ]
+    },
+    "main__1": {
+      "patterns": [
+        {
+          "match": "([A-Z][0-9a-zA-Z_]*)((?:\\W*,\\W*)?)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.moirai"
+            },
+            "2": {
+              "name": "keyword.moirai"
+            }
+          }
+        }
+      ]
+    },
+    "multi_line_comment__1": {
+      "patterns": []
+    }
+  }
+}
