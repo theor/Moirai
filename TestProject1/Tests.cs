@@ -330,6 +330,80 @@ event r {
     }
 
 }
+
+public class NestedPropertyPathTests : TestsBase
+{
+    [Test]
+    public void PropertyPath_Nested()
+    {
+        string s = @"
+entity Person {
+    prop x: number
+    prop link: Person
+}
+
+event create {
+    create Person $p
+    create Person $p2
+    set $p.link = $p2
+    set $p2.x = 33
+    assert_eq(33, $p.link.x)
+}
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.Printer.PrintDb();
+    }
+    [Test]
+    public void PropertyPath_Nested_Set()
+    {
+        string s = @"
+entity Person {
+    prop x: number
+    prop link: Person
+}
+
+event create {
+    create Person $p
+    create Person $p2
+    set $p.link = $p2
+    set $p.link.x = 33
+    assert_eq(33, $p.link.x)
+}
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.Printer.PrintDb();
+    }
+    [Test]
+    public void PropertyPath_Nested_Pick()
+    {
+        string s = @"
+entity Person {
+    prop x: number
+    prop link: Person
+}
+
+event create {
+    create Person $p2
+    create Person $p
+    set $p.link = $p2
+    set $p2.x = 33
+    pick Person $r: ($r.link.x = 33)
+    set $r.x = 12
+}
+event check {
+    pick Person $r: (link)
+    assert_eq($r.x, 12)
+    
+}
+";
+        var db = Run(s, out var errors);
+        db.RunAction("create");
+        db.Printer.PrintDb();
+        db.RunAction("check");
+    }
+}
 public class Tests : TestsBase
 {
     [SetUp]
@@ -684,26 +758,7 @@ event char_dies {
         var db = Run(s, out var errors, 0);
     }
 
-    [Test, Ignore("Nested property paths not implemented yet")]
-    public void PropertyPath_Nested()
-    {
-        string s = @"
-entity Person {}
-prop x: number
-prop link: ref
-
-event create {
-    create Person $p
-    create Person $p2
-    set $p.link = $p2
-    set $p2.x = 33
-    assert_eq 33, $p.link.x
-}
-";
-        var db = Run(s, out var errors);
-        db.RunAction("create");
-        db.Printer.PrintDb();
-    }
+   
 
     [Test]
     public void PropertyPath_Var()

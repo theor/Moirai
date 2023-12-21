@@ -1175,7 +1175,7 @@ public static class StoryParser
                     type = PropertyValue.TypeBool;
                     pop = BinaryOperator.Operator.Equals;
 
-                    if (leftPath is PropertyPath { Nested: false } p && p.Property == Database.PropType &&
+                    if (leftPath is PropertyPath { Nested: false } p && p.Property[0] == Database.PropType &&
                         rightValue is Literal l &&
                         l.Value.Type == PropertyValue.TypeEntityType)
                     {
@@ -1257,19 +1257,32 @@ public static class StoryParser
         }
 
 
+        private void ParseProperty(ref PropertyPath path, MoiraiParser.PathContext context, int idIndex, EntityType owningType, out PropertyValue.ValueType type)
+        {
+            string propertyName = context.ID(idIndex).GetText();
+            var propertyId = owningType.GetPropertyId(propertyName);
+            if (!propertyId.IsValid)
+            {
+                type = default;
+                AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
+                return;
+            }
+
+            type = owningType.GetPropertyType(propertyName);
+            path.AddProperty(propertyId);
+            if(context.ID(idIndex+1) != null)
+                ParseProperty(ref path, context, idIndex+1, Database.GetEntityType(type), out type);
+        }
         public PropertyPath ParsePath(MoiraiParser.PathContext context, out PropertyValue.ValueType type)
         {
-            if (context.ID().Length > 1)
-                throw new Exception("expected two parts, got " + (context.ID().Length + 1));
+            // if (context.ID().Length > 1)
+                // throw new Exception("expected two parts, got " + (context.ID().Length + 1));
 
-            var propertyId = PropertyId.Null;
-            var propertyName = context.ID(0) != null ? context.ID(0)?.GetText() : null;
-
-            var singletonId = context.SINGLETON_ID();
+            ITerminalNode? singletonId = context.SINGLETON_ID();
             if (singletonId != null)
             {
-                var typeName = singletonId.GetText().Substring(1);
-                var singletonType = Database.GetEntityType(typeName);
+                string typeName = singletonId.GetText().Substring(1);
+                EntityType singletonType = Database.GetEntityType(typeName);
                 if (!singletonType.Id.IsValid)
                 {
                     AddError(ErrorCode.UnknownEntityType, singletonId, typeName);
@@ -1277,22 +1290,14 @@ public static class StoryParser
 
                     return default;
                 }
-                
-                // TODO support non-unique property names across entity types
-                propertyId = singletonType.GetPropertyId(propertyName);
-                if (!propertyId.IsValid)
-                {
-                    type = default;
-                    AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
-                    return default;
-                }
-
-                type = singletonType.GetPropertyType(propertyName);
-                return new PropertyPath(singletonType.Id, propertyId);
+                // TODO chained singleton #Time.x.y
+                var path = new PropertyPath(PropertyId.Null);
+                ParseProperty(ref path, context, 0, singletonType, out type);
+                return path;
             }
 
             int variableIndex;
-            var varId = context.VAR_ID();
+            ITerminalNode? varId = context.VAR_ID();
             if (varId != null)
             {
                 if (!int.TryParse(varId.GetText().Substring(1), out variableIndex))
@@ -1315,17 +1320,12 @@ public static class StoryParser
             else
                 variableIndex = _variables.Count - 1;
 
-            var etype = Database.GetEntityType(_variables[variableIndex].Type);
-            propertyId = etype?.GetPropertyId(propertyName) ?? default;
-            if (!propertyId.IsValid)
             {
-                AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
-                type = default;
-                return default;
+                EntityType? etype = Database.GetEntityType(_variables[variableIndex].Type);
+                var path = new PropertyPath(variableIndex);
+                ParseProperty(ref path, context, 0, etype, out type);
+                return path;
             }
-
-            type = etype.GetPropertyType(propertyName);
-            return new PropertyPath(variableIndex, propertyId);
         }
     }
 }

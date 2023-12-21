@@ -20,10 +20,23 @@ public class SetProperty : IInstruction
             ctx.SetArgument(PropertySet.VariableIndex, Parameter.Compute(ctx));
             return true;
         }
+
+        EntityId eid;
         if (PropertySet.Mode == PropertyPath.PropertyPathMode.Singleton)
         {
-            return ctx.Database.SetProperty(ctx.GetSingletonId(PropertySet.SingletonType), PropertySet.Property, Parameter.Compute(ctx));
+            eid = ctx.GetSingletonId(PropertySet.Property[0].TypeId);
         }
-        return ctx.Database.SetProperty(ctx.Argument(PropertySet.VariableIndex).Id, PropertySet.Property, Parameter.Compute(ctx));
+        else
+        {
+            eid = ctx.Argument(PropertySet.VariableIndex).Id;
+        }
+
+        for (int i = 0; i < PropertySet.Property.Count - 1; i++)
+        {
+            if (!ctx.Database.GetProperty(eid, PropertySet.Property[i], out var v) || !v.Type.IsRefType)
+                throw new InvalidOperationException("path link is not a ref");
+            eid = v.Id;
+        }
+        return ctx.Database.SetProperty(eid, PropertySet.Property[^1], Parameter.Compute(ctx));
     }
 }

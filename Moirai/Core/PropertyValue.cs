@@ -93,6 +93,13 @@ public struct PropertyValue : IEquatable<PropertyValue>
         {
             return $"{BaseType}:{Index}";
         }
+
+        public EntityTypeId ToEntityType()
+        {
+            if (!IsRefType)
+                throw new InvalidCastException();
+            return new EntityTypeId(Index);
+        }
     }
     public enum ValueBaseType : byte
     {

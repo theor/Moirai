@@ -140,13 +140,27 @@ public class StoryPrinter
 
     private string Print(PropertyPath path)
     {
-        if (path.Mode == PropertyPath.PropertyPathMode.Singleton)
-            return $"#{_database.GetEntityTypeName(path.SingletonType)}.{GetPropertyName(path.Property)}";
-        if (path.VariableIndex == -1)
-            return GetPropertyName(path.Property);
-        return path.Property != PropertyId.Null
-            ? $"${path.VariableIndex}.{GetPropertyName(path.Property)}"
-            : $"${path.VariableIndex}";
+        if (path.Property == null)
+        {
+            Debug.Assert(path.VariableIndex != -1, "-1 varindex");
+            return $"${path.VariableIndex}";
+        }
+
+        StringBuilder sb = new();
+        for (int i = 0; i < path.Property.Count; i++)
+        {
+            if (i == 0)
+            {
+
+                if (path.Mode == PropertyPath.PropertyPathMode.Singleton)
+                    sb.Append($"#{_database.GetEntityTypeName(path.Property[0].TypeId)}");
+                else
+                    sb.Append($"${path.VariableIndex}");
+            }
+            sb.Append($".{GetPropertyName(path.Property![i])}");
+        }
+
+        return sb.ToString();
     }
 
     public string Print(PropertyValue value, History.HistoryMode storyMode = History.HistoryMode.Default)
