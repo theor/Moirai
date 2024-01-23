@@ -515,10 +515,10 @@ CREATE TABLE marked (
         }
         var (where, joins) = predicate.ToSql(_ctx);
         if (string.IsNullOrEmpty(where))
-            where = "default__type = " + entityTypeId.Id;
+            where = "entity.default__type = " + entityTypeId.Id;
         else
-            where = $"default__type = {entityTypeId.Id} AND {where}";
-        var sql = $@"SELECT default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
+            where = $"entity.default__type = {entityTypeId.Id} AND {where}";
+        var sql = $@"SELECT entity.default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
         if (!_commands.TryGetValue(sql, out var cmd))
         {
             // Console.WriteLine(sql);
@@ -554,10 +554,10 @@ CREATE TABLE marked (
 
         var (where, joins) = predicate.ToSql(_ctx);
         if (string.IsNullOrEmpty(where))
-            where = "default__type = " + entityTypeId.Id;
+            where = "entity.default__type = " + entityTypeId.Id;
         else
-            where = $"default__type = {entityTypeId.Id} AND {where}";
-        sql = $@"SELECT default__id FROM entity {(joins ?? "")} WHERE {where}";
+            where = $"entity.default__type = {entityTypeId.Id} AND {where}";
+        sql = $@"SELECT entity.default__id FROM entity {(joins ?? "")} WHERE {where}";
 
         if (!_commands2.TryGetValue(sql, out var cmd))
         {

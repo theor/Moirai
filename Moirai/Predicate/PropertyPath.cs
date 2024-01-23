@@ -102,10 +102,43 @@
         // TODO ugly
         if (Mode == PropertyPathMode.Variable &&
             (VariableIndex == -1 || VariableIndex == ctx.ValueCount - ctx.ValueOffset))
-            return (
-                Property != null && Property[0].IsValid
-                    ? $"{ctx.Database.GetEntityTypeName(Property[0].TypeId)}__{ctx.Database.GetPropertyName(Property[0])}"
-                    : "default__id", null);
+        {
+            if (Property == null || !Property[0].IsValid)
+                return ("default__id", null);
+            var s =
+                $"entity.{ctx.Database.GetEntityTypeName(Property[0].TypeId)}__{ctx.Database.GetPropertyName(Property[0])}";
+            var prevProp = s;
+            /* pick Person $r: ($r.birthplace.type = Place.City)
+            SELECT entity.default__id FROM entity
+                LEFT JOIN entity x
+                    ON entity.Person__birthplace = x.default__id
+                WHERE entity.default__type = 2
+                    AND (entity.Person__birthplace != 0)
+                    AND x.type = 3
+             */
+            /* pick Person $r: ($r.birthplace.founder.birthdate = 1234)
+            SELECT entity.default__id FROM entity
+                LEFT JOIN entity x
+                    ON entity.Person__birthplace = x.default__id
+                LEFT JOIN entity y
+                    ON x.founder = y.default__id
+                WHERE entity.default__type = 2
+                    AND ((entity.Person__birthplace != 0)
+                    AND (x.founder != 0)
+                    AND (y.birthdate = 1234)
+             */
+            string? join = null;
+            for (int i = 1; i < Property.Count; i++)
+            {
+                string thisVar = $"j{i}";
+                string thisProp = $"{thisVar}.{ctx.Database.GetEntityTypeName(Property[i].TypeId)}__{ctx.Database.GetPropertyName(Property[i])}";
+                s += $" != 0 AND " + thisProp;
+                string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}.default__id";
+                prevProp = thisProp;
+                join = join == null ? pj : (join + "\n" + pj);
+            }
+            return (s, join);
+        }
         // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
         return (Compute(ctx).ToSql(), null);
     }
