@@ -57,6 +57,11 @@
     "@babel/helper-validator-identifier" "^7.22.20"
     to-fast-properties "^2.0.0"
 
+"@balkangraph/familytree.js@^1.9.35":
+  version "1.9.35"
+  resolved "https://registry.yarnpkg.com/@balkangraph/familytree.js/-/familytree.js-1.9.35.tgz#287e02c8d5158a1fe57fd96cca9c41ba9dc1b0f3"
+  integrity sha512-fB29uQ1tdKhsPc1C7lwk/nx8jLB2vlPpMt7ua8H+vSm7MVm/eNvw2fVIML7SNcOnfHJDsBuTMBFsQSRea8IyUA==
+
 "@emotion/babel-plugin@^11.11.0":
   version "11.11.0"
   resolved "https://registry.yarnpkg.com/@emotion/babel-plugin/-/babel-plugin-11.11.0.tgz#c2d872b6a7767a9d176d007f5b31f7d504bb5d6c"

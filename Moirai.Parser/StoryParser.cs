@@ -546,7 +546,7 @@ public static class StoryParser
                 using (new VariableDeclarationScope(this, true))
                 {
                     DeclareVar("$self", tid.RefType, null, out var varIndex);
-                    DeclareVar("_implicit", refReferencedType, null, out _);
+                    DeclareVar("$other", refReferencedType, null, out _);
                     var expr = ParseExpr(attr.expr(1));
                     Display d = new Display(Database.GetEntityType(refReferencedType), varIndex, attr.expr(0).GetText(), expr);
                     var t = Database.Types[(int)(tid.Id.Id)];
@@ -1175,7 +1175,8 @@ public static class StoryParser
                     type = PropertyValue.TypeBool;
                     pop = BinaryOperator.Operator.Equals;
 
-                    if (leftPath is PropertyPath { Nested: false } p && p.Property[0] == Database.PropType &&
+                    if (leftPath is PropertyPath { Nested: false } p &&
+                        (p.Property == null || p.Property[0] == Database.PropType) &&
                         rightValue is Literal l &&
                         l.Value.Type == PropertyValue.TypeEntityType)
                     {

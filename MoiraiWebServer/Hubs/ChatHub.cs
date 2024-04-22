@@ -102,15 +102,13 @@ public class ChatHub : Hub
     }
 
     public record EntityPropertyDisplay(string Label, string Value);
+    public record FamilyTreeNode(uint id, string name, uint p1, uint p2);
     private static List<EntityId> results = new();
 
     public record EntityChangeDisplay(EntityId id, long year, string actionName, IList<EntityPropertyDisplay> changes);
 
     private IList<EntityPropertyDisplay> GetChangeDetails(Changeset.Changed c)
     {
-        _mutex.Wait();
-        try
-        {
             if (c.Prev.Id.IsNull) // new entity
             {
                 return c.New.Properties.Where(p => p.Id.IsValid)
@@ -125,11 +123,6 @@ public class ChatHub : Hub
                     return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
                         PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
                 }).ToList();
-        }
-        finally
-        {
-            _mutex.Release();
-        }
     }
 
     public struct QueryResult
@@ -206,6 +199,42 @@ public class ChatHub : Hub
         {
             _mutex.Release();
         }
+    }
+
+    public async Task<List<FamilyTreeNode>> GetFamilyTree(uint eid)
+    {
+        const int maxDepth = 3;
+        List<FamilyTreeNode> nodes = new();
+        if(!await _mutex.WaitAsync(500))
+            return nodes;
+        try
+        {
+            var prop1 = _db.GetPropertyId("Person", "parent1");
+            var prop2 = _db.GetPropertyId("Person", "parent2");
+            Queue<(EntityId id, int depth)> queue = new();
+            queue.Enqueue((new(eid), 0));
+            while (queue.TryDequeue(out var item))
+            {
+                if(!_db.TryGetEntity(item.id, out Entity e))
+                    continue;
+                var node = new FamilyTreeNode(e.Id.Id, 
+                    _db.GetProperty(e.Id, Database.PropName, out var name) ? name.Value : e.Id.ToString(),
+                    item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0,
+                    item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0
+                    );
+                if(node.p1 != 0)
+                    queue.Enqueue((new(node.p1), item.depth+1));
+                if(node.p2 != 0)
+                    queue.Enqueue((new(node.p2), item.depth+1));
+                nodes.Add(node);
+            }
+
+        }
+        finally
+        {
+            _mutex.Release();
+        }
+        return nodes;
     }
     public IList<EntityPropertyDisplay> GetEntityDetails(uint eid)
     {

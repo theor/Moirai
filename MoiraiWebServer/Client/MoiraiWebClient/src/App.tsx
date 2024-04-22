@@ -20,6 +20,7 @@ import { ChangesetList } from './ChangesetList.tsx';
 import {useMainListDisplay, useYearsDelta} from "./utils.tsx";
 import {QueryView} from "./QueryView.tsx";
 import {IStreamSubscriber} from "@microsoft/signalr";
+import {ChartView} from "./ChartView.tsx";
 interface TabPanelProps {
     children?: React.ReactNode;
     index: number;
@@ -108,6 +109,7 @@ function InnerApp() {
                         <Tab label="Records"/>
                         <Tab label="Changesets"/>
                         <Tab label="Query"/>
+                        <Tab label="Charts"/>
                     </Tabs>
                    
                     <Typography variant="h6" component="div" sx={{flexGrow: 1}}/>
@@ -134,7 +136,7 @@ function InnerApp() {
                     </Box>
                 </Stack>
             </Grid>
-            <Grid item xs={8} sx={{paddingBottom:"64px"}}>
+            <Grid item xs={8} sx={{paddingBottom:"64px", height: "100%"}}>
                 <CustomTabPanel value={mainListDisplay} index={0}>
                     <RecordList/>
                 </CustomTabPanel>
@@ -143,6 +145,9 @@ function InnerApp() {
                 </CustomTabPanel>
                 <CustomTabPanel value={mainListDisplay} index={2}>
                    <QueryView/>
+                </CustomTabPanel>
+                <CustomTabPanel value={mainListDisplay} index={3}>
+                   <ChartView/>
                 </CustomTabPanel>
             </Grid>
         </Grid>

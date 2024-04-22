@@ -24,7 +24,7 @@ public class PredicateContext
     {
         foreach (var entity in Database.Entities)
         {
-            if (entity.GetProperty(Database.PropType).TypeId == type)
+            if (entity.Type == type)
             {
                 return entity.Id;
             }
@@ -36,7 +36,7 @@ public class PredicateContext
 
         foreach (var entity in Database.Entities)
         {
-            if (entity.GetProperty(Database.PropType).TypeId == type)
+            if (entity.Type == type)
             {
                 value = entity;
                 return true;

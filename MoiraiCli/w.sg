@@ -1,5 +1,6 @@
 @display Item ('Items made',maker = $self)
 @display Person ('Children',parent1 = $self or parent2 = $self)
+@display Person ('Parents', $other = $self.parent1  or $other = $self.parent2)
 @display Item ('Items owned',owner = $self)
 entity Person {
     prop age: Age
@@ -26,16 +27,19 @@ entity Item {
     prop owner: Person
     prop creation_date: number
 }
+@display Person ('Members',faction = $self)
 entity Faction {
     prop founder: Person
 
 }
+@display Person ('Citizens',birthplace = $self)
 entity Country {
     prop war_with: Country
     prop health: CountryHealth
     prop prosperity: percentage
 
 }
+@display Person ('Believers',god = $self)
 entity God {
 }
 

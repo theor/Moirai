@@ -7,11 +7,17 @@ export interface Result {
     properties: EntityPropertyDisplay[];
 }
 
+export interface FamilyTreeNode {
+    id: number;
+    name: string;
+    p1: number;
+    p2: number;
+}
 export interface QueryResult
 {
-sql: string ;
-results: Result[] ;
-errors: string[] ;
+    sql: string ;
+    results: Result[] ;
+    errors: string[] ;
 }
 export class SignalRConnection {
     public connection: HubConnection;
@@ -73,6 +79,9 @@ export class SignalRConnection {
 
     getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]> {
         return this.connection.invoke("GetEntityDetails", entityId)
+    }
+    getFamilyTree(entityId: number): Promise<FamilyTreeNode[]> {
+        return this.connection.invoke("GetFamilyTree", entityId)
     }
 }
 
