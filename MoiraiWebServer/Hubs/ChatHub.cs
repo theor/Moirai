@@ -14,41 +14,68 @@ public class ChatHub : Hub
     private static Database _db;
     private static bool _reset;
 
-    private static object _mutex = new();
+    private static SemaphoreSlim _mutex = new(1, 1);
     public ChatHub()
     {
-        lock (_mutex)
-        {
+        Debug.WriteLine("Ctor");
+        
             if (_db == null)
             {
                 Reset();
             }
-
-            Debug.WriteLine("Ctor");
-        }
+       
     }
 
     public void Reset()
     {
-        lock (_mutex)
+        _mutex.Wait();
+        try
         {
             _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
             _db.History = new();
             _db.Init();
             _reset = true;
         }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
-    public async Task PassYears(int years)
+    public ChannelReader<int> PassYears(int years)
     {
-        lock (_mutex)
-            _db.Ctx.PassYears(years, true);
+        var channel = Channel.CreateUnbounded<int>();
+
+        if (!_mutex.Wait(100))
+        {
+            channel.Writer.Complete();
+            return channel.Reader;
+        }
+        IProgress<int>? p = new Progress<int>(i =>
+        {
+            channel.Writer.WriteAsync((int)(100 * i / (float)years));
+        });
+        Task.Factory.StartNew(() =>
+        {
+            try
+            {
+                _db.Ctx.PassYears(years, CancellationToken.None, p, true);
+                channel.Writer.Complete();
+            }
+            finally
+            {
+                _mutex.Release();
+            }
+        });
+       
+        return channel.Reader;
     }
 
     public void Save()
     {
-        lock (_mutex)
+        _mutex.Wait();
             _db.Commit();
+            _mutex.Release();
     }
 
     public struct ClientData
@@ -60,11 +87,18 @@ public class ChatHub : Hub
 
     public async Task<ClientData> GetClientData()
     {
-        lock (_mutex)
+        await _mutex.WaitAsync();
+        try
+        {
             return new ClientData
             {
                 Actions = _db.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
             };
+        }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
     public record EntityPropertyDisplay(string Label, string Value);
@@ -74,7 +108,8 @@ public class ChatHub : Hub
 
     private IList<EntityPropertyDisplay> GetChangeDetails(Changeset.Changed c)
     {
-        lock (_mutex)
+        _mutex.Wait();
+        try
         {
             if (c.Prev.Id.IsNull) // new entity
             {
@@ -91,6 +126,10 @@ public class ChatHub : Hub
                         PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
                 }).ToList();
         }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
     public struct QueryResult
@@ -106,7 +145,8 @@ public class ChatHub : Hub
     }
     public async Task<QueryResult> Query(string q)
     {
-        lock (_mutex)
+        await _mutex.WaitAsync();
+        try
         {
             string? sql = null;
             try
@@ -134,26 +174,43 @@ public class ChatHub : Hub
                 return  new QueryResult() { Sql = sql, Errors = new[]{ e.ToString() } };
             }
         }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
     public void RunAction(int actionId)
     {
-        lock (_mutex)
+        _mutex.Wait();
+        try
         {
             var eventTrigger = _db.Actions.FirstOrDefault(a => a.Id == actionId);
             if(eventTrigger != null)
                 _db.RunAction(eventTrigger);
         }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
     private IList<EntityChangeDisplay> GetChangesetDetails(Changeset cs)
     {
-        lock (_mutex)
-        return cs.Changes.Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x))).ToList();
+        _mutex.Wait();
+        try
+        {
+            return cs.Changes.Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x))).ToList();
+        }
+        finally
+        {
+            _mutex.Release();
+        }
     }
     public IList<EntityPropertyDisplay> GetEntityDetails(uint eid)
     {
-        lock (_mutex)
+        _mutex.Wait();
+        try
         {
             if (!_db.TryGetEntity(new EntityId(eid), out var e))
                 return ImmutableList<EntityPropertyDisplay>.Empty;
@@ -176,6 +233,10 @@ public class ChatHub : Hub
             }
 
             return details;
+        }
+        finally
+        {
+            _mutex.Release();
         }
     }
 

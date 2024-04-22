@@ -376,8 +376,8 @@ public class StoryPrinter
             // case True @true:
             // break;
             default:
-                return "// !!!!!!!!!!!";
-            // throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
+                // return "// !!!!!!!!!!!";
+            throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
         }
 
         return sb.ToString();

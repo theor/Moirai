@@ -58,8 +58,8 @@ export class SignalRConnection {
         return this.connection.invoke<QueryResult>("Query", q);
     }
 
-    passYears(years: number) {
-        return this.connection.send("PassYears", years)
+    passYears(years: number): IStreamResult<number> {
+        return this.connection.stream<number>("PassYears", years)
     }
 
     save() {
@@ -113,7 +113,7 @@ export const useMoiraiStore = create<State>((set, get) => {
         let buffer: Record[] = [];
         setInterval(() => {
             if (buffer.length > 0) {
-                console.log("BUFFER RECORDs")
+                // console.log("BUFFER RECORDs")
                 set({records: [...get().records, ...buffer]});
                 buffer = []
             }

@@ -13,12 +13,13 @@ import {
     Typography,
     Button,
     CircularProgress,
-    Backdrop, Tabs, Tab,
+    Backdrop, Tabs, Tab, CircularProgressProps,
 } from "@mui/material";
-import { useEffect } from 'react';
+import {useEffect, useState} from 'react';
 import { ChangesetList } from './ChangesetList.tsx';
 import {useMainListDisplay, useYearsDelta} from "./utils.tsx";
 import {QueryView} from "./QueryView.tsx";
+import {IStreamSubscriber} from "@microsoft/signalr";
 interface TabPanelProps {
     children?: React.ReactNode;
     index: number;
@@ -42,12 +43,61 @@ function CustomTabPanel(props: TabPanelProps) {
     );
 }
 
+function CircularProgressWithLabel(
+    props: CircularProgressProps & { value: number },
+) {
+    return (
+        <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+            <CircularProgress variant="determinate" {...props} color="inherit" />
+            <Box
+                sx={{
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                    position: 'absolute',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
+            >
+                <Typography
+                    variant="caption"
+                    component="div"
+                >{`${Math.round(props.value)}%`}</Typography>
+            </Box>
+        </Box>
+    );
+}
+
 function InnerApp() {
     const conn = useMoiraiStore(s => s.conn!);
     const year = useMoiraiStore(s => s.year);
     const [mainListDisplay, setMainListDisplay] = useMainListDisplay();
-    const [yearsDelta,] = useYearsDelta();
-    console.log("APP", mainListDisplay)
+    const [yearsDelta,_setYearsDelta] = useYearsDelta();
+    const [progress,setProgress] = useState<number|undefined>(undefined);
+    const subscriber: IStreamSubscriber<number> = {
+        next(value: number) {
+            setProgress(value)
+        },
+        error(err: any) {
+            console.error(err)
+            setProgress(undefined)
+        },
+        complete() {
+            console.log("PROGRESS COMPLETE")
+            setProgress(undefined)
+        }
+    };
+
+    const passYearsProgress = () => {
+
+        setProgress(0)
+        return conn.passYears(yearsDelta).subscribe(subscriber);
+    };
+    // useEffect(()=> {
+    //     setYearsDelta(100);
+    // }, []);
     return <>
         {/*<Box>*/}
             <AppBar  position="relative" sx={{marginBottom:"12px"}}>
@@ -61,10 +111,11 @@ function InnerApp() {
                     </Tabs>
                    
                     <Typography variant="h6" component="div" sx={{flexGrow: 1}}/>
-                    <Button color="inherit" >
+                    {progress && <CircularProgressWithLabel sx={{marginRight: 2}} value={progress || 0}/>}
+                    <Typography color="inherit" >
                         Year: {year}
-                    </Button>
-                    <Button color="inherit" onClick={() => conn.passYears(yearsDelta)}>Pass {yearsDelta} years</Button>
+                    </Typography>
+                    <Button color="inherit" disabled={!!progress} onClick={passYearsProgress}>Pass {yearsDelta} years</Button>
                     <Button color="inherit" onClick={() => conn.save()}>Save</Button>
                     <Button color="inherit" onClick={() => {
                         conn.reset();

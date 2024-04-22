@@ -46,8 +46,14 @@ export function useFiltering(): GetSetProperty<number>{
     })];
 }
 export function useYearsDelta(): GetSetProperty<number>{
-    let [searchParams, setSearchParams] = useSearchParams({delta:'10'});
-    let eid = Number(searchParams.get("delta") ?? 10);
+    let [searchParams, setSearchParams] = useSearchParams();
+    let eid: number;
+    if (searchParams.has("delta") && searchParams.get("delta") != 'null'){
+        eid = Number(searchParams.get("delta"));
+    } else {
+        setSearchParams(p => {p.set("delta", '100'); return p;})
+        eid = 100;
+    }
     return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
         p.set("delta", x.toString());
         return p;
