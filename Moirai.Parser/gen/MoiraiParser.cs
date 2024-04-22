@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from C:/Users/theor/Moirai/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
+// Generated from C:/Users/theo.richart/Moirai/Moirai.Parser/MoiraiParser.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -148,16 +148,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_r; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterR(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitR(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitR(this);
@@ -255,16 +245,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_attribute; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterAttribute(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitAttribute(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitAttribute(this);
@@ -342,16 +322,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_filter; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterFilter(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitFilter(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitFilter(this);
@@ -426,16 +396,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_event; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEvent(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEvent(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEvent(this);
@@ -493,16 +453,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_categories; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterCategories(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitCategories(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitCategories(this);
@@ -559,16 +509,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_trigger; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterTrigger(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitTrigger(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -631,16 +571,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_when; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterWhen(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitWhen(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -745,16 +675,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_when_created; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterWhen_created(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitWhen_created(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitWhen_created(this);
@@ -854,16 +774,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_effect; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEffect(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEffect(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -987,16 +897,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_if; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterIf(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitIf(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitIf(this);
@@ -1087,16 +987,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_match; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterMatch(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitMatch(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1230,16 +1120,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_match_case; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterMatch_case(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitMatch_case(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitMatch_case(this);
@@ -1353,16 +1233,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_set; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterSet(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitSet(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitSet(this);
@@ -1410,16 +1280,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_var; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterVar(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitVar(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1484,16 +1344,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_call; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterCall(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitCall(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1612,16 +1462,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_scope; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterScope(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitScope(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -1791,16 +1631,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_raw_call; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterRaw_call(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitRaw_call(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitRaw_call(this);
@@ -1909,16 +1739,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_value; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterValue(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitValue(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -2051,16 +1871,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_expr; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterExpr(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitExpr(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -2295,16 +2105,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_type_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterType_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitType_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitType_definition(this);
@@ -2422,16 +2222,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_prop_definition; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterProp_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitProp_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitProp_definition(this);
@@ -2510,16 +2300,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_enum_definition; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEnum_definition(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEnum_definition(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -2663,16 +2443,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_stringContent; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterStringContent(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitStringContent(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitStringContent(this);
@@ -2740,16 +2510,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_string; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterString(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitString(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitString(this);
@@ -2805,16 +2565,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_bool; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterBool(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitBool(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitBool(this);
@@ -2868,16 +2618,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_path; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterPath(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitPath(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
@@ -2963,16 +2703,6 @@ public partial class MoiraiParser : Parser {
 		}
 		public override int RuleIndex { get { return RULE_enum_value; } }
 		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterEnum_value(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitEnum_value(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
 			if (typedVisitor != null) return typedVisitor.VisitEnum_value(this);
@@ -3015,16 +2745,6 @@ public partial class MoiraiParser : Parser {
 		{
 		}
 		public override int RuleIndex { get { return RULE_number; } }
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void EnterRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.EnterNumber(this);
-		}
-		[System.Diagnostics.DebuggerNonUserCode]
-		public override void ExitRule(IParseTreeListener listener) {
-			IMoiraiParserListener typedListener = listener as IMoiraiParserListener;
-			if (typedListener != null) typedListener.ExitNumber(this);
-		}
 		[System.Diagnostics.DebuggerNonUserCode]
 		public override TResult Accept<TResult>(IParseTreeVisitor<TResult> visitor) {
 			IMoiraiParserVisitor<TResult> typedVisitor = visitor as IMoiraiParserVisitor<TResult>;
