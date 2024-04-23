@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@balkangraph/familytree.js": "^1.9.35",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@fontsource/roboto": "^5.0.8",
@@ -20,6 +19,7 @@
     "@types/lodash": "^4.14.202",
     "lodash": "^4.17.21",
     "react": "^18.2.0",
+    "react-d3-tree": "^3.6.2",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
     "react-virtuoso": "^4.6.2",
