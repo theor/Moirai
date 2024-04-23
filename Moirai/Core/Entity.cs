@@ -53,6 +53,12 @@ public struct Entity
             return false;
         }
 
+        if (property.Id >= _properties.Length)
+        {
+            value = default;
+            return false;
+        }
+
         value = _properties[property.Id].Value;
         return _properties[property.Id].Id.IsValid;
     }

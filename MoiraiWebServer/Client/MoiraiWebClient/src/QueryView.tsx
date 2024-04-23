@@ -15,6 +15,7 @@ export function QueryView(){
     const onChange = debounce(async (x:string) => {
         console.log(x);
         const res = await conn.query(x);
+        console.log(res);
         setResults(res);
     }, 500);
     const selectedEntity = useSelectedEntity();

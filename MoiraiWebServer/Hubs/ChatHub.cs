@@ -74,8 +74,15 @@ public class ChatHub : Hub
     public void Save()
     {
         _mutex.Wait();
+        try
+        {
             _db.Commit();
+        }
+        finally
+        {
             _mutex.Release();
+            
+        }
     }
 
     public struct ClientData
@@ -156,7 +163,7 @@ public class ChatHub : Hub
                         Sql = sql,
                         Results = results.Select(eid => new Result
                         {
-                            Eid = eid, Properties = GetEntityDetails(eid.Id),
+                            Eid = eid, Properties = EntityPropertyDisplays(eid.Id),
                         }).ToArray()
                     };
                 }
@@ -218,7 +225,7 @@ public class ChatHub : Hub
                 if(!_db.TryGetEntity(item.id, out Entity e))
                     continue;
                 var node = new FamilyTreeNode(e.Id.Id, 
-                    _db.GetProperty(e.Id, Database.PropName, out var name) ? name.Value : e.Id.ToString(),
+                    e.TryGetProperty( Database.PropName, out var name) ? name.Value : e.Id.ToString(),
                     item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0,
                     item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0
                     );
@@ -238,35 +245,44 @@ public class ChatHub : Hub
     }
     public IList<EntityPropertyDisplay> GetEntityDetails(uint eid)
     {
-        _mutex.Wait();
+        if(!_mutex.Wait(500))
+            return new List<EntityPropertyDisplay>();
         try
         {
-            if (!_db.TryGetEntity(new EntityId(eid), out var e))
-                return ImmutableList<EntityPropertyDisplay>.Empty;
-            var details = e.Properties.Where(p => p.Id.IsValid)
-                .Select(p => new EntityPropertyDisplay(
-                    _db.GetPropertyName(p.Id),
-                    PrintValue(p.Id, p.Value))).ToList();
-            var t = _db.GetEntityType(e.Type);
-            foreach (var display in t.Attributes)
-            {
-                using var _ = _db.Ctx.RunScope(false);
-                _db.Ctx.SetArgument(display.VarIndex, e.Id);
-                _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
-                foreach (var id in results)
-                {
-                    if (_db.TryGetEntity(id, out var ee))
-                        details.Add(new EntityPropertyDisplay(display.Label,
-                            $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>"));
-                }
-            }
-
-            return details;
+            return EntityPropertyDisplays(eid);
         }
         finally
         {
             _mutex.Release();
         }
+    }
+
+    private static IList<EntityPropertyDisplay> EntityPropertyDisplays(uint eid)
+    {
+        if (!_db.TryGetEntity(new EntityId(eid), out var e))
+        {
+            return ImmutableList<EntityPropertyDisplay>.Empty;
+        }
+        var details = e.Properties.Where(p => p.Id.IsValid)
+            .Select(p => new EntityPropertyDisplay(
+                _db.GetPropertyName(p.Id),
+                PrintValue(p.Id, p.Value))).ToList();
+        var t = _db.GetEntityType(e.Type);
+        foreach (var display in t.Attributes)
+        {
+            using var _ = _db.Ctx.RunScope(false);
+            _db.Ctx.SetArgument(display.VarIndex, e.Id);
+            _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
+            foreach (var id in results)
+            {
+                if (_db.TryGetEntity(id, out var ee))
+                    details.Add(new EntityPropertyDisplay(display.Label,
+                        $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>"));
+            }
+        }
+
+        return details;
+        
     }
 
     private static string PrintValue(PropertyId propertyId, PropertyValue propertyValue)
