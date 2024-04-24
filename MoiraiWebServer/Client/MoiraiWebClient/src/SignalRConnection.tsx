@@ -80,8 +80,8 @@ export class SignalRConnection {
     getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]> {
         return this.connection.invoke("GetEntityDetails", entityId)
     }
-    getFamilyTree(entityId: number): Promise<FamilyTreeNode[]> {
-        return this.connection.invoke("GetFamilyTree", entityId)
+    getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]> {
+        return this.connection.invoke("GetFamilyTree", entityId, maxDepth)
     }
 }
 
