@@ -1,6 +1,6 @@
 @display Item ('Items made',maker = $self)
 @display Person ('Children',parent1 = $self or parent2 = $self)
-@display Person ('Parents', $other = $self.parent1  or $other = $self.parent2)
+@display Person ('Parents', $other = $self.parent1 or $other = $self.parent2)
 @display Item ('Items owned',owner = $self)
 entity Person {
     prop age: Age
@@ -295,7 +295,7 @@ event char_joins_faith {
 @1 per 2 years
 event wedding {
     pick Person $x: (alive = true and partner = null and age > Age.Child and age < Age.Old)
-    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place)
+    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place and parent1 != $x and parent2 != $x and id != $x.parent1 and id != $x.parent2)
     set $x.partner = $y
     set $y.partner = $x
     set $x.prosperity = $x.prosperity + 20%

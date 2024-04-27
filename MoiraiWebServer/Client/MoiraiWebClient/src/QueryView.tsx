@@ -11,6 +11,7 @@ import {makeEntityChip, useFiltering, useSelectedEntity} from "./utils.tsx";
 import * as _ from "lodash";
 export function QueryView(){
     // const [query, setQuery] = useState("pick Person p")
+    const [showQuery, setShowQuery] = useState<boolean>(false)
     const [results, setResults] = useState<QueryResult|undefined>()
     const onChange = debounce(async (x:string) => {
         console.log(x);
@@ -28,12 +29,13 @@ export function QueryView(){
             label="Multiline"
             multiline
             rows={4}
-            defaultValue={'pick Person p'}
+            defaultValue={'pick Person $p'}
             onChange={e => onChange(e.target.value)}
             // value={query}
             // onChange={(e:React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
         />
         {results?.sql && <Box p={2}><pre>{results.sql}</pre></Box>}
+        {results?.query && showQuery && <Box p={2}><pre>{results.query}</pre></Box>}
         {results?.errors && results.errors.map((e,i) => <Box py={2}><Alert severity="error" key={i}>{e}</Alert></Box>)}
         <TableContainer sx={{overflow: 'auto'}}>
         

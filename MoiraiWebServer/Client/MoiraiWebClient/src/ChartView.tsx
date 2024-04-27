@@ -1,11 +1,13 @@
 ﻿import {useSelectedEntity} from "./utils.tsx";
 import {FamilyTreeNode, useMoiraiStore} from "./SignalRConnection.tsx";
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
 import * as d3 from "d3";
 import * as d3dag from "d3-dag";
 import {graphStratify} from "d3-dag";
 import {uniqWith} from "lodash";
 import {filter} from "d3";
+import {colors, Slider} from "@mui/material";
+import theme from "./theme.tsx";
 // https://localhost:3000/?delta=1000&eid=146&tab=3&f=-1
 function arrowTransform({
                             points
@@ -23,6 +25,7 @@ export function ChartView(){
     // const [tree,setTree] = useState<RawNodeDatum>({
     //     name: selectedEntity.toString(),
     // })
+    const [treeMaxDepth, setTreeMaxDepth] = useState(3);
     const conn = useMoiraiStore((s) => s.conn);
     if(!conn)
         return <h1>no data</h1>;
@@ -31,8 +34,9 @@ export function ChartView(){
      
         const id = selectedEntity;
         console.log("selected", id);
-        const svgElement = d3.select(ref.current!);
-        conn.getFamilyTree(selectedEntity, 15).then((nodes) => {
+        const svgRoot = d3.select(ref.current!);
+        const svgElement = svgRoot.append("g").attr("id", "root");
+        conn.getFamilyTree(selectedEntity, treeMaxDepth).then((nodes) => {
             console.log(nodes);
             const builder = graphStratify()
                 .id((x:FamilyTreeNode) => x.id.toString())
@@ -86,7 +90,13 @@ export function ChartView(){
             const svgHLinks = svgElement.append("g").attr("id", "hlinks");
             const svgNodes = svgElement.append("g").attr("id", "nodes");
             const svgArrows = svgElement.append("g").attr("id", "arrows");
+            function handleZoom(e) {
+                svgElement
+                    .attr('transform', e.transform);
+            }
 
+            let zoom = d3.zoom().on('zoom', handleZoom);
+            svgRoot.call(zoom);
 // create our builder and turn the raw data into a graph
 //             const builder = d3dag.graphStratify();
 //             console.log(d3nodes);
@@ -145,7 +155,9 @@ export function ChartView(){
                                 .append("rect")
                                 .attr("width", nodeWidth)
                                 .attr("height", nodeHeight)
-                                .attr("fill", (n) => colorMap.get(n.data.id)!);
+                                .attr("fill", (n) => colorMap.get(n.data.id)!)
+                            .attr("stroke", n => n.data.id === selectedEntity ? theme.palette.primary.light : "none")
+                            .attr("stroke-width", n => n.data.id === selectedEntity ? "4" :  "0");
                             const link = enter.append("a")
                                 .attr("href", "#")
                                 .on("click", (e,n) => {
@@ -154,7 +166,7 @@ export function ChartView(){
                                 });
                             link
                                 .append("text")
-                                .text((d) => `${d.data.id} ${d.data.name}`)
+                                .text((d) => `${d.data.name}`)
                                 .attr("x", nodeWidth/2)
                                 .attr("y", nodeHeight/2)
                                 .attr("font-weight", "bold")
@@ -289,13 +301,14 @@ export function ChartView(){
         return () => {
             svgElement.selectAll("*").remove();
         }
-    }, [selectedEntity])
+    }, [selectedEntity, treeMaxDepth])
     return <div style={{height:"100%", overflowY:"auto"}}>
-        <h1>chart {selectedEntity}</h1>
+        <h1>Family tree</h1>
+        <Slider sx={{maxWidth: "20vw"}} valueLabelDisplay="auto" value={treeMaxDepth} onChange={(_,v) => setTreeMaxDepth(v as number)}/>
         <div id="treeWrapper" style={{ width: '100%', height: '100%' }}>
-            <svg
-                ref={ref}
-            />
+            <svg ref={ref} style={{ width: '100%', height: '100%' }}>
+               
+            </svg>
             {/*<Tree pathFunc={"step"} orientation={"vertical"} data={tree} />*/}
         </div>
     </div>

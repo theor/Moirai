@@ -16,6 +16,7 @@ export interface FamilyTreeNode {
 export interface QueryResult
 {
     sql: string ;
+    query: string ;
     results: Result[] ;
     errors: string[] ;
 }

@@ -2,6 +2,8 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices.ComTypes;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Moirai.Core;
 
@@ -109,7 +111,47 @@ public class ChatHub : Hub
     }
 
     public record EntityPropertyDisplay(string Label, string Value);
-    public record FamilyTreeNode(uint id, string name, uint p1, uint p2);
+    public struct FamilyTreeNode(uint id, string name, uint p1, uint p2) : IEquatable<FamilyTreeNode>
+    {
+        public uint id { get; init; } = id;
+        public string name { get; init; } = name;
+        public uint p1 { get; init; } = p1;
+        public uint p2 { get; init; } = p2;
+
+        public void Deconstruct(out uint id, out string name, out uint p1, out uint p2)
+        {
+            id = this.id;
+            name = this.name;
+            p1 = this.p1;
+            p2 = this.p2;
+        }
+
+        public bool Equals(FamilyTreeNode other)
+        {
+            return id == other.id;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is FamilyTreeNode other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return (int)id;
+        }
+
+        public static bool operator ==(FamilyTreeNode left, FamilyTreeNode right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(FamilyTreeNode left, FamilyTreeNode right)
+        {
+            return !left.Equals(right);
+        }
+    }
+
     private static List<EntityId> results = new();
 
     public record EntityChangeDisplay(EntityId id, long year, string actionName, IList<EntityPropertyDisplay> changes);
@@ -137,6 +179,7 @@ public class ChatHub : Hub
         public string? Sql;
         public Result[] Results;
         public string[] Errors;
+        public string Query;
     }
     public struct Result
     {
@@ -161,6 +204,11 @@ public class ChatHub : Hub
                     return new QueryResult
                     {
                         Sql = sql,
+                        Query = JsonSerializer.Serialize((object?)e, e.GetType(), new JsonSerializerOptions
+                        {
+                            WriteIndented = true,
+                            IncludeFields = true, IgnoreReadOnlyFields = false,IgnoreReadOnlyProperties = false, DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                        }),
                         Results = results.Select(eid => new Result
                         {
                             Eid = eid, Properties = EntityPropertyDisplays(eid.Id),
@@ -208,12 +256,11 @@ public class ChatHub : Hub
         }
     }
 
-    public async Task<List<FamilyTreeNode>> GetFamilyTree(uint eid)
+    public async Task<List<FamilyTreeNode>> GetFamilyTree(uint eid, int maxDepth)
     {
-        const int maxDepth = 3;
-        List<FamilyTreeNode> nodes = new();
+        HashSet<FamilyTreeNode> nodes = new();
         if(!await _mutex.WaitAsync(500))
-            return nodes;
+            return new List<FamilyTreeNode>();
         try
         {
             var prop1 = _db.GetPropertyId("Person", "parent1");
@@ -236,12 +283,40 @@ public class ChatHub : Hub
                 nodes.Add(node);
             }
 
+            var personType = _db.GetEntityType("Person");
+            _db.FindAll(personType.Id, 
+                new BinaryOperator(BinaryOperator.Operator.Or,
+                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, prop1), new Literal(new EntityId(eid))),
+                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, prop2), new Literal(new EntityId(eid)))
+                    ), ref results);
+            foreach (var id in results)
+            {
+                queue.Enqueue((id, 0));
+
+            }
+            while (queue.TryDequeue(out var item))
+            {
+                if(!_db.TryGetEntity(item.id, out Entity e))
+                    continue;
+                var p1id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0;
+                var p2id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0;
+                var node = new FamilyTreeNode(e.Id.Id, 
+                    e.TryGetProperty( Database.PropName, out var name) ? name.Value : e.Id.ToString(),
+                    p1id,
+                    p2id
+                );
+                if(p1id != 0)
+                    nodes.Add(new(p1id, "A", 0, 0));
+                if(p2id != 0)
+                    nodes.Add(new(p2id, "B", 0, 0));
+                nodes.Add(node);
+            }
         }
         finally
         {
             _mutex.Release();
         }
-        return nodes;
+        return nodes.ToList();
     }
     public IList<EntityPropertyDisplay> GetEntityDetails(uint eid)
     {
