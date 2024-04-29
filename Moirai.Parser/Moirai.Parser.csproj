@@ -7,15 +7,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+        <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.0" />
+        <PackageReference Include="Antlr4BuildTasks" Version="12.2.0" PrivateAssets="all" />
     </ItemGroup>
-
+    <ItemGroup>
+        <Antlr4 Include="moirai_lexer.g4"/>
+        <Antlr4 Include="MoiraiParser.g4">
+            <Package>Moirai.Parser</Package>
+            <Package>Moirai.Parser</Package>
+        </Antlr4>
+    </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\Moirai\Moirai.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="gen\" />
     </ItemGroup>
 
 </Project>

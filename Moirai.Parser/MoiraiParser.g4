@@ -1,7 +1,5 @@
 parser grammar MoiraiParser;
-@header {
-    namespace Moirai.Parser;
-}
+
 options {
 
   tokenVocab=moirai_lexer;
@@ -30,12 +28,12 @@ expr
     : if
     | match
     | value
-    | left=expr op=(MUL | DIV) right=expr
-    | left=expr op=(ADD | SUB) right=expr
-    | left=expr op=(EQ | NEQ | GE | LE | GT | LT) right=expr
-    | left=expr op=QQ right=expr
-    | left=expr op=AND right=expr
-    | left=expr op=OR right=expr
+    | left=expr op=(MUL | DIV) LINE_BREAK? right=expr
+    | left=expr op=(ADD | SUB) LINE_BREAK? right=expr
+    | left=expr op=(EQ | NEQ | GE | LE | GT | LT) LINE_BREAK? right=expr
+    | left=expr op=QQ LINE_BREAK? right=expr
+    | left=expr op=AND LINE_BREAK? right=expr
+    | left=expr op=OR LINE_BREAK? right=expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     ;
 
