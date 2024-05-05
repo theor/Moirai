@@ -1,4 +1,5 @@
-﻿using Antlr4.Runtime;
+﻿using System.Reflection;
+using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using Moirai.Parser;
 
@@ -533,7 +534,7 @@ public static class StoryParser
                     AddError(ErrorCode.UnknownAttribute, id, id?.GetText() ?? "??");
                     continue;
                 }
-                if (attr.expr().Length != 2)
+                if (attr.expr().Length < 2)
                 {
                     AddError(ErrorCode.MissingArgument, attr, "display expects two arguments, a string and and expression");
                     continue;
@@ -546,9 +547,12 @@ public static class StoryParser
                 using (new VariableDeclarationScope(this, true))
                 {
                     DeclareVar("$self", tid.RefType, null, out var varIndex);
-                    DeclareVar("$other", refReferencedType, null, out _);
+                    DeclareVar("$other", refReferencedType, null, out var otherVarIndex);
                     var expr = ParseExpr(attr.expr(1));
-                    Display d = new Display(Database.GetEntityType(refReferencedType), varIndex, attr.expr(0).GetText(), expr);
+                    InterpolatedString itemDisplay = null;
+                    if (attr.expr(2)?.value()?.@string() != null)
+                        itemDisplay = ParseInterpolatedString(attr.expr(2).value().@string());
+                    Display d = new Display(Database.GetEntityType(refReferencedType), varIndex, otherVarIndex, attr.expr(0).GetText(), expr, itemDisplay);
                     var t = Database.Types[(int)(tid.Id.Id)];
 
                     t.Attributes.Add(d);

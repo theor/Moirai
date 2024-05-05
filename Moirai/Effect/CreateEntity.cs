@@ -177,7 +177,7 @@ public class If : IValue
                 break;
         }
 
-        return res;
+        return true;
     }
 
     public (string where, string? joins) ToSql(PredicateContext ctx)

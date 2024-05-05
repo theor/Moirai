@@ -204,21 +204,6 @@ export function ChartView(){
                                 .attr("stop-color", ({target}) => colorMap.get(target.data.id)!);
                         })
                 );
-            // svgLinks.selectAll("path")
-            //     .data(graph.links())
-            //     .join((enter) =>
-            //         enter
-            //             .append("path")
-            //             .attr("d", ({points}) => line(points))
-            //             .attr("fill", "none")
-            //             .attr("stroke-width", 3)
-            //             .attr(
-            //                 "stroke",
-            //                 ({source, target}) => `url(#${source.data.id}--${target.data.id})`
-            //             )
-            //             .attr("opacity", 0)
-            //             .call((enter) => enter.transition(trans).attr("opacity", 1))
-            //     );
             svgHLinks.selectAll(".hlink")
                 .data(filter(graph.nodes(), n => n.data.p1 !== 0 && n.data.p2 !== 0))
                 .join((enter) => {
@@ -257,24 +242,6 @@ export function ChartView(){
                         .attr("opacity", 0)
                         .call((enter) => enter.transition(trans2).attr("opacity", 1));;
                 });
-            // svgLinks.selectAll(".vlink")
-            //     .data(graph.links())
-            //     .join((enter) => {
-            //         // console.log(enter)
-            //             return enter
-            //                 .append("path")
-            //                 .attr("class", "vlink")
-            //                 .attr("d", ({points}) => line(points))
-            //                 .attr("fill", "none")
-            //                 .attr("stroke-width", 3)
-            //                 .attr(
-            //                     "stroke",
-            //                     "black"//({source, target}) => `url(#${source.data.id}--${target.data.id})`
-            //                 )
-            //                 .attr("opacity", 0)
-            //                 .call((enter) => enter.transition(trans).attr("opacity", 1));
-            //         }
-            //     );
             // const arrowSize = 80;
             // const arrowLen = Math.sqrt((4 * arrowSize) / Math.sqrt(3));
             // const arrow = d3.symbol().type(d3.symbolTriangle).size(arrowSize);
@@ -309,7 +276,6 @@ export function ChartView(){
             <svg ref={ref} style={{ width: '100%', height: '100%' }}>
                
             </svg>
-            {/*<Tree pathFunc={"step"} orientation={"vertical"} data={tree} />*/}
         </div>
     </div>
 }

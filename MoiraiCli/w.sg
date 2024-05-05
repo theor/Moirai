@@ -1,7 +1,7 @@
 @display Item ('Items made',maker = $self)
 @display Person ('Children',parent1 = $self or parent2 = $self)
 @display Person ('Parents', $other = $self.parent1 or $other = $self.parent2)
-@display Item ('Items owned',owner = $self)
+@display Item   ('Items owned',owner = $self)
 entity Person {
     prop age: Age
     prop first_name: string
@@ -21,11 +21,18 @@ entity Person {
     prop killer: Person
     prop prosperity: percentage
 }
+@display ItemOwnership ('Owners', item = $self, '{$other.owner.name} from {$other.start_year} to {$other.end_year}')
 entity Item {
     prop maker: Person
     prop item_type: ItemSource
     prop owner: Person
     prop creation_date: number
+}
+entity ItemOwnership {
+    prop item: Item
+    prop owner: Person
+    prop start_year: number
+    prop end_year: number
 }
 @display Person ('Members',faction = $self)
 entity Faction {
@@ -121,6 +128,24 @@ event update_country_health country_events {
     }
 }
 
+trigger item_created items {
+    when_created Item
+    create ItemOwnership $on
+    set $on.owner = $new.owner
+    set $on.item = $new
+    set $on.start_year = #Time.year
+}
+trigger item_change_owner items {
+    when Item and owner != $old.owner
+
+    create ItemOwnership $on
+    set $on.owner = $new.owner
+    set $on.item = $new
+    set $on.start_year = #Time.year
+
+    pick ItemOwnership $o: (item = $old and end_year = 0)
+    set $o.end_year = #Time.year
+}
 
 trigger inherit items {
     when Person and alive = false and $old.alive
@@ -134,10 +159,15 @@ trigger inherit items {
         }
     }
     each Item $i: (owner = $new){
-        pick Person $child: (alive, parent1 = $new or parent2 = $new)
+        if(pick Person $child: (alive, parent1 = $new or parent2 = $new)) {
         // pick $child:( type=Person, id = $l.child, alive)
-        set $i.owner = $child
-        record('{$child.name} inherits the {$i.name} from {$new.name}')
+            set $i.owner = $child
+            record('{$child.name} inherits the {$i.name} from {$new.name}')
+        } else {
+            record('The {$i.name} is lost after the death of {$new.name}')
+            set $i.owner = null
+
+        }
     }
 }
 

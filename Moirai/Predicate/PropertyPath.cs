@@ -57,18 +57,18 @@
         PropertyValue varValue = ctx.Argument(VariableIndex);
         if (varValue.Type != PropertyValue.TypeRef)
             return varValue;
-        if (Property == null || Property[0] == PropertyId.Null)
-            return varValue;
+        
         if (!ctx.Database.TryGetEntity(varValue.Id, out var e))
         {
             if (varValue.Id.Id == Database.ChangePrevEntityId.Id)
             {
-                return ctx.GetPrevEntityProperty(Property[0]);
+                return ctx.GetPrevEntityProperty(Property == null || Property[0] == PropertyId.Null ? Database.PropId : Property[0]);
             }
 
             return default;
         }
-
+        if (Property == null || Property[0] == PropertyId.Null)
+            return varValue;
         // return e.GetProperty(Property[0]);
 
         PropertyValue val = default;

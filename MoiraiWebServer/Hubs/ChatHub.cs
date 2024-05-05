@@ -350,9 +350,13 @@ public class ChatHub : Hub
             _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
             foreach (var id in results)
             {
-                if (_db.TryGetEntity(id, out var ee))
-                    details.Add(new EntityPropertyDisplay(display.Label,
-                        $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>"));
+                if (!_db.TryGetEntity(id, out var ee)) continue;
+                
+                
+                _db.Ctx.SetArgument(display.OtherVarIndex, id);
+                details.Add(new EntityPropertyDisplay(display.Label,
+                    $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>" +
+                    (display.ItemDisplay == null ? "" : _db.Printer.Format(display.ItemDisplay, _db, true))));
             }
         }
 

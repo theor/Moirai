@@ -7,7 +7,7 @@ import TableRow from "@mui/material/TableRow";
 import {useState} from "react";
 import debounce from 'lodash/debounce';
 import {QueryResult, useMoiraiStore} from "./SignalRConnection.tsx";
-import {makeEntityChip, useFiltering, useSelectedEntity} from "./utils.tsx";
+import {makeEntityChip, makeEntityLink, useFiltering, useSelectedEntity} from "./utils.tsx";
 import * as _ from "lodash";
 export function QueryView(){
     // const [query, setQuery] = useState("pick Person p")
@@ -41,10 +41,12 @@ export function QueryView(){
         
         <Table>
             <TableBody>
-                {(results?.results?.length ?? 0) == 0 ? <TableRow><TableCell>No results</TableCell></TableRow> : _.take(results!.results,20).map((r,i) => <TableRow key={i}>
+                {(results?.results?.length ?? 0) == 0 ? <TableRow><TableCell>No results</TableCell></TableRow> : _.take(results!.results,200).map((r,i) => <TableRow key={i}>
                     <TableCell>{makeEntityChip(r.eid, r.eid.toString(), selectedEntity, filteredEntity)}</TableCell>
                     {/*<TableCell>{makeEntityLink(r.description, selectedEntity, filteredEntity)}</TableCell>*/}
-                    {r.properties.map((p,pi) => <TableCell key={pi}>{p.label} {p.value}</TableCell>)}
+                    {r.properties.map((p,pi) => <TableCell key={pi}>
+                        {p.label}  {makeEntityLink(p.value, selectedEntity, filteredEntity)}
+                    </TableCell>)}
                 </TableRow>)}
             </TableBody>
         </Table>

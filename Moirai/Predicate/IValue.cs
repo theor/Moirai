@@ -12,16 +12,19 @@ public interface IValue
 public class Display : IValue
 {
     public readonly EntityType ReferencedType;
-    public readonly int VarIndex;
+    public readonly int VarIndex, OtherVarIndex;
     public readonly string Label;
     public readonly IValue Value;
+    public readonly InterpolatedString ItemDisplay;
 
-    public Display(EntityType referencedType, int varIndex, string label, IValue value)
+    public Display(EntityType referencedType, int varIndex, int otherVarIndex, string label, IValue value, InterpolatedString itemDisplay)
     {
         ReferencedType = referencedType;
         VarIndex = varIndex;
+        OtherVarIndex = otherVarIndex;
         Label = label;
         Value = value;
+        ItemDisplay = itemDisplay;
     }
 
     public PropertyValue Compute(PredicateContext ctx)
