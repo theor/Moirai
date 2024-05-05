@@ -1,6 +1,5 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Moirai.Core;
 using MoiraiWebServer.Hubs;
 
@@ -8,7 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR(hubOptions => {
@@ -32,7 +30,10 @@ builder.Services.AddCors(options =>
         builder => builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()
             .AllowCredentials());               // allow credentials );  
 });
+
 var app = builder.Build();
+
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -44,13 +45,19 @@ else
     app.UseHsts();
 }
 
-app.MapHub<ChatHub>("/hub"
-    // , x => x.Transports = HttpTransportType.LongPolling
-    );
-
-app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+app.UseRouting();
+// app.MapHub doesn' t intercept calls and let them go and fail in the spa middleware ??
+#pragma warning disable ASP0014
+app.UseEndpoints(endpoints => endpoints.MapHub<ChatHub>("/hub"));
+#pragma warning restore ASP0014
+app.UseSpa(spaBuilder =>
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
+    spaBuilder.Options.SourcePath = "ClientApp";
+    spaBuilder.Options.StartupTimeout = TimeSpan.FromSeconds(5);
+
+    spaBuilder.Options.DevServerPort = 3000;
+    // relies on the npm script printing 'Starting the development server' so npm dev echoes that before starting vite
+    spaBuilder.UseReactDevelopmentServer("dev");
+  
+});
+app.Run();
