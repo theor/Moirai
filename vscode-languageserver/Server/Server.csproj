@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\MoiraiCli\MoiraiCli.csproj" />
+    <ProjectReference Include="..\..\Moirai.Parser\Moirai.Parser.csproj" />
   </ItemGroup>
 
 </Project>

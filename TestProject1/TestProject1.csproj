@@ -18,7 +18,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Moirai.Parser\Moirai.Parser.csproj" />
-      <ProjectReference Include="..\MoiraiCli\MoiraiCli.csproj" />
     </ItemGroup>
 
 </Project>
