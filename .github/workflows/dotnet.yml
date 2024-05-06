@@ -31,11 +31,13 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    - name: Publish
+      run: dotnet publish -c Release MoiraiWebServer/MoiraiWebServer.csproj
     - name: Archive Release
       uses: thedoctor0/zip-release@0.7.5
       with:
         type: 'zip'
-        path: MoiraiWebServer/bin
+        path: MoiraiWebServer/bin/Release/net8.0/publish
         filename: 'release.zip'
         exclusions: '*.git* /*node_modules/* .editorconfig'
     - name: Release
