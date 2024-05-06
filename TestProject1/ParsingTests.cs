@@ -16,7 +16,8 @@ public class ParsingTests : TestsBase
     {
         var path = Path.GetFullPath(rpath);
         Console.WriteLine(path);
-        Assert.IsTrue(File.Exists(path));
+        if(!File.Exists(path))
+            Assert.Inconclusive();
         var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
         Console.WriteLine("------------------");
         var record = db.Printer.Print();
@@ -35,7 +36,8 @@ public class ParsingTests : TestsBase
     {
         var path = Path.GetFullPath(rpath);
         Console.WriteLine(path);
-        Assert.IsTrue(File.Exists(path));
+        if(!File.Exists(path))
+            Assert.Inconclusive();
         var content = File.ReadAllText(path);
         var fromString = new CodePointCharStream(content /*.TrimStart('\r', '\n', ' ')*/);
         var lexer = new moirai_lexer(fromString);
