@@ -29,8 +29,15 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+    - name: Archive Release
+      uses: thedoctor0/zip-release@0.7.5
+      with:
+        type: 'zip'
+        path: MoiraiWebServer/bin
+        filename: 'release.zip'
+        exclusions: '*.git* /*node_modules/* .editorconfig'
     - name: Release
       uses: softprops/action-gh-release@v2
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: MoiraiWebServer/bin/
+        files: release.zip
