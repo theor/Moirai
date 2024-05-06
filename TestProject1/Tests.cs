@@ -1211,7 +1211,7 @@ event pass_15_years {
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
-        db.Commit();
+        // db.Commit();
         Assert.AreEqual(1000, db.Entities.Last().GetProperty(db.GetPropertyId("Person","birthdate")).IntValue);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);

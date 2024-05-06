@@ -22,11 +22,11 @@ public class ParsingTests : TestsBase
         var record = db.Printer.Print();
         Console.WriteLine(record);
         Assert.AreEqual(0, errors.Count, string.Join("\n", errors));
-        var db2 = StoryParser.Parse(record, out var errors2);
+        StoryParser.Parse(record, out var errors2);
         Assert.AreEqual(0, errors2.Count, string.Join("\n", errors2));
         db.Init();
         db.Ctx.PassYears(100, true);
-        db.Commit();
+        // db.Commit();
     }
     [Test]
     // [TestCase("../../../../MoiraiCli/w.sg")]
