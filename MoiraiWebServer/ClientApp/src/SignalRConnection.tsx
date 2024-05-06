@@ -2,7 +2,24 @@
 import {HubConnection, HubConnectionState, IStreamResult} from "@microsoft/signalr";
 import {ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
 import {create} from "zustand";
+export interface Result {
+    eid: number;
+    properties: EntityPropertyDisplay[];
+}
 
+export interface FamilyTreeNode {
+    id: number;
+    name: string;
+    p1: number;
+    p2: number;
+}
+export interface QueryResult
+{
+    sql: string ;
+    query: string ;
+    results: Result[] ;
+    errors: string[] ;
+}
 export class SignalRConnection {
     public connection: HubConnection;
 
@@ -30,6 +47,10 @@ export class SignalRConnection {
 
 
     }
+
+    runAction(actionId: number) {
+        return this.connection.send("RunAction", actionId);
+    }
     
     getChangesets(): IStreamResult<EntityChangeDisplay> {
         return this.connection.stream<EntityChangeDisplay>("GetChangesets");
@@ -37,11 +58,14 @@ export class SignalRConnection {
 
     reset() {
         return this.connection.send("Reset")
-
+    }
+    
+    query(q:string): Promise<QueryResult> {
+        return this.connection.invoke<QueryResult>("Query", q);
     }
 
-    passYears(years: number) {
-        return this.connection.send("PassYears", years)
+    passYears(years: number): IStreamResult<number> {
+        return this.connection.stream<number>("PassYears", years)
     }
 
     save() {
@@ -55,6 +79,9 @@ export class SignalRConnection {
 
     getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]> {
         return this.connection.invoke("GetEntityDetails", entityId)
+    }
+    getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]> {
+        return this.connection.invoke("GetFamilyTree", entityId, maxDepth)
     }
 }
 
@@ -95,7 +122,7 @@ export const useMoiraiStore = create<State>((set, get) => {
         let buffer: Record[] = [];
         setInterval(() => {
             if (buffer.length > 0) {
-                console.log("BUFFER RECORDs")
+                // console.log("BUFFER RECORDs")
                 set({records: [...get().records, ...buffer]});
                 buffer = []
             }
@@ -137,7 +164,6 @@ export const useMoiraiStore = create<State>((set, get) => {
         pushChangesets: (buffer: EntityChangeDisplay[]) =>  {
             set({changesets:  [...buffer]})
         },
-        
         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
             const clientData = get().clientData!;
             if (switchAll) {

@@ -1,14 +1,14 @@
 {
 	"name": "moirai-lsp",
-	"description": "A language server example",
+	"description": "Moirai language server",
 	"author": "Microsoft Corporation",
 	"license": "MIT",
 	"version": "1.0.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/Microsoft/vscode-extension-samples"
+		"url": "https://github.com/theor/moirai"
 	},
-	"publisher": "vscode-samples",
+	"publisher": "theor",
 	"categories": [],
 	"keywords": [
 		"multi-root ready"
@@ -25,9 +25,17 @@
 			{
 				"id": "moirai",
 				"extensions": [
-					".sg"
+					".sg",
+					".moi"
 				],
 				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "moirai",
+				"scopeName": "source.moirai",
+				"path": "./moirai.tmLanguage.json"
 			}
 		],
 		"configuration": {
@@ -55,9 +63,9 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "yarn run compile",
 		"compile": "tsc -b",
-		"watch": "tsc -b -w",
+		"watch": "yarn run tsc -b -w",
 		"lint": "eslint ./client/src --ext .ts,.tsx",
 		"postinstall": "cd client && npm install && cd ../server && dotnet build && cd .."
 	},

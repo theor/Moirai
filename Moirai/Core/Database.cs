@@ -7,17 +7,18 @@ using Moirai.Core;
 
 public class Database
 {
-    public static readonly PropertyId PropId = new(1);
-    public static readonly PropertyId PropType = new(2);
-    public static readonly PropertyId PropName = new(3);
-    public static readonly PropertyId PropYear = new(4);
+    public static readonly PropertyId PropId = new(1, default);
+    public static readonly PropertyId PropType = new(2, default);
+    public static readonly PropertyId PropName = new(3, default);
+    public static readonly PropertyId PropYear = new(4, default);
 
     public static Database? Instance;
 
-    public readonly List<EnumDefinition> Enums = new() { default, new EnumDefinition(new EnumDefinitionId(1), "Name", EntityNames.Names) };
+    public readonly List<EnumDefinition> Enums = new()
+        {default, new EnumDefinition(new EnumDefinitionId(1), "Name", EntityNames.Names)};
+
     public static readonly int BuiltinEnumCount = 2;
     public readonly List<EntityType> Types;
-    public readonly List<PropertyDefinition> Properties = DefaultProperties();
     public readonly int BuiltinTypes;
 
     public readonly List<EventTrigger> Actions;
@@ -29,7 +30,7 @@ public class Database
 
     private PredicateContext _ctx;
 
-    private List<Entity> _entities = new() { default };
+    private List<Entity> _entities = new() {default};
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
     public PredicateContext Ctx
@@ -62,16 +63,20 @@ public class Database
         return new()
         {
             default!,
-            new("id", PropId.Id, PropertyValue.TypeRef),
-            new("type", PropType.Id, PropertyValue.TypeEntityType),
-            new PropertyDefinition("name", PropName.Id, PropertyValue.TypeString),
-            new PropertyDefinition("year", PropYear.Id, PropertyValue.TypeString),
+            new("id", default, PropId.Id, PropertyValue.TypeRef),
+            new("type", default, PropType.Id, PropertyValue.TypeEntityType),
+            new PropertyDefinition("name", default, PropName.Id, PropertyValue.TypeString),
         };
     }
 
     public Database(ulong seed = 42)
     {
-        Types = new List<EntityType> { default, new("Time", 1) };
+        Types = new List<EntityType>
+        {
+            new EntityType("default", 0),
+            new EntityType("Time", 1).DeclareProperty("year", PropYear.Id,
+                PropertyValue.TypeNumber)
+        };
         BuiltinTypes = Types.Count;
         _ctx = new PredicateContext(this, seed);
         Actions = new();
@@ -88,15 +93,14 @@ public class Database
 
     public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
     {
-        Entity e = new(this);
+        Entity e = new(GetEntityType(entityType));
 
-        e.Type = entityType;
         if (!String.IsNullOrEmpty(name))
         {
             e.SetProperty(PropName, name);
         }
 
-        e.Id = new EntityId((uint)_entities.Count);
+        e.Id = new EntityId((uint) _entities.Count);
         _entities.Add(e);
         // PerTypeIndices[(int)entityType.Id].Add(e.Id);
         // TODO CS
@@ -104,9 +108,9 @@ public class Database
         // CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
 
         var cmd = _connection.CreateCommand();
-        cmd.CommandText = @"INSERT INTO entity (name, type)
+        cmd.CommandText = @"INSERT INTO entity (default__name, default__type)
                     VALUES ($name, $type)
-                    RETURNING id";
+                    RETURNING default__id";
         cmd.Parameters.AddWithValue("$name", name ?? "?");
         cmd.Parameters.AddWithValue("$type", entityType.Id);
         cmd.ExecuteScalar();
@@ -123,14 +127,14 @@ public class Database
             return false;
         }
 
-        entity = _entities[(int)entityId.Id];
+        entity = _entities[(int) entityId.Id];
         return true;
     }
 
     public bool GetProperty(EntityId entityId, PropertyId property, out PropertyValue value)
     {
         var cmd = _connection.CreateCommand();
-        cmd.CommandText = $@"SELECT {GetPropertyName(property)} FROM entity WHERE id = $id  LIMIT 1;";
+        cmd.CommandText = $@"SELECT {GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)} FROM entity WHERE default__id = $id  LIMIT 1;";
         // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
         cmd.Parameters.AddWithValue("$id", entityId.Id);
         // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
@@ -149,8 +153,8 @@ public class Database
     {
         var cmd = _connection.CreateCommand();
         cmd.CommandText = $@"UPDATE entity
-SET {GetPropertyName(property)} = {(value.Type.BaseType == PropertyValue.ValueBaseType.String ? ("'" + value.Value + "'") : (int)value.IntValue)}
-WHERE id = $id;";
+SET {GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)} = {(value.Type.BaseType == PropertyValue.ValueBaseType.String ? ("'" + value.Value + "'") : (int) value.IntValue)}
+WHERE default__id = $id;";
         // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
         cmd.Parameters.AddWithValue("$id", entityId.Id);
         // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
@@ -161,9 +165,9 @@ WHERE id = $id;";
             return false;
 
         if (property == PropId)
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         if (property == PropType)
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
 
         // if (entity.Properties == null)
         // {
@@ -176,16 +180,16 @@ WHERE id = $id;";
             {
                 if (value.Type.BaseType != PropertyValue.ValueBaseType.Enum)
                 {
-                    value = new PropertyValue(Enums[type.Index].ValueType,  value.IntValue);
+                    value = new PropertyValue(Enums[type.Index].ValueType, value.IntValue);
                 }
-            } else if (type.BaseType == PropertyValue.ValueBaseType.Percentage &&
-                       value.Type.BaseType != PropertyValue.ValueBaseType.Percentage)
+            }
+            else if (type.BaseType == PropertyValue.ValueBaseType.Percentage &&
+                     value.Type.BaseType != PropertyValue.ValueBaseType.Percentage)
                 value = new PropertyValue(PropertyValue.TypePercent, value.FloatValue);
-                
-        } 
+        }
 
         PropertyValue prev = entity.SetProperty(property, value);
-        
+
         // TODO CS
         CurrentChangeset.RecordSet(entity, property, prev);
         // CurrentChangeset.Changes.Add(Change.Set(entityId, property, prev, value));
@@ -207,48 +211,52 @@ WHERE id = $id;";
         return true;
     }
 
-    public PropertyId GetPropertyId(string name)
+    public PropertyId GetPropertyId(string typename, string name)
     {
-        for (var index = 1; index < Properties.Count; index++)
-        {
-            var property = Properties[index];
-            if (string.Equals(property.Name, name, StringComparison.InvariantCultureIgnoreCase))
-                return new PropertyId((uint)index);
-        }
+        var t = GetEntityType(typename);
+        return t.GetPropertyId(name);
+        // for (var index = 1; index < Properties.Count; index++)
+        // {
+        //     var property = Properties[index];
+        //     if (string.Equals(property.Name, name, StringComparison.InvariantCultureIgnoreCase))
+        //         return new PropertyId((uint) index);
+        // }
 
         return PropertyId.Null;
     }
 
     public string GetPropertyName(PropertyId prop)
     {
-        return Properties[(int)prop.Id].Name;
+        return Printer.GetPropertyName(prop);
     }
 
-    
+
     public EntityType GetEntityType(PropertyValue.ValueType type)
     {
         if (type.BaseType != PropertyValue.ValueBaseType.EntityType && type.BaseType != PropertyValue.ValueBaseType.Ref)
             return default;
         return Types[type.Index];
     }
+
     public EntityType GetEntityType(EntityTypeId id)
     {
-        return Types[(int)(id.Id - 1)];
+        return Types[(int) (id.Id)];
     }
+
     public EntityType GetEntityType(string typeName)
     {
         for (uint i = 1; i < Types.Count; i++)
         {
-            if (Types[(int)i].Name == typeName)
-                return Types[(int)i];
+            if (Types[(int) i].Name == typeName)
+                return Types[(int) i];
         }
 
-        return default;
+        return Types[0];
     }
 
     public string GetEntityTypeName(EntityTypeId typeId)
     {
-        return Types[(int)typeId.Id].Name;
+        return Types[(int) typeId.Id].Name;
     }
 
     public bool GetEnumDefinition(string name, out EnumDefinition enumDefinition)
@@ -268,13 +276,15 @@ WHERE id = $id;";
 
     public bool GetPropertyType(PropertyId pid, out PropertyValue.ValueType valueType)
     {
-        if (!pid.IsValid || pid.Id >= Properties.Count)
+        if (!pid.IsValid)
         {
             valueType = default;
             return false;
         }
 
-        valueType = Properties[(int)pid.Id].Type;
+        var t = GetEntityType(pid.TypeId);
+
+        valueType = t.Properties[(int) pid.Id].Type;
         return true;
     }
 
@@ -296,16 +306,16 @@ WHERE id = $id;";
     public bool RunAction(EventTrigger eventTrigger)
     {
         // Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year, eventTrigger.Categories);
+        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year,
+            eventTrigger.Categories);
         _currentActionId = eventTrigger.Id;
-        _ctx.ClearValueStack();
         // _ctx.Values.Clear();
 
-
+        using var s = _ctx.RunScope(false);
         for (var index = 0; index < eventTrigger.Effects.Count; index++)
         {
             var e = eventTrigger.Effects[index];
-            if (e is CallInstruction{ Value:  AssignPick { VariableIndex: -1 }})
+            if (e is CallInstruction {Value: AssignPick {VariableIndex: -1}})
                 throw new NotImplementedException("Arg index -1 on p " + index);
 
             if (!e.Execute(_ctx))
@@ -321,14 +331,15 @@ WHERE id = $id;";
                 return false;
             }
         }
+
         if (CurrentChangeset.Changes.Any())
             History?.Changesets.Add(CurrentChangeset);
 
-       
+
         // _taggedEntities.Clear();
         // CurrentChangeset.GetTaggedEntities(_taggedEntities);
 
-        RunEvents(CurrentChangeset);
+        RunTriggers(CurrentChangeset);
 
         return true;
     }
@@ -336,7 +347,8 @@ WHERE id = $id;";
     internal static readonly EntityId ChangePrevEntityId = new EntityId(uint.MaxValue - 1);
     internal static int EventAttemptCount;
     internal static int EventAttemptSuccess;
-    private void RunEvents(Changeset cs)
+
+    private void RunTriggers(Changeset cs)
     {
         foreach (Changeset.Changed changed in cs.Changes)
         {
@@ -347,44 +359,40 @@ WHERE id = $id;";
             foreach (var trigger in Triggers)
             {
                 // if entity created but trigger is on change
-                if(changed.Prev.Id.IsNull == (trigger.When.Item1 == EventTrigger.WhenType.Changed))
+                if (changed.Prev.Id.IsNull == (trigger.When.Item1 == EventTrigger.WhenType.Changed))
                     continue;
                 // if (!@event.WhenTags.Contains(tag))
                 //     continue;
                 EventAttemptCount++;
-                using (var s = _ctx.RunScope())
+                using var s = _ctx.RunScope(false);
+                if (trigger.When.Item2 == changed.New.Type)
                 {
-                    
-                    
-                    if (trigger.When.Item2 == changed.New.Type)
+                    // $old value
+                    int varIdx = 0;
+
+                    if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
+                        _ctx.SetArgument(varIdx++, ChangePrevEntityId);
+                    // $new value
+                    _ctx.SetArgument(varIdx, changed.New.Id);
+
+                    if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
                     {
-                        // $old value
-                        int varIdx = 0;
-                    
-                        if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
-                            _ctx.SetArgument(varIdx++, ChangePrevEntityId);
-                        // $new value
-                        _ctx.SetArgument(varIdx, changed.New.Id);
-                        
-                        if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
+                        EventAttemptSuccess++;
+                        // Console.WriteLine("  @ " + @event.Name);
+                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year, trigger.Categories);
+                        // using (var s2 = _ctx.RunScope())
                         {
-                            EventAttemptSuccess++;
-                            // Console.WriteLine("  @ " + @event.Name);
-                            CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year, trigger.Categories);
-                            // using (var s2 = _ctx.RunScope())
+                            foreach (var e in trigger.Effects)
                             {
-                                foreach (var e in trigger.Effects)
+                                if (!e.Execute(_ctx))
                                 {
-                                    if (!e.Execute(_ctx))
-                                    {
-                                        // continue;
-                                        break;
-                                    }
+                                    // continue;
+                                    break;
                                 }
                             }
-                            if (CurrentChangeset.Changes.Any())
-                                History?.Changesets?.Add(CurrentChangeset);
                         }
+                        if (CurrentChangeset.Changes.Any())
+                            History?.Changesets?.Add(CurrentChangeset);
                     }
                 }
             }
@@ -403,7 +411,7 @@ WHERE id = $id;";
     {
         List<Entity> entities = JsonSerializer.Deserialize<List<Entity>>(json, JsonSerializerOptions);
 
-        _entities = new() { default };
+        _entities = new() {default};
         _entities.AddRange(entities);
     }
 
@@ -439,23 +447,24 @@ WHERE id = $id;";
         _connection.Open();
         var cmd = _connection.CreateCommand();
 
-        string indices = @"CREATE INDEX types ON entity (type);";
-        if (Properties.Any(p => p.Name == "owner"))
-            indices += @"
-CREATE INDEX owners ON entity (owner) WHERE type = 3;";
-        if (Properties.Any(p => p.Name == "alive"))
-            indices += @"
-CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
+        string indices = @"CREATE INDEX types ON entity (default__type);";
+//         if (Properties.Any(p => p.Name == "owner"))
+//             indices += @"
+// CREATE INDEX owners ON entity (owner) WHERE type = 3;";
+//         if (Properties.Any(p => p.Name == "alive"))
+//             indices += @"
+// CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
 
         cmd.CommandText = $@"
 CREATE TABLE entity (
-    id INTEGER PRIMARY KEY,
-    type INTEGER NOT NULL,
-    {string.Join(",\n  ", Properties.Skip(3).Select(p => {
+    default__id INTEGER PRIMARY KEY,
+    default__type INTEGER NOT NULL,
+    default__name TEXT,
+    {string.Join(",\n  ",Types.Skip(1).SelectMany(t => t.Properties.Skip(4).Select(p => {
         // if (p.Type.BaseType == PropertyValue.ValueBaseType.Ref)
-            // return $"FOREIGN KEY({p.Name}) REFERENCES entity(id)";
-        return $@"{p.Name} {ToSqlType(p.Type)}";
-    }))}
+        // return $"FOREIGN KEY({p.Name}) REFERENCES entity(id)";
+        return $@"{t.Name}__{p.Name} {ToSqlType(p.Type)}";
+    })))}
 );
 {indices}
 CREATE TABLE marked (
@@ -496,10 +505,20 @@ CREATE TABLE marked (
 
     private Dictionary<string, SqliteCommand> _commands = new();
     private Dictionary<string, SqliteCommand> _commands2 = new();
-    public bool PickRandom(IValue value, out EntityId id)
+
+    public bool PickRandom(EntityTypeId entityTypeId, IValue? predicate, out EntityId id)
     {
-        var(where, joins) = value.ToSql(_ctx);
-        var sql = $@"SELECT id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
+        if (predicate == null && !entityTypeId.IsValid)
+        {
+            id = default;
+            return false;
+        }
+        var (where, joins) = predicate.ToSql(_ctx);
+        if (string.IsNullOrEmpty(where))
+            where = "entity.default__type = " + entityTypeId.Id;
+        else
+            where = $"entity.default__type = {entityTypeId.Id} AND {where}";
+        var sql = $@"SELECT entity.default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
         if (!_commands.TryGetValue(sql, out var cmd))
         {
             // Console.WriteLine(sql);
@@ -514,21 +533,31 @@ CREATE TABLE marked (
         var r = cmd.ExecuteScalar();
         if (r is long u)
         {
-            id = new EntityId((uint)u);
+            id = new EntityId((uint) u);
             return true;
         }
-            id = default;
+
+        id = default;
         return false;
     }
-    public bool FindAll(IValue? predicate, ref List<EntityId> results)
+
+    public bool FindAll(EntityTypeId entityTypeId, IValue? predicate, ref List<EntityId> results) =>
+        FindAll(entityTypeId, predicate, ref results, out _);
+    public bool FindAll(EntityTypeId entityTypeId, IValue? predicate, ref List<EntityId> results, out string? sql)
     {
         results.Clear();
-        if (predicate == null)
+        if (predicate == null && !entityTypeId.IsValid)
         {
+            sql = null;
             return false;
         }
+
         var (where, joins) = predicate.ToSql(_ctx);
-        var sql = $@"SELECT id FROM entity {(joins ?? "")} WHERE {where}";
+        if (string.IsNullOrEmpty(where))
+            where = "entity.default__type = " + entityTypeId.Id;
+        else
+            where = $"entity.default__type = {entityTypeId.Id} AND {where}";
+        sql = $@"SELECT entity.default__id FROM entity {(joins ?? "")} WHERE {where}";
 
         if (!_commands2.TryGetValue(sql, out var cmd))
         {
@@ -539,16 +568,17 @@ CREATE TABLE marked (
             cmd.Prepare();
             _commands2.Add(sql, cmd);
         }
+
         // Console.WriteLine(sql);
         // Console.WriteLine(cmd.CommandText);
         using var r = cmd.ExecuteReader();
         while (r.Read())
-            results.Add(new EntityId((uint)r.GetInt32(0)));
+            results.Add(new EntityId((uint) r.GetInt32(0)));
         return true;
     }
 
-    public List<string> Tags = new List<string> { null! };
-    public List<string> Categories = new List<string> { null! };
+    public List<string> Tags = new List<string> {null!};
+    public List<string> Categories = new List<string> {null!};
 
     public bool DeclareTag(string tag)
     {
@@ -567,16 +597,16 @@ CREATE TABLE marked (
         if (index == -1)
         {
             Categories.Add(cat);
-            return new CategoryId((ulong)(Categories.Count - 1));
+            return new CategoryId((ulong) (Categories.Count - 1));
         }
 
 
-        return new CategoryId((ulong)index);
+        return new CategoryId((ulong) index);
     }
 
     public string GetCategoryName(CategoryId tagId)
     {
-        return Categories[(int)tagId.Id];
+        return Categories[(int) tagId.Id];
     }
 
     public struct Record
@@ -604,6 +634,7 @@ CREATE TABLE marked (
     {
         Records.Add(new(text, year, categories, CurrentChangeset.Id, _currentActionId));
     }
+
     internal Dictionary<(EntityId, int), long> _marked = new();
 
     public void Mark(EntityId eId, int eventIndex)

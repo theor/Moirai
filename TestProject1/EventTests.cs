@@ -7,16 +7,17 @@ public class EventTests : TestsBase
     public void Event()
     {
         var s = @"
-entity Person {}
-prop alive: bool
-prop test: bool
+entity Person {
+    prop alive: bool
+    prop test: bool
+}
 event born {
-    create $p: (Person)
+    create Person $p
     set alive = true
 }
 
 event die {
-    each $p: (type=Person, alive = true) {
+    each Person $p: (alive = true) {
         set alive = false
         record('{$p} dies')
     }
@@ -37,7 +38,7 @@ trigger on_death {
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         Entity e = db.Entities.First();
-        PropertyId propTest = db.GetPropertyId("test");
+        PropertyId propTest = db.GetPropertyId("Person", "test");
         Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
         foreach (var historyChangeset in db.History.Changesets)
         {
@@ -49,17 +50,18 @@ trigger on_death {
     public void EventCompareOldNewValues()
     {
         var s = @"
-entity Person {}
-prop x: number
-prop test: number
+entity Person {
+    prop x: number
+    prop test: number
+}
 event born {
-    create $p: (Person)
+    create Person $p
     set x = 1
     set test = 1
 }
 
 event die {
-    each $p: (type=Person, x = 1) {
+    each Person $p: (x = 1) {
         set x = 2
         record('{$p} dies')
     }
@@ -85,7 +87,7 @@ trigger on_death2 {
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
         Entity e = db.Entities.First();
-        PropertyId propTest = db.GetPropertyId("test");
+        PropertyId propTest = db.GetPropertyId("Person","test");
         Assert.That(e.GetProperty(propTest).IntValue, Is.EqualTo(10));
         foreach (var historyChangeset in db.History.Changesets)
         {
@@ -98,19 +100,22 @@ trigger on_death2 {
     public void Event2()
     {
         var s = @"
-entity Person {}
-entity Item {}
-entity Link {}
-prop alive: bool
-prop child: Person
-prop parent: Person
-prop owner: ref
+entity Person {
+    prop alive: bool
+}
+entity Item {
+    prop owner: Person
+}
+entity Link {
+    prop child: Person
+    prop parent: Person
+}
 
 trigger inherit {
     when Person and $new.alive = false
-    each $i: (type = Item, owner = $new) {
-        pick $l: (type = Link, $l.parent = $new) 
-        pick $c: (type = Person, alive = true, id = $l.child)
+    each Item $i: (owner = $new) {
+        pick Link $l: ($l.parent = $new) 
+        pick Person $c: (alive = true, id = $l.child)
             set $i.owner = $c
             record('{$c.name} inherits the {$i.name} from {$new.name}')
     }
@@ -123,6 +128,54 @@ trigger inherit {
         // Entity e = db.Entities.Single();
         // PropertyId propTest = db.GetProperty("test");
         // Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
+    }
+
+    [Test]
+    public void Inherit_ParentName()
+    {
+        var db = Run(@"
+entity Person {
+    prop alive: bool
+    prop parent1: Person
+    prop parent2: Person
+}
+entity Item {
+    prop owner: Person
+}
+@start
+event init {
+    create Person $a: 'parent'
+    set $a.alive = true  
+    create Item $i: 'item'
+    set $i.owner = $a
+    create Person $b: 'child'
+    set $b.alive = true  
+    set $b.parent1 = $a  
+
+}
+event parent_dies {
+    pick Person $p: (id = 1)
+    debug('{$p} {$p.name}')
+    set $p.alive = false
+    record '{$p.name} dies'
+    pick Person $child: (alive, parent1 = $p or parent2 = $p)
+    record 'child: {$child.name}'
+
+}
+trigger inherit {
+    when Person and alive = false and $old.alive
+    record '{$new.name} inherits'
+    each Item $i: (owner = $new){
+        record 'item {$i.name}, looking for children of {$new.name}'
+        pick Person $child: (alive and parent1 = $new or parent2 = $new)
+        record('{$child.name} inherits the {$i.name} from {$new.name}')
+    }
+}", out _);
+        db.History = new();
+        db.RunAction("parent_dies");
+        db.Printer.PrintDb();
+        db.Printer.PrintRecords();
+        Assert.That(db.Records.Last().Text, Is.EqualTo("<#3>child</> inherits the <#2>item</> from <#1>parent</>"));
     }
 
 
@@ -172,7 +225,7 @@ trigger inherit {
 
 @1 every 1 year
 event olds_dies {
-    each $p: (type=Person), alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
+    each Person $p: alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
         set $p.alive = false
         record('{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}')
     }

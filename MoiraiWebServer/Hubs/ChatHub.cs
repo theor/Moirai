@@ -1,6 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.ComTypes;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Moirai.Core;
 
@@ -13,32 +16,75 @@ public class ChatHub : Hub
     private static Database _db;
     private static bool _reset;
 
+    private static SemaphoreSlim _mutex = new(1, 1);
     public ChatHub()
     {
-        if (_db == null)
-        {
-            Reset();
-        }
-
         Debug.WriteLine("Ctor");
+        
+            if (_db == null)
+            {
+                Reset();
+            }
+       
     }
 
     public void Reset()
     {
-        _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
-        _db.History = new();
-        _db.Init();
-        _reset = true;
+        _mutex.Wait();
+        try
+        {
+            _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
+            _db.History = new();
+            _db.Init();
+            _reset = true;
+        }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
-    public async Task PassYears(int years)
+    public ChannelReader<int> PassYears(int years)
     {
-        _db.Ctx.PassYears(years, true);
+        var channel = Channel.CreateUnbounded<int>();
+
+        if (!_mutex.Wait(100))
+        {
+            channel.Writer.Complete();
+            return channel.Reader;
+        }
+        IProgress<int>? p = new Progress<int>(i =>
+        {
+            channel.Writer.WriteAsync((int)(100 * i / (float)years));
+        });
+        Task.Factory.StartNew(() =>
+        {
+            try
+            {
+                _db.Ctx.PassYears(years, CancellationToken.None, p, true);
+                channel.Writer.Complete();
+            }
+            finally
+            {
+                _mutex.Release();
+            }
+        });
+       
+        return channel.Reader;
     }
 
     public void Save()
     {
-        _db.Commit();
+        _mutex.Wait();
+        try
+        {
+            _db.Commit();
+        }
+        finally
+        {
+            _mutex.Release();
+            
+        }
     }
 
     public struct ClientData
@@ -50,41 +96,248 @@ public class ChatHub : Hub
 
     public async Task<ClientData> GetClientData()
     {
-        return new ClientData
+        await _mutex.WaitAsync();
+        try
         {
-            Actions = _db.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
-        };
+            return new ClientData
+            {
+                Actions = _db.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
+            };
+        }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
     public record EntityPropertyDisplay(string Label, string Value);
+    public struct FamilyTreeNode(uint id, string name, uint p1, uint p2) : IEquatable<FamilyTreeNode>
+    {
+        public uint id { get; init; } = id;
+        public string name { get; init; } = name;
+        public uint p1 { get; init; } = p1;
+        public uint p2 { get; init; } = p2;
+
+        public void Deconstruct(out uint id, out string name, out uint p1, out uint p2)
+        {
+            id = this.id;
+            name = this.name;
+            p1 = this.p1;
+            p2 = this.p2;
+        }
+
+        public bool Equals(FamilyTreeNode other)
+        {
+            return id == other.id;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is FamilyTreeNode other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return (int)id;
+        }
+
+        public static bool operator ==(FamilyTreeNode left, FamilyTreeNode right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(FamilyTreeNode left, FamilyTreeNode right)
+        {
+            return !left.Equals(right);
+        }
+    }
+
     private static List<EntityId> results = new();
 
     public record EntityChangeDisplay(EntityId id, long year, string actionName, IList<EntityPropertyDisplay> changes);
 
     private IList<EntityPropertyDisplay> GetChangeDetails(Changeset.Changed c)
     {
-        if (c.Prev.Id.IsNull) // new entity
-        {
-            return c.New.Properties.Where(p => p.Id.IsValid)
-                .Select(p => new EntityPropertyDisplay(_db.GetPropertyName(p.Id), PrintValue(p.Id, p.Value))).ToList();
-        }
-        return c.Prev.Properties.Where(p => p.Id.IsValid)
-            .Select(p =>
+            if (c.Prev.Id.IsNull) // new entity
             {
-                var p1 = c.New.GetProperty(p.Id);
-                return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
-                    PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
-            }).ToList();
+                return c.New.Properties.Where(p => p.Id.IsValid)
+                    .Select(p => new EntityPropertyDisplay(_db.GetPropertyName(p.Id), PrintValue(p.Id, p.Value)))
+                    .ToList();
+            }
+
+            return c.Prev.Properties.Where(p => p.Id.IsValid)
+                .Select(p =>
+                {
+                    var p1 = c.New.GetProperty(p.Id);
+                    return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
+                        PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
+                }).ToList();
+    }
+
+    public struct QueryResult
+    {
+        public string? Sql;
+        public Result[] Results;
+        public string[] Errors;
+        public string Query;
+    }
+    public struct Result
+    {
+        public EntityId Eid;
+        public IList<EntityPropertyDisplay> Properties;
+    }
+    public async Task<QueryResult> Query(string q)
+    {
+        await _mutex.WaitAsync();
+        try
+        {
+            string? sql = null;
+            try
+            {
+                StoryParser.AstVisitor v = new StoryParser.AstVisitor(_db);
+                var e = StoryParser.ParseExpr(v, q, 0, 0, out var errors);
+                if (errors.Any())
+                    return new QueryResult { Errors = errors.Select(e => e.ToString()).ToArray() };
+                if (e is AssignPick pick)
+                {
+                    _db.FindAll(pick.EntityType, pick.Value, ref results, out sql);
+                    return new QueryResult
+                    {
+                        Sql = sql,
+                        Query = JsonSerializer.Serialize((object?)e, e.GetType(), new JsonSerializerOptions
+                        {
+                            WriteIndented = true,
+                            IncludeFields = true, IgnoreReadOnlyFields = false,IgnoreReadOnlyProperties = false, DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+                        }),
+                        Results = results.Select(eid => new Result
+                        {
+                            Eid = eid, Properties = EntityPropertyDisplays(eid.Id),
+                        }).ToArray()
+                    };
+                }
+                return  new QueryResult() { Errors = new[]{ "Instruction unsuited for query: " + e.GetType() } };
+            }
+            catch (Exception e)
+            {
+                return  new QueryResult() { Sql = sql, Errors = new[]{ e.ToString() } };
+            }
+        }
+        finally
+        {
+            _mutex.Release();
+        }
+    }
+
+    public void RunAction(int actionId)
+    {
+        _mutex.Wait();
+        try
+        {
+            var eventTrigger = _db.Actions.FirstOrDefault(a => a.Id == actionId);
+            if(eventTrigger != null)
+                _db.RunAction(eventTrigger);
+        }
+        finally
+        {
+            _mutex.Release();
+        }
     }
 
     private IList<EntityChangeDisplay> GetChangesetDetails(Changeset cs)
     {
-        return cs.Changes.Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x))).ToList();
+        _mutex.Wait();
+        try
+        {
+            return cs.Changes.Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x))).ToList();
+        }
+        finally
+        {
+            _mutex.Release();
+        }
+    }
+
+    public async Task<List<FamilyTreeNode>> GetFamilyTree(uint eid, int maxDepth)
+    {
+        HashSet<FamilyTreeNode> nodes = new();
+        if(!await _mutex.WaitAsync(500))
+            return new List<FamilyTreeNode>();
+        try
+        {
+            var prop1 = _db.GetPropertyId("Person", "parent1");
+            var prop2 = _db.GetPropertyId("Person", "parent2");
+            Queue<(EntityId id, int depth)> queue = new();
+            queue.Enqueue((new(eid), 0));
+            while (queue.TryDequeue(out var item))
+            {
+                if(!_db.TryGetEntity(item.id, out Entity e))
+                    continue;
+                var node = new FamilyTreeNode(e.Id.Id, 
+                    e.TryGetProperty( Database.PropName, out var name) ? name.Value : e.Id.ToString(),
+                    item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0,
+                    item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0
+                    );
+                if(node.p1 != 0)
+                    queue.Enqueue((new(node.p1), item.depth+1));
+                if(node.p2 != 0)
+                    queue.Enqueue((new(node.p2), item.depth+1));
+                nodes.Add(node);
+            }
+
+            var personType = _db.GetEntityType("Person");
+            _db.FindAll(personType.Id, 
+                new BinaryOperator(BinaryOperator.Operator.Or,
+                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, prop1), new Literal(new EntityId(eid))),
+                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, prop2), new Literal(new EntityId(eid)))
+                    ), ref results);
+            foreach (var id in results)
+            {
+                queue.Enqueue((id, 0));
+
+            }
+            while (queue.TryDequeue(out var item))
+            {
+                if(!_db.TryGetEntity(item.id, out Entity e))
+                    continue;
+                var p1id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0;
+                var p2id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0;
+                var node = new FamilyTreeNode(e.Id.Id, 
+                    e.TryGetProperty( Database.PropName, out var name) ? name.Value : e.Id.ToString(),
+                    p1id,
+                    p2id
+                );
+                if(p1id != 0)
+                    nodes.Add(new(p1id, "A", 0, 0));
+                if(p2id != 0)
+                    nodes.Add(new(p2id, "B", 0, 0));
+                nodes.Add(node);
+            }
+        }
+        finally
+        {
+            _mutex.Release();
+        }
+        return nodes.ToList();
     }
     public IList<EntityPropertyDisplay> GetEntityDetails(uint eid)
     {
+        if(!_mutex.Wait(500))
+            return new List<EntityPropertyDisplay>();
+        try
+        {
+            return EntityPropertyDisplays(eid);
+        }
+        finally
+        {
+            _mutex.Release();
+        }
+    }
+
+    private static IList<EntityPropertyDisplay> EntityPropertyDisplays(uint eid)
+    {
         if (!_db.TryGetEntity(new EntityId(eid), out var e))
+        {
             return ImmutableList<EntityPropertyDisplay>.Empty;
+        }
         var details = e.Properties.Where(p => p.Id.IsValid)
             .Select(p => new EntityPropertyDisplay(
                 _db.GetPropertyName(p.Id),
@@ -92,15 +345,23 @@ public class ChatHub : Hub
         var t = _db.GetEntityType(e.Type);
         foreach (var display in t.Attributes)
         {
+            using var _ = _db.Ctx.RunScope(false);
             _db.Ctx.SetArgument(display.VarIndex, e.Id);
-            _db.FindAll(display.Value, ref results);
+            _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
             foreach (var id in results)
             {
-                if(_db.TryGetEntity(id, out var ee))
-                    details.Add(new EntityPropertyDisplay(display.Label, $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>"));
+                if (!_db.TryGetEntity(id, out var ee)) continue;
+                
+                
+                _db.Ctx.SetArgument(display.OtherVarIndex, id);
+                details.Add(new EntityPropertyDisplay(display.Label,
+                    $"<{ee.Id}>{(_db.GetProperty(ee.Id, Database.PropName, out var val) ? val.Value : ee.Id)}</>" +
+                    (display.ItemDisplay == null ? "" : _db.Printer.Format(display.ItemDisplay, _db, true))));
             }
         }
+
         return details;
+        
     }
 
     private static string PrintValue(PropertyId propertyId, PropertyValue propertyValue)
@@ -119,12 +380,6 @@ public class ChatHub : Hub
             value = print;
 
         return value;
-    }
-
-    public async Task NewMessage(string username, string message)
-    {
-        Debug.WriteLine($"Received {username} {message}");
-        await Clients.All.SendAsync("messageReceived", username, message);
     }
 
     public ChannelReader<EntityChangeDisplay> GetChangesets(

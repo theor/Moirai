@@ -69,11 +69,7 @@ public class BinaryOperator : IValue
             }
         }
     }
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
-    }
+
     public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         var (l,lj) = Left.ToSql(ctx);
@@ -81,6 +77,13 @@ public class BinaryOperator : IValue
         var joins = string.Join("", new[]{lj, rj}.Where(s => s!=null));
         if (Op == Operator.Coalesce)
             return ($"COALESCE({l}, {r})", joins);
+        if (Op == Operator.Equals || Op == Operator.NotEquals)
+        {
+            if(l == "null")
+                return ($"({r} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
+            if(r == "null")
+                return ($"({l} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
+        }
         string op = Op switch
         {
 

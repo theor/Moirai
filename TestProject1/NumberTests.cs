@@ -4,10 +4,11 @@ public class NumberTests : TestsBase
 {
     [Test]
     public void Int_Add() => RunAssert(@"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = 2 + 3
     assert $p.f = 5
 }
@@ -15,10 +16,11 @@ event r {
 
     [Test]
     public void Int_Negative() => RunAssert(@"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = -2 + 3
     assert $p.f = 1
 }
@@ -26,10 +28,11 @@ event r {
 
     [Test]
     public void Int_Negative2() => RunAssert(@"
-entity Person {}
+entity Person {
 prop f: number
+}
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = -4 - -3
     assert $p.f = -1
 }
@@ -37,10 +40,11 @@ event r {
 
     [Test]
     public void Float_Add() => RunAssert(@"
-entity Person {}
+entity Person {
 prop f: float
+}
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = 2.1 + 3.2
     assert $p.f = 5.3
 }
@@ -49,10 +53,11 @@ event r {
 
     [Test]
     public void Float_Floor() => RunAssert(@"
-entity Person {}
-prop f: float
+entity Person {
+    prop f: float
+}
 event r {
-    create $p: (Person)
+    create Person $p
     set $p.f = floor(2.1 + 3.2)
     assert $p.f = 5
 }
@@ -60,10 +65,11 @@ event r {
 
     [Test]
     public void Int_AddMul_Precedence() => RunAssert(@"
-entity Person {}
-prop f: number
+entity Person {
+    prop f: number
+}
 event r {
-    create $p: (Person)
+    create Person $p
     set f = 2 + 3 * 4
     assert_eq ($0.f, 14)
 }
@@ -74,11 +80,12 @@ event r {
     public void Percent_PropertyDefinition()
     {
         Run(@"
-prop p: percentage
-entity E
+entity E {
+    prop p: percentage
+}
 @start
 event e {
-    create $p: E
+    create E $p
     set $p.p = 50%
     assert_eq(50%, $p.p)
 }", out _);
@@ -87,11 +94,12 @@ event e {
     public void Percent_SetProperty_CheckTypeIsPercentage()
     {
         Run(@"
-prop p: percentage
-entity E
+entity E {
+    prop p: percentage
+}
 @start
 event e {
-    create $p: E
+    create E $p
     set $p.p = 50% + 10
     assert_eq(60%, $p.p)
     debug($p.p)
@@ -101,15 +109,16 @@ event e {
     public void Percent_PickPropertyDefinition()
     {
         Run(@"
-prop p: percentage
-entity E
+entity E {
+    prop p: percentage
+}
 @start
 event e {
-    create $p: E
+    create E $p
     set $p.p = 50%
-    create $p2: E
+    create E $p2
     set $p2.p = 60%
-    assert(pick $x: (type = E, p < 55%))
+    assert(pick E $x: (p < 55%))
     
     debug($x)
 }", out _);

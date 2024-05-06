@@ -47,6 +47,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
     public static readonly ValueType TypeFloat = new ValueType(ValueBaseType.Float, 0);
     public static readonly ValueType TypeBool = new ValueType(ValueBaseType.Bool, 0);
     public static readonly ValueType TypeEntityType = new ValueType(ValueBaseType.EntityType, 0);
+    public static ValueType TypeTypedRef(EntityTypeId ed) => new ValueType(ValueBaseType.Ref, (ushort)ed.Id);
     public static ValueType TypeEnumType(EnumDefinitionId ed) => new ValueType(ValueBaseType.EnumType, ed.Id);
     public static ValueType TypeEnum(EnumDefinitionId index) => new ValueType(ValueBaseType.Enum, index.Id);
 
@@ -65,6 +66,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
         }
 
         public bool IsRefType => BaseType == ValueBaseType.Ref || BaseType == ValueBaseType.EntityType;
+        public static readonly ValueType Null = default;
 
         public bool Equals(ValueType other)
         {
@@ -90,6 +92,13 @@ public struct PropertyValue : IEquatable<PropertyValue>
         public override string ToString()
         {
             return $"{BaseType}:{Index}";
+        }
+
+        public EntityTypeId ToEntityType()
+        {
+            if (!IsRefType)
+                throw new InvalidCastException();
+            return new EntityTypeId(Index);
         }
     }
     public enum ValueBaseType : byte

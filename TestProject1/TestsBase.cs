@@ -28,21 +28,23 @@ public class TestsBase
     public static Database Run(string s, out List<StoryParser.Error> errors, int errorCount = 0)
     {
         Console.WriteLine(string.Join("\n", s.Split('\n').Select((s1, i) =>
-            $"{i,3} {s1}"
+            $"{i+1,3} {s1}"
         )));
         var db = StoryParser.Parse(s, out errors);
 
         string printed = "";
-        try
-        {
+        // try
+        // {
             printed = db.Printer.Print();
             Console.WriteLine("### REPRINT");
-            Console.WriteLine(printed);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-        }
+            Console.WriteLine(string.Join("\n", printed.Split('\n').Select((s1, i) =>
+                $"{i+1,3} {s1}"
+            )));
+        // }
+        // catch (Exception e)
+        // {
+            // Console.WriteLine(e);
+        // }
         Assert.That(errors.Count, Is.EqualTo(errorCount), string.Join("\n", errors));
         if (errorCount == 0)
         {

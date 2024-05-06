@@ -1,5 +1,33 @@
 ﻿using Moirai.Core;
 
+public class InterpolatedStringLink : IValueCall
+{
+    public readonly IValue LinkValue;
+    public readonly IValue LinkText;
+
+    public InterpolatedStringLink(IValue linkValue, IValue linkText)
+    {
+        LinkValue = linkValue;
+        LinkText = linkText;
+    }
+
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        return $"<{LinkValue.Compute(ctx).Id}>{LinkText.Compute(ctx).Value}</>";
+    }
+
+    public (string where, string? joins) ToSql(PredicateContext ctx)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IFunctionDescriptor? FunctionDescriptor { get; set; }
+    public IEnumerable<IValue> GetArgs(StoryPrinter printer)
+    {
+        yield return LinkValue;
+        yield return LinkText;
+    }
+}
 public class InterpolatedString : IValue
 {
     public readonly string FormatString;
@@ -14,12 +42,6 @@ public class InterpolatedString : IValue
     public PropertyValue Compute(PredicateContext ctx)
     {
         return ctx.Database.Printer.Format(this, ctx.Database) ?? "";
-    }
-
-    public bool HasTypeFilter(out EntityTypeId type)
-    {
-        type = default;
-        return false;
     }
 
     public (string where, string? joins) ToSql(PredicateContext ctx) => ($"'{Compute(ctx)}'", null);
@@ -155,7 +177,7 @@ public class If : IValue
                 break;
         }
 
-        return res;
+        return true;
     }
 
     public (string where, string? joins) ToSql(PredicateContext ctx)
@@ -206,7 +228,7 @@ public class SinceLast(IValue Entity, int EventIndex) : IValueCall
     public (string where, string? joins) ToSql(PredicateContext ctx)
     {
         return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
-        $"LEFT JOIN marked ON marked.eid = entity.id AND marked.marker = {EventIndex}");
+        $"LEFT JOIN marked ON marked.eid = entity.default__id AND marked.marker = {EventIndex}");
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
@@ -276,11 +298,11 @@ public class CreateEntity : IValueCall
         throw new NotImplementedException();
     }
 
-    int? IValueCall.VariableIndex => VariableIndex;
+    (int, PropertyValue.ValueType)? IValueCall.VariableIndex => (VariableIndex, new PropertyValue.ValueType(PropertyValue.ValueBaseType.Ref, (ushort)Type.Id));
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
-        yield return new Literal(Type);
+        // yield return new Literal(Type);
         if(Name != null)
             yield return Name;
     }

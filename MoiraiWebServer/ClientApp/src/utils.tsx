@@ -1,4 +1,4 @@
-﻿import {Property} from "./types.ts";
+﻿import {GetSetProperty} from "./types.ts";
 import * as React from "react";
 import {Chip, Tooltip} from "@mui/material";
 import {useSearchParams} from "react-router-dom";
@@ -45,13 +45,27 @@ export function useFiltering(): GetSetProperty<number>{
         return p;
     })];
 }
+export function useYearsDelta(): GetSetProperty<number>{
+    let [searchParams, setSearchParams] = useSearchParams();
+    let eid: number;
+    if (searchParams.has("delta") && searchParams.get("delta") != 'null'){
+        eid = Number(searchParams.get("delta"));
+    } else {
+        setSearchParams(p => {p.set("delta", '100'); return p;})
+        eid = 100;
+    }
+    return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
+        p.set("delta", x.toString());
+        return p;
+    })];
+}
 
-export function useMainListDisplay() : GetSetProperty<boolean> {
-    let [searchParams, setSearchParams] = useSearchParams({showChangesets:String(false)});
-    let eid = (searchParams.get("showChangesets") === 'true');
-    return [eid, (x:boolean) => setSearchParams((p:URLSearchParams) => {
+export function useMainListDisplay() : GetSetProperty<number> {
+    let [searchParams, setSearchParams] = useSearchParams({tab:String(0)});
+    let eid = Number(searchParams.get("tab"));
+    return [eid, (x:number) => setSearchParams((p:URLSearchParams) => {
         console.log("show", x);
-        p.set("showChangesets", x.toString());
+        p.set("tab", x.toString());
         return p;
     })];
 }

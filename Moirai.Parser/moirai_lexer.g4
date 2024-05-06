@@ -3,7 +3,9 @@ lexer grammar moirai_lexer;
 channels {
     COMMENTS
 }
-STRING : ('"' (~[\\"])* '"') | ('\''(~[\\'])*  '\'');
+
+QUOTE: '\'' -> pushMode(IN_STRING);
+//STRING : ('"' (~[\\"])* '"') | ('\''(~[\\'])*  '\'');
 NULL: 'null';
 SPACE: [ \t]+ -> channel(HIDDEN);
 LINE_BREAK: ('\r\n' | '\r' | '\n');
@@ -12,8 +14,8 @@ COMMENT
 
 COLON_EQ: ':=';
 COLON: ':';
-SCOPE_OPEN: '{';
-SCOPE_CLOSE: '}';
+SCOPE_OPEN: '{' ->pushMode(DEFAULT_MODE);
+SCOPE_CLOSE: '}' -> popMode;
 PAREN_OPEN: '(';
 PAREN_CLOSE: ')';
 EVENT: 'event';
@@ -60,6 +62,7 @@ ID : (ALPHA_LOWER|'_') (ALPHA|'_'|DIGIT)* ;
 PERCENT: '-'?DIGIT+'%' ;
 NUMBER_FLOAT: '-'?DIGIT+'.'DIGIT+ ;
 NUMBER: '-'?DIGIT+ ;
+    
 fragment
 DIGIT   :   ('0'..'9');
 fragment
@@ -68,3 +71,9 @@ fragment
 ALPHA_UPPER   :   ('A'..'Z');
 fragment
 ALPHA_LOWER   :   ('a'..'z');
+
+mode IN_STRING;
+TEXT: ~['{]+ ;
+
+EXPR_OPEN: '{' -> pushMode(DEFAULT_MODE);
+QUOTE_IN_STRING: '\'' -> type(QUOTE), popMode;

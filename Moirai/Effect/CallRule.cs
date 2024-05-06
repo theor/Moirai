@@ -16,7 +16,7 @@
         bool res = false;
         PropertyValue ctxLastValue = default;
         for (int i = 0; i < Count; i++)
-            using (ctx.RunScope())
+            using (ctx.RunScope(true))
             {
                 res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
                 ctxLastValue = ctx.LastValue;

@@ -1,6 +1,6 @@
 ﻿import {EntityChangeDisplay, useMoiraiStore} from "./SignalRConnection.tsx";
 import {useEffect} from "react";
-import {Changeset, GetSetProperty} from "./types.ts";
+import {GetSetProperty} from "./types.ts";
 import {TableComponents, TableVirtuoso} from "react-virtuoso";
 import * as React from "react";
 import TableContainer from "@mui/material/TableContainer";
@@ -10,7 +10,6 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
-import {Simulate} from "react-dom/test-utils";
 import {makeEntityChip, makeEntityLink, useFiltering, useSelectedEntity} from "./utils.tsx";
 
 // const columnHelper = createColumnHelper<Changeset>();

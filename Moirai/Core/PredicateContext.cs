@@ -12,7 +12,7 @@ public class PredicateContext
     private List<EntityId> _pool = new();
     public int ValueOffset { get; set; }
     public int ValueCount => _values.Count;
-    public PropertyValue LastValue => _values.Last();
+    public PropertyValue LastValue => _values.LastOrDefault();
 
     public PredicateContext(Database database, ulong seed)
     {
@@ -24,7 +24,7 @@ public class PredicateContext
     {
         foreach (var entity in Database.Entities)
         {
-            if (entity.GetProperty(Database.PropType).TypeId == type)
+            if (entity.Type == type)
             {
                 return entity.Id;
             }
@@ -36,7 +36,7 @@ public class PredicateContext
 
         foreach (var entity in Database.Entities)
         {
-            if (entity.GetProperty(Database.PropType).TypeId == type)
+            if (entity.Type == type)
             {
                 value = entity;
                 return true;
@@ -47,76 +47,15 @@ public class PredicateContext
     }
 
 
-    public bool PickRandom(IValue value, out EntityId id)
+    public bool PickRandom(EntityTypeId entityTypeId, IValue value, out EntityId id)
     {
-        // Console.ForegroundColor = ConsoleColor.Blue;
-        // Console.WriteLine($"PICK {Database.Printer.Print(value)}  VAL COUNT {ValueCount} OFFSET {ValueOffset}");
-        // Console.ResetColor();
-        return Database.PickRandom(value, out id);
-        // Database.FindAll(value, ref _pool);
-        // if (_pool.Count == 0)
-        // {
-        //     id = default;
-        //     return false;
-        // }
-        // id = _pool[(int)Rnd.GenerateNext((uint)_pool.Count)];
-        // return true;
+        return Database.PickRandom(entityTypeId, value, out id);
     }
-    public bool _FindAll(IValue? predicate, ref List<EntityId> results)
-    {
-        results.Clear();
-        if (predicate == null)
-        {
-            return false;
-        }
 
-        var (where,joins) = predicate.ToSql(this);
-        Debug.WriteLine(where,joins);
-        
-        // if (predicate.HasTypeFilter(out var typeFilter))
-        // {
-        //     var ids = Database.PerTypeIndices[(int)typeFilter.Id];
-        //     foreach (var id in ids)
-        //     {
-        //         PushArgument(id);
-        //         var isTrue = predicate.IsTrue(this);
-        //         if (isTrue)
-        //             results.Add(id);
-        //         PopArgument();
-        //
-        //     }
-        //     return true;
-        // }
-        foreach (var entity in Database.Entities)
-        {
-            PushArgument(entity.Id);
-            // Database.Printer.PrintEntity(entity);
-            var isTrue = predicate.IsTrue(this);
-            // Console.ForegroundColor = isTrue ? ConsoleColor.DarkGreen : ConsoleColor.DarkRed;
-            // Console.WriteLine($"  TEST #{entity.Id} {isTrue}");
-            // Console.ResetColor();
-            if (isTrue)
-            {
-                results.Add(entity.Id);
-            }
-            else
-            {
-            }
-            // Console.ResetColor();
-            PopArgument();
-        }
-
-        return true;
-    }
-    public int PopArgument()
-    {
-        _values.RemoveAt(_values.Count - 1);
-        return _values.Count - ValueOffset;
-    }
     public PropertyValue Argument(int idx)
     {
         if (idx == -1)
-            return _values[_values.Count - 1];
+            throw new InvalidOperationException("Obsolete -1 var index allowed");
         return _values[idx + ValueOffset];
     }
     public void SetArgument(int argumentIndex, PropertyValue value)
@@ -125,21 +64,15 @@ public class PredicateContext
             _values.Add(default);
         _values[argumentIndex + ValueOffset] = value;
     }
-    public int PushArgument(EntityId entity)
-    {
-        int count = _values.Count;
-        _values.Add(entity);
-        return count;
-    }
     public void ClearValueStack()
     {
         _values.RemoveRange(ValueOffset, _values.Count - ValueOffset);
     }
 
 
-    public Scope RunScope()
+    public Scope RunScope(bool setOffset)
     {
-        return new Scope(this, _values.Count, ValueOffset);
+        return new Scope(this, _values.Count, ValueOffset, setOffset);
     }
     public void Assert(bool boolValue, string msg)
     {
@@ -153,13 +86,14 @@ public class PredicateContext
         private readonly PredicateContext _predicateContext;
         private readonly int _valuesCount;
         private readonly int _valueOffset;
-        public Scope(PredicateContext ctx, int valuesCount, int valueOffset)
+        public Scope(PredicateContext ctx, int valuesCount, int valueOffset, bool setOffset)
         {
             _predicateContext = ctx;
             _valuesCount = valuesCount;
             _valueOffset = valueOffset;
 
-            ctx.ValueOffset = _valuesCount;
+            if(setOffset)
+                ctx.ValueOffset = _valuesCount;
         }
         public void Dispose()
         {
@@ -176,7 +110,7 @@ public class PredicateContext
         Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue, Array.Empty<CategoryId>());
         var timeType = Database.GetEntityType("Time");
         var timeId = this.GetSingletonId(timeType.Id);
-        var yearsProp = Database.GetPropertyId("year");
+        var yearsProp = timeType.GetPropertyId("year");
         if (!Database.TryGetEntity(timeId, out var time))
             throw new NotImplementedException("missing Time entity");
 
@@ -194,7 +128,7 @@ public class PredicateContext
                 if (action.Filter == null || action.Skip)
                     continue;
 
-                int count = (int)action.Filter.Compute(Database.Ctx).IntValue;
+                int count = (int)action.Filter.Compute(Database.Ctx, Year);
                 for (int j = 0; j < count; j++)
                 {
                     Database.RunAction(action);
@@ -205,10 +139,6 @@ public class PredicateContext
         Profiler.Dump();
     }
 
-    // public void TagEntity(EntityId id, TagId tagId)
-    // {
-    //     Database.CurrentChangeset.Changes.Add(Change.AddTag(id, tagId));
-    // }
     public Entity PrevEntity;
     internal PropertyValue GetPrevEntityProperty(PropertyId property)
     {

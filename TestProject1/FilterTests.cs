@@ -6,14 +6,15 @@ public class MarkTests : TestsBase
     public void MarkCurrentEvent()
     {
         var s = @"
-entity Person {}
+entity Person {
 prop x: number
+}
 @start
 event create {
-    create $t: (Time)
+    create Time $t
 }
 event e {
-    create $p: (Person)
+    create Person $p
     mark($p)
 }";
 
@@ -28,19 +29,21 @@ event e {
     public void MarkCurrentEventAndQuery()
     {
         var s = @"
-entity Person {}
+entity Person {
 prop x: number
+}
 @start
 event e {
-    create $p: (Person)
-    create $t: (Time)
+    create Person $p
+    create Time $t
 }
 event since {
-    pick $p: (type = Person)
+    pick Person $p
     var $since: since_last($p)
     mark($p)
     record('since last: {$since}')
-}";
+}
+";
 
         var db = Run(s, out _);
         db.History = new();
@@ -64,11 +67,12 @@ public class FilterTests : TestsBase
     public void Filter_Start()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 @start
 event char_dies {
-    pick $p: (type=Person, alive = true)
+    pick Person $p: (alive = true)
     set $p.alive = false
 }";
 
@@ -77,29 +81,44 @@ event char_dies {
 
 
     [Test]
-    public void Filter_Every()
+    [TestCase(1,1,100,100)]
+    [TestCase(4,1,400,400)]
+    [TestCase(1,10,10,10)]
+    [TestCase(4,50,8,8)]
+    [TestCase(1,50,2,2)]
+    public void Filter_Every(int count, int years, int min, int max)
     {
-        var s = @"
-entity Person {}
-prop alive: bool
-@1 every 1 year
-event char_dies {
-    pick $p: (type=Person, alive = true)
-    set $p.alive = false
-}";
+        var s = $@"
+entity Person {{
+    prop count: number
+}}
+@start
+event create_time {{
+    create Time $t: 'time'
+    create Person $p: 'counter'
+}}
+@{count} every {years} year
+event char_dies {{
+    set #Person.count = #Person.count + 1
+}}";
 
-        Run(s, out _);
+        var db = Run(s, out _);
+        db.Ctx.PassYears(100, true);
+        db.Printer.PrintDb();
+        Assert.That(db.TryGetEntity(new EntityId(2), out var e), Is.True);
+        Assert.That(e.GetProperty(db.GetPropertyId("Person", "count")).IntValue, Is.InRange(min, max));
     }
 
     [Test]
     public void Filter_Frequency()
     {
         var s = @"
-entity Person {}
-prop alive: bool
+entity Person {
+    prop alive: bool
+}
 @1 per 2 years
 event char_dies {
-    pick $p: (type=Person, alive = true)
+    pick Person $p: (alive = true)
     set $p.alive = false
 }";
 

@@ -6,27 +6,29 @@ public class MatchTests : TestsBase
     public void MatchAnyValue()
     {
         var db = Run(@"
-entity T {}
-prop p: number
+entity T {
+    prop p: number
+}
 event r {
-    create $t: (T)
+    create T $t
     match 2 {
         _ => set $t.p = 20
         2 => set $t.p = 30
     }
 }", out _);
         db.RunAction("r");
-        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("T","p")).IntValue);
     }
 
     [Test]
     public void MatchOneValue()
     {
         var db = Run(@"
-entity T {}
-prop p: number
+entity T {
+    prop p: number
+}
 event r {
-    create $t: (T)
+    create T $t
     match 2 {
         1 => set $t.p = 10
         2 => set $t.p = 20
@@ -34,17 +36,18 @@ event r {
     }
 }", out _);
         db.RunAction("r");
-        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("T","p")).IntValue);
     }
 
     [Test]
     public void MatchOneValue_ReturnValue()
     {
         var db = Run(@"
-entity T {}
-prop p: number
+entity T {
+    prop p: number
+}
 event r {
-    create $t: (T)
+    create T $t
     set $t.p = match 2 {
         1 => 10
         2 => 20
@@ -53,17 +56,18 @@ event r {
 }", out _);
         db.RunAction("r");
         db.Printer.PrintDb();
-        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+        Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("T","p")).IntValue);
     }
 
     [Test]
     public void MatchTwoValue()
     {
         var db = Run(@"
-entity T {}
-prop p: number
+entity T {
+    prop p: number
+}
 event r {
-    create $t: (T)
+    create T $t
     match 2,(3>4) {
         1,true => set $t.p = 10
         2,true => set $t.p = 20
@@ -71,20 +75,21 @@ event r {
     }
 }", out _);
         db.RunAction("r");
-        Assert.AreEqual(30, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
+        Assert.AreEqual(30, db.Entities.Single().GetProperty(db.GetPropertyId("T","p")).IntValue);
     }
 
     [Test]
     public void RandomWeighted()
     {
         var db = Run(@"
-entity T {}
+entity T {
 prop x: number
 prop y: number
 prop z: number
+}
 @start
 event create {
-    create $t: (T)
+    create T $t
 }
 event r {
     random_weighted 10 {
@@ -106,13 +111,14 @@ event r {
     public void RandomWeighted_AnyValue()
     {
         var db = Run(@"
-entity T {}
+entity T {
 prop x: number
 prop y: number
 prop z: number
+}
 @start
 event create {
-    create $t: (T)
+    create T $t
 }
 event r {
     random_weighted 10 {
@@ -140,10 +146,10 @@ entity Planet {}
 entity Satelite {}
 event create {
     random_weighted 10 {
-        1 => create $x: (Star)
-        6 => create $x: (Asteroid)
-        2 => create $x: (Planet)
-        1 => create $x: (Satelite)
+        1 => create Star $x
+        6 => create Asteroid $x
+        2 => create Planet $x
+        1 => create Satelite $x
     }
 }", out _);
         for (int i = 0; i < 100; i++)
@@ -160,16 +166,17 @@ event create {
     public void RandomWeighted_Enum()
     {
         var db = Run(@"
-entity Person {}
+entity Person {
+    prop job: Job
+}
 enum Job {
     Farmer,
     Smith,
     Soldier,
     King,
 }
-prop job: Job
 event create {
-    create $p: (Person)
+    create Person $p
     random_weighted 10 {
         6 => set job = Job.Farmer
         1 => set job = Job.Smith
@@ -182,7 +189,7 @@ event create {
         }
 
         db.Printer.PrintDb();
-        var p = db.GetPropertyId("job");
+        var p = db.GetPropertyId("Person","job");
         Console.WriteLine(String.Join("\n", db.Entities.GroupBy(e => e.GetProperty(p)).Select(g => (db.Printer.Print(g.Key), g.Count()))));
         // Assert.AreEqual(20, db.Entities.Single().GetProperty(db.GetPropertyId("p")).IntValue);
     }

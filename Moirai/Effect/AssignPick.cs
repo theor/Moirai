@@ -2,13 +2,15 @@
 
 public struct AssignPick : IValueCall
 {
+    public readonly EntityTypeId EntityType;
     public readonly int VariableIndex;
     public readonly IValue Value;
     public readonly CallType CallType;
     public readonly IInstruction[]? ScopeEffects;
     private List<EntityId>? _pool;
-    public AssignPick(int variableIndex, IValue value, CallType callType, IInstruction[]? scopeEffects = null)
+    public AssignPick(EntityTypeId entityType, int variableIndex, IValue value, CallType callType, IInstruction[]? scopeEffects = null)
     {
+        EntityType = entityType;
         VariableIndex = variableIndex;
         Value = value;
         CallType = callType;
@@ -24,7 +26,7 @@ public struct AssignPick : IValueCall
             case CallType.Pick:
             {
                 // Console.WriteLine($"PICK {ctx.Database.Printer.Print(Value)}");
-                bool res = ctx.PickRandom(Value, out var val);
+                bool res = ctx.PickRandom(EntityType, Value, out var val);
                 ctx.SetArgument(VariableIndex, val);
                 // Console.WriteLine($"ENDPICK {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                 return res;
@@ -37,11 +39,12 @@ public struct AssignPick : IValueCall
                     // Console.ForegroundColor = ConsoleColor.Blue;
                     // Console.WriteLine($"FIND ALL {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                     // Console.ResetColor(); 
-                    if (ctx.Database.FindAll(Value, ref _pool))
+                    if (ctx.Database.FindAll(EntityType, Value, ref _pool))
                     {
                         for (var index = 0; index < _pool.Count; index++)
                         {
-                            int valueCountIterationStart = ctx.ValueCount;
+                            using var s = ctx.RunScope(false);
+                            // int valueCountIterationStart = ctx.ValueCount;
                             var entityId = _pool[index];
                             ctx.SetArgument(VariableIndex, entityId);
                             // Console.WriteLine($"{index + 1} / {_pool.Count} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
@@ -53,8 +56,9 @@ public struct AssignPick : IValueCall
                                     break;
                                 }
                             }
-                            while (ctx.ValueCount > valueCountIterationStart)
-                                ctx.PopArgument();
+                            // ctx.ClearValueStack();
+                            // while (ctx.ValueCount > valueCountIterationStart)
+                            //     ctx.PopArgument();
                         }
                     }
                 }
@@ -71,7 +75,7 @@ public struct AssignPick : IValueCall
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
-    int? IValueCall.VariableIndex => VariableIndex;
+    (int, PropertyValue.ValueType)? IValueCall.VariableIndex => (VariableIndex,  PropertyValue.TypeTypedRef(EntityType));
 
     public string Print(StoryPrinter printer, int indent)
     {
