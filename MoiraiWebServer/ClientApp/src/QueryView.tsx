@@ -11,7 +11,7 @@ import {makeEntityChip, makeEntityLink, useFiltering, useSelectedEntity} from ".
 import * as _ from "lodash";
 export function QueryView(){
     // const [query, setQuery] = useState("pick Person p")
-    const [showQuery, setShowQuery] = useState<boolean>(false)
+    const [showQuery, _setShowQuery] = useState<boolean>(false)
     const [results, setResults] = useState<QueryResult|undefined>()
     const onChange = debounce(async (x:string) => {
         console.log(x);

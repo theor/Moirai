@@ -58,7 +58,6 @@ export class SignalRConnection {
 
     reset() {
         return this.connection.send("Reset")
-
     }
     
     query(q:string): Promise<QueryResult> {

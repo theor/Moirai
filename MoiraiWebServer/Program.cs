@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+// builder.Services.AddSpaStaticFiles(x => x.RootPath=".");
 builder.Services.AddSignalR(hubOptions => {
         
     hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(15);
@@ -45,19 +46,27 @@ else
     app.UseHsts();
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+// app.UseSpaStaticFiles();
 app.UseRouting();
 // app.MapHub doesn' t intercept calls and let them go and fail in the spa middleware ??
 #pragma warning disable ASP0014
-app.UseEndpoints(endpoints => endpoints.MapHub<ChatHub>("/hub"));
-#pragma warning restore ASP0014
-app.UseSpa(spaBuilder =>
+app.UseEndpoints(endpoints =>
 {
-    spaBuilder.Options.SourcePath = "ClientApp";
-    spaBuilder.Options.StartupTimeout = TimeSpan.FromSeconds(5);
-
-    spaBuilder.Options.DevServerPort = 3000;
-    // relies on the npm script printing 'Starting the development server' so npm dev echoes that before starting vite
-    spaBuilder.UseReactDevelopmentServer("dev");
-  
+    endpoints.MapHub<ChatHub>("/hub");
+    endpoints.MapFallbackToFile("index.html");
 });
+#pragma warning restore ASP0014
+if (app.Environment.IsDevelopment())
+    app.UseSpa(spaBuilder =>
+    {
+        spaBuilder.Options.SourcePath = "ClientApp";
+        spaBuilder.Options.StartupTimeout = TimeSpan.FromSeconds(5);
+
+        spaBuilder.Options.DevServerPort = 3000;
+        // relies on the npm script printing 'Starting the development server' so npm dev echoes that before starting vite
+            spaBuilder.UseReactDevelopmentServer("dev");
+      
+    });
 app.Run();

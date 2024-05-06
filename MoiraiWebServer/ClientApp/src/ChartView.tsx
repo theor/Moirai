@@ -6,9 +6,10 @@ import * as d3dag from "d3-dag";
 import {graphStratify} from "d3-dag";
 import {uniqWith} from "lodash";
 import {filter} from "d3";
-import {colors, Slider} from "@mui/material";
+import {Slider} from "@mui/material";
 import theme from "./theme.tsx";
 // https://localhost:3000/?delta=1000&eid=146&tab=3&f=-1
+// @ts-ignore
 function arrowTransform({
                             points
                         }: {
@@ -86,16 +87,17 @@ export function ChartView(){
             // useEffect(() => {
 
             const svgDefs = svgElement.append("defs").attr("id", "defs");
-            const svgLinks = svgElement.append("g").attr("id", "links");
+            // const svgLinks = svgElement.append("g").attr("id", "links");
             const svgHLinks = svgElement.append("g").attr("id", "hlinks");
             const svgNodes = svgElement.append("g").attr("id", "nodes");
-            const svgArrows = svgElement.append("g").attr("id", "arrows");
-            function handleZoom(e) {
+            // const svgArrows = svgElement.append("g").attr("id", "arrows");
+            function handleZoom(e:any) {
                 svgElement
                     .attr('transform', e.transform);
             }
 
             let zoom = d3.zoom().on('zoom', handleZoom);
+            // @ts-ignore
             svgRoot.call(zoom);
 // create our builder and turn the raw data into a graph
 //             const builder = d3dag.graphStratify();
@@ -174,6 +176,7 @@ export function ChartView(){
                                 .attr("text-anchor", "middle")
                                 .attr("alignment-baseline", "middle")
                                 .attr("fill", "white");
+                            // @ts-ignore
                             enter.transition(trans).attr("opacity", 1);
                         })
                 );
@@ -220,7 +223,10 @@ export function ChartView(){
                             return line([[p1.x, p1.y], [p2.x, p2.y]]);
                         })
                         .attr("opacity", 0)
-                        .call((enter) => enter.transition(trans2).attr("opacity", 1));;
+                        .call((enter) =>
+                            // @ts-ignore
+                            enter.transition(trans2)
+                                .attr("opacity", 1));
                 });
             svgHLinks.selectAll(".vlink")
                 .data(filter(graph.nodes(), n => n.data.p1 !== 0 && n.data.p2 !== 0))
@@ -240,7 +246,10 @@ export function ChartView(){
                             return `${linestep([parentsMid, mid])} ${linestep2([mid, [n.x, n.y]])} `;
                         })
                         .attr("opacity", 0)
-                        .call((enter) => enter.transition(trans2).attr("opacity", 1));;
+                        .call((enter) =>
+                            // @ts-ignore
+                            enter.transition(trans2)
+                                .attr("opacity", 1));
                 });
             // const arrowSize = 80;
             // const arrowLen = Math.sqrt((4 * arrowSize) / Math.sqrt(3));
