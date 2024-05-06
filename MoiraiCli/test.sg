@@ -1,6 +1,0 @@
-entity System {}
-
-@start
-event create_solar_system {
-    create $s: ( System, "Solar System")
-}
