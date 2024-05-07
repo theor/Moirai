@@ -1,0 +1,95 @@
+entity Object {
+    prop system: System
+    prop dead: bool
+    prop kind: Kind
+    prop distance_to_sun: number
+}
+@display Object ('Objects', system = $self)
+entity System {
+
+}
+
+entity Person {
+    prop birthplace: Object
+    prop location: Object
+}
+
+enum Kind {
+    Asteroid,
+    Star,
+    Planet,
+    Satelite,
+}
+
+
+
+@start
+event create_time {
+    create Time $t: 'time'
+    set year = 0
+}
+@start
+event create_solar_system {
+    create System $s: 'Solar System'
+    create Object $p: 'Sun'
+    set kind = Kind.Star
+    set system = $s
+
+    create Object $p: ('Mercury')
+    set kind = Kind.Planet
+    set distance_to_sun = 57
+    set system = $s
+    create Object $p: ('Venus')
+    set kind = Kind.Planet
+    set distance_to_sun = 108
+    set system = $s
+    create Object $p: ('Earth')
+    set kind = Kind.Planet
+    set distance_to_sun = 149
+    set system = $s
+    create Object $p: ('Mars')
+    set kind = Kind.Planet
+    set distance_to_sun = 227
+    set system = $s
+    create Object $p: ('Jupiter')
+    set kind = Kind.Planet
+    set distance_to_sun = 778
+    set system = $s
+    create Object $p: ('Saturn')
+    set kind = Kind.Planet
+    set distance_to_sun = 1433
+    set system = $s
+    create Object $p: ('Uranus')
+    set kind = Kind.Planet
+    set distance_to_sun = 2872
+    set system = $s
+    create Object $p: ('Neptune')
+    set kind = Kind.Planet
+    set distance_to_sun = 4495
+    set system = $s
+
+    create Object $p: ('Moon')
+    set kind = Kind.Satelite
+    set system = $s
+
+    record '{$s.name} created'
+}
+
+// @start
+// event star_dies {
+//     pick Object $sun: (kind = Kind.Star, dead = false)
+//     var $s: $sun.system
+//     each Object $p: (system = $s) {
+//         set $p.dead = true
+
+//     }
+// }
+
+@1 per 2 years
+event born {
+    create Person $p: ('{random(Name)}')
+    pick Object $o: (kind = Kind.Planet or kind = Kind.Satelite)
+    set $p.birthplace = $o
+    set $p.location = $o
+    record '{$p.name} was born on {$o.name}'
+}

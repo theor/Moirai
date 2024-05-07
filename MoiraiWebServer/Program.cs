@@ -1,72 +1,107 @@
 using System.Text.Json.Serialization;
+using CommandLine;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Moirai.Core;
 using MoiraiWebServer.Hubs;
 
-var builder = WebApplication.CreateBuilder(args);
+internal class Program
+{
+    public class Options
+    {
+        [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
+        public bool Verbose { get; set; }
+        
+        [Value(0, MetaName = "inputfile", HelpText = "The Moirai file to load")]
+        public string InputFile { get; set; }
+    }
+    internal static Options OptionsInstance;
+    public static void Main(string[] args)
+    {
+        var parseResult = CommandLine.Parser.Default.ParseArguments<Options>(args);
+
+        if (parseResult.Errors.Any())
+        {
+            Console.Error.WriteLine("Error parsing command line arguments:\n" + string.Join("\n", parseResult.Errors));
+            return;
+        }
+
+        var options = parseResult.Value;
+        while(string.IsNullOrEmpty(options.InputFile) || !File.Exists(options.InputFile))
+        {
+            Console.Error.WriteLine((!string.IsNullOrEmpty(options.InputFile)
+                ? "File does not exist."
+                : "") +  "Specify an input file:");
+            options.InputFile = (Console.ReadLine() ?? "").Replace("\\", "/");
+        }
+        Console.WriteLine($"Input file: {options.InputFile}");
+        OptionsInstance = options;
+        
+        var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
 // builder.Services.AddSpaStaticFiles(x => x.RootPath=".");
-builder.Services.AddSignalR(hubOptions => {
+        builder.Services.AddSignalR(hubOptions => {
         
-    hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(15);
-    hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(15);
-    hubOptions.EnableDetailedErrors = true;})
-    .AddJsonProtocol(options =>
-    {
-        options.PayloadSerializerOptions.IncludeFields = true;
-        options.PayloadSerializerOptions.IgnoreReadOnlyProperties = true; // WriteIndented = true,
-        options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        options.PayloadSerializerOptions.Converters.Add(new EntityIdConverter());
-        options.PayloadSerializerOptions.Converters.Add(new PropertyIdConverter());
-        options.PayloadSerializerOptions.Converters.Add(new EntityTypeIdConverter());
-        options.PayloadSerializerOptions.Converters.Add(new ValueTypeConverter());
-    });
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("CorsAllowAll",
-        builder => builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()
-            .AllowCredentials());               // allow credentials );  
-});
+                hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(15);
+                hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(15);
+                hubOptions.EnableDetailedErrors = true;})
+            .AddJsonProtocol(options =>
+            {
+                options.PayloadSerializerOptions.IncludeFields = true;
+                options.PayloadSerializerOptions.IgnoreReadOnlyProperties = true; // WriteIndented = true,
+                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.PayloadSerializerOptions.Converters.Add(new EntityIdConverter());
+                options.PayloadSerializerOptions.Converters.Add(new PropertyIdConverter());
+                options.PayloadSerializerOptions.Converters.Add(new EntityTypeIdConverter());
+                options.PayloadSerializerOptions.Converters.Add(new ValueTypeConverter());
+            });
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("CorsAllowAll",
+                builder => builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()
+                    .AllowCredentials());               // allow credentials );  
+        });
 
-var app = builder.Build();
+        var app = builder.Build();
 
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    // app.UseSwaggerUI();
-}
-else
-{
-    app.UseHsts();
-}
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            // app.UseSwaggerUI();
+        }
+        else
+        {
+            app.UseHsts();
+        }
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
 // app.UseSpaStaticFiles();
-app.UseRouting();
+        app.UseRouting();
 // app.MapHub doesn' t intercept calls and let them go and fail in the spa middleware ??
 #pragma warning disable ASP0014
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapHub<ChatHub>("/hub");
-    endpoints.MapFallbackToFile("index.html");
-});
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapHub<ChatHub>("/hub");
+            // endpoints.MapFallbackToFile("index.html");
+        });
 #pragma warning restore ASP0014
-if (app.Environment.IsDevelopment())
-    app.UseSpa(spaBuilder =>
-    {
-        spaBuilder.Options.SourcePath = "ClientApp";
-        spaBuilder.Options.StartupTimeout = TimeSpan.FromSeconds(5);
+        if (app.Environment.IsDevelopment())
+            app.UseSpa(spaBuilder =>
+            {
+                spaBuilder.Options.SourcePath = "ClientApp";
+                spaBuilder.Options.StartupTimeout = TimeSpan.FromSeconds(5);
 
-        spaBuilder.Options.DevServerPort = 3000;
-        // relies on the npm script printing 'Starting the development server' so npm dev echoes that before starting vite
-            spaBuilder.UseReactDevelopmentServer("dev");
+                spaBuilder.Options.DevServerPort = 3000;
+                // relies on the npm script printing 'Starting the development server' so npm dev echoes that before starting vite
+                spaBuilder.UseReactDevelopmentServer("dev");
       
-    });
-app.Run();
+            });
+        app.Run();
+    }
+}

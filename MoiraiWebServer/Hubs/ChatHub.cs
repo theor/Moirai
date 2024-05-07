@@ -33,7 +33,7 @@ public class ChatHub : Hub
         _mutex.Wait();
         try
         {
-            _db = StoryParser.Parse(File.ReadAllText(@"C:\Users\theor\Moirai\MoiraiCli\w.sg"), out var errors);
+            _db = StoryParser.Parse(File.ReadAllText(Program.OptionsInstance.InputFile), out var errors);
             _db.History = new();
             _db.Init();
             _reset = true;
