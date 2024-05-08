@@ -13,7 +13,8 @@
     <ItemGroup>
         <Antlr4 Include="moirai_lexer.g4"/>
         <Antlr4 Include="MoiraiParser.g4">
-            <Package>Moirai.Parser</Package>
+            <Listener>true</Listener>
+            <Visitor>true</Visitor>
             <Package>Moirai.Parser</Package>
         </Antlr4>
     </ItemGroup>

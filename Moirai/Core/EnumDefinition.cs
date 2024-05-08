@@ -39,4 +39,9 @@ public readonly struct EnumDefinition
         var i = rnd.GenerateNext((uint)Values.Count);
         return new PropertyValue(ValueType, i+1 );
     }
+
+    public static EnumDefinition FromEnum<T>(EnumDefinitionId enumDefinitionId) where T: struct, Enum
+    {
+        return new EnumDefinition(enumDefinitionId, typeof(T).Name, Enum.GetNames<T>().ToList());
+    }
 }

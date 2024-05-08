@@ -97,7 +97,7 @@ event create_time {{
     create Time $t: 'time'
     create Person $p: 'counter'
 }}
-@{count} every {years} year
+@frequency({count}, Frequency.EveryXYear, {years})
 event char_dies {{
     set #Person.count = #Person.count + 1
 }}";
@@ -116,7 +116,7 @@ event char_dies {{
 entity Person {
     prop alive: bool
 }
-@1 per 2 years
+@frequency(1, Frequency.PerXYear, 2)
 event char_dies {
     pick Person $p: (alive = true)
     set $p.alive = false

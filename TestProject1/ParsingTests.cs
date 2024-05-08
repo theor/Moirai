@@ -10,8 +10,8 @@ public class ParsingTests : TestsBase
 {
 
     [Test]
-    [TestCase("../../../../MoiraiCli/w.sg")]
-    [TestCase("../../../../MoiraiCli/space.sg")]
+    [TestCase("../../../../MoiraiWebServer/wwwroot/w.sg")]
+    [TestCase("../../../../MoiraiWebServer/wwwroot/space.sg")]
     public void ParseWholeFile(string rpath)
     {
         var path = Path.GetFullPath(rpath);

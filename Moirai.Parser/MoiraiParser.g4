@@ -7,7 +7,8 @@ options {
 }
 r: (event|trigger|enum_definition|type_definition|LINE_BREAK)+ EOF;
 attribute: AT ID TYPE_ID PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE LINE_BREAK;
-filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
+// filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
+filter:AT attr=ID (PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE)? LINE_BREAK?;
 event: filter? EVENT  ID categories scope;
 categories: ID* ;
 trigger: TRIGGER ID categories scope;

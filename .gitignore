@@ -9,3 +9,4 @@ MoiraiCli/hello.db
 vscode-languageserver/client/serverCopy
 MoiraiCli/g.dot
 MoiraiWebServer/Client/node_modules
+MoiraiWebServer/Client/MoiraiWebClient/node_modules

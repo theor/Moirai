@@ -63,10 +63,9 @@ public class StoryPrinter
             case FilterAtStart:
                 return "@start";
             case FilterExactlyXEveryYYears filterExactlyXEveryYYears:
-                return $"@ {filterExactlyXEveryYYears.Count} every {filterExactlyXEveryYYears.Years} years";
+                return $"@frequency({filterExactlyXEveryYYears.Count}, {nameof(Database.Frequency)}.{Database.Frequency.EveryXYear}, {filterExactlyXEveryYYears.Years})";
             case FilterProbabilityXPerYears filterProbabilityXPerYears:
-                return
-                    $"@ {filterProbabilityXPerYears.Event.ExpectedOccurences} every {filterProbabilityXPerYears.Event.ExpectedInterval} years";
+                return $"@frequency({filterProbabilityXPerYears.Event.ExpectedOccurences}, {nameof(Database.Frequency)}.{Database.Frequency.PerXYear}, {filterProbabilityXPerYears.Event.ExpectedInterval})";
             default:
                 throw new ArgumentOutOfRangeException(nameof(actionFilter));
         }

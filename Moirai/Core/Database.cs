@@ -14,10 +14,21 @@ public class Database
 
     public static Database? Instance;
 
+    public enum Frequency
+    {
+        PerXYear,EveryXYear,
+    }
     public readonly List<EnumDefinition> Enums = new()
-        {default, new EnumDefinition(new EnumDefinitionId(1), "Name", EntityNames.Names)};
+        {default,
+            new EnumDefinition(new EnumDefinitionId(1), "Name", EntityNames.Names),
+            EnumDefinition.FromEnum<Frequency>(new EnumDefinitionId(2)),
+            // new EnumDefinition(new EnumDefinitionId(2), "Frequency", new List<string>{"Per","Every"}),
+            
+        };
 
-    public static readonly int BuiltinEnumCount = 2;
+    public EnumDefinition FrequencyEnumDefinition => Enums[2];
+
+    public static readonly int BuiltinEnumCount = 3;
     public readonly List<EntityType> Types;
     public readonly int BuiltinTypes;
 

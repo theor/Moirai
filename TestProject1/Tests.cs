@@ -939,7 +939,7 @@ event create_faction {
     {
         Run(@"
 entity Person {}
-@1 every 1 year
+@frequency(1, EveryXYear, 1)
 event youngs_grow {
     each Person $p: (type = Person){
         record ''
@@ -1070,7 +1070,7 @@ event init {
     create Time $t: 'time'
     set $t.year = 345
 }
-@4 per 1 years
+@frequency(4, PerXYear, 1)
 event born {
     create Person $p
 }
