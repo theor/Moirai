@@ -6,18 +6,20 @@ using Moirai.Parser;
 namespace TestProject1;
 
 public class ParsingTests : TestsBase
-
 {
-
+    static IEnumerable<string> GetFilePaths()
+    {
+        yield return "../../../../MoiraiWebServer/wwwroot/w.sg";
+        yield return "../../../../MoiraiWebServer/wwwroot/space.sg";
+    }
     [Test]
-    [TestCase("../../../../MoiraiWebServer/wwwroot/w.sg")]
-    [TestCase("../../../../MoiraiWebServer/wwwroot/space.sg")]
+    [TestCaseSource(nameof(GetFilePaths))]
     public void ParseWholeFile(string rpath)
     {
         var path = Path.GetFullPath(rpath);
         Console.WriteLine(path);
         if(!File.Exists(path))
-            Assert.Inconclusive();
+            Assert.Inconclusive(path);
         var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
         Console.WriteLine("------------------");
         var record = db.Printer.Print();
@@ -27,11 +29,10 @@ public class ParsingTests : TestsBase
         Assert.AreEqual(0, errors2.Count, string.Join("\n", errors2));
         db.Init();
         db.Ctx.PassYears(100, true);
-        // db.Commit();
+        db.Commit();
     }
     [Test]
-    // [TestCase("../../../../MoiraiCli/w.sg")]
-    [TestCase("../../../../MoiraiCli/space.sg")]
+    [TestCaseSource(nameof(GetFilePaths))]
     public void ParseSpaceAwareFile(string rpath)
     {
         var path = Path.GetFullPath(rpath);

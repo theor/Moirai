@@ -526,7 +526,7 @@ event born_char {
         Assert.IsTrue(propId.IsValid);
         db.RunAction(action.Name);
         db.Printer.PrintDb();
-        // db.Commit();
+        db.Commit();
         Assert.AreEqual(1, db.Entities.Count());
     }
 
@@ -555,7 +555,7 @@ event r {
         // db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[2]);
         db.Printer.PrintDb();
-        // db.Commit();
+        db.Commit();
         Assert.AreEqual(10, db.Entities.Count());
         Assert.AreEqual(2, db.Entities.Last().GetProperty(db.GetPropertyId("Person","alive")).IntValue);
     }
@@ -1211,7 +1211,7 @@ event pass_15_years {
         db.RunAction(db.Actions[0]);
         db.RunAction(db.Actions[1]);
         db.Printer.PrintDb();
-        // db.Commit();
+        db.Commit();
         Assert.AreEqual(1000, db.Entities.Last().GetProperty(db.GetPropertyId("Person","birthdate")).IntValue);
         db.RunAction(db.Actions[2]);
         db.RunAction(db.Actions[2]);
