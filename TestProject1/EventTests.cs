@@ -1,4 +1,6 @@
-﻿namespace TestProject1;
+﻿using Moirai.Parser;
+
+namespace TestProject1;
 
 public class EventTests : TestsBase
 {

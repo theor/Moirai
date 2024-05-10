@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Moirai.Core;
+using Moirai.Parser;
 
 namespace MoiraiWebServer.Hubs;
 
@@ -194,7 +195,7 @@ public class ChatHub : Hub
             string? sql = null;
             try
             {
-                StoryParser.AstVisitor v = new StoryParser.AstVisitor(_db);
+                StoryParser.AstVisitor v = new StoryParser.AstVisitor(_db, null!);
                 var e = StoryParser.ParseExpr(v, q, 0, 0, out var errors);
                 if (errors.Any())
                     return new QueryResult { Errors = errors.Select(e => e.ToString()).ToArray() };

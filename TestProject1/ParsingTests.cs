@@ -65,7 +65,7 @@ public class ParsingTests : TestsBase
     {
         public List<StoryParser.Error> Errors { get; } = new();
         public MoiraiParser Parser { get; set; }
-        public (int offsetLine, int offsetColumn) offset { get; set; }
+        public (int offsetLine, int offsetColumn) Offset { get; set; }
         public moirai_lexer Lexer { get; set; }
         public CodePointCharStream Stream { get; set; }
 

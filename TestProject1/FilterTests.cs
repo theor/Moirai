@@ -23,7 +23,7 @@ event e {
         db.RunAction("e");
         db.Printer.PrintMarked();
         db.Ctx.GetLastMarked(db.Entities.Last().Id, db.Actions.Last().Id, out var year);
-        Assert.That(year, Is.EqualTo(10l));
+        Assert.That(year, Is.EqualTo(10L));
     }
     [Test]
     public void MarkCurrentEventAndQuery()

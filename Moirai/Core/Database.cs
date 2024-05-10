@@ -242,7 +242,7 @@ WHERE default__id = $id;";
     }
 
 
-    public EntityType GetEntityType(PropertyValue.ValueType type)
+    public EntityType? GetEntityType(PropertyValue.ValueType type)
     {
         if (type.BaseType != PropertyValue.ValueBaseType.EntityType && type.BaseType != PropertyValue.ValueBaseType.Ref)
             return default;

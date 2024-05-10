@@ -1,31 +1,8 @@
-﻿using System.Reflection;
-using Antlr4.Runtime;
+﻿using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
-using Moirai.Parser;
 
-// public class InstructionFunctionDescriptor : IFunctionDescriptor
-// {
-//     public string FuncName { get; }
-//     private readonly Func<StoryParser.AstVisitor,CallContext, IInstructionCall> _parse;
-//
-//     public InstructionFunctionDescriptor(string funcName, Func<StoryParser.AstVisitor, CallContext, IInstructionCall> parse)
-//     {
-//         FuncName = funcName;
-//         _parse = parse;
-//     }
-//
-//     public IInstruction ParseInstruction(StoryParser.AstVisitor parser, CallContext args)
-//     {
-//         var c =  _parse(parser, args);
-//         c.FunctionDescriptor = this;
-//         return c;
-//     }
-//
-//     public string Print(StoryPrinter printer, IValueCall call)
-//     {
-//         return $"{FuncName} {string.Join(", ", call.GetArgs().Select(a => printer.Print(a)))}";
-//     }
-// }
+namespace Moirai.Parser;
+
 public class FunctionDescriptor : IFunctionDescriptor
 {
     public record ParseContext(StoryParser.AstVisitor Visitor, ParserRuleContext CallContext)
@@ -98,7 +75,7 @@ public class FunctionDescriptor : IFunctionDescriptor
             else
                 t = ((MoiraiParser.Raw_callContext) CallContext).TYPE_ID() ??
                     ((MoiraiParser.Raw_callContext) CallContext).ID(1);
-            EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(t))?.Id ?? default;
+            EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(t))?.Id ?? EntityTypeId.Null;
             if (type == EntityTypeId.Null)
             {
                 Visitor.AddError(StoryParser.ErrorCode.UnknownEntityType, GetArgumentToken(0), $"'{type}'");
@@ -109,7 +86,7 @@ public class FunctionDescriptor : IFunctionDescriptor
 
         public string GetText(RuleContext expr) => Visitor.Parser.TokenStream.GetText(expr);
 
-        public IInstruction[]? ParseScope(bool autoCleanupVariableDeclarations)
+        public IInstruction[] ParseScope(bool autoCleanupVariableDeclarations)
         {
             if (CallContext is MoiraiParser.CallContext c)
                 return Visitor.ParseScope(c.scope(), autoCleanupVariableDeclarations, out _);
@@ -190,19 +167,19 @@ public class FunctionDescriptor : IFunctionDescriptor
             case (false, _):
                 return $"{FuncName} ({string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))})";
             case (true, 0):
-                return $"{FuncName} {printer.Print(call.VariableIndex.Value.Item2)} ${call.VariableIndex.Value.Item1}";
+                return $"{FuncName} {printer.Print(call.VariableIndex!.Value.Item2)} ${call.VariableIndex.Value.Item1}";
             case (true, _):
                 return
-                    $"{FuncName} {printer.Print(call.VariableIndex.Value.Item2)} ${call.VariableIndex.Value.Item1}: ({string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))})";
+                    $"{FuncName} {printer.Print(call.VariableIndex!.Value.Item2)} ${call.VariableIndex.Value.Item1}: ({string.Join(", ", call.GetArgs(printer).Select(a => printer.Print(a)))})";
         }
     }
 }
 
 public static class StoryParser
 {
-    private static readonly FunctionDescriptor[] Functions = new FunctionDescriptor[]
-    {
-        new("create", true, (FunctionDescriptor.ParseContext ctx) =>
+    private static readonly FunctionDescriptor[] Functions =
+    [
+        new("create", true, ctx =>
         {
             return (
                 new CreateEntity(ctx.ParseVariable(out var etid, out _), etid,
@@ -228,11 +205,11 @@ public static class StoryParser
             }),
 
         new("assert", false, ctx =>
-            (new AssertInstr(ctx.ParseArgument(0)!, ctx.GetText(ctx.GetArgumentToken(0))),
-                PropertyValue.ValueType.Null)!),
+            (new AssertInstr(ctx.ParseArgument(0), ctx.GetText(ctx.GetArgumentToken(0))),
+                PropertyValue.ValueType.Null)),
         new("assert_eq", false, ctx =>
             (new AssertInstr(
-                    ctx.ParseArgument(0)!,
+                    ctx.ParseArgument(0),
                     ctx.ParseArgument(1),
                     $"{ctx.GetText(ctx.GetArgumentToken(0))} = {ctx.GetText(ctx.GetArgumentToken(1))}"),
                 PropertyValue.ValueType.Null)),
@@ -240,13 +217,13 @@ public static class StoryParser
         {
             ctx.ExpectArgcount(1);
             var e = ctx.ParseArgument(0);
-            return (new Mark(e, ctx.Visitor.CurrentEventTrigger.Id), PropertyValue.ValueType.Null);
+            return (new Mark(e, ctx.Visitor.CurrentEventTrigger!.Id), PropertyValue.ValueType.Null);
         }),
         new("since_last", false, ctx =>
         {
             ctx.ExpectArgcount(1);
             var e = ctx.ParseArgument(0);
-            return (new SinceLast(e, ctx.Visitor.CurrentEventTrigger.Id), PropertyValue.TypeNumber);
+            return (new SinceLast(e, ctx.Visitor.CurrentEventTrigger!.Id), PropertyValue.TypeNumber);
         }),
         new("record", false, ctx =>
         {
@@ -270,6 +247,7 @@ public static class StoryParser
             if (eventName == null)
             {
                 ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, "event name");
+                return (null!, PropertyValue.ValueType.Null);
             }
 
             var eventIndex = ctx.Visitor.Database.Actions.FindIndex(r => r.Name == eventName);
@@ -282,10 +260,9 @@ public static class StoryParser
             if (ctx.ArgCount > 1)
             {
                 var countValue = ctx.ParseArgument(1);
-                if (countValue is Literal l && l is Literal
-                    {
-                        Value: {Type: {BaseType: PropertyValue.ValueBaseType.Number}}
-                    })
+                if (countValue is Literal {
+                        Value.Type.BaseType: PropertyValue.ValueBaseType.Number
+                    } l)
                 {
                     count = l.Value.IntValue;
                 }
@@ -339,13 +316,13 @@ public static class StoryParser
             ctx => (
                 new DebugPrint(Enumerable.Repeat((object?) null, ctx.ArgCount).Select((_, i) => ctx.ParseArgument(i))),
                 PropertyValue.ValueType.Null))
-    };
+    ];
 
     public interface IVisitor
     {
         List<Error> Errors { get; }
         MoiraiParser Parser { get; set; }
-        (int offsetLine, int offsetColumn) offset { get; set; }
+        (int offsetLine, int offsetColumn) Offset { get; set; }
     }
 
     public enum ErrorCode
@@ -361,7 +338,7 @@ public static class StoryParser
         DuplicateVariableDefinition,
         MissingEachScope,
         UnknownEnum,
-        TypeNameMustStartWithUpperCase,
+        TypenameMustStartWithUpperCase,
         VariableNotDeclared,
         NullEffect,
         UnknownInstruction,
@@ -452,19 +429,19 @@ public static class StoryParser
     public static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn,
         out List<Error> errors)
     {
-        var prevOffset = visitor.offset;
+        var prevOffset = visitor.Offset;
         SetupParser(s, out var parser, visitor, (offsetLine, offsetColumn));
         var r = parser.expr();
         var propertyPath = visitor.ParseExpr(r);
         errors = visitor.Errors;
-        visitor.offset = prevOffset;
+        visitor.Offset = prevOffset;
         return propertyPath;
     }
 
     public static Database Parse(string s, out List<Error> errors)
     {
         var db = new Database();
-        var visitor = new AstVisitor(db);
+        var visitor = new AstVisitor(db, null!);
         SetupParser(s, out var parser, visitor);
         var r = parser.r();
         r.Accept(visitor);
@@ -480,7 +457,7 @@ public static class StoryParser
         var tokens = /*mergeChannels ? new BufferedTokenStream(lexer) :*/ new CommonTokenStream(lexer);
         parser = new MoiraiParser(tokens);
         visitor.Parser = parser;
-        visitor.offset = offset ?? (0, 0);
+        visitor.Offset = offset ?? (0, 0);
         var listener = new Listener(visitor.Errors, offset);
         lexer.AddErrorListener(listener);
         parser.AddErrorListener(listener);
@@ -500,7 +477,7 @@ public static class StoryParser
             // public static IEqualityComparer<VariableDeclaration> NameComparer { get; } = new NameEqualityComparer();
         }
 
-        public (int offsetLine, int offsetColumn) offset { get; set; }
+        public (int offsetLine, int offsetColumn) Offset { get; set; }
 
         private readonly List<VariableDeclaration> _variables = new();
         public List<Error> Errors { get; } = new();
@@ -511,9 +488,10 @@ public static class StoryParser
         public readonly Database Database;
 
         // private int _implicitVariableIndex = -1;
-        public AstVisitor(Database database)
+        public AstVisitor(Database database, MoiraiParser parser)
         {
             Database = database;
+            Parser = parser;
         }
 
         public override object? VisitR(MoiraiParser.RContext context)
@@ -529,7 +507,7 @@ public static class StoryParser
             foreach (var typeDefinitionContext in context.type_definition())
             {
                 if (typeDefinitionContext.TYPE_ID() == null)
-                    return AddError(ErrorCode.TypeNameMustStartWithUpperCase,
+                    return AddError(ErrorCode.TypenameMustStartWithUpperCase,
                         typeDefinitionContext,
                         typeDefinitionContext.GetText());
 
@@ -561,7 +539,7 @@ public static class StoryParser
                 var id = attr.ID();
                 if (id.GetText() != "display")
                 {
-                    AddError(ErrorCode.UnknownAttribute, id, id?.GetText() ?? "??");
+                    AddError(ErrorCode.UnknownAttribute, id, id.GetText() ?? "??");
                     continue;
                 }
 
@@ -580,8 +558,8 @@ public static class StoryParser
                 {
                     DeclareVar("$self", tid.RefType, null, out var varIndex);
                     DeclareVar("$other", refReferencedType, null, out var otherVarIndex);
-                    var expr = ParseExpr(attr.expr(1));
-                    InterpolatedString itemDisplay = null;
+                    var expr = ParseExpr(attr.expr(1))!;
+                    InterpolatedString? itemDisplay = null;
                     if (attr.expr(2)?.value()?.@string() != null)
                         itemDisplay = ParseInterpolatedString(attr.expr(2).value().@string());
                     Display d = new Display(Database.GetEntityType(refReferencedType), varIndex, otherVarIndex,
@@ -619,7 +597,7 @@ public static class StoryParser
 
         public override object? VisitProp_definition(MoiraiParser.Prop_definitionContext context)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public PropertyValue.ValueType ParseType(ITerminalNode id)
@@ -817,7 +795,7 @@ public static class StoryParser
             return new SetProperty(default, null, false);
         }
 
-        private bool _parsingMatchCase = false;
+        private bool _parsingMatchCase;
 
         private IValue ParseMatch(MoiraiParser.MatchContext match, out PropertyValue.ValueType valueType)
         {
@@ -855,7 +833,7 @@ public static class StoryParser
 
                 using var _ = new VariableDeclarationScope(this, true);
                 var instrs = caseCtx.scope() == null
-                    ? new IInstruction[] {ParseEffect(caseCtx.effect(), out valueType)}
+                    ? new[] {ParseEffect(caseCtx.effect(), out valueType)}
                     : ParseScope(caseCtx.scope(), false, out valueType);
                 if (weight)
                 {
@@ -868,7 +846,7 @@ public static class StoryParser
                     }
                     else
                     {
-                        w = (int) ((Literal) caseValues[0]).Value.IntValue;
+                        w = ((Literal) caseValues[0]).Value.IntValue;
                         if (w <= 0)
                             AddError(ErrorCode.MatchNullWeight, caseCtx.value(0), caseCtx.value(0).GetText());
                         accWeight += w;
@@ -907,12 +885,12 @@ public static class StoryParser
 
         public override object? VisitWhen(MoiraiParser.WhenContext context)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public override object? VisitSet(MoiraiParser.SetContext context)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
 
             return null;
         }
@@ -1054,20 +1032,20 @@ public static class StoryParser
 
             if (valueContext.enum_value() != null)
             {
-                    var enumType = valueContext.enum_value().TYPE_ID(0);
-                    if (enumType.GetText() != typeof(T).Name)
-                    {
-                        val = default;
-                        AddError(ErrorCode.MismatchedAssignmentTypes, enumType,
-                            "Expected an enum of type " + typeof(T).Name);
-                        return false;
-                    }
-                    enumValue = valueContext.enum_value().TYPE_ID(1);
+                var enumType = valueContext.enum_value().TYPE_ID(0);
+                if (enumType.GetText() != typeof(T).Name)
+                {
+                    val = default;
+                    AddError(ErrorCode.MismatchedAssignmentTypes, enumType,
+                        "Expected an enum of type " + typeof(T).Name);
+                    return false;
+                }
+                enumValue = valueContext.enum_value().TYPE_ID(1);
             }
             else
                 enumValue = valueContext.TYPE_ID();
 
-            return Enum.TryParse<T>(enumValue.GetText(), out val);
+            return Enum.TryParse(enumValue.GetText(), out val);
         }
 
         private bool ParseEnum(out PropertyValue.ValueType type, MoiraiParser.Enum_valueContext? enumValueContext,
@@ -1350,30 +1328,30 @@ public static class StoryParser
 
         public object AddError(ErrorCode code, ParserRuleContext loc, string msg)
         {
-            Errors.Add(new Error(code, loc, Parser.TokenStream.GetText(loc) + ": " + msg, offset));
+            Errors.Add(new Error(code, loc, Parser.TokenStream.GetText(loc) + ": " + msg, Offset));
             // to avoid warnings in a case where the parsing is already compromised
             return null!;
         }
 
         public object? AddError(ErrorCode code, ITerminalNode loc, string msg)
         {
-            Errors.Add(new Error(code, loc, msg, offset));
+            Errors.Add(new Error(code, loc, msg, Offset));
             return null;
         }
 
         public override object? VisitCall(MoiraiParser.CallContext context)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public override object? VisitExpr(MoiraiParser.ExprContext context)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
         public override object? VisitPath(MoiraiParser.PathContext context)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 
 
