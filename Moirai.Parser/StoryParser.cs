@@ -86,13 +86,12 @@ public class FunctionDescriptor : IFunctionDescriptor
 
         public string GetText(RuleContext expr) => Visitor.Parser.TokenStream.GetText(expr);
 
-        public IInstruction[] ParseScope(bool autoCleanupVariableDeclarations)
+        public MoiraiParser.ScopeContext GetScopeContext()
         {
-            if (CallContext is MoiraiParser.CallContext c)
-                return Visitor.ParseScope(c.scope(), autoCleanupVariableDeclarations, out _);
-            else
-                return Visitor.ParseScope(((MoiraiParser.Raw_callContext) CallContext).scope(),
-                    autoCleanupVariableDeclarations, out _);
+            MoiraiParser.ScopeContext scopeContext = CallContext is MoiraiParser.CallContext c
+                ? c.scope()
+                : ((MoiraiParser.Raw_callContext)CallContext).scope();
+            return scopeContext;
         }
 
         public void ExpectArgcount(int i, bool isMaxCount = false)
@@ -189,10 +188,12 @@ public static class StoryParser
         new("each", true,
             ctx =>
             {
-                using var vs = new AstVisitor.VariableDeclarationScope(ctx.Visitor, true);
+                var scopeContext = ctx.GetScopeContext();
+                using var vs = new AstVisitor.VariableDeclarationScope(ctx.Visitor, true, scopeContext);
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
                 return (new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
-                        CallType.Each, ctx.ParseScope(false)),
+                        CallType.Each, ctx.Visitor.ParseScope(scopeContext,
+                            false, out _)),
                     PropertyValue.TypeTypedRef(etid));
             }),
         new("pick", true,
@@ -554,7 +555,7 @@ public static class StoryParser
                 if (!refReferencedType.IsRefType)
                     AddError(ErrorCode.UnknownEntityType, attr, "expected an Entity type");
 
-                using (new VariableDeclarationScope(this, true))
+                using (new VariableDeclarationScope(this, true, attr))
                 {
                     DeclareVar("$self", tid.RefType, null, out var varIndex);
                     DeclareVar("$other", refReferencedType, null, out var otherVarIndex);
@@ -632,9 +633,9 @@ public static class StoryParser
         public override object? VisitEvent(MoiraiParser.EventContext context)
         {
             string actionId = context.ID().GetText();
-            // bool isStartAction = context.AT() != null;
-            //Console.WriteLine("@ " + actionId);
-            _variables.Clear();
+            if (_variables.Count > 0)
+                throw new InvalidDataException("Remaining vars: " + _variables.Count);
+            using var _ = new VariableDeclarationScope(this, true, context.scope());
             IFilter? f = null;
             if (context.filter() != null)
             {
@@ -698,7 +699,7 @@ public static class StoryParser
             {
                 // if (effectContext.comment() != null)
                 //     continue;
-                var effect = ParseEffect(effectContext, out _);
+                var effect = ParseEffect(effectContext, out var _);
                 if (effect == null)
                 {
                     AddError(ErrorCode.NullEffect, effectContext, effectContext.GetText());
@@ -732,12 +733,12 @@ public static class StoryParser
         public override object? VisitTrigger(MoiraiParser.TriggerContext context)
         {
             string actionId = context.ID().GetText();
-            //Console.WriteLine("@ " + actionId);
             var categories = ParseCategories(context.categories());
             CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, categories);
-            _variables.Clear();
 
-            using var _ = new VariableDeclarationScope(this, true);
+            if (_variables.Count > 0)
+                throw new InvalidDataException("Remaining vars: " + _variables.Count);
+            using var _ = new VariableDeclarationScope(this, true, context.scope());
             if (context.scope().when_created() is { } createdContext)
             {
                 EntityType type = Database.GetEntityType(createdContext.TYPE_ID().GetText());
@@ -831,7 +832,7 @@ public static class StoryParser
                     _parsingMatchCase = false;
                 }
 
-                using var _ = new VariableDeclarationScope(this, true);
+                using var _ = new VariableDeclarationScope(this, true, caseCtx.scope());
                 var instrs = caseCtx.scope() == null
                     ? new[] {ParseEffect(caseCtx.effect(), out valueType)}
                     : ParseScope(caseCtx.scope(), false, out valueType);
@@ -1109,24 +1110,28 @@ public static class StoryParser
         {
             private readonly AstVisitor _astVisitor;
             private readonly bool _autoCleanup;
+            private readonly ParserRuleContext _scope;
             private readonly int _count;
 
-            public VariableDeclarationScope(AstVisitor astVisitor, bool autoCleanup)
+            public VariableDeclarationScope(AstVisitor astVisitor, bool autoCleanup, MoiraiParser.ScopeContext scope)
             {
                 _astVisitor = astVisitor;
                 _autoCleanup = autoCleanup;
+                _scope = scope;
+                _count = astVisitor._variables.Count;
+            }
+            public VariableDeclarationScope(AstVisitor astVisitor, bool autoCleanup, MoiraiParser.AttributeContext scope)
+            {
+                _astVisitor = astVisitor;
+                _autoCleanup = autoCleanup;
+                _scope = scope;
                 _count = astVisitor._variables.Count;
             }
 
             public void Dispose()
             {
                 if (_autoCleanup)
-                    Cleanup();
-            }
-
-            public void Cleanup()
-            {
-                _astVisitor._variables.RemoveRange(_count, _astVisitor._variables.Count - _count);
+                    _astVisitor._variables.RemoveRange(_count, _astVisitor._variables.Count - _count);
             }
         }
 
@@ -1159,7 +1164,7 @@ public static class StoryParser
         public IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext, bool autoCleanupVariableDeclarations,
             out PropertyValue.ValueType type)
         {
-            using var vs = new VariableDeclarationScope(this, autoCleanupVariableDeclarations);
+            using var vs = new VariableDeclarationScope(this, autoCleanupVariableDeclarations, scopeContext);
             // TODO 
             type = PropertyValue.ValueType.Null;
             if (scopeContext == null)

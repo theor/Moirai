@@ -46,7 +46,7 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
         private int IndentCount() => _indent * 4;
         public List<StoryParser.Error> Errors { get; } = new();
         public MoiraiParser Parser { get; set; }
-        public (int offsetLine, int offsetColumn) offset { get; set; }
+        public (int offsetLine, int offsetColumn) Offset { get; set; }
         protected override List<TextEdit> AggregateResult(IEnumerable<TextEdit> aggregate, IEnumerable<TextEdit> nextResult)
         {
             if (!(aggregate is List<TextEdit> l))

@@ -2,9 +2,11 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using IntervalTree;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Moirai.Parser;
 using Newtonsoft.Json.Linq;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -224,10 +226,10 @@ public class MoiraiCache {
     {
         if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
         {
-            var loc = doc.Locations.FirstOrDefault(x => x.Item1.Contains(requestPosition)).Item3;
-            if (loc != null)
+            var loc = doc.Locations.Query(requestPosition);
+            if (loc.Any())
                 return
-                    new LocationOrLocationLink(new Location{Range =  loc, Uri = requestTextDocument.Uri});
+                    new LocationOrLocationLink(new Location{Range =  loc.First().FullDefinition, Uri = requestTextDocument.Uri});
         }
         return default;
     }
@@ -243,17 +245,17 @@ public class MoiraiCache {
 
         return "";
     }
-    public Range? GetDefinitionRange(DocumentUri uri,Range locationRange)
-    {
-        if (_cache.TryGetValue(uri, out var doc))
-        {
-            var loc = doc.Locations.FirstOrDefault(x => x.Item1.Contains(locationRange)).Item2;
-            if (loc != null)
-                return loc;
-        }
-
-        return default;
-    }
+    // public Range? GetDefinitionRange(DocumentUri uri,Range locationRange)
+    // {
+    //     if (_cache.TryGetValue(uri, out var doc))
+    //     {
+    //         var loc = doc.Locations.FirstOrDefault(x => x.Item1.Contains(locationRange)).Item2;
+    //         if (loc != null)
+    //             return loc;
+    //     }
+    //
+    //     return default;
+    // }
 
     public void OnClose(DidCloseTextDocumentParams notification)
     {
@@ -275,9 +277,17 @@ internal class MoiraiDocument
     private string _content;
     public string Content => _content;
     public int Version;
+
+    public struct MoiraiSymbol
+    {
+        public Range Range;
+        public Range FullRange;
+        public string Name;
+    }
     public List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens { get; set; } = new();
     public List<StoryParser.Error> Errors = new();
-    public List<(Range, Range, Range)> Locations = new();
+    public List<(Range, Range, Range)> Locations2 = new();
+    public IntervalTree<Position, TokenVisitor.Definition> Locations = new();
     public SymbolInformationOrDocumentSymbolContainer? Symbols;
 
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
@@ -309,8 +319,7 @@ internal class MoiraiDocument
             Symbols = visitor.Symbols;
        
             var db = new Database();
-            var astVisitor = new StoryParser.AstVisitor(db);
-            astVisitor.Parser = parser;
+            var astVisitor = new StoryParser.AstVisitor(db, parser);
             r.Accept(astVisitor);
             Errors.AddRange(astVisitor.Errors);
         }
