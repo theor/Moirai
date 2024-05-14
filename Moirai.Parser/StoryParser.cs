@@ -465,14 +465,41 @@ public static class StoryParser
 
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
-        record struct VariableDeclaration(string Name, PropertyValue.ValueType Type)
+        public record struct VariableDeclaration(string Name, PropertyValue.ValueType Type, FileRange DeclarationRange)
         {
         }
 
-        record FilePosition(int Line, int Column)
+        public record struct FilePosition(int Line, int Column) : IComparable<FilePosition>
         {
+            public int CompareTo(FilePosition other)
+            {
+                var lineComparison = Line.CompareTo(other.Line);
+                if (lineComparison != 0) return lineComparison;
+                return Column.CompareTo(other.Column);
+            }
+
+            public static bool operator <(FilePosition left, FilePosition right)
+            {
+                return left.CompareTo(right) < 0;
+            }
+
+            public static bool operator >(FilePosition left, FilePosition right)
+            {
+                return left.CompareTo(right) > 0;
+            }
+
+            public static bool operator <=(FilePosition left, FilePosition right)
+            {
+                return left.CompareTo(right) <= 0;
+            }
+
+            public static bool operator >=(FilePosition left, FilePosition right)
+            {
+                return left.CompareTo(right) >= 0;
+            }
         }
-        record FileRange(FilePosition Start, FilePosition End)
+
+        public record FileRange(FilePosition Start, FilePosition End)
         {
             public static readonly FileRange Empty = new FileRange(new FilePosition(-1,-1), new FilePosition(-1,-1));
 
@@ -480,8 +507,20 @@ public static class StoryParser
                 new FilePosition(symbol.Stop.Line - 1, symbol.Stop.Column))
             {
             }
+            public FileRange(IToken symbol) : this(new FilePosition(symbol.Line - 1, symbol.Column),
+                new FilePosition(symbol.Line - 1, symbol.Column + symbol.Text.Length))
+            {
+            }
+
+            public bool Contains(FilePosition pos)
+            {
+                return Start.Line <= pos.Line && pos.Line <= End.Line &&
+                       (Start.Line != pos.Line || Start.Column <= pos.Column) &&
+                       (End.Line != pos.Line || End.Column >= pos.Column);
+            }
         }
-        class VariableScope(VariableScope? parent, FileRange range)
+
+        public class VariableScope(VariableScope? parent, FileRange range)
         {
             public readonly int ParentCount = parent == null ? 0 : parent.ParentCount + parent.Variables.Count;
             public readonly FileRange Range = range;
@@ -491,6 +530,21 @@ public static class StoryParser
             public int Count => ParentCount + Variables.Count;
             public VariableDeclaration this[int index] => index < ParentCount ? Parent![index] : Variables[index - ParentCount];
 
+            public bool GetDeclarationAndRange(int index, out VariableDeclaration decl, out FileRange range)
+            {
+                if (index == -1)
+                {
+                    decl = default;
+                    range = null;
+                    return false;
+                }
+
+                if (index < ParentCount)
+                    return Parent!.GetDeclarationAndRange(index, out decl, out range);
+                decl = Variables[index - ParentCount];
+                range = Range;
+                return true;
+            }
 
             public int GetVariableIndexByName(string name)
             {
@@ -507,8 +561,9 @@ public static class StoryParser
 
         public (int offsetLine, int offsetColumn) Offset { get; set; }
 
-        private readonly VariableScope _rootScope;
+        public readonly VariableScope RootScope;
         private VariableScope _current;
+        
         public List<Error> Errors { get; } = new();
 
         public MoiraiParser Parser { get; set; }
@@ -521,8 +576,8 @@ public static class StoryParser
         {
             Database = database;
             Parser = parser;
-            _rootScope = new(null, FileRange.Empty);
-            _current = _rootScope;
+            RootScope = new(null, FileRange.Empty);
+            _current = RootScope;
         }
 
         public override object? VisitR(MoiraiParser.RContext context)
@@ -587,8 +642,8 @@ public static class StoryParser
 
                 using (new VariableDeclarationScope(this, attr))
                 {
-                    DeclareVar("$self", tid.RefType, null, out var varIndex);
-                    DeclareVar("$other", refReferencedType, null, out var otherVarIndex);
+                    DeclareVar("$self", tid.RefType, id.Symbol, out var varIndex);
+                    DeclareVar("$other", refReferencedType, id.Symbol, out var otherVarIndex);
                     var expr = ParseExpr(attr.expr(1))!;
                     InterpolatedString? itemDisplay = null;
                     if (attr.expr(2)?.value()?.@string() != null)
@@ -772,7 +827,7 @@ public static class StoryParser
                     AddError(ErrorCode.UnknownPropertyType, createdContext,
                         createdContext.TYPE_ID()?.GetText() ?? createdContext.GetText());
 
-                DeclareVar("$new", type.RefType, null, out var _);
+                DeclareVar("$new", type.RefType, createdContext.WHEN_CREATED().Symbol, out var _);
                 CurrentEventTrigger.When = (EventTrigger.WhenType.Created, type.Id,
                     ParsePredicate(createdContext.expr()));
             }
@@ -783,8 +838,8 @@ public static class StoryParser
                     AddError(ErrorCode.UnknownPropertyType, whenContext, whenContext.TYPE_ID().GetText());
 
                 if (context.scope().when() != null)
-                    DeclareVar("$old", type.RefType, null, out var _);
-                DeclareVar("$new", type.RefType, null, out var _);
+                    DeclareVar("$old", type.RefType, whenContext.WHEN().Symbol, out var _);
+                DeclareVar("$new", type.RefType, whenContext.WHEN().Symbol, out var _);
                 CurrentEventTrigger.When = (EventTrigger.WhenType.Changed, type.Id, ParsePredicate(whenContext.expr()));
             }
 
@@ -1113,7 +1168,7 @@ public static class StoryParser
             return false;
         }
 
-        public bool DeclareVar(string variable, PropertyValue.ValueType type, IToken? contextStart, out int varIndex)
+        public bool DeclareVar(string variable, PropertyValue.ValueType type, IToken contextStart, out int varIndex)
         {
             // if ((varIndex = GetVariableIndexByName(variable)) != -1)
             // {
@@ -1122,7 +1177,7 @@ public static class StoryParser
             //     return true;
             // }
 
-            _current.Variables.Add(new VariableDeclaration(variable, type));
+            _current.Variables.Add(new VariableDeclaration(variable, type, new FileRange(contextStart)));
             varIndex = _current.Count - 1;
             return true;
         }

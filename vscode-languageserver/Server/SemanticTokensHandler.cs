@@ -10,6 +10,12 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
+public static class PositionRangeExt
+{
+    public static Position ToLspPosition(this StoryParser.AstVisitor.FilePosition p) => new(p.Line, p.Column);
+    public static StoryParser.AstVisitor.FilePosition ToParserPosition(this Position p) => new(p.Line, p.Character);
+    public static Range ToLspRange(this StoryParser.AstVisitor.FileRange r) => new(ToLspPosition(r.Start), ToLspPosition(r.End));
+}
 public class SemanticTokensHandler : SemanticTokensHandlerBase
 {
     private readonly ILogger _logger;
@@ -93,8 +99,56 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         {
         }
     }
+
+    class ScopedDeclarations(StoryParser.AstVisitor.VariableScope rootScope)
+    {
+        public bool FindDeclaration(IToken token, out StoryParser.AstVisitor.VariableDeclaration decl)
+        {
+            decl = default;
+            string text = token.Text;
+            Range tokenRange = GetRange(token);
+            StoryParser.AstVisitor.VariableScope? smallerContaining =
+                FindSmallerContainingScope(rootScope, tokenRange.Start.ToParserPosition());
+            if(smallerContaining == null)
+                return false;
+            
+            var idx = GetVariableIndex(smallerContaining, text, tokenRange.Start.ToParserPosition());
+            if (idx != -1)
+            {
+                if (smallerContaining.GetDeclarationAndRange(idx, out decl, out var fileRange))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static int GetVariableIndex(StoryParser.AstVisitor.VariableScope smallerContaining, string text,
+            StoryParser.AstVisitor.FilePosition pos)
+        {
+            return smallerContaining.Variables.FindLastIndex(v => v.Name == text && v.DeclarationRange.Start < pos);
+        }
+
+        private StoryParser.AstVisitor.VariableScope? FindSmallerContainingScope(
+            StoryParser.AstVisitor.VariableScope cur, StoryParser.AstVisitor.FilePosition pos)
+        {
+            if (cur.Parent != null && !cur.Range.Contains(pos))
+                return null;
+            foreach (var child in cur.Children)
+            {
+                var res = FindSmallerContainingScope(child, pos);
+                if (res != null)
+                    return res;
+            
+            }
+
+            return cur;
+        }
+    }
     private readonly ILogger _logger;
     private readonly DocumentUri _documentUri;
+    private readonly ScopedDeclarations _scopedDeclarations;
     public readonly List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens = new();
     public readonly Dictionary<string, Definition> Definitions = new();
     public readonly IntervalTree<Position, Definition> Locations = new();
@@ -124,10 +178,12 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         }
     }
 
-    public TokenVisitor(ILogger logger, DocumentUri documentUri)
+    public TokenVisitor(ILogger logger, DocumentUri documentUri,
+        StoryParser.AstVisitor.VariableScope rootScope)
     {
         _logger = logger;
         _documentUri = documentUri;
+        _scopedDeclarations = new(rootScope);
     }
 
     private void PushSymbol(IToken symbol, SymbolKind symbolKind)
@@ -516,12 +572,20 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         PushSemanticToken(context, SemanticTokenType.Decorator);
         return null;// base.VisitFilter(context);
     }
+
     public override object? VisitPath(MoiraiParser.PathContext context)
     {
         if (context.VAR_ID() != null)
         {
             PushSemanticToken(context.VAR_ID().Symbol, SemanticTokenType.Variable);
-            LinkLocation(context.VAR_ID());
+            // TODO GetVariableIndexByName recurses up, we need down starting from the root scope
+            if (_scopedDeclarations.FindDeclaration(context.VAR_ID().Symbol, out var decl))
+            {
+                var usageRange = GetRange(context.VAR_ID().Symbol);
+                Locations.Add(usageRange.Start, usageRange.End,
+                    new Definition(context.VAR_ID().Symbol.Text, GetRange(context.VAR_ID().Symbol), decl.DeclarationRange.ToLspRange()));
+            }
+            // LinkLocation(context.VAR_ID());
         }
         if (context.SINGLETON_ID() != null)
         {

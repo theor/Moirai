@@ -227,7 +227,7 @@ public class MoiraiCache {
         if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
         {
             var loc = doc.Locations.Query(requestPosition);
-            if (loc.Any())
+            if (loc?.Any() == true) 
                 return
                     new LocationOrLocationLink(new Location{Range =  loc.First().FullDefinition, Uri = requestTextDocument.Uri});
         }
@@ -308,20 +308,22 @@ internal class MoiraiDocument
     {
         try
         {
-            var visitor = new TokenVisitor( logger, DocumentUri);
+            var db = new Database();
+            var astVisitor = new StoryParser.AstVisitor(db, null!);
+            StoryParser.SetupParser(Content, out var parser, astVisitor);
         
-            StoryParser.SetupParser(Content, out var parser, visitor);
             var r = parser.r();
+            r.Accept(astVisitor);
+            
+            var visitor = new TokenVisitor( logger, DocumentUri, astVisitor.RootScope);
+            visitor.Parser = parser;
             r.Accept(visitor);
             Errors = visitor.Errors;
+            Errors.AddRange(astVisitor.Errors);
             SemanticTokens = visitor.SemanticTokens;
             Locations = visitor.Locations;
             Symbols = visitor.Symbols;
        
-            var db = new Database();
-            var astVisitor = new StoryParser.AstVisitor(db, parser);
-            r.Accept(astVisitor);
-            Errors.AddRange(astVisitor.Errors);
         }
         catch (Exception e)
         {
