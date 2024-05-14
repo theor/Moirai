@@ -112,14 +112,20 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             if(smallerContaining == null)
                 return false;
             
-            var idx = GetVariableIndex(smallerContaining, text, tokenRange.Start.ToParserPosition());
-            if (idx != -1)
+            while(smallerContaining != null)
             {
-                if (smallerContaining.GetDeclarationAndRange(idx, out decl, out var fileRange))
+                var idx = GetVariableIndex(smallerContaining, text, tokenRange.Start.ToParserPosition());
+                if (idx != -1)
                 {
-                    return true;
+                    if (smallerContaining.GetDeclarationAndRange(idx, out decl, out var fileRange))
+                    {
+                        return true;
+                    }
                 }
+
+                smallerContaining = smallerContaining.Parent;
             }
+            
 
             return false;
         }
@@ -150,11 +156,11 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     private readonly DocumentUri _documentUri;
     private readonly ScopedDeclarations _scopedDeclarations;
     public readonly List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens = new();
-    public readonly Dictionary<string, Definition> Definitions = new();
-    public readonly IntervalTree<Position, Definition> Locations = new();
-    public List<SymbolInformationOrDocumentSymbol> Symbols = new();
+    private readonly Dictionary<string, Definition> _definitions = new();
+    private readonly IntervalTree<Position, Definition> _locations;
+    public readonly List<SymbolInformationOrDocumentSymbol> Symbols = new();
     private string? _implicitTypeName;
-    private Dictionary<string, string> _variablesToTypenames = new();
+    private readonly Dictionary<string, string> _variablesToTypenames = new();
     public List<StoryParser.Error> Errors { get; } = new();
     public MoiraiParser Parser { get; set; }
     public (int offsetLine, int offsetColumn) Offset { get; set; }
@@ -179,11 +185,16 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     }
 
     public TokenVisitor(ILogger logger, DocumentUri documentUri,
-        StoryParser.AstVisitor.VariableScope rootScope)
+        StoryParser.AstVisitor.VariableScope rootScope, IntervalTree<Position, Definition> locations,
+        List<(Range range, SemanticTokenType type, string[] modifiers)> semanticTokens,
+        List<SymbolInformationOrDocumentSymbol> symbols)
     {
         _logger = logger;
         _documentUri = documentUri;
         _scopedDeclarations = new(rootScope);
+        _locations = locations;
+        SemanticTokens = semanticTokens;
+        Symbols = symbols;
     }
 
     private void PushSymbol(IToken symbol, SymbolKind symbolKind)
@@ -292,20 +303,20 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         foreach (var enumDefinitionContext in context.enum_definition())
         {
-            Definitions.Add( enumDefinitionContext.TYPE_ID(0).GetText(),  new Definition(enumDefinitionContext.TYPE_ID(0).Symbol, enumDefinitionContext));
+            _definitions.Add( enumDefinitionContext.TYPE_ID(0).GetText(),  new Definition(enumDefinitionContext.TYPE_ID(0).Symbol, enumDefinitionContext));
             foreach (var member in enumDefinitionContext.TYPE_ID().Skip(1))
             {
-                Definitions.Add($"{enumDefinitionContext.TYPE_ID(0).GetText()}.{member.GetText()}", new Definition(member.Symbol, enumDefinitionContext));
+                _definitions.Add($"{enumDefinitionContext.TYPE_ID(0).GetText()}.{member.GetText()}", new Definition(member.Symbol, enumDefinitionContext));
             } 
         }
         foreach (var typeDefinitionContext in context.type_definition())
         {
             PushSymbol(typeDefinitionContext.TYPE_ID().Symbol, SymbolKind.Class);
             var typeName = typeDefinitionContext.TYPE_ID().GetText();
-            Definitions.Add( typeName, new Definition(typeDefinitionContext.TYPE_ID().Symbol, typeDefinitionContext));
+            _definitions.Add( typeName, new Definition(typeDefinitionContext.TYPE_ID().Symbol, typeDefinitionContext));
             foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
             {
-                Definitions.Add(typeName + "__" + propDefinitionContext.ID(0).GetText(), new Definition(propDefinitionContext.ID(0).Symbol, propDefinitionContext));
+                _definitions.Add(typeName + "__" + propDefinitionContext.ID(0).GetText(), new Definition(propDefinitionContext.ID(0).Symbol, propDefinitionContext));
             }
         }
         // TODO visit props
@@ -406,17 +417,17 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         if (def != null)
         {
             var range = GetRange(s.Symbol);
-            Locations.Add(range.Start,range.End, def);
+            _locations.Add(range.Start,range.End, def);
         }
     }
 
     void LinkLocation(ITerminalNode s) => LinkLocation(s, out _);
     void LinkLocation(ITerminalNode s, out Definition? def)
     {
-        if (Definitions.TryGetValue(s.GetText(), out def))
+        if (_definitions.TryGetValue(s.GetText(), out def))
         {
             var range = GetRange(s.Symbol);
-            Locations.Add(range.Start,range.End, def);
+            _locations.Add(range.Start,range.End, def);
         }
     }
     public override object? VisitEnum_value(MoiraiParser.Enum_valueContext context)
@@ -582,7 +593,7 @@ class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             if (_scopedDeclarations.FindDeclaration(context.VAR_ID().Symbol, out var decl))
             {
                 var usageRange = GetRange(context.VAR_ID().Symbol);
-                Locations.Add(usageRange.Start, usageRange.End,
+                _locations.Add(usageRange.Start, usageRange.End,
                     new Definition(context.VAR_ID().Symbol.Text, GetRange(context.VAR_ID().Symbol), decl.DeclarationRange.ToLspRange()));
             }
             // LinkLocation(context.VAR_ID());

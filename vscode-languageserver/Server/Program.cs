@@ -288,7 +288,7 @@ internal class MoiraiDocument
     public List<StoryParser.Error> Errors = new();
     public List<(Range, Range, Range)> Locations2 = new();
     public IntervalTree<Position, TokenVisitor.Definition> Locations = new();
-    public SymbolInformationOrDocumentSymbolContainer? Symbols;
+    public SymbolInformationOrDocumentSymbolContainer Symbols = new();
 
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
     {
@@ -314,16 +314,15 @@ internal class MoiraiDocument
         
             var r = parser.r();
             r.Accept(astVisitor);
-            
-            var visitor = new TokenVisitor( logger, DocumentUri, astVisitor.RootScope);
+
+            List<SymbolInformationOrDocumentSymbol> symbols = new();
+            var visitor = new TokenVisitor(logger, DocumentUri, astVisitor.RootScope, Locations, SemanticTokens, symbols);
             visitor.Parser = parser;
             r.Accept(visitor);
             Errors = visitor.Errors;
             Errors.AddRange(astVisitor.Errors);
-            SemanticTokens = visitor.SemanticTokens;
-            Locations = visitor.Locations;
-            Symbols = visitor.Symbols;
-       
+            Symbols = symbols;
+
         }
         catch (Exception e)
         {
