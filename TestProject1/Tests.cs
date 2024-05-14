@@ -600,7 +600,7 @@ event char_dies {
     }
 
     [Test]
-    public void Each_ExplicitPRedicateVar()
+    public void Each_ExplicitPredicateVar()
     {
         var s = @"
 entity Person {

@@ -189,11 +189,10 @@ public static class StoryParser
             ctx =>
             {
                 var scopeContext = ctx.GetScopeContext();
-                using var vs = new AstVisitor.VariableDeclarationScope(ctx.Visitor, true, scopeContext);
+                using var vs = new AstVisitor.VariableDeclarationScope(ctx.Visitor, scopeContext);
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
                 return (new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
-                        CallType.Each, ctx.Visitor.ParseScope(scopeContext,
-                            false, out _)),
+                        CallType.Each, ctx.Visitor.ParseRawScope(scopeContext, out _)),
                     PropertyValue.TypeTypedRef(etid));
             }),
         new("pick", true,
@@ -466,21 +465,50 @@ public static class StoryParser
 
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
-        public record struct VariableDeclaration(string Name, PropertyValue.ValueType Type)
+        record struct VariableDeclaration(string Name, PropertyValue.ValueType Type)
         {
-            // private sealed class NameEqualityComparer : IEqualityComparer<VariableDeclaration>
-            // {
-            //     public bool Equals(VariableDeclaration x, VariableDeclaration y) => x.Name == y.Name;
-            //
-            //     public int GetHashCode(VariableDeclaration obj) => obj.Name.GetHashCode();
-            // }
-            //
-            // public static IEqualityComparer<VariableDeclaration> NameComparer { get; } = new NameEqualityComparer();
+        }
+
+        record FilePosition(int Line, int Column)
+        {
+        }
+        record FileRange(FilePosition Start, FilePosition End)
+        {
+            public static readonly FileRange Empty = new FileRange(new FilePosition(-1,-1), new FilePosition(-1,-1));
+
+            public FileRange(ParserRuleContext symbol) : this(new FilePosition(symbol.Start.Line - 1, symbol.Start.Column),
+                new FilePosition(symbol.Stop.Line - 1, symbol.Stop.Column))
+            {
+            }
+        }
+        class VariableScope(VariableScope? parent, FileRange range)
+        {
+            public readonly int ParentCount = parent == null ? 0 : parent.ParentCount + parent.Variables.Count;
+            public readonly FileRange Range = range;
+            public readonly VariableScope? Parent = parent;
+            public readonly List<VariableScope> Children = new();
+            public readonly List<VariableDeclaration> Variables = new();
+            public int Count => ParentCount + Variables.Count;
+            public VariableDeclaration this[int index] => index < ParentCount ? Parent![index] : Variables[index - ParentCount];
+
+
+            public int GetVariableIndexByName(string name)
+            {
+                var findLastIndex = Variables.FindLastIndex(v => v.Name == name);
+                if (findLastIndex == -1)
+                {
+                    if (Parent != null)
+                        return Parent.GetVariableIndexByName(name);
+                    return -1;
+                }
+                return findLastIndex + ParentCount;
+            }
         }
 
         public (int offsetLine, int offsetColumn) Offset { get; set; }
 
-        private readonly List<VariableDeclaration> _variables = new();
+        private readonly VariableScope _rootScope;
+        private VariableScope _current;
         public List<Error> Errors { get; } = new();
 
         public MoiraiParser Parser { get; set; }
@@ -493,6 +521,8 @@ public static class StoryParser
         {
             Database = database;
             Parser = parser;
+            _rootScope = new(null, FileRange.Empty);
+            _current = _rootScope;
         }
 
         public override object? VisitR(MoiraiParser.RContext context)
@@ -555,7 +585,7 @@ public static class StoryParser
                 if (!refReferencedType.IsRefType)
                     AddError(ErrorCode.UnknownEntityType, attr, "expected an Entity type");
 
-                using (new VariableDeclarationScope(this, true, attr))
+                using (new VariableDeclarationScope(this, attr))
                 {
                     DeclareVar("$self", tid.RefType, null, out var varIndex);
                     DeclareVar("$other", refReferencedType, null, out var otherVarIndex);
@@ -633,9 +663,7 @@ public static class StoryParser
         public override object? VisitEvent(MoiraiParser.EventContext context)
         {
             string actionId = context.ID().GetText();
-            if (_variables.Count > 0)
-                throw new InvalidDataException("Remaining vars: " + _variables.Count);
-            using var _ = new VariableDeclarationScope(this, true, context.scope());
+            using var _ = new VariableDeclarationScope(this, context.scope());
             IFilter? f = null;
             if (context.filter() != null)
             {
@@ -736,9 +764,7 @@ public static class StoryParser
             var categories = ParseCategories(context.categories());
             CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, categories);
 
-            if (_variables.Count > 0)
-                throw new InvalidDataException("Remaining vars: " + _variables.Count);
-            using var _ = new VariableDeclarationScope(this, true, context.scope());
+            using var _ = new VariableDeclarationScope(this, context.scope());
             if (context.scope().when_created() is { } createdContext)
             {
                 EntityType type = Database.GetEntityType(createdContext.TYPE_ID().GetText());
@@ -832,10 +858,10 @@ public static class StoryParser
                     _parsingMatchCase = false;
                 }
 
-                using var _ = new VariableDeclarationScope(this, true, caseCtx.scope());
+                using var _ = new VariableDeclarationScope(this, (ParserRuleContext)caseCtx.scope() ?? caseCtx.effect());
                 var instrs = caseCtx.scope() == null
                     ? new[] {ParseEffect(caseCtx.effect(), out valueType)}
-                    : ParseScope(caseCtx.scope(), false, out valueType);
+                    : ParseRawScope(caseCtx.scope(), out valueType);
                 if (weight)
                 {
                     int w;
@@ -867,8 +893,8 @@ public static class StoryParser
         private If ParseIf(MoiraiParser.IfContext @if, out PropertyValue.ValueType valueType)
         {
             var elseType = PropertyValue.ValueType.Null;
-            var iff = new If(ParseExpr(@if.cond), ParseScope(@if.then, true, out var ifType),
-                @if.@else == null ? Array.Empty<IInstruction>() : ParseScope(@if.@else, true, out elseType));
+            var iff = new If(ParseExpr(@if.cond), ParseScope(@if.then, out var ifType),
+                @if.@else == null ? Array.Empty<IInstruction>() : ParseScope(@if.@else, out elseType));
             valueType = @if.@else == null ? ifType : Cast(ifType, elseType);
             return iff;
         }
@@ -1087,11 +1113,6 @@ public static class StoryParser
             return false;
         }
 
-        private int GetVariableIndexByName(string name)
-        {
-            return _variables.FindLastIndex(v => v.Name == name);
-        }
-
         public bool DeclareVar(string variable, PropertyValue.ValueType type, IToken? contextStart, out int varIndex)
         {
             // if ((varIndex = GetVariableIndexByName(variable)) != -1)
@@ -1101,38 +1122,40 @@ public static class StoryParser
             //     return true;
             // }
 
-            _variables.Add(new VariableDeclaration(variable, type));
-            varIndex = _variables.Count - 1;
+            _current.Variables.Add(new VariableDeclaration(variable, type));
+            varIndex = _current.Count - 1;
             return true;
         }
 
         public struct VariableDeclarationScope : IDisposable
         {
             private readonly AstVisitor _astVisitor;
-            private readonly bool _autoCleanup;
             private readonly ParserRuleContext _scope;
-            private readonly int _count;
 
-            public VariableDeclarationScope(AstVisitor astVisitor, bool autoCleanup, MoiraiParser.ScopeContext scope)
+            public VariableDeclarationScope(AstVisitor astVisitor, ParserRuleContext scope)
             {
                 _astVisitor = astVisitor;
-                _autoCleanup = autoCleanup;
+                _astVisitor.PushScope(scope);
                 _scope = scope;
-                _count = astVisitor._variables.Count;
-            }
-            public VariableDeclarationScope(AstVisitor astVisitor, bool autoCleanup, MoiraiParser.AttributeContext scope)
-            {
-                _astVisitor = astVisitor;
-                _autoCleanup = autoCleanup;
-                _scope = scope;
-                _count = astVisitor._variables.Count;
             }
 
             public void Dispose()
             {
-                if (_autoCleanup)
-                    _astVisitor._variables.RemoveRange(_count, _astVisitor._variables.Count - _count);
+                _astVisitor.PopScope();
             }
+        }
+
+        private void PushScope(ParserRuleContext scope)
+        {
+            VariableScope newScope = new(_current, new FileRange(scope));
+            _current.Children.Add(newScope);
+            _current = newScope;
+        }
+        private void PopScope()
+        {
+            if(_current.Parent == null)
+                throw new InvalidOperationException("Null parent scope");
+            _current = _current.Parent!;
         }
 
         private IValue ParseRawCall(MoiraiParser.Raw_callContext context, out PropertyValue.ValueType returnType)
@@ -1161,14 +1184,20 @@ public static class StoryParser
             return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
         }
 
-        public IInstruction[] ParseScope(MoiraiParser.ScopeContext scopeContext, bool autoCleanupVariableDeclarations,
+        public IInstruction[] ParseScope(MoiraiParser.ScopeContext? scopeContext, 
             out PropertyValue.ValueType type)
         {
-            using var vs = new VariableDeclarationScope(this, autoCleanupVariableDeclarations, scopeContext);
             // TODO 
             type = PropertyValue.ValueType.Null;
             if (scopeContext == null)
                 return Array.Empty<IInstruction>();
+            using var vs = new VariableDeclarationScope(this, scopeContext);
+
+            return ParseRawScope(scopeContext, out type);
+        }
+
+        public IInstruction[] ParseRawScope(MoiraiParser.ScopeContext scopeContext, out PropertyValue.ValueType type)
+        {
             var ttype = PropertyValue.ValueType.Null;
             var instructions = scopeContext.effect().Select(x => { return ParseEffect(x, out ttype); })
                 .Where(e => e != null).ToArray();
@@ -1408,7 +1437,7 @@ public static class StoryParser
             {
                 if (!int.TryParse(varId.GetText().Substring(1), out variableIndex))
                 {
-                    variableIndex = GetVariableIndexByName(varId.GetText());
+                    variableIndex = _current.GetVariableIndexByName(varId.GetText());
                     if (variableIndex == -1)
                     {
                         AddError(ErrorCode.VariableNotDeclared, context, varId.GetText());
@@ -1417,17 +1446,17 @@ public static class StoryParser
                     }
                 }
 
-                type = _variables[variableIndex].Type;
+                type = _current[variableIndex].Type;
                 if (context.ID().Length == 0)
                 {
                     return new PropertyPath(variableIndex);
                 }
             }
             else
-                variableIndex = _variables.Count - 1;
+                variableIndex = _current.Count - 1;
 
             {
-                EntityType? etype = Database.GetEntityType(_variables[variableIndex].Type);
+                EntityType? etype = Database.GetEntityType(_current[variableIndex].Type);
                 var path = new PropertyPath(variableIndex);
                 ParseProperty(ref path, context, 0, etype, out type);
                 return path;
