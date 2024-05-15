@@ -26,12 +26,21 @@ public class MyHoverHandler : HoverHandlerBase
     public override async Task<Hover?> Handle(HoverParams request, CancellationToken cancellationToken)
     {
         // _logger.LogCritical($"LINK {request.TextDocument} {request.Position}");
-        var res = _moiraiCache.GetLocations(request.TextDocument, request.Position);
+        var res = _moiraiCache.GetDefinition(request.TextDocument, request.Position);
         if(res != null)
-            return new Hover{ Range = res.Location.Range,
+        {
+            var markedStrings = new List<MarkedString>();
+            if(res.FullDefinition != null)
+                markedStrings.Add(new MarkedString("moirai",
+                _moiraiCache.GetRange(request.TextDocument.Uri, res.FullDefinition)));
+            res.GetHoverText(markedStrings);
+            return new Hover
+            {
+                Range = res.FullDefinition,
                 Contents = new MarkedStringsOrMarkupContent(
-                    new MarkedString("moirai", 
-                        _moiraiCache.GetRange(request.TextDocument.Uri, res.Location.Range)))};
+                    markedStrings)
+            };
+        }
         return null;
     }
 }

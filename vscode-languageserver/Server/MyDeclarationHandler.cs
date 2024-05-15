@@ -46,9 +46,13 @@ public class MyDeclarationHandler : DefinitionHandlerBase
     public override async Task<LocationOrLocationLinks?> Handle(DefinitionParams request, CancellationToken cancellationToken)
     {
         // _logger.LogCritical($"LINK {request.TextDocument} {request.Position}");
-        var res = _moiraiCache.GetLocations(request.TextDocument, request.Position);
-        if(res != null)
-            return new LocationOrLocationLinks( res);
+        var res = _moiraiCache.GetDefinition(request.TextDocument, request.Position);
+        if (res != null)
+        {
+                return new LocationOrLocationLinks(
+                    new LocationOrLocationLink(new Location{Range =  res.FullDefinition, Uri = request.TextDocument.Uri})
+                    );
+        }
         return null;
     }
 

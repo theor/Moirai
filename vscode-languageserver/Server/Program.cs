@@ -221,15 +221,14 @@ public class MoiraiCache {
             }
     }
 
-    public LocationOrLocationLink? GetLocations(TextDocumentIdentifier requestTextDocument,
+    public TokenVisitor.Definition? GetDefinition(TextDocumentIdentifier requestTextDocument,
         Position requestPosition)
     {
         if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
         {
             var loc = doc.Locations.Query(requestPosition);
-            if (loc?.Any() == true) 
-                return
-                    new LocationOrLocationLink(new Location{Range =  loc.First().FullDefinition, Uri = requestTextDocument.Uri});
+            return loc.FirstOrDefault();
+            
         }
         return default;
     }

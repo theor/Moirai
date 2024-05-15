@@ -119,12 +119,14 @@ public class FunctionDescriptor : IFunctionDescriptor
 
     public string FuncName { get; }
     public bool ExpectVariable { get; }
+    public string? Documentation { get; }
     private readonly ParseCallDelegate _parse;
 
-    public FunctionDescriptor(string funcName, bool expectVariable, ParseCallDelegate parse)
+    public FunctionDescriptor(string funcName, bool expectVariable, ParseCallDelegate parse, string? documentation = null)
     {
         FuncName = funcName;
         ExpectVariable = expectVariable;
+        Documentation = documentation;
         _parse = parse;
     }
 
@@ -176,6 +178,11 @@ public class FunctionDescriptor : IFunctionDescriptor
 
 public static class StoryParser
 {
+    public static bool GetFunctionDescriptor(string name, out FunctionDescriptor? descriptor)
+    {
+        descriptor = Functions.FirstOrDefault(f => f.FuncName == name);
+        return descriptor != null;
+    }
     private static readonly FunctionDescriptor[] Functions =
     [
         new("create", true, ctx =>
@@ -229,7 +236,8 @@ public static class StoryParser
         {
             var interpolatedString = (InterpolatedString) ctx.ParseArgument(0);
             return (new Record(interpolatedString), PropertyValue.ValueType.Null);
-        }),
+        },
+        "Records a string into the world history"),
         new("link", false, ctx =>
         {
             var linkValue = ctx.ParseArgument(0);
@@ -301,7 +309,8 @@ public static class StoryParser
 
             ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, ctx.GetText(ctx.CallContext));
             return (null!, PropertyValue.ValueType.Null);
-        }),
+        },
+            ""),
         new("not", false,
             ctx => (new MathUnary(MathUnary.UnaryFunction.Not, ctx.ParseArgument(0)), PropertyValue.TypeBool)),
         new("floor", false,
