@@ -10,12 +10,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-public static class PositionRangeExt
-{
-    public static Position ToLspPosition(this StoryParser.AstVisitor.FilePosition p) => new(p.Line, p.Column);
-    public static StoryParser.AstVisitor.FilePosition ToParserPosition(this Position p) => new(p.Line, p.Character);
-    public static Range ToLspRange(this StoryParser.AstVisitor.FileRange r) => new(ToLspPosition(r.Start), ToLspPosition(r.End));
-}
 public class SemanticTokensHandler : SemanticTokensHandlerBase
 {
     private readonly ILogger _logger;
@@ -549,7 +543,7 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             LinkLocation(context.TYPE_ID());
 
             _variablesToTypenames[context.VAR_ID().GetText()] = context.TYPE_ID().GetText();
-
+            _implicitTypeName = context.TYPE_ID().GetText();
         }
         if (context.ID(1) != null)
             PushSemanticToken(context.ID(1).Symbol, SemanticTokenType.Type);

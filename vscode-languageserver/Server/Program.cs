@@ -131,6 +131,7 @@ internal class Program
                         )
                     .WithHandler<TextDocumentHandler>()
                     .WithHandler<MyDocumentSymbolHandler>()
+                    .WithHandler<MoiraiCompletionHandler>()
                     // .WithHandler<CodeActionHandler>()
                     // .WithHandler<DocumentDiagnosticHandler>()
                     .WithHandler<MyWorkspaceSymbolsHandler>()
@@ -233,6 +234,16 @@ public class MoiraiCache {
         return default;
     }
 
+    public string? GetLine(DocumentUri uri, int line)
+    {
+        if (_cache.TryGetValue(uri, out var doc))
+        {
+            var lines = doc.Content.Split('\n');
+            return lines[line];
+        }
+
+        return null;
+    }
     public string GetRange(DocumentUri uri, Range locationRange)
     {
         if (_cache.TryGetValue(uri, out var doc))
