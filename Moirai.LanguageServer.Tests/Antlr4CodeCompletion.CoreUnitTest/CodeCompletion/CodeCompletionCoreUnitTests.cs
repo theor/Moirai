@@ -5,7 +5,8 @@ using Antlr4CodeCompletion.Core.CodeCompletion;
 using Antlr4CodeCompletion.CoreUnitTest.Grammar;
 using Antlr4CodeCompletion.CoreUnitTest.Utils;
 using NFluent;
-using Xunit;
+using NUnit;
+using NUnit.Framework;
 
 namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
 {
@@ -20,7 +21,7 @@ namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
     /// </remarks>
     public class CodeCompletionCoreUnitTests
     {
-        [Fact]
+        [Test]
         public void Completion_Grammar_SimpleExpression()
         {
             // arrange
@@ -91,7 +92,7 @@ namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.OPEN_PAR);
         }
 
-        [Fact]
+        [Test]
         public void Completion_Grammar_TypicalExpression()
         {
             // arrange
