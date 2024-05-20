@@ -25,4 +25,8 @@
     <ProjectReference Include="..\..\Moirai.Parser\Moirai.Parser.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="CodeCompletion\" />
+  </ItemGroup>
+
 </Project>

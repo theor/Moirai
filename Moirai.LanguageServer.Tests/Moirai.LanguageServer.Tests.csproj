@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+<!--        <PackageReference Include="Antlr4" Version="4.6.6">-->
+<!--            <PrivateAssets>all</PrivateAssets>-->
+<!--            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>-->
+<!--        </PackageReference>-->
+        <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.0" />
+        <PackageReference Include="Antlr4BuildTasks" Version="12.2.0" PrivateAssets="all" />
+        <PackageReference Include="AutoBogus" Version="2.6.0" />
+        <PackageReference Include="Bogus" Version="28.0.3" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
+        <PackageReference Include="Moq" Version="4.12.0" />
+        <PackageReference Include="NFluent" Version="2.6.0" />
+        <PackageReference Include="xunit" Version="2.4.1" />
+        <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+    <ItemGroup>
+        <Antlr4 Include="Antlr4CodeCompletion.CoreUnitTest/Grammar/Expr.g4">
+            <Listener>true</Listener>
+            <Visitor>true</Visitor>
+            <Package>Antlr4CodeCompletion.CoreUnitTest.Grammar</Package>
+        </Antlr4>
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\vscode-languageserver\Server\Server.csproj" />
+    </ItemGroup>
+
+</Project>
