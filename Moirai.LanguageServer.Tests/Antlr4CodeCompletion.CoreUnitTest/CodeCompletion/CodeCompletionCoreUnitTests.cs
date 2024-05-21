@@ -19,7 +19,7 @@ namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
     /// language/grammar used for the generation.
     /// https://github.com/mike-lischke/antlr4-c3
     /// </remarks>
-    public class CodeCompletionCoreUnitTests
+    public class CodeCompletionCoreUnitTests : CodeCompletionCoreUnitTestsBase
     {
         [Test]
         public void Completion_Grammar_SimpleExpression()
@@ -49,7 +49,9 @@ namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
 
             // 1) At the input start.
             var candidates = core.CollectCandidates(0, null);
+            PrintCandidates("1) At the input start.",candidates, parser);
 
+            
             Check.That(candidates.Tokens).HasSize(3);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.VAR);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.LET);
@@ -62,28 +64,33 @@ namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
             // 2) On the first whitespace. In real implementations you would do some additional checks where in the whitespace
             //    the caret is, as the outcome is different depending on that position.
             candidates = core.CollectCandidates(1, null);
+            PrintCandidates("2) On the first whitespace",candidates, parser);
             Check.That(candidates.Tokens).HasSize(1);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.ID);
 
             // 3) On the variable name ('c').
             candidates = core.CollectCandidates(2, null);
+            PrintCandidates("3) On the variable name ('c')",candidates, parser);
             Check.That(candidates.Tokens).HasSize(1);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.ID);
 
             // 4) On the equal sign (ignoring whitespace positions from now on).
             candidates = core.CollectCandidates(4, null);
+            PrintCandidates("4) On the equal sign",candidates, parser);
             Check.That(candidates.Tokens).HasSize(1);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.EQUAL);
 
             // 5) On the variable reference 'a'. But since we have not configure the c3 engine to return us var refs
             //    (or function refs for that matter) we only get an ID here.
             candidates = core.CollectCandidates(6, null);
+            PrintCandidates("5) On the variable reference 'a'",candidates, parser);
             Check.That(candidates.Tokens).HasSize(1);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.ID);
 
             // 6) On the '+' operator. Usually you would not show operators as candidates, but we have not set up the c3 engine
             //    yet to not return them.
             candidates = core.CollectCandidates(8, null);
+            PrintCandidates("6) On the '+' operator",candidates, parser);
             Check.That(candidates.Tokens).HasSize(5);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.PLUS);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.MINUS);
@@ -128,6 +135,7 @@ namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
 
             // 1) At the input start.
             var candidates = core.CollectCandidates(0, null);
+            PrintCandidates("1) At the input start.",candidates, parser);
 
             Check.That(candidates.Tokens).HasSize(2);
             Check.That(candidates.Tokens).ContainsKey(ExprLexer.VAR);
@@ -151,14 +159,17 @@ namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
                  ExprLexer.MULTIPLY, ExprLexer.DIVIDE, ExprLexer.EQUAL };
             core = new CodeCompletionCore(parser, preferredRules, ignoredTokens);
             candidates = core.CollectCandidates(2, null);
+            PrintCandidates("2) On the variable name ('c')",candidates, parser);
             Check.That(candidates.Tokens).HasSize(0);
 
             // 4) On the equal sign (ignoring whitespace positions from now on).
             candidates = core.CollectCandidates(4, null);
+            PrintCandidates("4) On the equal sign",candidates, parser);
             Check.That(candidates.Tokens).HasSize(0);
 
             // 5) On the variable reference 'a'.
             candidates = core.CollectCandidates(6, null);
+            PrintCandidates("5) On the variable reference 'a'",candidates, parser);
             Check.That(candidates.Tokens).HasSize(0);
             Check.That(candidates.Rules).HasSize(2);
 
@@ -187,6 +198,7 @@ namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion
 
             // 6) On the whitespace after the 'a'
             candidates = core.CollectCandidates(7, null);
+            PrintCandidates("6) On the whitespace after the 'a'",candidates, parser);
             Check.That(candidates.Tokens).HasSize(0);
             Check.That(candidates.Rules).HasSize(1);
 
