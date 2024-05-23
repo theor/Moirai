@@ -347,9 +347,9 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
                 typeDefinitionContext.TYPE_ID().Symbol, typeDefinitionContext));
             foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
             {
-                _definitions.Add(typeName + "__" + propDefinitionContext.ID(0).GetText(), new Definition(
+                _definitions.Add(typeName + "__" + propDefinitionContext.property_id().GetText(), new Definition(
                     DefinitionType.TypeProperty, 
-                    propDefinitionContext.ID(0).Symbol, propDefinitionContext));
+                    propDefinitionContext.property_id().ID().Symbol, propDefinitionContext));
             }
         }
         // TODO visit props
@@ -400,8 +400,8 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     public override object? VisitProp_definition(MoiraiParser.Prop_definitionContext context)
     {
         PushSemanticToken(context.PROP().Symbol, SemanticTokenType.Keyword);
-        PushSemanticToken(context.ID(0).Symbol, SemanticTokenType.Property);
-        PushSymbol(context.ID(0).Symbol, SymbolKind.Property);
+        PushSemanticToken(context.property_id().ID().Symbol, SemanticTokenType.Property);
+        PushSymbol(context.property_id().ID().Symbol, SymbolKind.Property);
         
         if (context.TYPE_ID() != null)
         {
@@ -410,7 +410,7 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             LinkLocation(context.TYPE_ID());
         }
         else
-            PushSemanticToken(context.ID(1).Symbol, SemanticTokenType.Type);
+            PushSemanticToken(context.ID().Symbol, SemanticTokenType.Type);
         return base.VisitProp_definition(context);
     }
     public override object? VisitType_definition(MoiraiParser.Type_definitionContext context)
@@ -648,10 +648,11 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         {
             PushSemanticToken(context.SINGLETON_ID().Symbol, SemanticTokenType.Type);
         }
-        if (context.ID(0) != null)
+        if (context.property_id() != null)
         {
-            PushSemanticToken(context.ID(0).Symbol, SemanticTokenType.Property);
-            var prop = context.ID(0).GetText();
+            // TODO dot_property
+            PushSemanticToken(context.property_id().ID().Symbol, SemanticTokenType.Property);
+            var prop = context.property_id().ID().GetText();
             // $x.y
             if (context.VAR_ID() != null)
                 prop = _variablesToTypenames.TryGetValue(context.VAR_ID().GetText(), out string type)
@@ -663,14 +664,14 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             // #Time.year
             else if (context.VAR_ID() == null && context.SINGLETON_ID() != null)
                 prop = $"{context.SINGLETON_ID().GetText()}__{prop}";
-            // LinkLocation(context.ID(0));
+            // LinkLocation(context.ID());
 
             if (_definitions.TryGetValue(prop, out var loc))
             {
-                var range = GetRange(context.ID(0).Symbol);
+                var range = GetRange(context.property_id().ID().Symbol);
                 _locations.Add(range.Start, range.End, loc);
             }
-                // Locations.Add((GetRange(context.ID(0).Symbol), loc.Symbol, loc.FullDefinition));
+                // Locations.Add((GetRange(context.ID().Symbol), loc.Symbol, loc.FullDefinition));
         }
         return base.VisitPath(context);
     }

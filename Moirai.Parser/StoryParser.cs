@@ -616,14 +616,14 @@ public static class StoryParser
 
             foreach (var (type, typeDefinitionContext) in typesContexts)
             {
-                foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
+                foreach (MoiraiParser.Prop_definitionContext? propDefinitionContext in typeDefinitionContext.prop_definition())
                 {
-                    var propName = propDefinitionContext.ID(0).GetText();
+                    var propName = propDefinitionContext.property_id().GetText();
                     if (type.GetPropertyId(propName).Id != 0)
                         return AddError(ErrorCode.DuplicatePropertyDefinition, typeDefinitionContext, propName);
 
                     PropertyValue.ValueType proptype =
-                        ParseType(propDefinitionContext.ID(1) ?? propDefinitionContext.TYPE_ID());
+                        ParseType(propDefinitionContext.ID() ?? propDefinitionContext.TYPE_ID());
                     type.Properties.Add(new PropertyDefinition(propName, type.Id, (uint) type.Properties.Count,
                         proptype));
                 }
@@ -1456,18 +1456,19 @@ public static class StoryParser
         private void ParseProperty(ref PropertyPath path, MoiraiParser.PathContext context, int idIndex,
             EntityType owningType, out PropertyValue.ValueType type)
         {
-            string propertyName = context.ID(idIndex).GetText();
+            var propId = context.dot_property(idIndex)?.property_id() ?? context.property_id();
+            string propertyName = propId.GetText();
             var propertyId = owningType.GetPropertyId(propertyName);
             if (!propertyId.IsValid)
             {
                 type = default;
-                AddError(ErrorCode.UnknownProperty, context.ID(0), propertyName);
+                AddError(ErrorCode.UnknownProperty, propId, propertyName);
                 return;
             }
 
             type = owningType.GetPropertyType(propertyName);
             path.AddProperty(propertyId);
-            if (context.ID(idIndex + 1) != null)
+            if (context.dot_property() != null && context.dot_property(idIndex + 1) != null)
                 ParseProperty(ref path, context, idIndex + 1, Database.GetEntityType(type), out type);
         }
 
@@ -1511,7 +1512,7 @@ public static class StoryParser
                 }
 
                 type = _current[variableIndex].Type;
-                if (context.ID().Length == 0)
+                if (context.dot_property().Length == 0)
                 {
                     return new PropertyPath(variableIndex);
                 }

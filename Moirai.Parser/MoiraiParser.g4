@@ -41,7 +41,7 @@ expr
 type_definition: attribute* ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* prop_definition* SCOPE_CLOSE LINE_BREAK+ ;
 
 //range: (PAREN_OPEN number COMMA number PAREN_CLOSE);
-prop_definition: PROP ID COLON (ID|TYPE_ID) LINE_BREAK+ ;
+prop_definition: PROP property_id COLON (ID|TYPE_ID) LINE_BREAK+ ;
 
 enum_definition: ENUM TYPE_ID SCOPE_OPEN LINE_BREAK* TYPE_ID (COMMA LINE_BREAK* TYPE_ID)* COMMA? LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 
@@ -49,6 +49,8 @@ stringContent: (EXPR_OPEN expr SCOPE_CLOSE) | TEXT;
 string: QUOTE stringContent* QUOTE ;
 
 bool: TRUE | FALSE;
-path : (SINGLETON_ID | VAR_ID) (DOT ID)* | ID;
+property_id: ID;
+dot_property: DOT property_id;
+path : (SINGLETON_ID | VAR_ID) (dot_property)* | property_id;
 enum_value: TYPE_ID DOT TYPE_ID ;
 number: NUMBER_FLOAT | NUMBER | PERCENT;

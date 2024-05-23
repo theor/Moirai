@@ -65,7 +65,7 @@ namespace Antlr4CodeCompletion.Core.CodeCompletion
         /// Optionally you can pass in a parser rule context which limits the ATN walk to only that or called rules. This can significantly
         /// speed up the retrieval process but might miss some candidates (if they are outside of the given context).
         /// </summary>
-        public CandidatesCollection CollectCandidates(int caretTokenIndex, ParserRuleContext context)
+        public CandidatesCollection CollectCandidates(int caretTokenIndex, ParserRuleContext? context)
         {
             this.shortcutMap.Clear();
             this.candidates.Rules.Clear();
@@ -90,6 +90,9 @@ namespace Antlr4CodeCompletion.Core.CodeCompletion
                     break;
                 }
             }
+
+            if (currentIndex == -1)
+                return candidates;
 
             tokenStream.Seek(currentIndex);
 

@@ -252,9 +252,9 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
         {
             return EnsureSpaces(
                 (context.PROP(), 1, 4),
-                (context.ID(0), 0, null),
+                (context.property_id().ID(), 0, null),
                 (context.COLON(), 1, null),
-                (context.TYPE_ID() ?? context.ID(1), 0, null)
+                (context.TYPE_ID() ?? context.property_id().ID(), 0, null)
                 );
         }
     }
