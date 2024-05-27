@@ -12,6 +12,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MoiraiWebServer", "MoiraiWe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moirai.LanguageServer.Tests", "Moirai.LanguageServer.Tests\Moirai.LanguageServer.Tests.csproj", "{959595B4-8680-436B-9C79-5BF0C27CE7BB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moirai.SourceGenerators", "Moirai.SourceGenerators\Moirai.SourceGenerators\Moirai.SourceGenerators.csproj", "{0F3CD15A-0BE5-4FAC-827F-E7181F51B2E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moirai.SourceGenerators.Tests", "Moirai.SourceGenerators\Moirai.SourceGenerators.Tests\Moirai.SourceGenerators.Tests.csproj", "{21942D79-AC3E-4781-9B63-940ABA900313}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +46,13 @@ Global
 		{959595B4-8680-436B-9C79-5BF0C27CE7BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{959595B4-8680-436B-9C79-5BF0C27CE7BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{959595B4-8680-436B-9C79-5BF0C27CE7BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F3CD15A-0BE5-4FAC-827F-E7181F51B2E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F3CD15A-0BE5-4FAC-827F-E7181F51B2E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F3CD15A-0BE5-4FAC-827F-E7181F51B2E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F3CD15A-0BE5-4FAC-827F-E7181F51B2E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21942D79-AC3E-4781-9B63-940ABA900313}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21942D79-AC3E-4781-9B63-940ABA900313}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21942D79-AC3E-4781-9B63-940ABA900313}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21942D79-AC3E-4781-9B63-940ABA900313}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

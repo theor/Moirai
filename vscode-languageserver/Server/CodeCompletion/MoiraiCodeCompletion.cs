@@ -1,6 +1,8 @@
-﻿using Antlr4.Runtime;
+﻿using System.Diagnostics;
+using Antlr4.Runtime;
 using Antlr4.Runtime.Atn;
 using Antlr4.Runtime.Tree;
+using Microsoft.Extensions.Logging;
 using Moirai.Parser;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -10,13 +12,24 @@ public static class MoiraiCodeCompletion
 {
     private static readonly HashSet<int> IgnoredTokens = new HashSet<int>()
     {
-        // moirai_lexer.DOT,
-        // moirai_lexer.ID,
+        moirai_lexer.DOT,
+        moirai_lexer.ID,
         moirai_lexer.AT,
         moirai_lexer.PAREN_OPEN,
         moirai_lexer.PAREN_CLOSE,
         moirai_lexer.EQ,
         moirai_lexer.LINE_BREAK,
+    };
+
+    private static readonly HashSet<int> PreferredRules = new HashSet<int>()
+    {
+        MoiraiParser.RULE_var,
+        MoiraiParser.RULE_call,
+        MoiraiParser.RULE_raw_call,
+        MoiraiParser.RULE_value,
+        MoiraiParser.RULE_dot_property,
+        MoiraiParser.RULE_var_id_read,
+        // MoiraiParser.RULE_path,
     };
 
     public static void SetupMoiraiCompletion(string expression, out moirai_lexer lexer, out MoiraiParser parser,
@@ -34,18 +47,9 @@ public static class MoiraiCodeCompletion
     public static void SetupMoiraiCompletion(MoiraiParser parser, out CodeCompletionCore core)
     {
         // Tell the engine to return certain rules to us, which we could use to look up values in a symbol table.
-        var preferredRules = new HashSet<int>()
-        {
-            MoiraiParser.RULE_property_id,
-            MoiraiParser.RULE_var,
-            MoiraiParser.RULE_call,
-            MoiraiParser.RULE_raw_call,
-            // MoiraiParser.RULE_path,
-            MoiraiParser.RULE_value,
-        };
 
         // Ignore operators and the generic ID token.
-        core = new CodeCompletionCore(parser, preferredRules, IgnoredTokens);
+        core = new CodeCompletionCore(parser, PreferredRules, IgnoredTokens);
     }
 
 
@@ -98,5 +102,74 @@ public static class MoiraiCodeCompletion
         var root= parser.r();
         var pos = finder.TokenIndex;
         return pos;
+    }
+
+    public static async Task<List<CompletionItem>> Complete(ILogger logger, MoiraiParser parser,
+        CandidatesCollection candidates,
+        MoiraiDocument document, Position position, int tokenIndex)
+    {
+        var items = new List<CompletionItem>();
+        foreach (var (key, succ) in candidates.RulePositions)
+        {
+            items.Add(new CompletionItem
+            {
+                Label = $"  {parser.RuleNames[key]} [{string.Join(", ", succ.Select(i => i))}]",
+                InsertText = parser.RuleNames[key],
+            });
+
+        }
+        foreach (var (key, value) in candidates.Rules)
+        {
+            var ruleName = parser.RuleNames[key];
+            switch ((MoiraiParser.Rules)key)
+            {
+                case MoiraiParser.Rules.Var_id_read:
+                    DefinitionsToCompletions(document.Definitions(position, TokenVisitor.DefinitionType.Variable));
+                    break;
+                case MoiraiParser.Rules.Dot_property:
+                    var prevToken = parser.TokenStream.Get(tokenIndex - 1);
+                    if (prevToken != null && prevToken.Type == moirai_lexer.VAR_ID)
+                    {
+                        var completedVariable = document.Definitions(TokenVisitor.GetRange(prevToken).Start, TokenVisitor.DefinitionType.Variable)
+                            .FirstOrDefault(d => d.Name == prevToken.Text);
+                        items.Add(new CompletionItem
+                        {
+                            Label = completedVariable.Name,
+                            InsertText = completedVariable.Name,
+                            Detail = completedVariable.Type.ToString(),
+                        });
+                    }
+                    break;
+                default:
+                    logger.LogError("Rule not handled: {ruleName}", ruleName);
+                    break;
+            }
+            items.Add(new CompletionItem
+            {
+                Label = "r:"+ruleName, InsertText = ruleName,
+            });
+        }
+        foreach (var (key, value) in candidates.Tokens)
+        {
+            var tokenName = parser.Vocabulary.GetSymbolicName(key);
+            items.Add(new CompletionItem
+            {
+                Label = $"t:{tokenName} {string.Join(",", value.Select(parser.Vocabulary.GetSymbolicName))}", InsertText = tokenName,
+            });
+        }
+        return items;
+
+        void DefinitionsToCompletions(IEnumerable<TokenVisitor.Definition> symbolTable)
+        {
+            foreach (var definition in symbolTable)
+            {
+                        
+                items.Add(new CompletionItem
+                {
+                    Detail = $"d:{definition.Type}",
+                    Label = definition.Name, InsertText = definition.Name,
+                });
+            }
+        }
     }
 }

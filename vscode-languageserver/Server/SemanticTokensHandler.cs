@@ -630,23 +630,23 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
 
     public override object? VisitPath(MoiraiParser.PathContext context)
     {
-        if (context.VAR_ID() != null)
+        if (context.var_id_read().VAR_ID() != null)
         {
-            PushSemanticToken(context.VAR_ID().Symbol, SemanticTokenType.Variable);
+            PushSemanticToken(context.var_id_read().VAR_ID().Symbol, SemanticTokenType.Variable);
             // TODO GetVariableIndexByName recurses up, we need down starting from the root scope
-            if (_scopedDeclarations.FindDeclaration(context.VAR_ID().Symbol, out var decl))
+            if (_scopedDeclarations.FindDeclaration(context.var_id_read().VAR_ID().Symbol, out var decl))
             {
-                var usageRange = GetRange(context.VAR_ID().Symbol);
+                var usageRange = GetRange(context.var_id_read().VAR_ID().Symbol);
                 _locations.Add(usageRange.Start, usageRange.End,
                     new Definition(
                         DefinitionType.Variable, 
-                        context.VAR_ID().Symbol.Text, decl.DeclarationRange.ToLspRange()));
+                        context.var_id_read().VAR_ID().Symbol.Text, decl.DeclarationRange.ToLspRange()));
             }
             // LinkLocation(context.VAR_ID());
         }
-        if (context.SINGLETON_ID() != null)
+        if (context.var_id_read().SINGLETON_ID() != null)
         {
-            PushSemanticToken(context.SINGLETON_ID().Symbol, SemanticTokenType.Type);
+            PushSemanticToken(context.var_id_read().SINGLETON_ID().Symbol, SemanticTokenType.Type);
         }
         if (context.property_id() != null)
         {
@@ -654,16 +654,16 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             PushSemanticToken(context.property_id().ID().Symbol, SemanticTokenType.Property);
             var prop = context.property_id().ID().GetText();
             // $x.y
-            if (context.VAR_ID() != null)
-                prop = _variablesToTypenames.TryGetValue(context.VAR_ID().GetText(), out string type)
+            if (context.var_id_read().VAR_ID() != null)
+                prop = _variablesToTypenames.TryGetValue(context.var_id_read().VAR_ID().GetText(), out string type)
                     ? $"{type}__{prop}"
                     : prop;
             // y
-            else if (context.VAR_ID() == null && context.SINGLETON_ID() == null && _implicitTypeName != null)
+            else if (context.var_id_read().VAR_ID() == null && context.var_id_read().SINGLETON_ID() == null && _implicitTypeName != null)
                 prop = $"{_implicitTypeName}__{prop}";
             // #Time.year
-            else if (context.VAR_ID() == null && context.SINGLETON_ID() != null)
-                prop = $"{context.SINGLETON_ID().GetText()}__{prop}";
+            else if (context.var_id_read().VAR_ID() == null && context.var_id_read().SINGLETON_ID() != null)
+                prop = $"{context.var_id_read().SINGLETON_ID().GetText()}__{prop}";
             // LinkLocation(context.ID());
 
             if (_definitions.TryGetValue(prop, out var loc))

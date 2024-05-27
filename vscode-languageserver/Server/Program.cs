@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using IntervalTree;
@@ -39,7 +40,8 @@ internal class Program
 
         Log.Logger = new LoggerConfiguration()
             .Enrich.FromLogContext()
-            .WriteTo.File("moirai-log.txt", rollingInterval: RollingInterval.Day, flushToDiskInterval:TimeSpan.FromSeconds(5))
+            .WriteTo.File("moirai-log.txt", rollingInterval: RollingInterval.Day,
+                flushToDiskInterval: TimeSpan.FromSeconds(5))
             // .WriteTo.Debug(LogEventLevel.Debug)
             .MinimumLevel.Verbose()
             .CreateLogger();
@@ -47,7 +49,7 @@ internal class Program
         Log.Logger.Information("This only goes to file...");
 
         IObserver<WorkDoneProgressReport> workDone = null!;
-        
+
         var server = await LanguageServer.From(
             options =>
                 options
@@ -61,7 +63,6 @@ internal class Program
                     )
                     .WithServices(x => x.AddLogging(b => b.SetMinimumLevel(LogLevel.Trace)))
                     // .WithServices(x => x.AddLogging())
-                    
                     .WithServices(
                         services =>
                         {
@@ -89,46 +90,47 @@ internal class Program
                             );
                         }
                     )
-                 .OnStarted(
-                            async (languageServer, token) =>
+                    .OnStarted(
+                        async (languageServer, token) =>
+                        {
+                            using var manager = await languageServer.WorkDoneManager.Create(new WorkDoneProgressBegin
+                                    { Title = "Doing some work..." })
+                                .ConfigureAwait(false);
+
+                            manager.OnNext(new WorkDoneProgressReport { Message = "doing things..." });
+                            // await Task.Delay(10000).ConfigureAwait(false);
+                            // manager.OnNext(new WorkDoneProgressReport { Message = "doing things... 1234" });
+                            // await Task.Delay(10000).ConfigureAwait(false);
+                            // manager.OnNext(new WorkDoneProgressReport { Message = "doing things... 56789" });
+
+                            var logger = languageServer.Services.GetService<ILogger<MoiraiCache>>();
+                            var configuration = await languageServer.Configuration.GetConfiguration(
+                                new ConfigurationItem
+                                {
+                                    Section = "typescript",
+                                }, new ConfigurationItem
+                                {
+                                    Section = "terminal",
+                                }
+                            ).ConfigureAwait(false);
+
+                            var baseConfig = new JObject();
+                            foreach (var config in languageServer.Configuration.AsEnumerable())
                             {
-                                using var manager = await languageServer.WorkDoneManager.Create(new WorkDoneProgressBegin { Title = "Doing some work..." })
-                                                                        .ConfigureAwait(false);
-
-                                manager.OnNext(new WorkDoneProgressReport { Message = "doing things..." });
-                                // await Task.Delay(10000).ConfigureAwait(false);
-                                // manager.OnNext(new WorkDoneProgressReport { Message = "doing things... 1234" });
-                                // await Task.Delay(10000).ConfigureAwait(false);
-                                // manager.OnNext(new WorkDoneProgressReport { Message = "doing things... 56789" });
-
-                                var logger = languageServer.Services.GetService<ILogger<MoiraiCache>>();
-                                var configuration = await languageServer.Configuration.GetConfiguration(
-                                    new ConfigurationItem
-                                    {
-                                        Section = "typescript",
-                                    }, new ConfigurationItem
-                                    {
-                                        Section = "terminal",
-                                    }
-                                ).ConfigureAwait(false);
-
-                                var baseConfig = new JObject();
-                                foreach (var config in languageServer.Configuration.AsEnumerable())
-                                {
-                                    baseConfig.Add(config.Key, config.Value);
-                                }
-
-                                logger.LogInformation("Base Config: {@Config}", baseConfig);
-
-                                var scopedConfig = new JObject();
-                                foreach (var config in configuration.AsEnumerable())
-                                {
-                                    scopedConfig.Add(config.Key, config.Value);
-                                }
-
-                                logger.LogInformation("Scoped Config: {@Config}", scopedConfig);
+                                baseConfig.Add(config.Key, config.Value);
                             }
-                        )
+
+                            logger.LogInformation("Base Config: {@Config}", baseConfig);
+
+                            var scopedConfig = new JObject();
+                            foreach (var config in configuration.AsEnumerable())
+                            {
+                                scopedConfig.Add(config.Key, config.Value);
+                            }
+
+                            logger.LogInformation("Scoped Config: {@Config}", scopedConfig);
+                        }
+                    )
                     .WithHandler<TextDocumentHandler>()
                     .WithHandler<MyDocumentSymbolHandler>()
                     .WithHandler<MoiraiCompletionHandler>()
@@ -140,27 +142,32 @@ internal class Program
                     .WithHandler<MyDeclarationHandler>()
                     .WithHandler<MyHoverHandler>()
                     .WithHandler<MyUsageHandler>()
-            ).ConfigureAwait(false);
+        ).ConfigureAwait(false);
 
-            await server.WaitForExit.ConfigureAwait(false);
+        await server.WaitForExit.ConfigureAwait(false);
     }
 }
 
-public class MoiraiCache {
+public class MoiraiCache
+{
     private readonly ILogger<MoiraiCache> _logger;
+
     // private MoiraiDocument? _current;
     private Dictionary<DocumentUri, MoiraiDocument> _cache = new();
+
     public MoiraiCache(ILogger<MoiraiCache> logger)
     {
         logger.LogInformation("inside ctor");
         _logger = logger;
     }
+
     public async Task OnOpen(DidOpenTextDocumentParams notification)
     {
-        var _current = new MoiraiDocument(notification.TextDocument.Uri, notification.TextDocument);
-        _cache[_current.DocumentUri] = _current;
-        await _current.Process(_logger);
+        var current = new MoiraiDocument(notification.TextDocument.Uri, notification.TextDocument);
+        _cache[current.DocumentUri] = current;
+        await current.Process(_logger);
     }
+
     public async Task OnChange(DidChangeTextDocumentParams notification)
     {
         if (_cache.TryGetValue(notification.TextDocument.Uri, out var doc))
@@ -169,6 +176,7 @@ public class MoiraiCache {
             await doc.Process(_logger);
         }
     }
+
     public void PublishDiagnostics(DocumentUri textDocumentUri, ITextDocumentLanguageServer facadeTextDocument)
     {
         int version = 0;
@@ -186,11 +194,10 @@ public class MoiraiCache {
                         Message = error.Code + ": " + error.Message,
                         Range = new Range(error.Line - 1, error.Col, error.LineEnd - 1, error.ColEnd),
                         Source = "Moirai",
-
                     });
                 }
         }
-        
+
 
         facadeTextDocument.PublishDiagnostics(new PublishDiagnosticsParams()
         {
@@ -209,16 +216,17 @@ public class MoiraiCache {
         {
             return doc.Content;
         }
+
         _logger.LogCritical("GetContent: NOT SAME URI");
-            return "";
+        return "";
     }
+
     public void GetSemanticTokens(DocumentUri uri, SemanticTokensBuilder builder)
     {
         if (_cache.TryGetValue(uri, out var doc))
             foreach (var symbol in doc.SemanticTokens)
             {
                 builder.Push(symbol.range, symbol.type, symbol.modifiers);
-          
             }
     }
 
@@ -227,10 +235,10 @@ public class MoiraiCache {
     {
         if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
         {
-            var loc = doc.Locations.Query(requestPosition);
+            var loc = doc.Definitions(requestPosition);
             return loc.FirstOrDefault();
-            
         }
+
         return default;
     }
 
@@ -244,13 +252,15 @@ public class MoiraiCache {
 
         return null;
     }
+
     public string GetRange(DocumentUri uri, Range locationRange)
     {
         if (_cache.TryGetValue(uri, out var doc))
         {
             var lines = doc.Content.Split('\n');
             return string.Join("\n",
-                lines.Skip(locationRange.Start.Line).Take(1 + locationRange.End.Line - locationRange.Start.Line)).TrimEnd('\n', ' ');
+                    lines.Skip(locationRange.Start.Line).Take(1 + locationRange.End.Line - locationRange.Start.Line))
+                .TrimEnd('\n', ' ');
         }
 
         return "";
@@ -279,9 +289,15 @@ public class MoiraiCache {
 
         return doc.Symbols;
     }
+
+    public bool GetDocument(DocumentUri textDocumentUri, out MoiraiDocument? doc)
+    {
+        if (!_cache.TryGetValue(textDocumentUri, out doc)) return false;
+        return true;
+    }
 }
 
-internal class MoiraiDocument
+public class MoiraiDocument
 {
     public readonly DocumentUri DocumentUri;
     private string _content;
@@ -294,10 +310,10 @@ internal class MoiraiDocument
         public Range FullRange;
         public string Name;
     }
+
     public List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens { get; set; } = new();
     public List<StoryParser.Error> Errors = new();
-    public List<(Range, Range, Range)> Locations2 = new();
-    public IntervalTree<Position, TokenVisitor.Definition> Locations = new();
+    private IntervalTree<Position, TokenVisitor.Definition> _locations = new();
     public SymbolInformationOrDocumentSymbolContainer Symbols = new();
 
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
@@ -306,14 +322,16 @@ internal class MoiraiDocument
         _content = notificationTextDocument.Text;
         Version = notificationTextDocument.Version.GetValueOrDefault();
     }
+
     public void Apply(IEnumerable<TextDocumentContentChangeEvent> changes, int? textDocumentVersion)
     {
         Version = textDocumentVersion.GetValueOrDefault();
-        if(changes?.Any(c => c.Range != null) == true)
+        if (changes?.Any(c => c.Range != null) == true)
             throw new System.NotImplementedException("incremental changes not implemented yet");
         var change = changes.Last();
         _content = change.Text;
     }
+
     public Task Process(Microsoft.Extensions.Logging.ILogger logger)
     {
         try
@@ -321,24 +339,30 @@ internal class MoiraiDocument
             var db = new Database();
             var astVisitor = new StoryParser.AstVisitor(db, null!);
             StoryParser.SetupParser(Content, out var parser, astVisitor);
-        
+
             var r = parser.r();
             r.Accept(astVisitor);
 
             List<SymbolInformationOrDocumentSymbol> symbols = new();
-            var visitor = new TokenVisitor(logger, DocumentUri, astVisitor.RootScope, Locations, SemanticTokens, symbols);
+            var visitor = new TokenVisitor(logger, DocumentUri, astVisitor.RootScope, _locations, SemanticTokens,
+                symbols);
             visitor.Parser = parser;
             r.Accept(visitor);
             Errors = visitor.Errors;
             Errors.AddRange(astVisitor.Errors);
             Symbols = symbols;
-
         }
         catch (Exception e)
         {
-            Errors.Add(new StoryParser.Error(StoryParser.ErrorCode.Exception, 1,1, e.ToString()));
+            Errors.Add(new StoryParser.Error(StoryParser.ErrorCode.Exception, 1, 1, e.ToString()));
         }
+
         return Task.CompletedTask;
+    }
+
+    public IEnumerable<TokenVisitor.Definition> Definitions(Position position, TokenVisitor.DefinitionType? definitionType = null)
+    {
+        return _locations.Query(position).Where(d => definitionType == null || d.Type == definitionType);
     }
 }
 

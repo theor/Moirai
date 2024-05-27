@@ -24,13 +24,19 @@ public class CodeCompletionCoreUnitTestsBase
             Console.WriteLine($"  {parser.RuleNames[key]} <- callstack: {string.Join(", ", succ.Select(i => parser.RuleNames[i]))}");
 
         }
+
+        foreach (var (key, succ) in candidates.RulePositions)
+        {
+            Console.WriteLine($"  {parser.RuleNames[key]} [{string.Join(", ", succ.Select(i => i))}]");
+
+        }
     }
 
-    class TokenIndexWalker : MoiraiParserBaseListener
+    class TokenIndexWalker(int line, int column) : MoiraiParserBaseListener
     {
-        private string curLine = "";
+        private string sourceTextLine = "";
         private string curIndexLine = "";
-        private string curIndexLabels = "";
+        private string tokenIndicesLine = "";
         private int curLineIndex = -1;
         public override void VisitTerminal(ITerminalNode node)
         {
@@ -42,33 +48,37 @@ public class CodeCompletionCoreUnitTestsBase
                 curLineIndex = token.Line;
             }
             {
-                while (curLine.Length < token.Column)
-                    curLine += " ";
+                while (sourceTextLine.Length < token.Column)
+                    sourceTextLine += " ";
                 while (curIndexLine.Length < token.Column)
-                    curIndexLine += " ";
-                curIndexLine += "*";
-                curIndexLabels += token.TokenIndex + " ";
-                curLine += token.Text;
+                    curIndexLine += curLineIndex == (line+1) && curIndexLine.Length == column ? "|": " ";
+                curIndexLine += curLineIndex == (line+1) && curIndexLine.Length == column ? "+" : "*";
+                tokenIndicesLine += token.TokenIndex + " ";
+                sourceTextLine += token.Text;
             }
             // Console.WriteLine($"{token.TokenIndex}: {token.Text.ReplaceLineEndings("\\n")} at {token.Line}:{token.Column}");
         }
 
         public void Flush()
         {
-            Console.WriteLine("|     |" + curIndexLine + " // " + curIndexLabels);
-            Console.Write($"|{curLineIndex,4} |{curLine}");
-            curLine = "";
+            if (curLineIndex == line + 1)
+            {
+                Console.WriteLine("|     |" + curIndexLine + " // " + tokenIndicesLine);
+                Console.Write($"|{curLineIndex,4} |{sourceTextLine}");
+            }
+
+            sourceTextLine = "";
             curIndexLine = "";
-            curIndexLabels = "";
+            tokenIndicesLine = "";
         }
     }
-    protected int TokenIndexFromLineColumn(IParseTree t)
+
+    protected void TokenIndexFromLineColumn(MoiraiParser.RContext tree, int line, int column)
     {
         var walker = new ParseTreeWalker();
-        var l = new TokenIndexWalker();
-        walker.Walk(l, t);
+        var l = new TokenIndexWalker(line, column);
+        walker.Walk(l, tree);
         l.Flush();
-        return 0;
     }
 
     protected (CodeCompletionCore core, MoiraiParser parser, MoiraiParser.RContext tree) Setup(string expression)

@@ -29,7 +29,7 @@ public class MoiraiCompletionHandler : CompletionHandlerBase
         };
     }
 
-    public override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken)
+    public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken)
     {
         // var line = _moiraiCache.GetLine(request.TextDocument.Uri, request.Position.Line);
         // if (line == null)
@@ -40,7 +40,7 @@ public class MoiraiCompletionHandler : CompletionHandlerBase
         int pos = MoiraiCodeCompletion.FindTokenIndex(parser, request.Position);
         IToken? t = parser.TokenStream.Get(pos);
         if (t == null)
-            return Task.FromResult(new CompletionList());
+            return new CompletionList();
         // foreach (var t1 in lexer.GetAllTokens())
         // {
         //     if (TokenVisitor.GetRange(t1).Contains(request.Position))
@@ -54,24 +54,9 @@ public class MoiraiCompletionHandler : CompletionHandlerBase
         int tokenIndex = t.TokenIndex;
         _logger.LogCritical($"Token index: {tokenIndex} token {t.Text}");
         var candidates = core.CollectCandidates(tokenIndex, null);
-        var completions = new List<CompletionItem>();
-        foreach (var (key, value) in candidates.Rules)
-        {
-            var ruleName = parser.RuleNames[key];
-            completions.Add(new CompletionItem
-            {
-                Label = "r:"+ruleName, InsertText = ruleName,
-            });
-        }
-        foreach (var (key, value) in candidates.Tokens)
-        {
-            var tokenName = parser.Vocabulary.GetSymbolicName(key);
-            completions.Add(new CompletionItem
-            {
-                Label = $"t:{tokenName} {string.Join(",", value.Select(parser.Vocabulary.GetSymbolicName))}", InsertText = tokenName,
-            });
-        }
-        return Task.FromResult(new CompletionList(completions));
+        if(!_moiraiCache.GetDocument(request.TextDocument.Uri, out var document))
+            return new CompletionList();
+        return new CompletionList(await MoiraiCodeCompletion.Complete(_logger, parser,candidates, document!, request.Position, tokenIndex));
     }
 
     public override Task<CompletionItem> Handle(CompletionItem request, CancellationToken cancellationToken)

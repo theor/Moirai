@@ -51,6 +51,7 @@ string: QUOTE stringContent* QUOTE ;
 bool: TRUE | FALSE;
 property_id: ID;
 dot_property: DOT property_id;
-path : (SINGLETON_ID | VAR_ID) (dot_property)* | property_id;
+var_id_read: SINGLETON_ID | VAR_ID;
+path : var_id_read (dot_property)* | property_id;
 enum_value: TYPE_ID DOT TYPE_ID ;
 number: NUMBER_FLOAT | NUMBER | PERCENT;

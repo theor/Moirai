@@ -3,6 +3,26 @@ using Antlr4.Runtime.Tree;
 
 namespace Moirai.Parser;
 
+
+[Generators.EnumFromConstants("Rules","RULE_")]
+public partial class MoiraiParser
+{
+    // static void Test()
+    // {
+    //     var x = MoiraiParser.Rules.If;
+    // }
+}
+
+[Generators.EnumFromConstants("Tokens","")]
+public partial class moirai_lexer
+{
+    static void Test()
+    {
+    var x = MoiraiParser.Rules.If;
+    // var y = moirai_lexer.Tokens.IF;
+    }
+}
+
 public class FunctionDescriptor : IFunctionDescriptor
 {
     public record ParseContext(StoryParser.AstVisitor Visitor, ParserRuleContext CallContext)
@@ -1477,7 +1497,7 @@ public static class StoryParser
             // if (context.ID().Length > 1)
             // throw new Exception("expected two parts, got " + (context.ID().Length + 1));
 
-            ITerminalNode? singletonId = context.SINGLETON_ID();
+            ITerminalNode? singletonId = context.var_id_read().SINGLETON_ID();
             if (singletonId != null)
             {
                 string typeName = singletonId.GetText().Substring(1);
@@ -1497,7 +1517,7 @@ public static class StoryParser
             }
 
             int variableIndex;
-            ITerminalNode? varId = context.VAR_ID();
+            ITerminalNode? varId = context.var_id_read().VAR_ID();
             if (varId != null)
             {
                 if (!int.TryParse(varId.GetText().Substring(1), out variableIndex))
