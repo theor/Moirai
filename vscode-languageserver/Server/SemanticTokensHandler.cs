@@ -108,6 +108,18 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             
         }
     }
+    
+    
+    public record VariableDefinition : Definition
+    {
+        public VariableDefinition(StoryParser.AstVisitor.VariableDeclaration decl, StoryParser.AstVisitor.FileRange declarationRange)
+            : base(DefinitionType.Variable, decl.Name, declarationRange.ToLspRange())
+        {
+            this.VariableDeclaration = decl;
+        }
+
+        public StoryParser.AstVisitor.VariableDeclaration VariableDeclaration { get; set; }
+    }
 
     public record FunctionDefinition : Definition
     {
@@ -131,7 +143,7 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
 
     class ScopedDeclarations(StoryParser.AstVisitor.VariableScope rootScope)
     {
-        public bool FindDeclaration(IToken token, out StoryParser.AstVisitor.VariableDeclaration decl)
+        public bool FindDeclaration(IToken token, out VariableDefinition decl)
         {
             decl = default;
             string text = token.Text;
@@ -146,8 +158,9 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
                 var idx = GetVariableIndex(smallerContaining, text, tokenRange.Start.ToParserPosition());
                 if (idx != -1)
                 {
-                    if (smallerContaining.GetDeclarationAndRange(idx, out decl, out var fileRange))
+                    if (smallerContaining.GetDeclarationAndRange(idx, out var varDecl, out var fileRange))
                     {
+                        decl = new VariableDefinition(varDecl, fileRange);
                         return true;
                     }
                 }
@@ -422,8 +435,8 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     {
         PushSemanticToken(context.AT().Symbol, SemanticTokenType.Decorator);
         PushSemanticToken(context.ID().Symbol, SemanticTokenType.Decorator);
-        PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
-        using(ImplicitType(context.TYPE_ID().GetText()))
+        PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
+        using(ImplicitType(context.type_id().TYPE_ID().GetText()))
             foreach (var expr in context.expr())
                 expr.Accept(this);
 
@@ -505,21 +518,24 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     public override object? VisitRaw_call(MoiraiParser.Raw_callContext context)
     {
         PushSemanticToken(context.ID(0).Symbol, SemanticTokenType.Function);
-        if (context.TYPE_ID() != null)
+        if (context.type_id()?.TYPE_ID() != null)
         {
-            PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
+            PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
             
-            LinkLocation(context.TYPE_ID());
+            LinkLocation(context.type_id().TYPE_ID());
             
-            _variablesToTypenames[context.VAR_ID().GetText()] = context.TYPE_ID().GetText();
-            _implicitTypeName = context.TYPE_ID().GetText();
+            _variablesToTypenames[context.VAR_ID().GetText()] = context.type_id().TYPE_ID().GetText();
+            _implicitTypeName = context.type_id().TYPE_ID().GetText();
         }
         if (context.ID(1) != null)
             PushSemanticToken(context.ID(1).Symbol, SemanticTokenType.Type);
         if (context.VAR_ID() is { } varId)
         {
             PushSemanticToken(varId.Symbol, SemanticTokenType.Variable);
-            LinkLocationFromDefinition(varId, new Definition(DefinitionType.Variable,  varId.Symbol, context));
+            
+            if(_scopedDeclarations.FindDeclaration(varId.Symbol, out var decl))
+                _locations.Add(GetRange(varId.Symbol).Start, GetRange(varId.Symbol).End, decl);
+            // LinkLocationFromDefinition(varId, new VariableDefinition(, context));
         }
         return base.VisitRaw_call(context);
     }
@@ -537,41 +553,46 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
                 context.ID(0).Symbol,
                 functionDescriptor));
         }
-        if (context.TYPE_ID() != null)
+        if (context.type_id()?.TYPE_ID() != null)
         {
-            PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
-            LinkLocation(context.TYPE_ID());
+            PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
+            LinkLocation(context.type_id().TYPE_ID());
 
-            _variablesToTypenames[context.VAR_ID().GetText()] = context.TYPE_ID().GetText();
-            _implicitTypeName = context.TYPE_ID().GetText();
+            _variablesToTypenames[context.VAR_ID().GetText()] = context.type_id().TYPE_ID().GetText();
+            _implicitTypeName = context.type_id().TYPE_ID().GetText();
         }
         if (context.ID(1) != null)
             PushSemanticToken(context.ID(1).Symbol, SemanticTokenType.Type);
-        if (context.VAR_ID() != null)
+        if (context.VAR_ID() is {} varId)
+        {
+            if(_scopedDeclarations.FindDeclaration(varId.Symbol, out var decl))
+                _locations.Add(GetRange(varId.Symbol).Start, GetRange(varId.Symbol).End, decl);
+            // LinkLocationFromDefinition(varId, new VariableDefinition(, context));
             PushSemanticToken(context.VAR_ID().Symbol, SemanticTokenType.Variable);
+        }
         return base.VisitCall(context);
     }
     
     public override object? VisitWhen(MoiraiParser.WhenContext context)
     {
         PushSemanticToken(context.WHEN().Symbol, SemanticTokenType.Keyword);
-        PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
-        _variablesToTypenames["$new"] = context.TYPE_ID().GetText();
-        _variablesToTypenames["$old"] = context.TYPE_ID().GetText();
-        LinkLocation(context.TYPE_ID());
+        PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
+        _variablesToTypenames["$new"] = context.type_id().TYPE_ID().GetText();
+        _variablesToTypenames["$old"] = context.type_id().TYPE_ID().GetText();
+        LinkLocation(context.type_id().TYPE_ID());
 
-        using var x = ImplicitType(context.TYPE_ID().GetText());
+        using var x = ImplicitType(context.type_id().TYPE_ID().GetText());
         return base.VisitWhen(context);
     }
     
     public override object? VisitWhen_created(MoiraiParser.When_createdContext context)
     {
         PushSemanticToken(context.WHEN_CREATED().Symbol, SemanticTokenType.Keyword);
-        PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
-        _variablesToTypenames["$new"] = context.TYPE_ID().GetText();
-        LinkLocation(context.TYPE_ID());
+        PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
+        _variablesToTypenames["$new"] = context.type_id().TYPE_ID().GetText();
+        LinkLocation(context.type_id().TYPE_ID());
 
-        using var x = ImplicitType(context.TYPE_ID().GetText());
+        using var x = ImplicitType(context.type_id().TYPE_ID().GetText());
         return base.VisitWhen_created(context);
     }
 
@@ -630,21 +651,18 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
 
     public override object? VisitPath(MoiraiParser.PathContext context)
     {
-        if (context.var_id_read().VAR_ID() != null)
+        if (context.var_id_read()?.VAR_ID() != null)
         {
             PushSemanticToken(context.var_id_read().VAR_ID().Symbol, SemanticTokenType.Variable);
             // TODO GetVariableIndexByName recurses up, we need down starting from the root scope
             if (_scopedDeclarations.FindDeclaration(context.var_id_read().VAR_ID().Symbol, out var decl))
             {
                 var usageRange = GetRange(context.var_id_read().VAR_ID().Symbol);
-                _locations.Add(usageRange.Start, usageRange.End,
-                    new Definition(
-                        DefinitionType.Variable, 
-                        context.var_id_read().VAR_ID().Symbol.Text, decl.DeclarationRange.ToLspRange()));
+                _locations.Add(usageRange.Start, usageRange.End, decl);
             }
             // LinkLocation(context.VAR_ID());
         }
-        if (context.var_id_read().SINGLETON_ID() != null)
+        if (context.var_id_read()?.SINGLETON_ID() != null)
         {
             PushSemanticToken(context.var_id_read().SINGLETON_ID().Symbol, SemanticTokenType.Type);
         }
@@ -654,15 +672,15 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             PushSemanticToken(context.property_id().ID().Symbol, SemanticTokenType.Property);
             var prop = context.property_id().ID().GetText();
             // $x.y
-            if (context.var_id_read().VAR_ID() != null)
+            if (context.var_id_read()?.VAR_ID() != null)
                 prop = _variablesToTypenames.TryGetValue(context.var_id_read().VAR_ID().GetText(), out string type)
                     ? $"{type}__{prop}"
                     : prop;
             // y
-            else if (context.var_id_read().VAR_ID() == null && context.var_id_read().SINGLETON_ID() == null && _implicitTypeName != null)
+            else if (context.var_id_read()?.VAR_ID() == null && context.var_id_read()?.SINGLETON_ID() == null && _implicitTypeName != null)
                 prop = $"{_implicitTypeName}__{prop}";
             // #Time.year
-            else if (context.var_id_read().VAR_ID() == null && context.var_id_read().SINGLETON_ID() != null)
+            else if (context.var_id_read()?.VAR_ID() == null && context.var_id_read()?.SINGLETON_ID() != null)
                 prop = $"{context.var_id_read().SINGLETON_ID().GetText()}__{prop}";
             // LinkLocation(context.ID());
 
@@ -697,10 +715,10 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     }
     public override object? VisitValue(MoiraiParser.ValueContext context)
     {
-        if (context.TYPE_ID() != null)
+        if (context.type_id()?.TYPE_ID() != null)
         {
             PushSemanticToken(context.Start, SemanticTokenType.Type);
-            LinkLocation(context.TYPE_ID());
+            LinkLocation(context.type_id().TYPE_ID());
         }
         else if (context.@string() is MoiraiParser.StringContext s)
         {

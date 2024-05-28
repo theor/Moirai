@@ -6,14 +6,14 @@ options {
 
 }
 r: (event|trigger|enum_definition|type_definition|LINE_BREAK)+ EOF;
-attribute: AT ID TYPE_ID PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE LINE_BREAK;
+attribute: AT ID type_id PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE LINE_BREAK;
 // filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
 filter:AT attr=ID (PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE)? LINE_BREAK?;
 event: filter? EVENT  ID categories scope;
 categories: ID* ;
 trigger: TRIGGER ID categories scope;
-when: WHEN TYPE_ID (AND expr)* SPACE* LINE_BREAK+;
-when_created: WHEN_CREATED TYPE_ID (AND expr)* SPACE* LINE_BREAK+;
+when: WHEN type_id (AND expr)* SPACE* LINE_BREAK+;
+when_created: WHEN_CREATED type_id (AND expr)* SPACE* LINE_BREAK+;
 effect: (set | var | expr) SPACE* (LINE_BREAK)*;
 if: IF cond=expr then=scope (ELSE LINE_BREAK*  else=scope)? ;
 match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
@@ -21,10 +21,10 @@ match_case: value (COMMA value)* ARROW ((effect LINE_BREAK+)|scope) ;
 set: SET  path EQ expr;
 var: VAR  VAR_ID COLON expr;
 //call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
-call : ID  ((ID|TYPE_ID) VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* ))? PAREN_CLOSE scope?;
+call : ID  ((ID|type_id) VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* ))? PAREN_CLOSE scope?;
 scope: SCOPE_OPEN LINE_BREAK* (when|when_created)?  ((effect SCOPE_CLOSE)|((effect LINE_BREAK+)* SCOPE_CLOSE)) LINE_BREAK*;
-raw_call: ID  (((ID|TYPE_ID) VAR_ID (COLON value)?)| value) scope?;
-value: raw_call | call | string | enum_value | TYPE_ID | path | bool | number | NULL;
+raw_call: ID  (((ID|type_id) VAR_ID (COLON value)?)| value) scope?;
+value: raw_call | call | string | enum_value | type_id | path | bool | number | NULL;
 expr
     : if
     | match
@@ -49,6 +49,7 @@ stringContent: (EXPR_OPEN expr SCOPE_CLOSE) | TEXT;
 string: QUOTE stringContent* QUOTE ;
 
 bool: TRUE | FALSE;
+type_id: TYPE_ID;
 property_id: ID;
 dot_property: DOT property_id;
 var_id_read: SINGLETON_ID | VAR_ID;

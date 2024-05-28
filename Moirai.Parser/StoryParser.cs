@@ -91,9 +91,9 @@ public class FunctionDescriptor : IFunctionDescriptor
         {
             ITerminalNode t;
             if (CallContext is MoiraiParser.CallContext c)
-                t = c.TYPE_ID() ?? c.ID(1);
+                t = c.type_id()?.TYPE_ID() ?? c.ID(1);
             else
-                t = ((MoiraiParser.Raw_callContext) CallContext).TYPE_ID() ??
+                t = ((MoiraiParser.Raw_callContext) CallContext).type_id().TYPE_ID() ??
                     ((MoiraiParser.Raw_callContext) CallContext).ID(1);
             EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(t))?.Id ?? EntityTypeId.Null;
             if (type == EntityTypeId.Null)
@@ -665,7 +665,7 @@ public static class StoryParser
                     continue;
                 }
 
-                var refReferencedType = ParseType(attr.TYPE_ID());
+                var refReferencedType = ParseType(attr.type_id().TYPE_ID());
                 if (!refReferencedType.IsRefType)
                     AddError(ErrorCode.UnknownEntityType, attr, "expected an Entity type");
 
@@ -851,10 +851,10 @@ public static class StoryParser
             using var _ = new VariableDeclarationScope(this, context.scope());
             if (context.scope().when_created() is { } createdContext)
             {
-                EntityType type = Database.GetEntityType(createdContext.TYPE_ID().GetText());
+                EntityType type = Database.GetEntityType(createdContext.type_id().TYPE_ID().GetText());
                 if (!type.Id.IsValid)
                     AddError(ErrorCode.UnknownPropertyType, createdContext,
-                        createdContext.TYPE_ID()?.GetText() ?? createdContext.GetText());
+                        createdContext.type_id().TYPE_ID()?.GetText() ?? createdContext.GetText());
 
                 DeclareVar("$new", type.RefType, createdContext.WHEN_CREATED().Symbol, out var _);
                 CurrentEventTrigger.When = (EventTrigger.WhenType.Created, type.Id,
@@ -862,9 +862,9 @@ public static class StoryParser
             }
             else if (context.scope().when() is { } whenContext)
             {
-                EntityType type = Database.GetEntityType(whenContext.TYPE_ID().GetText());
+                EntityType type = Database.GetEntityType(whenContext.type_id().TYPE_ID().GetText());
                 if (!type.Id.IsValid)
-                    AddError(ErrorCode.UnknownPropertyType, whenContext, whenContext.TYPE_ID().GetText());
+                    AddError(ErrorCode.UnknownPropertyType, whenContext, whenContext.type_id().TYPE_ID().GetText());
 
                 if (context.scope().when() != null)
                     DeclareVar("$old", type.RefType, whenContext.WHEN().Symbol, out var _);
@@ -1059,19 +1059,19 @@ public static class StoryParser
                 return MatchAnyValue.Instance;
             }
 
-            if (value.TYPE_ID() != null)
+            if (value.type_id()?.TYPE_ID() != null)
             {
-                var etype = Database.GetEntityType(value.TYPE_ID().GetText());
+                var etype = Database.GetEntityType(value.type_id().TYPE_ID().GetText());
                 if (!etype.Id.IsValid)
                 {
-                    if (Database.GetEnumDefinition(value.TYPE_ID().GetText(), out var ed))
+                    if (Database.GetEnumDefinition(value.type_id().TYPE_ID().GetText(), out var ed))
                     {
                         // TODO really ?
                         type = ed.ValueType;
                         return new Literal(ed.EnumType);
                     }
 
-                    AddError(ErrorCode.UnknownPropertyType, value, value.TYPE_ID().GetText());
+                    AddError(ErrorCode.UnknownPropertyType, value, value.type_id().TYPE_ID().GetText());
                 }
 
                 type = etype.RefType;
@@ -1154,7 +1154,7 @@ public static class StoryParser
                 enumValue = valueContext.enum_value().TYPE_ID(1);
             }
             else
-                enumValue = valueContext.TYPE_ID();
+                enumValue = valueContext.type_id().TYPE_ID();
 
             return Enum.TryParse(enumValue.GetText(), out val);
         }
@@ -1351,6 +1351,11 @@ public static class StoryParser
 
         public IValue? ParseExpr(MoiraiParser.ExprContext context, out PropertyValue.ValueType type)
         {
+            if (context == null)
+            {
+                type = PropertyValue.ValueType.Null;
+                return null;
+            }
             if (context.@if() != null)
                 return ParseIf(context.@if(), out type);
             if (context.match() != null)
@@ -1497,7 +1502,7 @@ public static class StoryParser
             // if (context.ID().Length > 1)
             // throw new Exception("expected two parts, got " + (context.ID().Length + 1));
 
-            ITerminalNode? singletonId = context.var_id_read().SINGLETON_ID();
+            ITerminalNode? singletonId = context.var_id_read()?.SINGLETON_ID();
             if (singletonId != null)
             {
                 string typeName = singletonId.GetText().Substring(1);
@@ -1517,7 +1522,7 @@ public static class StoryParser
             }
 
             int variableIndex;
-            ITerminalNode? varId = context.var_id_read().VAR_ID();
+            ITerminalNode? varId = context.var_id_read()?.VAR_ID();
             if (varId != null)
             {
                 if (!int.TryParse(varId.GetText().Substring(1), out variableIndex))

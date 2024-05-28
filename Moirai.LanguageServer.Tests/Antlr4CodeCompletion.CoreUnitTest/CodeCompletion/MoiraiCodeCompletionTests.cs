@@ -90,6 +90,7 @@ event start {
                 new CompletionTestCase(CodePersonBirthPlace, 2,2, moirai_lexer.Tokens.Prop, moirai_lexer.Tokens.Prop),
                 new CompletionTestCase(CodePersonBirthPlace, 2, 4, moirai_lexer.Tokens.Prop, moirai_lexer.Tokens.Prop),// |  prop
                 new CompletionTestCase(CodePersonBirthPlace, 2,8, moirai_lexer.Tokens.Prop, moirai_lexer.Tokens.Prop),// prop|
+                new CompletionTestCase(CodePersonBirthPlace, 8,11, moirai_lexer.Tokens.Type_id, null, MoiraiParser.Rules.Type_id),// create |
                 new CompletionTestCase(CodePersonBirthPlace, 9,4, moirai_lexer.Tokens.Set, moirai_lexer.Tokens.Set),// |set
                 new CompletionTestCase(CodePersonBirthPlace, 9,6, moirai_lexer.Tokens.Set, moirai_lexer.Tokens.Set),// se|t
                 new CompletionTestCase(CodePersonBirthPlace, 9,7, moirai_lexer.Tokens.Set, moirai_lexer.Tokens.Set),// set|
@@ -137,11 +138,11 @@ event start {
         PrintCandidates("comp", candidates, parser);
         
         TokenIndexFromLineColumn(tree, line, column);
-        Assert.That(parser.TokenStream.Get(i).Type, Is.EqualTo((int)expectedToken));
+        Assert.That((moirai_lexer.Tokens)parser.TokenStream.Get(i).Type, Is.EqualTo(expectedToken));
         if(expectedCompletedToken.HasValue)
-            Assert.That(candidates.Tokens.Keys, Contains.Item((int)expectedCompletedToken));
+            Assert.That(candidates.Tokens.Keys.Select(x => (moirai_lexer.Tokens)x), Contains.Item(expectedCompletedToken));
         if(expectedCompletedRule.HasValue)
-            Assert.That(candidates.Rules.Keys, Contains.Item((int)expectedCompletedRule));
+            Assert.That(candidates.Rules.Keys.Select(x => (MoiraiParser.Rules)x), Contains.Item(expectedCompletedRule));
         // Assert.AreEqual(8, i);
     }
 }
