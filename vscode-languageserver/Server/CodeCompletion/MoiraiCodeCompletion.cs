@@ -130,15 +130,16 @@ public static class MoiraiCodeCompletion
             switch ((MoiraiParser.Rules)key)
             {
                 case MoiraiParser.Rules.Var_id_read:
-                    DefinitionsToCompletions(document.Definitions(position, TokenVisitor.DefinitionType.Variable));
+                    // DefinitionsToCompletions(document.Definitions(position, TokenVisitor.DefinitionType.Variable));
                     break;
                 case MoiraiParser.Rules.Dot_property:
                     var prevToken = parser.TokenStream.Get(tokenIndex - 1);
                     if (prevToken != null && prevToken.Type == moirai_lexer.VAR_ID)
                     {
-                        var completedVariable = document.Definitions(TokenVisitor.GetRange(prevToken).Start,
-                                TokenVisitor.DefinitionType.Variable)
-                            .FirstOrDefault(d => d.Name == prevToken.Text);
+                        TokenVisitor.VariableDefinition? completedVariable = null;
+                        // document.Definitions(TokenVisitor.GetRange(prevToken).Start,
+                                // TokenVisitor.DefinitionType.Variable)
+                            // .FirstOrDefault(d => d.Name == prevToken.Text);
 
                         if (completedVariable == null)
                             break;

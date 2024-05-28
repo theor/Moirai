@@ -235,8 +235,8 @@ public class MoiraiCache
     {
         if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
         {
-            var loc = doc.Definitions(requestPosition);
-            return loc.FirstOrDefault();
+            // var loc = doc.Definitions(requestPosition);
+            // return loc.FirstOrDefault();
         }
 
         return default;
@@ -313,7 +313,7 @@ public class MoiraiDocument
 
     public List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens { get; set; } = new();
     public List<StoryParser.Error> Errors = new();
-    private IntervalTree<Position, TokenVisitor.Definition> _locations = new();
+    // private IntervalTree<Position, TokenVisitor.Definition> _locations = new();
     public SymbolInformationOrDocumentSymbolContainer Symbols = new();
 
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
@@ -344,7 +344,9 @@ public class MoiraiDocument
             r.Accept(astVisitor);
 
             List<SymbolInformationOrDocumentSymbol> symbols = new();
-            var visitor = new TokenVisitor(logger, DocumentUri, astVisitor.RootScope, _locations, SemanticTokens,
+            var visitor = new TokenVisitor(logger, DocumentUri, astVisitor.RootScope, 
+                // _locations,
+                SemanticTokens,
                 symbols);
             visitor.Parser = parser;
             r.Accept(visitor);
@@ -360,10 +362,10 @@ public class MoiraiDocument
         return Task.CompletedTask;
     }
 
-    public IEnumerable<TokenVisitor.Definition> Definitions(Position position, TokenVisitor.DefinitionType? definitionType = null)
-    {
-        return _locations.Query(position).Where(d => definitionType == null || d.Type == definitionType);
-    }
+    // public IEnumerable<TokenVisitor.Definition> Definitions(Position position, TokenVisitor.DefinitionType? definitionType = null)
+    // {
+    //     return _locations.Query(position).Where(d => definitionType == null || d.Type == definitionType);
+    // }
 }
 
 // internal class DocumentDiagnosticHandler : DocumentDiagnosticHandlerBase

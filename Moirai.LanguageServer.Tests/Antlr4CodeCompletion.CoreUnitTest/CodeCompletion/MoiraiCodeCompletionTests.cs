@@ -105,7 +105,7 @@ event start {
     private readonly DocumentUri _uri = new DocumentUri("moirai", null, "test.sg", "asd", "qwe");
 
     [Test, TestCaseSource(nameof(Cases))]
-    public async Task CompletionTest(string code, int line, int column, moirai_lexer.Tokens expectedToken,
+    public async Task CompletionTestAsync(string code, int line, int column, moirai_lexer.Tokens expectedToken,
         moirai_lexer.Tokens? expectedCompletedToken, MoiraiParser.Rules? expectedCompletedRule)
     {
         
