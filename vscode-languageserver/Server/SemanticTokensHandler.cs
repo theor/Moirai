@@ -134,6 +134,19 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
 
     public class PropertyDefinition(PropertyId propId, Range? declarationRange)
         : Definition<PropertyId>(DefinitionType.TypeProperty, propId, propId.Id.ToString(), declarationRange);
+    
+    public class EnumMemberDefinition(DefinitionType Type, PropertyValue t, string Name, Range? FullDefinition) : Definition<PropertyValue>(Type, t, Name, FullDefinition)
+    {}
+    public class EnumDefinition(EnumDefinitionId propId, Range? declarationRange)
+        : Definition<EnumDefinitionId>(DefinitionType.Enum, propId, propId.Id.ToString(), declarationRange)
+    {
+        public List<EnumMemberDefinition> Members = Enumerable.Repeat((EnumMemberDefinition)null, 1).Concat(Database.Instance.Enums[propId.Id].Values.Select((v,i) => 
+            new EnumMemberDefinition(DefinitionType.EnumMember, new PropertyValue(Database.Instance.Enums[propId.Id].ValueType, i), v, declarationRange)))
+            .ToList();
+
+        public Definition MemberDefinition(PropertyValue enumValue) => Members[enumValue.IntValue];
+    }
+
     public class VariableDefinition(
         StoryParser.AstVisitor.VariableDeclaration decl,
         StoryParser.AstVisitor.FileRange declarationRange)

@@ -498,9 +498,12 @@ public static class StoryParser
     public interface ILinker
     {
         void DeclareType(AstVisitor.FileRange range, EntityTypeId typeId, string? lineDefinition = null);
-        void DeclareTypeProperty(AstVisitor.FileRange range, PropertyId propertyDefinitionPropertyId);
+        void DeclareTypeProperty(AstVisitor.FileRange range, PropertyId propertyDefinitionPropertyId, string? lineDefinition = null);
         void LinkType(AstVisitor.FileRange range, EntityTypeId entityType);
         void LinkProperty(AstVisitor.FileRange range, PropertyId propertyId);
+        void DeclareEnum(AstVisitor.FileRange range, EnumDefinitionId enumId);
+        void LinkEnum(StoryParser.AstVisitor.FileRange range, EnumDefinitionId enumId);
+        void LinkEnumMember(AstVisitor.FileRange range, PropertyValue enumValue);
     }
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
@@ -756,7 +759,10 @@ public static class StoryParser
                 case "percentage": return PropertyValue.TypePercent;
                 default:
                     if (Database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
+                    {
+                        Linker?.LinkEnum(new(id), enumDefinition.Index);
                         return PropertyValue.TypeEnum(enumDefinition.Index);
+                    }
                     var entityType = Database.GetEntityType(id.GetText());
                     Linker?.LinkType(new(id), entityType.Id);
                     if (entityType.Id.IsValid)
@@ -771,6 +777,7 @@ public static class StoryParser
             EnumDefinition en = new(new EnumDefinitionId((ushort) Database.Enums.Count), context.TYPE_ID(0).GetText(),
                 context.TYPE_ID().Skip(1).Select(v => v.GetText()).ToList());
             Database.Enums.Add(en);
+            Linker?.DeclareEnum(context, en.Index);
             return null;
         }
 
@@ -1203,6 +1210,7 @@ public static class StoryParser
                         return true;
                     }
                 }
+                Linker?.LinkEnum(new(enumType), enumDef.Index);
 
                 var enumValue = enumValueContext.TYPE_ID(1);
                 if (!enumDef.GetValueFromName(enumValue.GetText(), out var val))
@@ -1215,6 +1223,7 @@ public static class StoryParser
                     }
                 }
 
+                Linker?.LinkEnumMember(new FileRange(enumValue), val);
                 type = enumDef.ValueType;
                 {
                     addError = new Literal(val);
@@ -1545,6 +1554,7 @@ public static class StoryParser
 
                     return default;
                 }
+                Linker?.LinkType(new(singletonId), singletonType.Id);
 
                 // TODO chained singleton #Time.x.y
                 var path = new PropertyPath(PropertyId.Null);

@@ -7,6 +7,7 @@ public class SourceLinker : StoryParser.ILinker
 {
     private Dictionary<EntityTypeId, TokenVisitor.TypeDefinition> _typeDefinitions = new();
     private Dictionary<PropertyId, TokenVisitor.PropertyDefinition> _propertyDefinitions = new();
+    private Dictionary<EnumDefinitionId, TokenVisitor.EnumDefinition> _enumDefinitions = new();
     private IntervalTree<Position, TokenVisitor.Definition> _tree = new();
 
     public SourceLinker()
@@ -19,7 +20,9 @@ public class SourceLinker : StoryParser.ILinker
             DeclareType(default!, type.Id, sb.ToString());
             foreach (var propertyDefinition in type.Properties)
             {
-                DeclareTypeProperty(default!, propertyDefinition.PropertyId);
+                sb.Clear();
+                Database.Instance.Printer.PrintTypeProperty(sb, propertyDefinition);
+                DeclareTypeProperty(default!, propertyDefinition.PropertyId, sb.ToString());
             }
         }
     }
@@ -42,10 +45,10 @@ public class SourceLinker : StoryParser.ILinker
         _tree.Add(r.Start, r.End, _typeDefinitions[entityType]);
     }
 
-    public void DeclareTypeProperty(StoryParser.AstVisitor.FileRange range, PropertyId propertyId)
+    public void DeclareTypeProperty(StoryParser.AstVisitor.FileRange? range, PropertyId propertyId, string? inlineDefinition = null)
     {
-        var r = range.ToLspRange();
-        var typeDefinition = new TokenVisitor.PropertyDefinition(propertyId, r);
+        var r = range?.ToLspRange();
+        var typeDefinition = new TokenVisitor.PropertyDefinition(propertyId, r) { InlineDefinition = inlineDefinition};
         _propertyDefinitions.Add(propertyId, typeDefinition);
     }
 
@@ -54,5 +57,26 @@ public class SourceLinker : StoryParser.ILinker
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, _propertyDefinitions[propertyId]);
         
+    }
+
+    public void DeclareEnum(StoryParser.AstVisitor.FileRange range, EnumDefinitionId enumId)
+    {
+        var r = range.ToLspRange();
+        var enumDefinition = new TokenVisitor.EnumDefinition(enumId, r);
+        _enumDefinitions.Add(enumId, enumDefinition);
+    }
+
+    public void LinkEnum(StoryParser.AstVisitor.FileRange range, EnumDefinitionId enumId)
+    {
+        var r = range.ToLspRange();
+        _tree.Add(r.Start, r.End, _enumDefinitions[enumId]);
+    }
+
+    public void LinkEnumMember(StoryParser.AstVisitor.FileRange range, PropertyValue enumValue)
+    {
+        var r = range.ToLspRange();
+        var enumType = Database.Instance.Enums[enumValue.Type.Index];
+        var enumDef = _enumDefinitions[enumType.Index];
+        _tree.Add(r.Start, r.End, enumDef.MemberDefinition(enumValue));
     }
 }

@@ -55,11 +55,16 @@ public class StoryPrinter
         sb.AppendLine(@$"entity {type.Name} {{");
         foreach (var property in type.Properties.Skip(Database.DefaultProperties().Count))
         {
-            sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
+            PrintTypeProperty(sb, property);
         }
 
 
         sb.AppendLine("}");
+    }
+
+    public void PrintTypeProperty(StringBuilder sb, PropertyDefinition property)
+    {
+        sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
     }
 
     public void PrintDefaultProperties(StringBuilder sb)
