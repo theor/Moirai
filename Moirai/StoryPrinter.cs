@@ -17,13 +17,7 @@ public class StoryPrinter
         StringBuilder sb = new();
         foreach (EntityType type in _database.Types.Skip(_database.BuiltinTypes))
         {
-            sb.AppendLine(@$"entity {type.Name} {{");
-            foreach (var property in type.Properties.Skip(Database.DefaultProperties().Count))
-            {
-                sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
-            }
-
-            sb.AppendLine("}");
+            PrintType(sb, type);
         }
 
         foreach (string en in _database.Tags.Skip(1))
@@ -54,6 +48,27 @@ public class StoryPrinter
         }
 
         return sb.ToString();
+    }
+
+    public void PrintType(StringBuilder sb, EntityType type)
+    {
+        sb.AppendLine(@$"entity {type.Name} {{");
+        foreach (var property in type.Properties.Skip(Database.DefaultProperties().Count))
+        {
+            sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
+        }
+
+
+        sb.AppendLine("}");
+    }
+
+    public void PrintDefaultProperties(StringBuilder sb)
+    {
+        sb.AppendLine("// default properties:");
+        foreach (var property in Database.DefaultProperties().Skip(1))
+        {
+            sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
+        }
     }
 
     private string Print(IFilter actionFilter)
@@ -89,6 +104,9 @@ public class StoryPrinter
             case PropertyValue.ValueBaseType.Enum:
                 return _database.Enums[propertyType.Index].Name;
             case PropertyValue.ValueBaseType.EntityType:
+                return propertyType.Index == 0
+                    ? propertyType.BaseType.ToString().ToLowerInvariant()
+                    : _database.GetEntityType(propertyType).Name;
             default:
                 throw new ArgumentOutOfRangeException();
         }

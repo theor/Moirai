@@ -30,9 +30,13 @@ public class MyHoverHandler : HoverHandlerBase
         if(res != null)
         {
             var markedStrings = new List<MarkedString>();
-            if(res.FullDefinition != null)
+            
+            if(res.InlineDefinition != null)
+                markedStrings.Add(new MarkedString("moirai",res.InlineDefinition));
+            else if(res.FullDefinition != null)
                 markedStrings.Add(new MarkedString("moirai",
-                _moiraiCache.GetRange(request.TextDocument.Uri, res.FullDefinition)));
+                    _moiraiCache.GetRange(request.TextDocument.Uri, res.FullDefinition)));
+            
             res.GetHoverText(markedStrings);
             return new Hover
             {

@@ -12,7 +12,7 @@ public class Database
     public static readonly PropertyId PropName = new(3, default);
     public static readonly PropertyId PropYear = new(4, default);
 
-    public static Database? Instance;
+    public static Database Instance = null!;
 
     public enum Frequency
     {

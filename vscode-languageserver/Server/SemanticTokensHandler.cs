@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Text;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using IntervalTree;
@@ -106,6 +107,7 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         public DefinitionType Type { get; init; } = Type;
         public string Name { get; init; } = Name;
         public Range? FullDefinition { get; init; } = FullDefinition;
+        public string? InlineDefinition { get; set; }
 
         public virtual void GetHoverText(List<MarkedString> markedStrings)
         {
@@ -119,9 +121,18 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     }
 
 
-    public class TypeDefinition(EntityTypeId typeId, Range declarationRange)
-        : Definition<EntityTypeId>(DefinitionType.Type, typeId, typeId.Id.ToString(), declarationRange);
-    public class PropertyDefinition(PropertyId propId, Range declarationRange)
+    public class TypeDefinition(EntityTypeId typeId, Range? declarationRange)
+        : Definition<EntityTypeId>(DefinitionType.Type, typeId, typeId.Id.ToString(), declarationRange)
+    {
+        public override void GetHoverText(List<MarkedString> markedStrings)
+        {
+            StringBuilder sb = new();
+            Database.Instance.Printer.PrintDefaultProperties(sb);
+            markedStrings.Add(new MarkedString("moirai", sb.ToString()));
+        }
+    }
+
+    public class PropertyDefinition(PropertyId propId, Range? declarationRange)
         : Definition<PropertyId>(DefinitionType.TypeProperty, propId, propId.Id.ToString(), declarationRange);
     public class VariableDefinition(
         StoryParser.AstVisitor.VariableDeclaration decl,

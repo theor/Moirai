@@ -205,7 +205,8 @@ public static class StoryParser
         descriptor = Functions.FirstOrDefault(f => f.FuncName == name);
         return descriptor != null;
     }
-    private static readonly FunctionDescriptor[] Functions =
+
+    public static readonly FunctionDescriptor[] Functions =
     [
         new("create", true, ctx =>
         {
@@ -496,7 +497,7 @@ public static class StoryParser
 
     public interface ILinker
     {
-        void DeclareType(AstVisitor.FileRange range, EntityTypeId typeId);
+        void DeclareType(AstVisitor.FileRange range, EntityTypeId typeId, string? lineDefinition = null);
         void DeclareTypeProperty(AstVisitor.FileRange range, PropertyId propertyDefinitionPropertyId);
         void LinkType(AstVisitor.FileRange range, EntityTypeId entityType);
         void LinkProperty(AstVisitor.FileRange range, PropertyId propertyId);

@@ -1,4 +1,5 @@
-﻿using IntervalTree;
+﻿using System.Text;
+using IntervalTree;
 using Moirai.Parser;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
@@ -13,7 +14,9 @@ public class SourceLinker : StoryParser.ILinker
         for (int i = 1; i < Database.Instance.BuiltinTypes; i++)
         {
             var type = Database.Instance.Types[i];
-            DeclareType(default!, type.Id);
+            StringBuilder sb = new();
+            Database.Instance.Printer.PrintType(sb, type);
+            DeclareType(default!, type.Id, sb.ToString());
             foreach (var propertyDefinition in type.Properties)
             {
                 DeclareTypeProperty(default!, propertyDefinition.PropertyId);
@@ -26,10 +29,10 @@ public class SourceLinker : StoryParser.ILinker
         return _tree.Query(requestPosition).FirstOrDefault();
     }
 
-    public void DeclareType(StoryParser.AstVisitor.FileRange range, EntityTypeId typeId)
+    public void DeclareType(StoryParser.AstVisitor.FileRange? range, EntityTypeId typeId, string? inlineDefinition = null)
     {
-        var r = range.ToLspRange();
-        var typeDefinition = new TokenVisitor.TypeDefinition(typeId, r);
+        var r = range?.ToLspRange();
+        var typeDefinition = new TokenVisitor.TypeDefinition(typeId, r) { InlineDefinition = inlineDefinition};
         _typeDefinitions.Add(typeId, typeDefinition);
     }
 
