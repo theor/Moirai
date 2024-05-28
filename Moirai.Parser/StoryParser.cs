@@ -96,6 +96,8 @@ public class FunctionDescriptor : IFunctionDescriptor
                 t = ((MoiraiParser.Raw_callContext) CallContext).type_id().TYPE_ID() ??
                     ((MoiraiParser.Raw_callContext) CallContext).ID(1);
             EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(t))?.Id ?? EntityTypeId.Null;
+            
+            Visitor.Linker?.LinkType(new StoryParser.AstVisitor.FileRange(t.Symbol), type);
             if (type == EntityTypeId.Null)
             {
                 Visitor.AddError(StoryParser.ErrorCode.UnknownEntityType, GetArgumentToken(0), $"'{type}'");
@@ -492,6 +494,13 @@ public static class StoryParser
         parser.AddErrorListener(listener);
     }
 
+    public interface ILinker
+    {
+        void DeclareType(AstVisitor.FileRange range, EntityTypeId typeId);
+        void DeclareTypeProperty(AstVisitor.FileRange range, PropertyId propertyDefinitionPropertyId);
+        void LinkType(AstVisitor.FileRange range, EntityTypeId entityType);
+        void LinkProperty(AstVisitor.FileRange range, PropertyId propertyId);
+    }
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
         public record struct VariableDeclaration(string Name, PropertyValue.ValueType Type, FileRange DeclarationRange)
@@ -531,13 +540,28 @@ public static class StoryParser
         public record FileRange(FilePosition Start, FilePosition End)
         {
             public static readonly FileRange Empty = new FileRange(new FilePosition(-1,-1), new FilePosition(-1,-1));
+            public static implicit operator FileRange(ParserRuleContext rule) => new(rule);
+            // public static implicit operator FileRange(ITerminalNode token) => new(token.Symbol);
 
-            public FileRange(ParserRuleContext symbol) : this(new FilePosition(symbol.Start.Line - 1, symbol.Start.Column),
-                new FilePosition(symbol.Stop.Line - 1, symbol.Stop.Column))
+            public FileRange(ParserRuleContext symbol) : this(
+                new FilePosition(symbol.Start.Line - 1, symbol.Start.Column),
+                GetEnd(symbol)
+                )
             {
             }
+
+            private static FilePosition GetEnd(ParserRuleContext symbol)
+            {
+                if (symbol.Stop == null || symbol.Stop == symbol.Start)
+                    return new(symbol.Start.Line - 1, symbol.Start.Column + symbol.GetText().Length);
+                return new FilePosition(symbol.Stop.Line - 1, symbol.Stop.Column);
+            }
+
             public FileRange(IToken symbol) : this(new FilePosition(symbol.Line - 1, symbol.Column),
                 new FilePosition(symbol.Line - 1, symbol.Column + symbol.Text.Length))
+            {
+            }
+            public FileRange(ITerminalNode symbol) : this(symbol.Symbol)
             {
             }
 
@@ -596,11 +620,11 @@ public static class StoryParser
         public List<Error> Errors { get; } = new();
 
         public MoiraiParser Parser { get; set; }
+        public ILinker? Linker { get; set; }
         protected override object? DefaultResult => null;
 
         public readonly Database Database;
 
-        // private int _implicitVariableIndex = -1;
         public AstVisitor(Database database, MoiraiParser parser)
         {
             Database = database;
@@ -629,6 +653,8 @@ public static class StoryParser
                 string? typeName = typeDefinitionContext.TYPE_ID().GetText();
                 EntityType type = DeclareEntityType(typeName);
 
+                Linker?.DeclareType(new FileRange(typeDefinitionContext), type.Id);
+
                 typesContexts.Add((type, typeDefinitionContext));
                 foreach (var attr in typeDefinitionContext.attribute())
                     deferredTypeAttributes.Add((type, attr));
@@ -644,8 +670,10 @@ public static class StoryParser
 
                     PropertyValue.ValueType proptype =
                         ParseType(propDefinitionContext.ID() ?? propDefinitionContext.TYPE_ID());
-                    type.Properties.Add(new PropertyDefinition(propName, type.Id, (uint) type.Properties.Count,
-                        proptype));
+                    var propertyDefinition = new PropertyDefinition(propName, type.Id, (uint) type.Properties.Count,
+                        proptype);
+                    type.Properties.Add(propertyDefinition);
+                    Linker?.DeclareTypeProperty(new FileRange(propDefinitionContext), propertyDefinition.PropertyId);
                 }
             }
 
@@ -729,6 +757,7 @@ public static class StoryParser
                     if (Database.GetEnumDefinition(id.GetText(), out EnumDefinition enumDefinition))
                         return PropertyValue.TypeEnum(enumDefinition.Index);
                     var entityType = Database.GetEntityType(id.GetText());
+                    Linker?.LinkType(new(id), entityType.Id);
                     if (entityType.Id.IsValid)
                         return entityType.RefType;
                     AddError(ErrorCode.UnknownPropertyType, id, id.GetText());
@@ -1492,6 +1521,7 @@ public static class StoryParser
             }
 
             type = owningType.GetPropertyType(propertyName);
+            Linker?.LinkProperty(propId, propertyId);
             path.AddProperty(propertyId);
             if (context.dot_property() != null && context.dot_property(idIndex + 1) != null)
                 ParseProperty(ref path, context, idIndex + 1, Database.GetEntityType(type), out type);

@@ -25,7 +25,7 @@ public class MoiraiCompletionHandler : CompletionHandlerBase
         return new CompletionRegistrationOptions
         {
             DocumentSelector = MoiraiLanguage.Selector,
-            // CompletionItem =
+            TriggerCharacters = new Container<string>("."),
         };
     }
 

@@ -28,9 +28,9 @@ partial class Vector3
 {
     public enum C
     {
-        X = c_X,
-        Y = c_Y,
-        Z = c_Z,
+        X = Vector3.c_x,
+        Y = Vector3.c_y,
+        Z = Vector3.c_z,
     }
 }
 ";

@@ -145,7 +145,7 @@ public static class MoiraiCodeCompletion
                             break;
                         EntityType? varType = Database.Instance.GetEntityType(
                             ((TokenVisitor.VariableDefinition)completedVariable)
-                            .VariableDeclaration.Type);
+                            .Data.Type);
                         if (varType?.Properties != null)
                         {
                             foreach (var property in varType.Properties)

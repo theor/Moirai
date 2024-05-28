@@ -97,47 +97,55 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         TypeProperty,
         Variable
     }
-    public record Definition(DefinitionType Type, string Name, Range? FullDefinition)
+    public abstract class Definition(DefinitionType Type, string Name, Range? FullDefinition)
     {
-        public Definition(DefinitionType type, IToken token, ParserRuleContext? fullDefinition) : this(type, token.Text, fullDefinition == null ? null : GetRange(fullDefinition))
-        {
-        }
+        // public Definition(DefinitionType type, IToken token, ParserRuleContext? fullDefinition) : this(type, token.Text, fullDefinition == null ? null : GetRange(fullDefinition))
+        // {
+        // }
+
+        public DefinitionType Type { get; init; } = Type;
+        public string Name { get; init; } = Name;
+        public Range? FullDefinition { get; init; } = FullDefinition;
 
         public virtual void GetHoverText(List<MarkedString> markedStrings)
         {
             
         }
     }
-    
-    
-    public record VariableDefinition : Definition
-    {
-        public VariableDefinition(StoryParser.AstVisitor.VariableDeclaration decl, StoryParser.AstVisitor.FileRange declarationRange)
-            : base(DefinitionType.Variable, decl.Name, declarationRange.ToLspRange())
-        {
-            this.VariableDeclaration = decl;
-        }
 
-        public StoryParser.AstVisitor.VariableDeclaration VariableDeclaration { get; set; }
+    public abstract class Definition<T>(DefinitionType Type, T t, string Name, Range? FullDefinition) : Definition(Type, Name, FullDefinition)
+    {
+        public T Data = t;
     }
 
-    public record FunctionDefinition : Definition
-    {
-        public FunctionDescriptor FunctionDescriptor { get; }
 
+    public class TypeDefinition(EntityTypeId typeId, Range declarationRange)
+        : Definition<EntityTypeId>(DefinitionType.Type, typeId, typeId.Id.ToString(), declarationRange);
+    public class PropertyDefinition(PropertyId propId, Range declarationRange)
+        : Definition<PropertyId>(DefinitionType.TypeProperty, propId, propId.Id.ToString(), declarationRange);
+    public class VariableDefinition(
+        StoryParser.AstVisitor.VariableDeclaration decl,
+        StoryParser.AstVisitor.FileRange declarationRange)
+        : Definition<StoryParser.AstVisitor.VariableDeclaration>(DefinitionType.Variable, decl, decl.Name,
+            declarationRange.ToLspRange())
+    {
+    }
+
+    public class FunctionDefinition : Definition<FunctionDescriptor>
+    {
         public FunctionDefinition(IToken symbol, FunctionDescriptor functionDescriptor)
             : base(DefinitionType.Function, 
-                symbol, 
+                functionDescriptor,
+                symbol.Text, 
                 null)
         {
-            FunctionDescriptor = functionDescriptor;
         }
 
         public override void GetHoverText(List<MarkedString> markedStrings)
         {
-            markedStrings.Add(new MarkedString($"{FunctionDescriptor.FuncName}{(FunctionDescriptor.ExpectVariable ? "" : "")}()"));
-            if(FunctionDescriptor.Documentation != null)
-                markedStrings.Add(new MarkedString(FunctionDescriptor.Documentation));
+            markedStrings.Add(new MarkedString($"{Data.FuncName}{(Data.ExpectVariable ? "" : "")}()"));
+            if(Data.Documentation != null)
+                markedStrings.Add(new MarkedString(Data.Documentation));
         }
     }
 
@@ -198,7 +206,7 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     private readonly DocumentUri _documentUri;
     private readonly ScopedDeclarations _scopedDeclarations;
     public readonly List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens = new();
-    private readonly Dictionary<string, Definition> _definitions = new();
+    // private readonly Dictionary<string, Definition> _definitions = new();
     // private readonly IntervalTree<Position, Definition> _locations;
     public readonly List<SymbolInformationOrDocumentSymbol> Symbols = new();
     private string? _implicitTypeName;
@@ -346,24 +354,24 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     {
         foreach (var enumDefinitionContext in context.enum_definition())
         {
-            _definitions.Add( enumDefinitionContext.TYPE_ID(0).GetText(),  new Definition(DefinitionType.Enum, enumDefinitionContext.TYPE_ID(0).Symbol, enumDefinitionContext));
+            // _definitions.Add( enumDefinitionContext.TYPE_ID(0).GetText(),  new Definition(DefinitionType.Enum, enumDefinitionContext.TYPE_ID(0).Symbol, enumDefinitionContext));
             foreach (var member in enumDefinitionContext.TYPE_ID().Skip(1))
             {
-                _definitions.Add($"{enumDefinitionContext.TYPE_ID(0).GetText()}.{member.GetText()}", new Definition(DefinitionType.EnumMember, member.Symbol, enumDefinitionContext));
+                // _definitions.Add($"{enumDefinitionContext.TYPE_ID(0).GetText()}.{member.GetText()}", new Definition(DefinitionType.EnumMember, member.Symbol, enumDefinitionContext));
             } 
         }
         foreach (var typeDefinitionContext in context.type_definition())
         {
             PushSymbol(typeDefinitionContext.TYPE_ID().Symbol, SymbolKind.Class);
             var typeName = typeDefinitionContext.TYPE_ID().GetText();
-            _definitions.Add( typeName, new Definition(
-                DefinitionType.Type, 
-                typeDefinitionContext.TYPE_ID().Symbol, typeDefinitionContext));
+            // _definitions.Add( typeName, new Definition(
+                // DefinitionType.Type, 
+                // typeDefinitionContext.TYPE_ID().Symbol, typeDefinitionContext));
             foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
             {
-                _definitions.Add(typeName + "__" + propDefinitionContext.property_id().GetText(), new Definition(
-                    DefinitionType.TypeProperty, 
-                    propDefinitionContext.property_id().ID().Symbol, propDefinitionContext));
+                // _definitions.Add(typeName + "__" + propDefinitionContext.property_id().GetText(), new Definition(
+                    // DefinitionType.TypeProperty, 
+                    // propDefinitionContext.property_id().ID().Symbol, propDefinitionContext));
             }
         }
         // TODO visit props

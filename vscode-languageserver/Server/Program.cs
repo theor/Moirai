@@ -235,6 +235,7 @@ public class MoiraiCache
     {
         if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
         {
+            return doc.Linker.GetDefinitionAt(requestPosition);
             // var loc = doc.Definitions(requestPosition);
             // return loc.FirstOrDefault();
         }
@@ -304,13 +305,6 @@ public class MoiraiDocument
     public string Content => _content;
     public int Version;
 
-    public struct MoiraiSymbol
-    {
-        public Range Range;
-        public Range FullRange;
-        public string Name;
-    }
-
     public List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens { get; set; } = new();
     public List<StoryParser.Error> Errors = new();
     // private IntervalTree<Position, TokenVisitor.Definition> _locations = new();
@@ -337,7 +331,10 @@ public class MoiraiDocument
         try
         {
             var db = new Database();
-            var astVisitor = new StoryParser.AstVisitor(db, null!);
+            var astVisitor = new StoryParser.AstVisitor(db, null!)
+            {
+                Linker = (Linker = new SourceLinker()),
+            };
             StoryParser.SetupParser(Content, out var parser, astVisitor);
 
             var r = parser.r();
@@ -361,6 +358,8 @@ public class MoiraiDocument
 
         return Task.CompletedTask;
     }
+
+    public SourceLinker Linker { get; set; }
 
     // public IEnumerable<TokenVisitor.Definition> Definitions(Position position, TokenVisitor.DefinitionType? definitionType = null)
     // {

@@ -69,8 +69,13 @@ public class {AttributeName}(string Enum2Name, string Prefix) : System.Attribute
         foreach (AttributeListSyntax attributeListSyntax in classDeclarationSyntax.AttributeLists)
         foreach (AttributeSyntax attributeSyntax in attributeListSyntax.Attributes)
         {
-            if (context.SemanticModel.GetSymbolInfo(attributeSyntax).Symbol is not IMethodSymbol attributeSymbol)
-                continue; // if we can't get the symbol, ignore it
+            var symbolInfo = context.SemanticModel.GetSymbolInfo(attributeSyntax);
+            if (symbolInfo.Symbol is not IMethodSymbol attributeSymbol)
+            {
+                if(symbolInfo.CandidateSymbols.FirstOrDefault() is not IMethodSymbol candidateSymbol)
+                    continue; // if we can't get the symbol, ignore it
+                attributeSymbol = candidateSymbol;
+            }
 
             string attributeName = attributeSymbol.ContainingType.ToDisplayString();
 
@@ -119,7 +124,7 @@ public class {AttributeName}(string Enum2Name, string Prefix) : System.Attribute
                 {
                     var enumMember = p.Name.Remove(0, x.data.Prefix.Length);
                     enumMember = Char.ToUpperInvariant(enumMember[0]) + enumMember.Substring(1).ToLowerInvariant();
-                    return $@"        @{enumMember} = {className}.{p.Name},";
+                    return $@"        {enumMember} = {className}.{p.Name},";
                 }); // e.g. yield return $"Id:{this.Id}";
 
             // Build up the source code
