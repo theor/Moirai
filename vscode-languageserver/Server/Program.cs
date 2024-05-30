@@ -341,7 +341,7 @@ public class MoiraiDocument
             r.Accept(astVisitor);
 
             List<SymbolInformationOrDocumentSymbol> symbols = new();
-            var visitor = new TokenVisitor(logger, DocumentUri, astVisitor.RootScope, 
+            var visitor = new TokenVisitor(logger, DocumentUri, 
                 // _locations,
                 SemanticTokens,
                 symbols);
