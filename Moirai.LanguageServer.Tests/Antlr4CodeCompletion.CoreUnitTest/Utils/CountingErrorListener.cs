@@ -20,6 +20,7 @@ namespace Antlr4CodeCompletion.CoreUnitTest.Utils
             string msg, RecognitionException e)
         {
             base.SyntaxError(output, recognizer, offendingSymbol, line, charPositionInLine, msg, e);
+            Console.WriteLine($"Syntax error at {line}:{charPositionInLine} {msg}");
             this.ErrorCount++;
         }
     }

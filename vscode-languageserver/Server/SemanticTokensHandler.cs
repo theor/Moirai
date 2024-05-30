@@ -88,15 +88,16 @@ public class SemanticTokensHandler : SemanticTokensHandlerBase
 
 public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 {
+    [Flags]
     public enum DefinitionType
     {
-        Unknown,
-        Enum,
-        Type,
-        Function,
-        EnumMember,
-        TypeProperty,
-        Variable
+        Unknown = 0,
+        Enum = 1 << 0,
+        Type = 1 << 1,
+        Function = 1 << 2,
+        EnumMember = 1 << 3,
+        TypeProperty = 1 << 4,
+        Variable = 1 << 5
     }
     public abstract class Definition(DefinitionType Type, string Name, Range? FullDefinition)
     {
@@ -153,6 +154,10 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         : Definition<StoryParser.AstVisitor.VariableDeclaration>(DefinitionType.Variable, decl, decl.Name,
             declarationRange.ToLspRange())
     {
+        public override void GetHoverText(List<MarkedString> markedStrings)
+        {
+            markedStrings.Add(new MarkedString( Database.Instance.Printer.Print(Data.Type)));
+        }
     }
 
     public class FunctionDefinition : Definition<FunctionDescriptor>
@@ -685,12 +690,11 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         if (context.var_id_read()?.VAR_ID() != null)
         {
             PushSemanticToken(context.var_id_read().VAR_ID().Symbol, SemanticTokenType.Variable);
-            // TODO GetVariableIndexByName recurses up, we need down starting from the root scope
-            if (_scopedDeclarations.FindDeclaration(context.var_id_read().VAR_ID().Symbol, out var decl))
-            {
-                var usageRange = GetRange(context.var_id_read().VAR_ID().Symbol);
-                // _locations.Add(usageRange.Start, usageRange.End, decl);
-            }
+            // if (_scopedDeclarations.FindDeclaration(context.var_id_read().VAR_ID().Symbol, out var decl))
+            // {
+            //     var usageRange = GetRange(context.var_id_read().VAR_ID().Symbol);
+            //     // _locations.Add(usageRange.Start, usageRange.End, decl);
+            // }
             // LinkLocation(context.VAR_ID());
         }
         if (context.var_id_read()?.SINGLETON_ID() != null)

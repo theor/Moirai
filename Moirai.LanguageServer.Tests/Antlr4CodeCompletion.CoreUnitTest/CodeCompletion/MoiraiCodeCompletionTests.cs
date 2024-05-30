@@ -55,19 +55,39 @@ public class TokenIndexFinderTests : CodeCompletionCoreUnitTestsBase
 {
     public class CompletionTestCase : TestCaseParameters
     {
-        public CompletionTestCase(string code, int line, int column, moirai_lexer.Tokens expectedToken, moirai_lexer.Tokens? expectedCompletedToken = null, MoiraiParser.Rules? expectedCompletedRule = null)
-            : base(new object[]{code, line, column, expectedToken, expectedCompletedToken, expectedCompletedRule})
+        Position position;
+        public CompletionTestCase(string code, int line, int column, moirai_lexer.Tokens expectedToken,
+            moirai_lexer.Tokens? expectedCompletedToken = null, MoiraiParser.Rules? expectedCompletedRule = null)
+            : base(new object[] { code, line, column, expectedToken, expectedCompletedToken, expectedCompletedRule })
         {
-            this.TestName = $"({line}:{column}) find {expectedToken}";
+            position = new(line, column);
+            this.TestName = $"{expectedToken}";
             if (expectedCompletedToken.HasValue)
-                TestName += $" token:{moirai_lexer.ruleNames[(int)expectedCompletedToken-1]}";
+                TestName += $" token:{moirai_lexer.ruleNames[(int)expectedCompletedToken - 1]}";
             if (expectedCompletedRule.HasValue)
                 TestName += $" rule:{MoiraiParser.ruleNames[(int)expectedCompletedRule]}";
         }
-        
-        
+        public CompletionTestCase WithName(string name)
+        {
+            this.TestName = $"({position.Line}:{position.Character}) : '{name}' {this.TestName}";
+            return this;
+        }
     }
 
+    private const string CodeSystem = @"entity System {
+    prop asd: string
+}
+
+@start
+event create_solar_system {
+    create System $s: 'Solar System'
+    create System $sys: ()
+}
+trigger born {
+    when_created System
+    set $
+}
+";
     private const string CodePersonBirthPlace = @"
 entity Person {
     prop birthplace: string
@@ -85,63 +105,83 @@ event start {
     {
         get
         {
-            return new []
+            return new[]
             {
-                new CompletionTestCase(CodePersonBirthPlace, 2,2, moirai_lexer.Tokens.Prop, moirai_lexer.Tokens.Prop),
-                new CompletionTestCase(CodePersonBirthPlace, 2, 4, moirai_lexer.Tokens.Prop, moirai_lexer.Tokens.Prop),// |  prop
-                new CompletionTestCase(CodePersonBirthPlace, 2,8, moirai_lexer.Tokens.Prop, moirai_lexer.Tokens.Prop),// prop|
-                new CompletionTestCase(CodePersonBirthPlace, 8,11, moirai_lexer.Tokens.Type_id, null, MoiraiParser.Rules.Type_id),// create |
-                new CompletionTestCase(CodePersonBirthPlace, 9,4, moirai_lexer.Tokens.Set, moirai_lexer.Tokens.Set),// |set
-                new CompletionTestCase(CodePersonBirthPlace, 9,6, moirai_lexer.Tokens.Set, moirai_lexer.Tokens.Set),// se|t
-                new CompletionTestCase(CodePersonBirthPlace, 9,7, moirai_lexer.Tokens.Set, moirai_lexer.Tokens.Set),// set|
-                new CompletionTestCase(CodePersonBirthPlace, 9,8, moirai_lexer.Tokens.Var_id, null, MoiraiParser.Rules.Var_id_read) ,// set |
-                new CompletionTestCase(CodePersonBirthPlace, 9,9, moirai_lexer.Tokens.Var_id, null, MoiraiParser.Rules.Var_id_read) ,// set $|
-                new CompletionTestCase(CodePersonBirthPlace, 9,10, moirai_lexer.Tokens.Var_id, null, MoiraiParser.Rules.Var_id_read),// set $p| not dot but continue $p
-                new CompletionTestCase(CodePersonBirthPlace, 9,11, moirai_lexer.Tokens.Dot, null, MoiraiParser.Rules.Dot_property) ,// set $p.|
+                new CompletionTestCase(CodePersonBirthPlace, 2, 2, moirai_lexer.Tokens.Prop, moirai_lexer.Tokens.Prop),
+                new CompletionTestCase(CodePersonBirthPlace, 2, 4, moirai_lexer.Tokens.Prop,
+                    moirai_lexer.Tokens.Prop).WithName("|  prop"), // |  prop
+                new CompletionTestCase(CodePersonBirthPlace, 2, 8, moirai_lexer.Tokens.Prop,
+                    moirai_lexer.Tokens.Prop).WithName("prop|"),
+                new CompletionTestCase(CodePersonBirthPlace, 8, 11, moirai_lexer.Tokens.Type_id, null,
+                    MoiraiParser.Rules.Type_id).WithName("create |"),
+                new CompletionTestCase(CodePersonBirthPlace, 9, 4, moirai_lexer.Tokens.Set,
+                    moirai_lexer.Tokens.Set).WithName("|set"),
+                new CompletionTestCase(CodePersonBirthPlace, 9, 6, moirai_lexer.Tokens.Set,
+                    moirai_lexer.Tokens.Set).WithName("se|t"),
+                new CompletionTestCase(CodePersonBirthPlace, 9, 7, moirai_lexer.Tokens.Set,
+                    moirai_lexer.Tokens.Set).WithName("set|"),
+                new CompletionTestCase(CodePersonBirthPlace, 9, 8, moirai_lexer.Tokens.Var_id, null,
+                    MoiraiParser.Rules.Var_id_read).WithName("set |"),
+                new CompletionTestCase(CodePersonBirthPlace, 9, 9, moirai_lexer.Tokens.Var_id, null,
+                    MoiraiParser.Rules.Var_id_read).WithName("set $|"),
+                new CompletionTestCase(CodePersonBirthPlace, 9, 10, moirai_lexer.Tokens.Var_id, null,
+                    MoiraiParser.Rules.Var_id_read).WithName("set $p| not dot but continue $p"),
+                new CompletionTestCase(CodePersonBirthPlace, 9, 11, moirai_lexer.Tokens.Dot, null,
+                    MoiraiParser.Rules.Dot_property).WithName("set $p.|"),
+                // set \n parses badly
+                new CompletionTestCase(CodeSystem, 11,9, moirai_lexer.Tokens.Line_break, null, MoiraiParser.Rules.Var_id_read).WithName("set $|"),
+                new CompletionTestCase(CodeSystem, 10,6, moirai_lexer.Tokens.When_created, moirai_lexer.Tokens.When).WithName("when|"),
             };
         }
     }
-    
+
     private readonly DocumentUri _uri = new DocumentUri("moirai", null, "test.sg", "asd", "qwe");
 
     [Test, TestCaseSource(nameof(Cases))]
     public async Task CompletionTestAsync(string code, int line, int column, moirai_lexer.Tokens expectedToken,
         moirai_lexer.Tokens? expectedCompletedToken, MoiraiParser.Rules? expectedCompletedRule)
     {
-        
-        var (core, parser, tree) = Setup(CodePersonBirthPlace);
+        var (core, parser, tree) = Setup(code);
         var position = new Position(line, column);
         var i = MoiraiCodeCompletion.FindTokenIndex(parser, position);
         CandidatesCollection candidates = core.CollectCandidates(i, null);
 
-        var doc = new MoiraiDocument(_uri, new TextDocumentItem{Uri = _uri, LanguageId = "moirai", Text = CodePersonBirthPlace, Version = 1});
+        var doc = new MoiraiDocument(_uri,
+            new TextDocumentItem { Uri = _uri, LanguageId = "moirai", Text = code, Version = 1 });
         ILogger logger = new FakeLogger(cw => Console.WriteLine(cw.ToString()));
-        logger.LogCritical("TEST");
         await doc.Process(logger);
         var completionList = await MoiraiCodeCompletion.Complete(logger, parser, candidates, doc, position, i);
         foreach (var completionItem in completionList)
         {
-            Console.WriteLine($"{completionItem.Label} {completionItem.Detail}");
+            Console.WriteLine($"{completionItem.Label} | {completionItem.Detail}");
         }
     }
 
-    [Test,TestCaseSource(nameof(Cases))]
-    public void FindTokenIndex2(string code, int line, int column, moirai_lexer.Tokens expectedToken, moirai_lexer.Tokens? expectedCompletedToken, MoiraiParser.Rules? expectedCompletedRule)
+    [Test, TestCaseSource(nameof(Cases))]
+    public void FindTokenIndex2(string code, int line, int column, moirai_lexer.Tokens expectedToken,
+        moirai_lexer.Tokens? expectedCompletedToken, MoiraiParser.Rules? expectedCompletedRule)
     {
-        var (core, parser, tree) = Setup(CodePersonBirthPlace);
+        var (core, parser, tree) = Setup(code);
         var i = MoiraiCodeCompletion.FindTokenIndex(parser, new Position(line, column));
         Console.WriteLine();
-        var symbolicName = parser.Vocabulary.GetSymbolicName(parser.TokenStream.Get(i).Type);
-        Console.WriteLine($"result:{i} {symbolicName}");
+        if (i != -1)
+        {
+            var symbolicName = parser.Vocabulary.GetSymbolicName(parser.TokenStream.Get(i).Type);
+            Console.WriteLine($"result:{i} {symbolicName}");
+        } else
+        {
+            Console.WriteLine("result: -1");
+        }
 
         CandidatesCollection candidates = core.CollectCandidates(i, null);
         PrintCandidates("comp", candidates, parser);
-        
+
         TokenIndexFromLineColumn(tree, line, column);
         Assert.That((moirai_lexer.Tokens)parser.TokenStream.Get(i).Type, Is.EqualTo(expectedToken));
-        if(expectedCompletedToken.HasValue)
-            Assert.That(candidates.Tokens.Keys.Select(x => (moirai_lexer.Tokens)x), Contains.Item(expectedCompletedToken));
-        if(expectedCompletedRule.HasValue)
+        if (expectedCompletedToken.HasValue)
+            Assert.That(candidates.Tokens.Keys.Select(x => (moirai_lexer.Tokens)x),
+                Contains.Item(expectedCompletedToken));
+        if (expectedCompletedRule.HasValue)
             Assert.That(candidates.Rules.Keys.Select(x => (MoiraiParser.Rules)x), Contains.Item(expectedCompletedRule));
         // Assert.AreEqual(8, i);
     }

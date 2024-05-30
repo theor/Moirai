@@ -36,8 +36,10 @@ public class MoiraiCompletionHandler : CompletionHandlerBase
         // return Task.FromResult(new CompletionList());
         MoiraiCodeCompletion.SetupMoiraiCompletion(_moiraiCache.GetContent(request.TextDocument.Uri), out var lexer,
             out var parser, out var core);
-
+        parser.r();
         int pos = MoiraiCodeCompletion.FindTokenIndex(parser, request.Position);
+        if (pos == -1)
+            return new CompletionList();
         IToken? t = parser.TokenStream.Get(pos);
         if (t == null)
             return new CompletionList();

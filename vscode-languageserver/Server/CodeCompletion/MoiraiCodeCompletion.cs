@@ -19,13 +19,17 @@ public static class MoiraiCodeCompletion
         moirai_lexer.PAREN_OPEN,
         moirai_lexer.PAREN_CLOSE,
         moirai_lexer.EQ,
+        
         moirai_lexer.LINE_BREAK,
+        moirai_lexer.SPACE,
+        
+        MoiraiParser.Eof,
     };
 
     private static readonly HashSet<int> PreferredRules = new HashSet<int>()
     {
         MoiraiParser.RULE_type_id,
-        MoiraiParser.RULE_var,
+        // MoiraiParser.RULE_var,
         // MoiraiParser.RULE_call,
         // MoiraiParser.RULE_raw_call,
         // MoiraiParser.RULE_value,
@@ -42,8 +46,18 @@ public static class MoiraiCodeCompletion
         var tokenStream = new CommonTokenStream(lexer);
         parser = new MoiraiParser(tokenStream);
         parser.Interpreter.PredictionMode = PredictionMode.LL_EXACT_AMBIG_DETECTION;
-
+        parser.ErrorHandler = new NoRecoveryStrategy();
         SetupMoiraiCompletion(parser, out core);
+    }
+
+    public class NoRecoveryStrategy : DefaultErrorStrategy
+    {
+        public override void Recover(Parser recognizer, RecognitionException e)
+        {
+            // if (this.lastErrorIndex == recognizer.InputStream.Index && this.lastErrorStates != null && this.lastErrorStates.Contains(recognizer.State))
+            // recognizer.Consume();
+            // this.lastErrorIndex = recognizer.InputStream.Index;
+        }
     }
 
     public static void SetupMoiraiCompletion(MoiraiParser parser, out CodeCompletionCore core)
@@ -101,13 +115,49 @@ public static class MoiraiCodeCompletion
 
     public static int FindTokenIndex(MoiraiParser parser, Position position)
     {
-        var finder = new TokenIndexFinder(position.ToParserPosition());
-        parser.AddParseListener(finder);
-        parser.InputStream.Seek(0);
+        bool IsOfType(IToken token, moirai_lexer.Tokens type) => token.Type == (int)type;
+        IToken? _prev = null;
+        bool _exactMatch = false;
+        int TokenIndex = -1;
+        for (int i = 0; i < parser.TokenStream.Size; i++)
+        {
+            var t = parser.TokenStream.Get(i);
+            var r = TokenVisitor.GetRange(t);
+            var type = (moirai_lexer.Tokens)t.Type;
+            if (!_exactMatch && r.Contains(position) && !IsOfType(t, moirai_lexer.Tokens.Line_break) &&
+                !IsOfType(t, moirai_lexer.Tokens.Space))
+            {
+                _exactMatch = true;
+                if (position == r.Start && _prev != null && _prev.TokenIndex == t.TokenIndex - 1 &&
+                    !IsOfType(_prev, moirai_lexer.Tokens.Line_break) && !IsOfType(_prev, moirai_lexer.Tokens.Space) &&
+                    !IgnoredTokens.Contains(_prev.Type))
+                {
+                    TokenIndex = _prev.TokenIndex;
+                }
+                else
+                    TokenIndex = t.TokenIndex;
+            }
 
-        var root = parser.r();
-        var pos = finder.TokenIndex;
-        return pos;
+            if (!_exactMatch && r.Start.Line == position.Line)
+            {
+                if (TokenIndex == -1 && position.Character < r.Start.Character)
+                    TokenIndex = t.TokenIndex;
+
+                // if (m_Position.Character > r.End.Character)
+                //     TokenIndex = node.Symbol.TokenIndex+1;
+            }
+
+            _prev = t;
+        }
+
+        return TokenIndex;
+        // var finder = new TokenIndexFinder(position.ToParserPosition());
+        // parser.AddParseListener(finder);
+        // parser.InputStream.Seek(0);
+        //
+        // var root = parser.r();
+        // var pos = finder.TokenIndex;
+        // return pos;
     }
 
     public static async Task<List<CompletionItem>> Complete(ILogger logger, MoiraiParser parser,
@@ -115,14 +165,6 @@ public static class MoiraiCodeCompletion
         MoiraiDocument document, Position position, int tokenIndex)
     {
         var items = new List<CompletionItem>();
-        foreach (var (key, succ) in candidates.RulePositions)
-        {
-            items.Add(new CompletionItem
-            {
-                Label = $"  {parser.RuleNames[key]} [{string.Join(", ", succ.Select(i => i))}]",
-                InsertText = parser.RuleNames[key],
-            });
-        }
 
         foreach (var (key, value) in candidates.Rules)
         {
@@ -130,16 +172,17 @@ public static class MoiraiCodeCompletion
             switch ((MoiraiParser.Rules)key)
             {
                 case MoiraiParser.Rules.Var_id_read:
-                    // DefinitionsToCompletions(document.Definitions(position, TokenVisitor.DefinitionType.Variable));
+                    DefinitionsToCompletions(document.Linker.GetDefinitions(position,
+                        TokenVisitor.DefinitionType.Variable));
                     break;
                 case MoiraiParser.Rules.Dot_property:
                     var prevToken = parser.TokenStream.Get(tokenIndex - 1);
                     if (prevToken != null && prevToken.Type == moirai_lexer.VAR_ID)
                     {
-                        TokenVisitor.VariableDefinition? completedVariable = null;
-                        // document.Definitions(TokenVisitor.GetRange(prevToken).Start,
-                                // TokenVisitor.DefinitionType.Variable)
-                            // .FirstOrDefault(d => d.Name == prevToken.Text);
+                        TokenVisitor.VariableDefinition? completedVariable =
+                            document.Linker.GetDefinitions(TokenVisitor.GetRange(prevToken).Start,
+                                    TokenVisitor.DefinitionType.Variable)
+                                .FirstOrDefault(d => d.Name == prevToken.Text) as TokenVisitor.VariableDefinition;
 
                         if (completedVariable == null)
                             break;
@@ -178,12 +221,13 @@ public static class MoiraiCodeCompletion
                             Detail = "Type",
                         });
                     }
+
                     break;
                 default:
                     logger.LogError("Rule not handled: {ruleName}", ruleName);
                     items.Add(new CompletionItem
                     {
-                        Label = "r:" + ruleName, InsertText = ruleName,
+                        Label = ruleName, InsertText = ruleName, Detail = "RULE"
                     });
                     break;
             }
@@ -191,12 +235,22 @@ public static class MoiraiCodeCompletion
 
         foreach (var (key, value) in candidates.Tokens)
         {
-            var tokenName = parser.Vocabulary.GetSymbolicName(key);
+            var tokenName = parser.Vocabulary.GetDisplayName(key).Trim('\'');
             items.Add(new CompletionItem
             {
-                Label =
-                    $"t:{tokenName} {(value == null ? null : string.Join(",", value.Select(parser.Vocabulary.GetSymbolicName)))}",
-                InsertText = tokenName,
+                Label = tokenName,
+                Detail =
+                    $"TOKEN {(value == null ? null : string.Join(",", value.Select(parser.Vocabulary.GetSymbolicName)))}",
+                InsertText = tokenName + ' ',
+            });
+        }
+
+        foreach (var (key, succ) in candidates.RulePositions)
+        {
+            items.Add(new CompletionItem
+            {
+                Label = $"_rulepos: {parser.RuleNames[key]} [{string.Join(", ", succ.Select(i => i))}]",
+                InsertText = parser.RuleNames[key],
             });
         }
 
@@ -204,7 +258,7 @@ public static class MoiraiCodeCompletion
 
         void DefinitionsToCompletions(IEnumerable<TokenVisitor.Definition> symbolTable)
         {
-            foreach (var definition in symbolTable)
+            foreach (var definition in symbolTable.DistinctBy(x => x.Name))
             {
                 items.Add(new CompletionItem
                 {

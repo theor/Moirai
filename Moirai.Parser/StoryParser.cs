@@ -504,6 +504,8 @@ public static class StoryParser
         void DeclareEnum(AstVisitor.FileRange range, EnumDefinitionId enumId);
         void LinkEnum(StoryParser.AstVisitor.FileRange range, EnumDefinitionId enumId);
         void LinkEnumMember(AstVisitor.FileRange range, PropertyValue enumValue);
+        void LinkVariable(AstVisitor.FileRange varId, AstVisitor.VariableDeclaration decl);
+        void DeclareVariable(AstVisitor.FileRange range, AstVisitor.VariableDeclaration variableDeclaration);
     }
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
@@ -603,15 +605,18 @@ public static class StoryParser
                 return true;
             }
 
-            public int GetVariableIndexByName(string name)
+            public int GetVariableIndexByName(string name, out VariableDeclaration decl)
             {
                 var findLastIndex = Variables.FindLastIndex(v => v.Name == name);
                 if (findLastIndex == -1)
                 {
                     if (Parent != null)
-                        return Parent.GetVariableIndexByName(name);
+                        return Parent.GetVariableIndexByName(name, out decl);
+                    decl = default;
                     return -1;
                 }
+
+                decl = Variables[findLastIndex];
                 return findLastIndex + ParentCount;
             }
         }
@@ -903,8 +908,7 @@ public static class StoryParser
                 if (!type.Id.IsValid)
                     AddError(ErrorCode.UnknownPropertyType, whenContext, whenContext.type_id().TYPE_ID().GetText());
 
-                if (context.scope().when() != null)
-                    DeclareVar("$old", type.RefType, whenContext.WHEN().Symbol, out var _);
+                DeclareVar("$old", type.RefType, whenContext.WHEN().Symbol, out var _);
                 DeclareVar("$new", type.RefType, whenContext.WHEN().Symbol, out var _);
                 CurrentEventTrigger.When = (EventTrigger.WhenType.Changed, type.Id, ParsePredicate(whenContext.expr()));
             }
@@ -1245,7 +1249,9 @@ public static class StoryParser
             //     return true;
             // }
 
-            _current.Variables.Add(new VariableDeclaration(variable, type, new FileRange(contextStart)));
+            var variableDeclaration = new VariableDeclaration(variable, type, new FileRange(contextStart));
+            _current.Variables.Add(variableDeclaration);
+            Linker?.DeclareVariable(_current.Range, variableDeclaration);
             varIndex = _current.Count - 1;
             return true;
         }
@@ -1257,6 +1263,8 @@ public static class StoryParser
 
             public VariableDeclarationScope(AstVisitor astVisitor, ParserRuleContext scope)
             {
+                if (scope == null)
+                    return;
                 _astVisitor = astVisitor;
                 _astVisitor.PushScope(scope);
                 _scope = scope;
@@ -1264,7 +1272,7 @@ public static class StoryParser
 
             public void Dispose()
             {
-                _astVisitor.PopScope();
+                _astVisitor?.PopScope();
             }
         }
 
@@ -1322,6 +1330,12 @@ public static class StoryParser
         public IInstruction[] ParseRawScope(MoiraiParser.ScopeContext scopeContext, out PropertyValue.ValueType type)
         {
             var ttype = PropertyValue.ValueType.Null;
+            if (scopeContext == null)
+            {
+                type = ttype;
+                return new IInstruction[0];
+            }
+
             var instructions = scopeContext.effect().Select(x => { return ParseEffect(x, out ttype); })
                 .Where(e => e != null).ToArray();
             type = ttype;
@@ -1563,21 +1577,25 @@ public static class StoryParser
             }
 
             int variableIndex;
-            ITerminalNode? varId = context.var_id_read()?.VAR_ID();
-            if (varId != null)
+            ITerminalNode? varName = context.var_id_read()?.VAR_ID();
+            if (varName != null)
             {
-                if (!int.TryParse(varId.GetText().Substring(1), out variableIndex))
+                VariableDeclaration decl;
+                if (!int.TryParse(varName.GetText().Substring(1), out variableIndex))
                 {
-                    variableIndex = _current.GetVariableIndexByName(varId.GetText());
+                    variableIndex = _current.GetVariableIndexByName(varName.GetText(), out decl);
                     if (variableIndex == -1)
                     {
-                        AddError(ErrorCode.VariableNotDeclared, context, varId.GetText());
+                        AddError(ErrorCode.VariableNotDeclared, context, varName.GetText());
                         type = default;
                         return new PropertyPath();
                     }
                 }
+                else
+                    decl = _current[variableIndex];
 
                 type = _current[variableIndex].Type;
+                Linker?.LinkVariable(new FileRange(varName), decl);
                 if (context.dot_property().Length == 0)
                 {
                     return new PropertyPath(variableIndex);

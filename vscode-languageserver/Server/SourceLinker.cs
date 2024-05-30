@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using Antlr4.Runtime.Tree;
 using IntervalTree;
 using Moirai.Parser;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -25,6 +26,13 @@ public class SourceLinker : StoryParser.ILinker
                 DeclareTypeProperty(default!, propertyDefinition.PropertyId, sb.ToString());
             }
         }
+    }
+
+    public IEnumerable<TokenVisitor.Definition> GetDefinitions(Position pos, TokenVisitor.DefinitionType type = TokenVisitor.DefinitionType.Unknown)
+    {
+        if(type == TokenVisitor.DefinitionType.Unknown)
+            return _tree.Query(pos);
+        return _tree.Query(pos).Where(d => d.Type == type);
     }
 
     public TokenVisitor.Definition? GetDefinitionAt(Position requestPosition)
@@ -78,5 +86,17 @@ public class SourceLinker : StoryParser.ILinker
         var enumType = Database.Instance.Enums[enumValue.Type.Index];
         var enumDef = _enumDefinitions[enumType.Index];
         _tree.Add(r.Start, r.End, enumDef.MemberDefinition(enumValue));
+    }
+
+    public void DeclareVariable(StoryParser.AstVisitor.FileRange range, StoryParser.AstVisitor.VariableDeclaration variableDeclaration)
+    {
+        var r = range.ToLspRange();
+        _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
+    }
+
+    public void LinkVariable(StoryParser.AstVisitor.FileRange range, StoryParser.AstVisitor.VariableDeclaration decl)
+    {
+        var r = range.ToLspRange();
+        _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(decl, decl.DeclarationRange));
     }
 }
