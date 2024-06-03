@@ -4,7 +4,7 @@ using Moirai.Core;
 
 public class PredicateContext
 {
-    public long Year { get; private set; }
+    public long Year { get; internal set; }
 
     public readonly Database Database;
     public Pcg32 Rnd;

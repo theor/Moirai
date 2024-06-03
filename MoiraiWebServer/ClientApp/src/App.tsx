@@ -72,6 +72,7 @@ function CircularProgressWithLabel(
 }
 
 function InnerApp() {
+    const reset = useMoiraiStore(s => s.reset!);
     const conn = useMoiraiStore(s => s.conn!);
     const year = useMoiraiStore(s => s.year);
     const [mainListDisplay, setMainListDisplay] = useMainListDisplay();
@@ -120,7 +121,7 @@ function InnerApp() {
                     <Button color="inherit" disabled={!!progress} onClick={passYearsProgress}>Pass {yearsDelta} years</Button>
                     <Button color="inherit" onClick={() => conn.save()}>Save</Button>
                     <Button color="inherit" onClick={() => {
-                        conn.reset();
+                        reset();
                     }}>Reset</Button>
                 </Toolbar>
             </AppBar>

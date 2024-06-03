@@ -496,6 +496,11 @@ CREATE TABLE marked (
             if (a.Filter is FilterAtStart)
                 RunAction(a);
         }
+
+        var timeType = GetEntityType("Time");
+        if(_ctx.GetSingleton(timeType.Id, out var timeEntity) && timeEntity.TryGetProperty(timeType.GetPropertyId("year"), out var year))
+            _ctx.Year = year.IntValue;
+            
     }
 
     public void Commit()

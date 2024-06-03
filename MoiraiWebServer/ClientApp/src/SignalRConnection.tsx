@@ -56,8 +56,8 @@ export class SignalRConnection {
         return this.connection.stream<EntityChangeDisplay>("GetChangesets");
     }
 
-    reset() {
-        return this.connection.send("Reset")
+    async reset() {
+        return this.connection.invoke<number>("Reset")
     }
     
     query(q:string): Promise<QueryResult> {
@@ -88,6 +88,7 @@ export class SignalRConnection {
 // @ts-ignore
 // export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void], records: Record[]}>(null);
 interface State {
+    reset: () => void;
     pushChangesets: (buffer: EntityChangeDisplay[]) => void;
     handleKeyPress: (this:Window, ev: KeyboardEvent) => any;
     keyboardEvent?: KeyboardEvent;
@@ -107,7 +108,7 @@ export interface EntityChangeDisplay {
     actionName: string;
     changes: EntityPropertyDisplay[];
 }
-
+let _targetYear: number = 0;
 export const useMoiraiStore = create<State>((set, get) => {
     SignalRConnection.make().then(([x, y, c]) => {
         console.log("ZUSTAND done")
@@ -132,6 +133,10 @@ export const useMoiraiStore = create<State>((set, get) => {
                 // console.log(value, value.type === MessageType.Record);
                 switch (value.type) {
                     case MessageType.Reset:
+                        if(value.year !== 0) {
+                            console.warn(`RESET, fast forward to ${value.year}, current year is ${get().year}`)
+                            _targetYear = value.year;
+                        }
                         set({year: 0, records: []})
                         break;
                     case MessageType.Record:
@@ -139,6 +144,15 @@ export const useMoiraiStore = create<State>((set, get) => {
                         break;
                     case MessageType.Year:
                         set({year: value.year})
+                        if(_targetYear !== 0) {
+                            try {
+                                console.log("fast forward to ", _targetYear);
+                                x.passYears(_targetYear - value.year).subscribe({next: console.log, complete: () =>{}, error: console.error});
+                            }
+                            finally {
+                                _targetYear = 0;
+                            }
+                        }
                         break;
                     default: console.error("UNKNOWN MESSAGE TYPE", value.type)
                 }
@@ -157,6 +171,11 @@ export const useMoiraiStore = create<State>((set, get) => {
         records: [],
         changesets: [],
 
+        reset: async () => {
+            const newYear = await get().conn!.reset();
+            console.warn("newyear reset", newYear);
+            set({year: newYear, records: []});
+        },
         clearEvent: () => set({keyboardEvent: undefined}),
         handleKeyPress: e => {
             set({keyboardEvent: e});

@@ -16,6 +16,7 @@ public class ChatHub : Hub
 {
     private static Database _db;
     private static bool _reset;
+    private static bool _resetRequested;
 
     private static SemaphoreSlim _mutex = new(1, 1);
     public ChatHub()
@@ -29,7 +30,13 @@ public class ChatHub : Hub
        
     }
 
-    public void Reset()
+    public static void ReloadRequested()
+    {
+        _resetRequested = true;
+        _targetYears = _db.Ctx.Year;
+    }
+
+    public long Reset()
     {
         _mutex.Wait();
         try
@@ -43,6 +50,8 @@ public class ChatHub : Hub
         {
             _mutex.Release();
         }
+
+        return _db?.Ctx?.Year ?? 0;
     }
 
     public ChannelReader<int> PassYears(int years)
@@ -154,6 +163,7 @@ public class ChatHub : Hub
     }
 
     private static List<EntityId> results = new();
+    private static long? _targetYears;
 
     public record EntityChangeDisplay(EntityId id, long year, string actionName, IList<EntityPropertyDisplay> changes);
 
@@ -469,7 +479,7 @@ public class ChatHub : Hub
             Record = record;
         }
 
-        public static Message Reset() => new Message() { Type = MessageType.Reset };
+        public static Message Reset(long? targetYears) => new Message() { Type = MessageType.Reset, Year = targetYears.GetValueOrDefault(0) };
         public static Message YearMessage(long year) => new Message() { Type = MessageType.Year, Year = year, };
     }
 
@@ -484,11 +494,22 @@ public class ChatHub : Hub
             int lastRecord = 0;
             while (true)
             {
+                if (_resetRequested)
+                {
+                    _resetRequested = false;
+                    Reset();
+                }
                 if (_reset)
                 {
                     _reset = false;
-                    await writer.WriteAsync(Message.Reset(), cancellationToken);
+                    await writer.WriteAsync(Message.Reset(_targetYears), cancellationToken);
+                    _targetYears = null;
                     lastRecord = 0;
+                    // if (_targetYears.HasValue)
+                    // {
+                    //     var y = _targetYears.Value;
+                    //     _targetYears = null;
+                    // }
                 }
 
                 while (_db.Records.Count > 0 && lastRecord < _db.Records.Count)
@@ -498,6 +519,7 @@ public class ChatHub : Hub
 
                 await writer.WriteAsync(Message.YearMessage(_db.Ctx.Year));
                 await Task.Delay(500);
+                
             }
         }
         catch (Exception e)
