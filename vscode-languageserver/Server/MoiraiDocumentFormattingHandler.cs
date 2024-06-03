@@ -234,7 +234,7 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
                 ).Concat(base.VisitCall(context));
             }
             return EnsureSpaces(
-                (context.ID(0), 0, null),
+                (context.fun_id().ID(), 0, null),
                 (context.PAREN_OPEN(), 0, null),
                 (context.PAREN_CLOSE(), null, 0)
             ).Concat(base.VisitCall(context));

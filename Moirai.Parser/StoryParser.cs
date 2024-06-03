@@ -1,4 +1,5 @@
-﻿using Antlr4.Runtime;
+﻿using System.Diagnostics.CodeAnalysis;
+using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 
 namespace Moirai.Parser;
@@ -91,10 +92,10 @@ public class FunctionDescriptor : IFunctionDescriptor
         {
             ITerminalNode t;
             if (CallContext is MoiraiParser.CallContext c)
-                t = c.type_id()?.TYPE_ID() ?? c.ID(1);
+                t = c.type_id()?.TYPE_ID() ?? c.ID();
             else
                 t = ((MoiraiParser.Raw_callContext) CallContext).type_id().TYPE_ID() ??
-                    ((MoiraiParser.Raw_callContext) CallContext).ID(1);
+                    ((MoiraiParser.Raw_callContext) CallContext).ID();
             EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(t))?.Id ?? EntityTypeId.Null;
             
             Visitor.Linker?.LinkType(new StoryParser.AstVisitor.FileRange(t.Symbol), type);
@@ -200,7 +201,7 @@ public class FunctionDescriptor : IFunctionDescriptor
 
 public static class StoryParser
 {
-    public static bool GetFunctionDescriptor(string name, out FunctionDescriptor? descriptor)
+    public static bool GetFunctionDescriptor(string name, [NotNullWhen(true)] out FunctionDescriptor? descriptor)
     {
         descriptor = Functions.FirstOrDefault(f => f.FuncName == name);
         return descriptor != null;
@@ -505,7 +506,10 @@ public static class StoryParser
         void LinkEnum(StoryParser.AstVisitor.FileRange range, EnumDefinitionId enumId);
         void LinkEnumMember(AstVisitor.FileRange range, PropertyValue enumValue);
         void LinkVariable(AstVisitor.FileRange varId, AstVisitor.VariableDeclaration decl);
-        void DeclareVariable(AstVisitor.FileRange range, AstVisitor.VariableDeclaration variableDeclaration);
+        void DeclareVariable(AstVisitor.FileRange range, AstVisitor.VariableDeclaration variableDeclaration,
+            AstVisitor.FileRange variableScope);
+        void DeclareFunction(AstVisitor.FileRange fileRange, FunctionDescriptor descriptor, string? inlineDef = null);
+        void LinkFunction(AstVisitor.FileRange range, FunctionDescriptor descriptor);
     }
     public class AstVisitor : MoiraiParserBaseVisitor<object?>, IVisitor
     {
@@ -1251,7 +1255,8 @@ public static class StoryParser
 
             var variableDeclaration = new VariableDeclaration(variable, type, new FileRange(contextStart));
             _current.Variables.Add(variableDeclaration);
-            Linker?.DeclareVariable(_current.Range, variableDeclaration);
+            // Linker?.DeclareVariable(_current.Range, variableDeclaration);
+            Linker?.DeclareVariable(variableDeclaration.DeclarationRange, variableDeclaration, variableScope: _current.Range);
             varIndex = _current.Count - 1;
             return true;
         }
@@ -1291,9 +1296,8 @@ public static class StoryParser
 
         private IValue ParseRawCall(MoiraiParser.Raw_callContext context, out PropertyValue.ValueType returnType)
         {
-            var funcName = context.ID(0).GetText();
-            var f = Functions.FirstOrDefault(f => f.FuncName == funcName);
-            if (f != null)
+            var funcName = context.fun_id().GetText();
+            if(GetFunctionDescriptor(funcName, out var f));
             {
                 return f.Parse(this, context, out returnType);
             }
@@ -1304,10 +1308,10 @@ public static class StoryParser
 
         private IValue ParseCall(MoiraiParser.CallContext context, out PropertyValue.ValueType returnType)
         {
-            var funcName = context.ID(0).GetText();
-            var f = Functions.FirstOrDefault(f => f.FuncName == funcName);
-            if (f != null)
+            var funcName = context.fun_id().GetText();
+            if(GetFunctionDescriptor(funcName, out var f))
             {
+                Linker?.LinkFunction(new FileRange(context.fun_id()), f);
                 return f.Parse(this, context, out returnType);
             }
 

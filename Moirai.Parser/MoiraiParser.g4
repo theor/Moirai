@@ -20,10 +20,11 @@ match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case
 match_case: value (COMMA value)* ARROW ((effect LINE_BREAK+)|scope) ;
 set: SET  path EQ expr;
 var: VAR  VAR_ID COLON expr;
+fun_id: ID;
 //call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
-call : ID  ((ID|type_id) VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* ))? PAREN_CLOSE scope?;
+call : fun_id  ((ID|type_id) VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* ))? PAREN_CLOSE scope?;
 scope: SCOPE_OPEN LINE_BREAK* (when|when_created)?  ((effect SCOPE_CLOSE)|((effect LINE_BREAK+)* SCOPE_CLOSE)) LINE_BREAK*;
-raw_call: ID  (((ID|type_id) VAR_ID (COLON value)?)| value) scope?;
+raw_call: fun_id  (((ID|type_id) VAR_ID (COLON value)?)| value) scope?;
 value: raw_call | call | string | enum_value | type_id | path | bool | number | NULL;
 expr
     : if

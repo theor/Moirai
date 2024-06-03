@@ -4,15 +4,19 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using IntervalTree;
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moirai.Parser;
 using Newtonsoft.Json.Linq;
+using OmniSharp.Extensions.JsonRpc;
 using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
+using OmniSharp.Extensions.LanguageServer.Protocol.Workspace;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Serilog;
 using Serilog.Events;
@@ -142,9 +146,39 @@ internal class Program
                     .WithHandler<MyDeclarationHandler>()
                     .WithHandler<MyHoverHandler>()
                     .WithHandler<MyUsageHandler>()
+                    .WithHandler<MoiraiCommandHandler>()
         ).ConfigureAwait(false);
 
         await server.WaitForExit.ConfigureAwait(false);
+    }
+}
+
+internal class MoiraiCommandHandler : ExecuteTypedCommandHandlerBase<string>
+{
+    private readonly MoiraiCache _moiraiCache;
+    private readonly ILogger<MoiraiCache> _logger;
+    private readonly string _commandName;
+
+    protected override ExecuteCommandRegistrationOptions CreateRegistrationOptions(ExecuteCommandCapability capability,
+        ClientCapabilities clientCapabilities)
+    {
+        return new ExecuteCommandRegistrationOptions
+        {
+            Commands = new Container<string>("moirai.servercommand")
+        };
+    }
+
+    public override Task<Unit> Handle(string param, CancellationToken cancellationToken)
+    {
+        _logger.LogCritical($"HANDLE COMMAND {_commandName} {param} from {_moiraiCache.CurrentDoc}");
+        return Task.FromResult(Unit.Value);
+    }
+
+    public MoiraiCommandHandler(MoiraiCache moiraiCache, ISerializer serializer, ILogger<MoiraiCache> logger) : base("moirai.servercommand", serializer)
+    {
+        _commandName = "moirai.servercommand";
+        _moiraiCache = moiraiCache;
+        _logger = logger;
     }
 }
 
@@ -161,9 +195,12 @@ public class MoiraiCache
         _logger = logger;
     }
 
+    public DocumentUri CurrentDoc { get; set; }
+
     public async Task OnOpen(DidOpenTextDocumentParams notification)
     {
         var current = new MoiraiDocument(notification.TextDocument.Uri, notification.TextDocument);
+        CurrentDoc = notification.TextDocument.Uri;
         _cache[current.DocumentUri] = current;
         await current.Process(_logger);
     }
@@ -172,6 +209,7 @@ public class MoiraiCache
     {
         if (_cache.TryGetValue(notification.TextDocument.Uri, out var doc))
         {
+            CurrentDoc = notification.TextDocument.Uri;
             doc.Apply(notification.ContentChanges, notification.TextDocument.Version);
             await doc.Process(_logger);
         }
@@ -340,6 +378,7 @@ public class MoiraiDocument
             var r = parser.r();
             r.Accept(astVisitor);
 
+            SemanticTokens.Clear();
             List<SymbolInformationOrDocumentSymbol> symbols = new();
             var visitor = new TokenVisitor(logger, DocumentUri, 
                 // _locations,

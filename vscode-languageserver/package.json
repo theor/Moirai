@@ -38,6 +38,16 @@
 				"path": "./moirai.tmLanguage.json"
 			}
 		],
+    "commands": [
+      {
+        "command": "moirai.restart",
+        "title": "Restart Moirai Language Server"
+      },
+      {
+        "command": "moirai.servercommand",
+        "title": "Moirai server command"
+      }
+    ],
 		"configuration": {
 			"type": "object",
 			"title": "Example configuration",

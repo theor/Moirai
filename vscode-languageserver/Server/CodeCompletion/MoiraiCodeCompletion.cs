@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Atn;
 using Antlr4.Runtime.Tree;
@@ -29,6 +30,7 @@ public static class MoiraiCodeCompletion
     private static readonly HashSet<int> PreferredRules = new HashSet<int>()
     {
         MoiraiParser.RULE_type_id,
+        MoiraiParser.RULE_fun_id,
         // MoiraiParser.RULE_var,
         // MoiraiParser.RULE_call,
         // MoiraiParser.RULE_raw_call,
@@ -124,7 +126,7 @@ public static class MoiraiCodeCompletion
             var t = parser.TokenStream.Get(i);
             var r = TokenVisitor.GetRange(t);
             var type = (moirai_lexer.Tokens)t.Type;
-            if (!_exactMatch && r.Contains(position) && !IsOfType(t, moirai_lexer.Tokens.Line_break) &&
+            if (!_exactMatch && r.Contains(position) && 
                 !IsOfType(t, moirai_lexer.Tokens.Space))
             {
                 _exactMatch = true;
@@ -171,9 +173,14 @@ public static class MoiraiCodeCompletion
             var ruleName = parser.RuleNames[key];
             switch ((MoiraiParser.Rules)key)
             {
+                case MoiraiParser.Rules.Fun_id:
+                    DefinitionsToCompletions(document.Linker.GetDefinitions(position,
+                        TokenVisitor.DefinitionType.Function));
+                    break;
                 case MoiraiParser.Rules.Var_id_read:
                     DefinitionsToCompletions(document.Linker.GetDefinitions(position,
-                        TokenVisitor.DefinitionType.Variable));
+                        TokenVisitor.DefinitionType.VariableScope));
+                    DefinitionsToCompletions(document.Linker.TypeDefinitions.Values);
                     break;
                 case MoiraiParser.Rules.Dot_property:
                     var prevToken = parser.TokenStream.Get(tokenIndex - 1);
@@ -194,12 +201,16 @@ public static class MoiraiCodeCompletion
                             foreach (var property in varType.Properties)
                             {
                                 if (property.Name != null)
+                                {
+                                    var sb = new StringBuilder();
                                     items.Add(new CompletionItem
                                     {
-                                        Label = property.Name,
+                                        Kind = CompletionItemKind.Property,
+                                        // Label = $"{property.Name} (entity {Database.Instance.GetEntityTypeName(property.PropertyId.TypeId)} {{ prop {property.Name}: {Database.Instance.Printer.Print(property.Type)} }})",
+                                        Label = $"{property.Name} (entity {Database.Instance.GetEntityTypeName(property.PropertyId.TypeId)} {{ prop {property.Name}: {Database.Instance.Printer.Print(property.Type)} }})",
                                         InsertText = property.Name,
                                         Detail = $"{varType.Name}.{property.Name}: {property.Type}",
-                                    });
+                                    });}
                             }
                         }
                         // items.Add(new CompletionItem

@@ -52,6 +52,7 @@ public class SemanticTokensHandler : SemanticTokensHandlerBase
     )
     {
         _logger.LogCritical("Tokenize " + identifier.TextDocument.Uri);
+        _moiraiCache.CurrentDoc = identifier.TextDocument.Uri;
         // you would normally get this from a common source that is managed by current open editor, current active editor, etc.
         _moiraiCache.GetSemanticTokens(identifier.TextDocument.Uri, builder);
         return Task.CompletedTask;
@@ -95,7 +96,8 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         Function = 1 << 2,
         EnumMember = 1 << 3,
         TypeProperty = 1 << 4,
-        Variable = 1 << 5
+        Variable = 1 << 5,
+        VariableScope = 1 << 6,
     }
 
     public abstract class Definition(DefinitionType Type, string Name, Range? FullDefinition)
@@ -118,7 +120,7 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
 
 
     public class TypeDefinition(EntityTypeId typeId, Range? declarationRange)
-        : Definition<EntityTypeId>(DefinitionType.Type, typeId, typeId.Id.ToString(), declarationRange)
+        : Definition<EntityTypeId>(DefinitionType.Type, typeId, Database.Instance.GetEntityTypeName(typeId), declarationRange)
     {
         public override void GetHoverText(List<MarkedString> markedStrings)
         {
@@ -129,7 +131,13 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     }
 
     public class PropertyDefinition(PropertyId propId, Range? declarationRange)
-        : Definition<PropertyId>(DefinitionType.TypeProperty, propId, propId.Id.ToString(), declarationRange);
+        : Definition<PropertyId>(DefinitionType.TypeProperty, propId, propId.Id.ToString(), declarationRange)
+    {
+        // public override void GetHoverText(List<MarkedString> markedStrings)
+        // {
+        //     markedStrings.Add(new MarkedString("moirai", $"{propId.TypeId}.{Database.Instance.GetPropertyName(propId)}: {(Database.Instance.GetPropertyType(propId, out var valueType) ? valueType.ToString() : "")}"));
+        // }
+    }
 
     public class EnumMemberDefinition(DefinitionType Type, PropertyValue t, string Name, Range? FullDefinition)
         : Definition<PropertyValue>(Type, t, Name, FullDefinition)
@@ -159,13 +167,24 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             markedStrings.Add(new MarkedString(Database.Instance.Printer.Print(Data.Type)));
         }
     }
+    public class VariableScopeDefinition(
+        StoryParser.AstVisitor.VariableDeclaration decl,
+        StoryParser.AstVisitor.FileRange declarationRange)
+        : Definition<StoryParser.AstVisitor.VariableDeclaration>(DefinitionType.VariableScope, decl, decl.Name,
+            declarationRange.ToLspRange())
+    {
+        public override void GetHoverText(List<MarkedString> markedStrings)
+        {
+            markedStrings.Add(new MarkedString(Database.Instance.Printer.Print(Data.Type)));
+        }
+    }
 
     public class FunctionDefinition : Definition<FunctionDescriptor>
     {
-        public FunctionDefinition(IToken symbol, FunctionDescriptor functionDescriptor)
+        public FunctionDefinition(FunctionDescriptor functionDescriptor)
             : base(DefinitionType.Function,
                 functionDescriptor,
-                symbol.Text,
+                functionDescriptor.FuncName,
                 null)
         {
         }
@@ -478,12 +497,12 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
 
     public override object? VisitRaw_call(MoiraiParser.Raw_callContext context)
     {
-        PushSemanticToken(context.ID(0).Symbol, SemanticTokenType.Function);
+        PushSemanticToken(context.fun_id().ID().Symbol, SemanticTokenType.Function);
         if (context.type_id()?.TYPE_ID() != null)
             PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
 
-        if (context.ID(1) != null)
-            PushSemanticToken(context.ID(1).Symbol, SemanticTokenType.Type);
+        if (context.ID() != null)
+            PushSemanticToken(context.ID().Symbol, SemanticTokenType.Type);
         if (context.VAR_ID() is { } varId) 
             PushSemanticToken(varId.Symbol, SemanticTokenType.Variable);
 
@@ -492,15 +511,15 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
 
     public override object? VisitCall(MoiraiParser.CallContext context)
     {
-        PushSemanticToken(context.ID(0).Symbol, SemanticTokenType.Function);
+        PushSemanticToken(context.fun_id().ID().Symbol, SemanticTokenType.Function);
 
         if (context.type_id()?.TYPE_ID() != null)
         {
             PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
         }
 
-        if (context.ID(1) != null)
-            PushSemanticToken(context.ID(1).Symbol, SemanticTokenType.Type);
+        if (context.ID() != null)
+            PushSemanticToken(context.ID().Symbol, SemanticTokenType.Type);
         if (context.VAR_ID() is not null)
         {
             PushSemanticToken(context.VAR_ID().Symbol, SemanticTokenType.Variable);

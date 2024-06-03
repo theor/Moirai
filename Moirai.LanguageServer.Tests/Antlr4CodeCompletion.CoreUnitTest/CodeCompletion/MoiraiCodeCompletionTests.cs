@@ -98,6 +98,7 @@ entity Person {
 event start {
     create Person $p: ('{random(Name)}')
     set $p.birthplace =  '{random(Name)}'
+
 }
 ";
 
@@ -128,6 +129,9 @@ event start {
                     MoiraiParser.Rules.Var_id_read).WithName("set $p| not dot but continue $p"),
                 new CompletionTestCase(CodePersonBirthPlace, 9, 11, moirai_lexer.Tokens.Dot, null,
                     MoiraiParser.Rules.Dot_property).WithName("set $p.|"),
+                new CompletionTestCase(CodePersonBirthPlace, 10, 0, moirai_lexer.Tokens.Line_break, null,
+                    MoiraiParser.Rules.Fun_id).WithName("    |<func call>"),
+                
                 // set \n parses badly
                 new CompletionTestCase(CodeSystem, 11,9, moirai_lexer.Tokens.Line_break, null, MoiraiParser.Rules.Var_id_read).WithName("set $|"),
                 new CompletionTestCase(CodeSystem, 10,6, moirai_lexer.Tokens.When_created, moirai_lexer.Tokens.When).WithName("when|"),

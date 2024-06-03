@@ -6,10 +6,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 public class SourceLinker : StoryParser.ILinker
 {
-    private Dictionary<EntityTypeId, TokenVisitor.TypeDefinition> _typeDefinitions = new();
+    public readonly Dictionary<EntityTypeId, TokenVisitor.TypeDefinition> TypeDefinitions = new();
     private Dictionary<PropertyId, TokenVisitor.PropertyDefinition> _propertyDefinitions = new();
     private Dictionary<EnumDefinitionId, TokenVisitor.EnumDefinition> _enumDefinitions = new();
     private IntervalTree<Position, TokenVisitor.Definition> _tree = new();
+    private Dictionary<string, TokenVisitor.FunctionDefinition> _funDefinitions = new();
 
     public SourceLinker()
     {
@@ -25,6 +26,11 @@ public class SourceLinker : StoryParser.ILinker
                 Database.Instance.Printer.PrintTypeProperty(sb, propertyDefinition);
                 DeclareTypeProperty(default!, propertyDefinition.PropertyId, sb.ToString());
             }
+
+            foreach (var functionDescriptor in StoryParser.Functions)
+            {
+                DeclareFunction(default!, functionDescriptor, "inline def of " + functionDescriptor.FuncName);
+            }
         }
     }
 
@@ -37,20 +43,20 @@ public class SourceLinker : StoryParser.ILinker
 
     public TokenVisitor.Definition? GetDefinitionAt(Position requestPosition)
     {
-        return _tree.Query(requestPosition).FirstOrDefault();
+        return _tree.Query(requestPosition).FirstOrDefault(x => x.Type != TokenVisitor.DefinitionType.VariableScope);
     }
 
     public void DeclareType(StoryParser.AstVisitor.FileRange? range, EntityTypeId typeId, string? inlineDefinition = null)
     {
         var r = range?.ToLspRange();
         var typeDefinition = new TokenVisitor.TypeDefinition(typeId, r) { InlineDefinition = inlineDefinition};
-        _typeDefinitions.Add(typeId, typeDefinition);
+        TypeDefinitions.Add(typeId, typeDefinition);
     }
 
     public void LinkType(StoryParser.AstVisitor.FileRange range, EntityTypeId entityType)
     {
         var r = range.ToLspRange();
-        _tree.Add(r.Start, r.End, _typeDefinitions[entityType]);
+        _tree.Add(r.Start, r.End, TypeDefinitions[entityType]);
     }
 
     public void DeclareTypeProperty(StoryParser.AstVisitor.FileRange? range, PropertyId propertyId, string? inlineDefinition = null)
@@ -88,15 +94,30 @@ public class SourceLinker : StoryParser.ILinker
         _tree.Add(r.Start, r.End, enumDef.MemberDefinition(enumValue));
     }
 
-    public void DeclareVariable(StoryParser.AstVisitor.FileRange range, StoryParser.AstVisitor.VariableDeclaration variableDeclaration)
+    public void DeclareVariable(StoryParser.AstVisitor.FileRange range,
+        StoryParser.AstVisitor.VariableDeclaration variableDeclaration, StoryParser.AstVisitor.FileRange variableScope)
     {
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
+        var scope = variableScope.ToLspRange();
+        _tree.Add(scope.Start, scope.End, new TokenVisitor.VariableScopeDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
     }
 
     public void LinkVariable(StoryParser.AstVisitor.FileRange range, StoryParser.AstVisitor.VariableDeclaration decl)
     {
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(decl, decl.DeclarationRange));
+    }
+
+    public void DeclareFunction(StoryParser.AstVisitor.FileRange fileRange, FunctionDescriptor descriptor, string? inlineDef = null)
+    {
+        _funDefinitions.Add(descriptor.FuncName, new TokenVisitor.FunctionDefinition(descriptor){InlineDefinition = inlineDef});
+    }
+
+    public void LinkFunction(StoryParser.AstVisitor.FileRange range, FunctionDescriptor descriptor)
+    {
+        var r = range.ToLspRange();
+        _tree.Add(r.Start, r.End, _funDefinitions[descriptor.FuncName]);
+
     }
 }
