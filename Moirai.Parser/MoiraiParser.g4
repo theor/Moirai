@@ -5,7 +5,7 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: (event|trigger|enum_definition|type_definition|LINE_BREAK)+ EOF;
+r: (event|trigger|enum_definition|type_definition|function_definition|LINE_BREAK)+ EOF;
 attribute: AT ID type_id PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE LINE_BREAK;
 // filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
 filter:AT attr=ID (PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE)? LINE_BREAK?;
@@ -45,6 +45,9 @@ type_definition: attribute* ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* prop_definitio
 prop_definition: PROP property_id COLON (ID|TYPE_ID) LINE_BREAK+ ;
 
 enum_definition: ENUM TYPE_ID SCOPE_OPEN LINE_BREAK* TYPE_ID (COMMA LINE_BREAK* TYPE_ID)* COMMA? LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
+
+param: VAR_ID COLON (ID|type_id);
+function_definition: FUNCTION fun_id PAREN_OPEN (param (COMMA param)*)? PAREN_CLOSE (COLON (ID|type_id))? scope;
 
 stringContent: (EXPR_OPEN expr SCOPE_CLOSE) | TEXT;
 string: QUOTE stringContent* QUOTE ;

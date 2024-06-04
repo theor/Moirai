@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection.Metadata;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 
@@ -156,7 +157,7 @@ public class FunctionDescriptor : IFunctionDescriptor
     public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.Raw_callContext call,
         out PropertyValue.ValueType returnType)
     {
-        var c = _parse(new ParseContext(parser, call));
+        (IValueCall, PropertyValue.ValueType) c = _parse(new ParseContext(parser, call));
         returnType = c.Item2;
         if (c.Item1 != null)
             c.Item1.FunctionDescriptor = this;
@@ -168,7 +169,7 @@ public class FunctionDescriptor : IFunctionDescriptor
     public IValueCall Parse(StoryParser.AstVisitor parser, MoiraiParser.CallContext call,
         out PropertyValue.ValueType returnType)
     {
-        var c = _parse(new ParseContext(parser, call));
+        (IValueCall, PropertyValue.ValueType) c = _parse(new ParseContext(parser, call));
         returnType = c.Item2;
         if (c.Item1 != null)
             c.Item1.FunctionDescriptor = this;
@@ -207,7 +208,7 @@ public static class StoryParser
         return descriptor != null;
     }
 
-    public static readonly FunctionDescriptor[] Functions =
+    public static readonly List<FunctionDescriptor> Functions =
     [
         new("create", true, ctx =>
         {
@@ -387,7 +388,9 @@ public static class StoryParser
         MissingVariable,
         UnknownAttribute,
         UnknownFunction,
-        MismatchedAssignmentTypes
+        MismatchedAssignmentTypes,
+        MissingReturnValue,
+        MismatchedReturnType,
     }
 
     public struct Error
@@ -727,6 +730,11 @@ public static class StoryParser
                 }
             }
 
+            foreach (var fundef in context.function_definition())
+            {
+                ParseFunctionDefinition(fundef);
+            }
+
             foreach (var child in context.children)
             {
                 if (child is MoiraiParser.EventContext e)
@@ -736,6 +744,31 @@ public static class StoryParser
             }
 
             return null;
+        }
+
+        private void ParseFunctionDefinition(MoiraiParser.Function_definitionContext fundef)
+        {
+            var name = fundef.fun_id().GetText();
+            PropertyValue.ValueType returnType = PropertyValue.ValueType.Null;
+            if((fundef.ID() ?? fundef.type_id()?.TYPE_ID()) != null)
+            {
+                returnType = ParseType(fundef.ID() ?? fundef.type_id()?.TYPE_ID());
+            }
+
+            var parameters = fundef.param().Select(p =>
+            {
+                var paramName = p.VAR_ID().GetText();
+                var paramType = ParseType(p.ID() ?? p.type_id()?.TYPE_ID());
+                DeclareVar(paramName, paramType, p.VAR_ID().Symbol, out var paramIndex);
+                return new FunctionDefinition.Parameter(paramName, paramType, paramIndex);
+            }).ToArray();
+            this.Database.Functions.Add(new FunctionDefinition(new((ushort)Database.Functions.Count),
+                name,
+                returnType,
+                parameters,
+                ParseScope(fundef.scope(), out var actualType)));
+            if(actualType != returnType)
+                AddError(actualType == PropertyValue.ValueType.Null ? ErrorCode.MissingReturnValue : ErrorCode.MismatchedReturnType, fundef, $"{actualType} != {returnType}");
         }
 
 
@@ -1245,7 +1278,7 @@ public static class StoryParser
             return false;
         }
 
-        public bool DeclareVar(string variable, PropertyValue.ValueType type, IToken contextStart, out int varIndex)
+        public VariableDeclaration DeclareVar(string variable, PropertyValue.ValueType type, IToken contextStart, out int varIndex)
         {
             // if ((varIndex = GetVariableIndexByName(variable)) != -1)
             // {
@@ -1259,7 +1292,7 @@ public static class StoryParser
             // Linker?.DeclareVariable(_current.Range, variableDeclaration);
             Linker?.DeclareVariable(variableDeclaration.DeclarationRange, variableDeclaration, variableScope: _current.Range);
             varIndex = _current.Count - 1;
-            return true;
+            return variableDeclaration;
         }
 
         public struct VariableDeclarationScope : IDisposable
@@ -1298,6 +1331,11 @@ public static class StoryParser
         private IValue ParseRawCall(MoiraiParser.Raw_callContext context, out PropertyValue.ValueType returnType)
         {
             var funcName = context.fun_id().GetText();
+            if(Database.GetFunctionDefinition(funcName, out var fd))
+            {
+                var ctx = new FunctionDescriptor.ParseContext(this, context);
+                return ParseUserFunctionCall(this, fd.Value, ctx, out returnType);
+            }
             if(GetFunctionDescriptor(funcName, out var f));
             {
                 return f.Parse(this, context, out returnType);
@@ -1307,9 +1345,16 @@ public static class StoryParser
             return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
         }
 
+
         private IValue ParseCall(MoiraiParser.CallContext context, out PropertyValue.ValueType returnType)
         {
             var funcName = context.fun_id().GetText();
+            if(Database.GetFunctionDefinition(funcName, out var fd))
+            {
+
+                var ctx = new FunctionDescriptor.ParseContext(this, context);
+                return ParseUserFunctionCall(this, fd.Value, ctx, out returnType);
+            }
             if(GetFunctionDescriptor(funcName, out var f))
             {
                 Linker?.LinkFunction(new FileRange(context.fun_id()), f);
@@ -1318,6 +1363,24 @@ public static class StoryParser
 
             returnType = default!;
             return (AddError(ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
+        }
+
+        private UserFunctionCall ParseUserFunctionCall(AstVisitor astVisitor, FunctionDefinition definition,
+            FunctionDescriptor.ParseContext ctx, out PropertyValue.ValueType returnType)
+        {
+            UserFunctionCall call = new(definition, 
+                // TODO check arg/param type
+                definition.Parameters.Select((p,i) =>
+                {
+                    var argument = ctx.ParseArgument(i);
+                    if(argument == null)
+                        AddError(ErrorCode.MissingArgument, ctx.CallContext, $"Missing argument {i}: {p.ParamName}: {astVisitor.Database.Printer.Print(p.ParamType)}");
+                    return argument;
+                }).ToArray()
+                );
+
+            returnType = definition.ReturnType;
+            return call;
         }
 
         public IInstruction[] ParseScope(MoiraiParser.ScopeContext? scopeContext, 

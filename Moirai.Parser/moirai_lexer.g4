@@ -23,6 +23,7 @@ ENTITY: 'entity';
 TRIGGER: 'trigger';
 //NAME: 'name';
 PROP: 'prop';
+FUNCTION: 'function';
 ENUM: 'enum';
 WHEN: 'when';
 WHEN_CREATED: 'when_created';

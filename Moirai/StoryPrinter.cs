@@ -29,6 +29,16 @@ public class StoryPrinter
         {
             sb.AppendLine($"enum {en.Name} {{ {string.Join(", ", en.Values)} }}");
         }
+        foreach (FunctionDefinition fd in _database.Functions.Skip(1))
+        {
+            string parameters = string.Join(", ", fd.Parameters.Select(p => $"{p.ParamName}: {Print(p.ParamType)}"));
+            sb.AppendLine($"function {fd.Name}({parameters}){(fd.ReturnType != PropertyValue.ValueType.Null ? $": {Print(fd.ReturnType)}" : "")} {{");
+            foreach (var effect in fd.Instructions)
+            {
+                PrintEffect(effect, sb, 1);
+            }
+            sb.AppendLine("}\n");
+        }
 
         foreach (var action in _database.Actions.Concat(_database.Triggers))
         {
@@ -366,7 +376,7 @@ public class StoryPrinter
                 return
                     $"'{string.Format(interpolatedString.FormatString, interpolatedString.Arguments.Select(a => (object) ($"{{{Print(a)}}}")).ToArray())}'";
             case Literal literal:
-                return Print(literal.Value);
+                return indentStr + Print(literal.Value);
             case PropertyPath path:
                 return Print(path);
             case RandomEnum rnd:
@@ -400,6 +410,9 @@ public class StoryPrinter
             case MatchAnyValue _: return "_";
             // case True @true:
             // break;
+            case null:
+            return "// !!!!!!!!!!!";
+                
             default:
                 // return "// !!!!!!!!!!!";
             throw new ArgumentOutOfRangeException(nameof(value) + ":" + value);
