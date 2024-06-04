@@ -1,5 +1,5 @@
 ﻿import * as signalR from "@microsoft/signalr";
-import {HubConnection, HubConnectionState, IStreamResult} from "@microsoft/signalr";
+import {HubConnection, HubConnectionState, IStreamResult, IStreamSubscriber} from "@microsoft/signalr";
 import {ClientData, EntityPropertyDisplay, Message, MessageType, Record} from "./types.ts";
 import {create} from "zustand";
 export interface Result {
@@ -99,6 +99,8 @@ interface State {
     records: Record[];
     changesets: EntityChangeDisplay[];
     clientData?: ClientData;
+    passYears: (amount:number) => void;
+    passYearsProgress?: number;
 
     toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => void;
 }
@@ -147,7 +149,7 @@ export const useMoiraiStore = create<State>((set, get) => {
                         if(_targetYear !== 0) {
                             try {
                                 console.log("fast forward to ", _targetYear);
-                                x.passYears(_targetYear - value.year).subscribe({next: console.log, complete: () =>{}, error: console.error});
+                                get().passYears(_targetYear - value.year);
                             }
                             finally {
                                 _targetYear = 0;
@@ -167,10 +169,29 @@ export const useMoiraiStore = create<State>((set, get) => {
     })
     return ({
         year: 0,
+        passYearsProgress: 0,
         connected: false,
         records: [],
         changesets: [],
 
+        
+        passYears: (amount: number) => {
+            const subscriber: IStreamSubscriber<number> = {
+                next(value: number) {
+                    set({passYearsProgress: value})
+                },
+                error(err: any) {
+                    console.error(err)
+                    set({passYearsProgress: undefined})
+                },
+                complete() {
+                    console.log("PROGRESS COMPLETE");
+                    set({passYearsProgress: undefined})
+                }
+            };
+            set({passYearsProgress: 0});
+            return get().conn!.passYears(amount).subscribe(subscriber);
+        },
         reset: async () => {
             const newYear = await get().conn!.reset();
             console.warn("newyear reset", newYear);

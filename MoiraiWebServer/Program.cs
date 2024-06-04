@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Threading.Channels;
 using CommandLine;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 using Moirai.Core;
@@ -15,6 +16,27 @@ internal class Program
         public string InputFile { get; set; }
     }
     internal static Options OptionsInstance;
+    
+    public static FileSystemEventHandler Debounce(FileSystemEventHandler func, int milliseconds = 300)
+    {
+        CancellationTokenSource? cancelTokenSource = null;
+
+        return (arg,arg1) =>
+        {
+            cancelTokenSource?.Cancel();
+            cancelTokenSource = new CancellationTokenSource();
+
+            Task.Delay(milliseconds, cancelTokenSource.Token)
+                .ContinueWith(t =>
+                {
+                    if (t.IsCompletedSuccessfully)
+                    {
+                        func(arg, arg1);
+                    }
+                }, TaskScheduler.Default);
+        };
+    }
+    
     public static void Main(string[] args)
     {
         var parseResult = CommandLine.Parser.Default.ParseArguments<Options>(args);
@@ -35,6 +57,16 @@ internal class Program
         }
         Console.WriteLine($"Input file: {options.InputFile}");
         OptionsInstance = options;
+
+        
+        var watcher = new FileSystemWatcher(Path.GetDirectoryName(options.InputFile), Path.GetFileName(options.InputFile));
+        watcher.Changed += Debounce((sender, eventArgs) =>
+        {
+            Console.WriteLine("Changed: " + eventArgs.FullPath);
+            // TODO ugly
+            ChatHub.ReloadRequested();
+        });
+        watcher.EnableRaisingEvents = true;
         
         var builder = WebApplication.CreateBuilder(args);
 

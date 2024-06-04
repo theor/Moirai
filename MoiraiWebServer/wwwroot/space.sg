@@ -12,6 +12,9 @@ entity System {
 entity Person {
     prop birthplace: Object
     prop location: Object
+    prop birthyear: number
+    prop age: Age
+    prop alive: bool
 }
 
 enum Kind {
@@ -20,13 +23,18 @@ enum Kind {
     Planet,
     Satelite,
 }
-
+enum Age {
+    Child,
+    Young,
+    Adult,
+    Old,
+}
 
 
 @start
 event create_time {
     create Time $t: 'time'
-    set year = 0
+    set #Time.year = 42
 }
 @start
 event create_solar_system {
@@ -85,11 +93,55 @@ event create_solar_system {
 //     }
 // }
 
-@frequency(1, PerXYear, 2)
+@frequency(1, PerXYear, 10)
 event born {
     create Person $p: ('{random(Name)}')
+}
+
+trigger when_born {
+    when_created Person
+    set $new.age = Age.Child
+    set $new.birthyear = #Time.year
+    set $new.alive = true
     pick Object $o: (kind = Kind.Planet or kind = Kind.Satelite)
-    set $p.birthplace = $o
-    set $p.location = $o
-    record '{$p.name} was born on {$o.name}'
+    set $new.birthplace = $o
+    set $new.location = $o 
+    if(pick Person $parent: (alive and age = Age.Adult)){
+        record '{$new.name}  was born on {$o.name} from {$parent.name}' 
+    } else {
+        record '{$new.name}  was born on {$o.name}' 
+    }
+}
+
+@frequency(1, EveryXYear, 1)
+event grow {
+    each Person $p: (alive, age = Age.Old) {
+        if random(120) < #Time.year - birthyear {
+            set $p.alive = false
+            record '{$p.name} dies of old age at {#Time.year - $p.birthyear}'
+        }
+    }
+    each Person $p: (alive, age != Age.Old, #Time.year - birthyear > 0, (#Time.year - birthyear) % 20 = 0) {
+        // record 'grow {$p.name} {$p.age} {#Time.year - $p.birthyear}'
+        
+        set $p.age = $p.age + 1
+        record '{$p.name} is now {$p.age}'
+        
+    }
+}
+
+@frequency(1, PerXYear, 5)
+event expedition {
+    pick Person $p: (alive and age = Age.Adult)
+    var $loc: '{random Name} Station'
+    random_weighted 100 {
+        40 => record '{$p.name} at {$loc} success'
+        30 => {
+            set $p.alive = false
+            record '{$p.name} dies at {$loc}'
+        }
+        _ => {
+            record '{$p.name} is injured at {$loc}'
+        }
+    }
 }

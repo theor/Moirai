@@ -8,6 +8,7 @@ public class BinaryOperator : IValue
         Equals,
         NotEquals,
         Add,Sub,Div,Mul,
+        Mod,
         Gt,Lt,
         Ge,Le,
         Coalesce,
@@ -50,6 +51,8 @@ public class BinaryOperator : IValue
                     return left.FloatValue - right.FloatValue;
                 case Operator.Div:
                     return left.FloatValue / right.FloatValue;
+                case Operator.Mod:
+                    return left.IntValue % right.IntValue;
                 case Operator.Mul:
                     return left.FloatValue * right.FloatValue;
                 case Operator.Gt:
@@ -95,6 +98,7 @@ public class BinaryOperator : IValue
             Operator.Sub => "-",
             Operator.Div => "/",
             Operator.Mul => "*",
+            Operator.Mod => "%",
             Operator.Gt => ">",
             Operator.Lt => "<",
             Operator.Ge => ">=",

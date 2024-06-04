@@ -173,7 +173,7 @@ public class FunctionDescriptor : IFunctionDescriptor
         if (c.Item1 != null)
             c.Item1.FunctionDescriptor = this;
         else
-            throw new InvalidOperationException(parser.Parser.TokenStream.GetText(call));
+            parser.AddError(StoryParser.ErrorCode.UnknownFunction, call, "");
         return c.Item1;
     }
 
@@ -386,6 +386,7 @@ public static class StoryParser
         MatchAnyValueMustBeLast,
         MissingVariable,
         UnknownAttribute,
+        UnknownFunction,
         MismatchedAssignmentTypes
     }
 
@@ -1481,6 +1482,10 @@ public static class StoryParser
                 case "*":
                     type = rightType;
                     pop = BinaryOperator.Operator.Mul;
+                    break;
+                case "%":
+                    type = PropertyValue.TypeNumber;
+                    pop = BinaryOperator.Operator.Mod;
                     break;
                 case ">":
                     type = PropertyValue.TypeBool;

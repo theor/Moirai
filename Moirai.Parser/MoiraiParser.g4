@@ -30,7 +30,7 @@ expr
     : if
     | match
     | value
-    | left=expr op=(MUL | DIV) LINE_BREAK? right=expr
+    | left=expr op=(MUL | DIV | MOD) LINE_BREAK? right=expr
     | left=expr op=(ADD | SUB) LINE_BREAK? right=expr
     | left=expr op=(EQ | NEQ | GE | LE | GT | LT) LINE_BREAK? right=expr
     | left=expr op=QQ LINE_BREAK? right=expr

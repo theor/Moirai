@@ -170,8 +170,12 @@ internal class MoiraiCommandHandler : ExecuteTypedCommandHandlerBase<string>
 
     public override Task<Unit> Handle(string param, CancellationToken cancellationToken)
     {
-        _logger.LogCritical($"HANDLE COMMAND {_commandName} {param} from {_moiraiCache.CurrentDoc}");
+        _logger.LogCritical($"HANDLE COMMAND2 {_commandName} {param} from {_moiraiCache.CurrentDoc}");
+        if(!_moiraiCache.GetDocument(_moiraiCache.CurrentDoc, out var doc))
+            return Task.FromResult(Unit.Value);
+        // doc.Linker.GetDefinitionAt()
         return Task.FromResult(Unit.Value);
+        
     }
 
     public MoiraiCommandHandler(MoiraiCache moiraiCache, ISerializer serializer, ILogger<MoiraiCache> logger) : base("moirai.servercommand", serializer)

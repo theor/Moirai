@@ -198,6 +198,8 @@ public class StoryPrinter
             {
                 var e = _database.Enums[value.Type.Index];
                 if (value.IntValue == 0) return "null";
+                if (value.IntValue > e.Values.Count)
+                    return value.IntValue.ToString();
                 return (storyMode & History.HistoryMode.Story) != 0
                     ? e.FormattedValues[(int) value.IntValue - 1]
                     : $"{e.Name}.{e.Values[(int) value.IntValue - 1]}";
@@ -384,6 +386,7 @@ public class StoryPrinter
                     BinaryOperator.Operator.Sub => "-",
                     BinaryOperator.Operator.Div => "/",
                     BinaryOperator.Operator.Mul => "*",
+                    BinaryOperator.Operator.Mod => "%",
                     BinaryOperator.Operator.Gt => ">",
                     BinaryOperator.Operator.Ge => ">=",
                     BinaryOperator.Operator.Lt => "<",

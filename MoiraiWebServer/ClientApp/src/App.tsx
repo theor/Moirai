@@ -15,11 +15,10 @@ import {
     CircularProgress,
     Backdrop, Tabs, Tab, CircularProgressProps,
 } from "@mui/material";
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import { ChangesetList } from './ChangesetList.tsx';
 import {useMainListDisplay, useYearsDelta} from "./utils.tsx";
 import {QueryView} from "./QueryView.tsx";
-import {IStreamSubscriber} from "@microsoft/signalr";
 import {ChartView} from "./ChartView.tsx";
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -75,28 +74,12 @@ function InnerApp() {
     const reset = useMoiraiStore(s => s.reset!);
     const conn = useMoiraiStore(s => s.conn!);
     const year = useMoiraiStore(s => s.year);
+    const passYears = useMoiraiStore(s => s.passYears);
+    const progress = useMoiraiStore(s => s.passYearsProgress);
     const [mainListDisplay, setMainListDisplay] = useMainListDisplay();
     const [yearsDelta,_setYearsDelta] = useYearsDelta();
-    const [progress,setProgress] = useState<number|undefined>(undefined);
-    const subscriber: IStreamSubscriber<number> = {
-        next(value: number) {
-            setProgress(value)
-        },
-        error(err: any) {
-            console.error(err)
-            setProgress(undefined)
-        },
-        complete() {
-            console.log("PROGRESS COMPLETE")
-            setProgress(undefined)
-        }
-    };
+    // const [progress,setProgress] = useState<number|undefined>(undefined);
 
-    const passYearsProgress = () => {
-
-        setProgress(0)
-        return conn.passYears(yearsDelta).subscribe(subscriber);
-    };
     // useEffect(()=> {
     //     setYearsDelta(100);
     // }, []);
@@ -118,7 +101,7 @@ function InnerApp() {
                     <Typography color="inherit" >
                         Year: {year}
                     </Typography>
-                    <Button color="inherit" disabled={!!progress} onClick={passYearsProgress}>Pass {yearsDelta} years</Button>
+                    <Button color="inherit" disabled={!!progress} onClick={() => passYears(yearsDelta)}>Pass {yearsDelta} years</Button>
                     <Button color="inherit" onClick={() => conn.save()}>Save</Button>
                     <Button color="inherit" onClick={() => {
                         reset();

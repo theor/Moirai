@@ -56,7 +56,8 @@ public class SourceLinker : StoryParser.ILinker
     public void LinkType(StoryParser.AstVisitor.FileRange range, EntityTypeId entityType)
     {
         var r = range.ToLspRange();
-        _tree.Add(r.Start, r.End, TypeDefinitions[entityType]);
+        if(TypeDefinitions.TryGetValue(entityType, out var definition))
+            _tree.Add(r.Start, r.End, definition);
     }
 
     public void DeclareTypeProperty(StoryParser.AstVisitor.FileRange? range, PropertyId propertyId, string? inlineDefinition = null)
