@@ -63,6 +63,24 @@ event start {
         Assert.AreEqual(StoryParser.ErrorCode.MissingArgument, errors[0].Code);
     }
     [Test]
+    public void WrongParamType()
+    {
+        var s = @"
+entity Person {
+    prop age: number
+}
+function f($x: Person): number {
+    $x.age
+}
+
+@start
+event start {
+    debug('{f('asd')}')
+}";
+        var db = Run(s, out var errors, 1);
+        Assert.AreEqual(StoryParser.ErrorCode.MismatchedAssignmentTypes, errors[0].Code);
+    }
+    [Test]
     public void OneParamFunction()
     {
         var s = @"

@@ -64,11 +64,11 @@ public class FunctionDescriptor : IFunctionDescriptor
             return CallContext;
         }
 
-        public IValue ParseArgument(int index)
+        public IValue ParseArgument(int index, out PropertyValue.ValueType type)
         {
             if (CallContext is MoiraiParser.CallContext c)
             {
-                return Visitor.ParseExpr(c.expr(index))!;
+                return Visitor.ParseExpr(c.expr(index), out type)!;
             }
             else if (CallContext is MoiraiParser.Raw_callContext r)
             {
@@ -76,13 +76,19 @@ public class FunctionDescriptor : IFunctionDescriptor
                 {
                     Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext,
                         "Expected more arguments, convert to () syntax");
+                    type = default;
                     return default!;
                 }
 
-                return Visitor.ParseValue(r.value(), out var _);
+                return Visitor.ParseValue(r.value(), out type);
             }
 
+            type = default;
             return default!;
+        }
+        public IValue ParseArgument(int index)
+        {
+            return ParseArgument(index, out _);
         }
 
         public int ArgCount => CallContext is MoiraiParser.CallContext c
@@ -1371,9 +1377,11 @@ public static class StoryParser
                 // TODO check arg/param type
                 definition.Parameters.Select((p,i) =>
                 {
-                    var argument = ctx.ParseArgument(i);
+                    var argument = ctx.ParseArgument(i, out var type);
                     if(argument == null)
                         AddError(ErrorCode.MissingArgument, ctx.CallContext, $"Missing argument {i}: {p.ParamName}: {astVisitor.Database.Printer.Print(p.ParamType)}");
+                    if (type != p.ParamType)
+                        AddError(ErrorCode.MismatchedAssignmentTypes, ctx.GetArgumentToken(i), $"Expected {astVisitor.Database.Printer.Print(p.ParamType)} got {astVisitor.Database.Printer.Print(type)}");
                     return argument;
                 }).ToArray()
                 );
