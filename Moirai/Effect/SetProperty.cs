@@ -13,7 +13,7 @@ public class SetProperty : IInstruction
         Parameter = parameter;
     }
    
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Execute(PredicateContext ctx)
     {
         if (IsLocalVar)
         {

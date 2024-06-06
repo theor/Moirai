@@ -7,8 +7,8 @@
         Value = value;
     }
 
-    public bool Execute(PredicateContext ctx)
+    public PropertyValue Execute(PredicateContext ctx)
     {
-        return Value.Compute(ctx).BoolValue;
+        return Value.Compute(ctx);
     }
 }

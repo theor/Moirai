@@ -420,10 +420,8 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         PushSemanticToken(context.property_id().ID().Symbol, SemanticTokenType.Property);
         PushSymbol(context.property_id().ID().Symbol, SymbolKind.Property);
 
-        if (context.TYPE_ID() != null)
-            PushSemanticToken(context.TYPE_ID().Symbol, SemanticTokenType.Type);
-        else
-            PushSemanticToken(context.ID().Symbol, SemanticTokenType.Type);
+        if (context.type() != null)
+            PushSemanticToken(StoryParser.GetTypeTerminal(context.type()).Symbol, SemanticTokenType.Type);
 
         return base.VisitProp_definition(context);
     }
@@ -498,11 +496,9 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     public override object? VisitRaw_call(MoiraiParser.Raw_callContext context)
     {
         PushSemanticToken(context.fun_id().ID().Symbol, SemanticTokenType.Function);
-        if (context.type_id()?.TYPE_ID() != null)
-            PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
+        if (context.type() != null)
+            PushSemanticToken(StoryParser.GetTypeTerminal(context.type()).Symbol, SemanticTokenType.Type);
 
-        if (context.ID() != null)
-            PushSemanticToken(context.ID().Symbol, SemanticTokenType.Type);
         if (context.VAR_ID() is { } varId) 
             PushSemanticToken(varId.Symbol, SemanticTokenType.Variable);
 
@@ -513,13 +509,11 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     {
         PushSemanticToken(context.fun_id().ID().Symbol, SemanticTokenType.Function);
 
-        if (context.type_id()?.TYPE_ID() != null)
+        if (context.type() != null)
         {
-            PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
+            PushSemanticToken(StoryParser.GetTypeTerminal(context.type()).Symbol, SemanticTokenType.Type);
         }
 
-        if (context.ID() != null)
-            PushSemanticToken(context.ID().Symbol, SemanticTokenType.Type);
         if (context.VAR_ID() is not null)
         {
             PushSemanticToken(context.VAR_ID().Symbol, SemanticTokenType.Variable);

@@ -93,10 +93,9 @@ public class FunctionDescriptor : IFunctionDescriptor
         {
             ITerminalNode t;
             if (CallContext is MoiraiParser.CallContext c)
-                t = c.type_id()?.TYPE_ID() ?? c.ID();
+                t = StoryParser.GetTypeTerminal(c.type());
             else
-                t = ((MoiraiParser.Raw_callContext) CallContext).type_id().TYPE_ID() ??
-                    ((MoiraiParser.Raw_callContext) CallContext).ID();
+                t = StoryParser.GetTypeTerminal(((MoiraiParser.Raw_callContext) CallContext).type());
             EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(t))?.Id ?? EntityTypeId.Null;
             
             Visitor.Linker?.LinkType(new StoryParser.AstVisitor.FileRange(t.Symbol), type);
@@ -686,7 +685,7 @@ public static class StoryParser
                         return AddError(ErrorCode.DuplicatePropertyDefinition, typeDefinitionContext, propName);
 
                     PropertyValue.ValueType proptype =
-                        ParseType(propDefinitionContext.ID() ?? propDefinitionContext.TYPE_ID());
+                        ParseType(GetTypeTerminal(propDefinitionContext.type()));
                     var propertyDefinition = new PropertyDefinition(propName, type.Id, (uint) type.Properties.Count,
                         proptype);
                     type.Properties.Add(propertyDefinition);
@@ -750,15 +749,15 @@ public static class StoryParser
         {
             var name = fundef.fun_id().GetText();
             PropertyValue.ValueType returnType = PropertyValue.ValueType.Null;
-            if((fundef.ID() ?? fundef.type_id()?.TYPE_ID()) != null)
+            if(fundef.type() != null)
             {
-                returnType = ParseType(fundef.ID() ?? fundef.type_id()?.TYPE_ID());
+                returnType = ParseType(GetTypeTerminal(fundef.type()));
             }
 
             var parameters = fundef.param().Select(p =>
             {
                 var paramName = p.VAR_ID().GetText();
-                var paramType = ParseType(p.ID() ?? p.type_id()?.TYPE_ID());
+                var paramType = ParseType(GetTypeTerminal(p.type()));
                 DeclareVar(paramName, paramType, p.VAR_ID().Symbol, out var paramIndex);
                 return new FunctionDefinition.Parameter(paramName, paramType, paramIndex);
             }).ToArray();
@@ -1683,6 +1682,11 @@ public static class StoryParser
                 return path;
             }
         }
+    }
+
+    public static ITerminalNode GetTypeTerminal(MoiraiParser.TypeContext type)
+    {
+        return type.TYPE_ID() ?? type.ID();
     }
 }
 

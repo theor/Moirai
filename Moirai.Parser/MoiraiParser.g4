@@ -22,9 +22,9 @@ set: SET  path EQ expr;
 var: VAR  VAR_ID COLON expr;
 fun_id: ID;
 //call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
-call : fun_id  ((ID|type_id) VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* ))? PAREN_CLOSE scope?;
+call : fun_id  (type VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* ))? PAREN_CLOSE scope?;
 scope: SCOPE_OPEN LINE_BREAK* (when|when_created)?  ((effect SCOPE_CLOSE)|((effect LINE_BREAK+)* SCOPE_CLOSE)) LINE_BREAK*;
-raw_call: fun_id  (((ID|type_id) VAR_ID (COLON value)?)| value) scope?;
+raw_call: fun_id  ((type VAR_ID (COLON value)?)| value) scope?;
 value: raw_call | call | string | enum_value | type_id | path | bool | number | NULL;
 expr
     : if
@@ -42,18 +42,19 @@ expr
 type_definition: attribute* ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* prop_definition* SCOPE_CLOSE LINE_BREAK+ ;
 
 //range: (PAREN_OPEN number COMMA number PAREN_CLOSE);
-prop_definition: PROP property_id COLON (ID|TYPE_ID) LINE_BREAK+ ;
+prop_definition: PROP property_id COLON type LINE_BREAK+ ;
 
 enum_definition: ENUM TYPE_ID SCOPE_OPEN LINE_BREAK* TYPE_ID (COMMA LINE_BREAK* TYPE_ID)* COMMA? LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
 
-param: VAR_ID COLON (ID|type_id);
-function_definition: FUNCTION fun_id PAREN_OPEN (param (COMMA param)*)? PAREN_CLOSE (COLON (ID|type_id))? scope;
+param: VAR_ID COLON type;
+function_definition: FUNCTION fun_id PAREN_OPEN (param (COMMA param)*)? PAREN_CLOSE (COLON type)? scope;
 
 stringContent: (EXPR_OPEN expr SCOPE_CLOSE) | TEXT;
 string: QUOTE stringContent* QUOTE ;
 
 bool: TRUE | FALSE;
 type_id: TYPE_ID;
+type: TYPE_ID | ID;
 property_id: ID;
 dot_property: DOT property_id;
 var_id_read: SINGLETON_ID | VAR_ID;

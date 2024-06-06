@@ -69,9 +69,8 @@ public class MatchWeight : IValue
                 PropertyValue val = true;
                 foreach (var instr in @CumulativeWeights[i].Item2)
                 {
-                    if (instr is CallInstruction call)
-                        val = call.Value.Compute(ctx);
-                    else if (!instr.Execute(ctx))
+                    val = instr.Execute(ctx);
+                    if (!val.BoolValue)
                         break;
                 }
                 return val;
@@ -115,9 +114,8 @@ public class Match : IValue
                 PropertyValue val = true;
                 foreach (var instr in @case.Item2)
                 {
-                    if (instr is CallInstruction call)
-                        val = call.Value.Compute(ctx);
-                    else if (!instr.Execute(ctx))
+                    val = instr.Execute(ctx);
+                     if (!val.BoolValue)
                         break;
                 }
 
@@ -171,9 +169,8 @@ public class If : IValue
         PropertyValue res = true;
         foreach (var instr in scope)
         {
-            if (instr is CallInstruction call)
-                res = call.Value.Compute(ctx);
-            else if (!instr.Execute(ctx))
+            res = instr.Execute(ctx);
+            if (!res.BoolValue)
                 break;
         }
 

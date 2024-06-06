@@ -2,7 +2,7 @@
 
 public interface IInstruction
 {
-    bool Execute(PredicateContext ctx);
+    PropertyValue Execute(PredicateContext ctx);
 }
 
 // public interface IInstructionCall : IInstruction

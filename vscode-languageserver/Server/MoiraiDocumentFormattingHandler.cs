@@ -254,7 +254,7 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
                 (context.PROP(), 1, 4),
                 (context.property_id().ID(), 0, null),
                 (context.COLON(), 1, null),
-                (context.TYPE_ID() ?? context.property_id().ID(), 0, null)
+                (context.type() != null ? StoryParser.GetTypeTerminal(context.type()) : context.property_id().ID(), 0, null)
                 );
         }
     }

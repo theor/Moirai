@@ -1,5 +1,38 @@
 ﻿using Moirai;
 
+public record struct FunctionDefinitionId(ushort Id);
+
+public readonly struct FunctionDefinition
+{
+    public readonly FunctionDefinitionId Id;
+    public readonly string Name;
+    public readonly PropertyValue.ValueType ReturnType;
+    public readonly IInstruction[] Instructions;
+    public readonly Parameter[] Parameters;
+
+    public FunctionDefinition(FunctionDefinitionId id, string name, PropertyValue.ValueType returnType, Parameter[] parameters, IInstruction[] instructions)
+    {
+        Id = id;
+        Name = name;
+        ReturnType = returnType;
+        Parameters = parameters;
+        Instructions = instructions ?? new IInstruction[0];
+    }
+
+    public readonly struct Parameter
+    {
+        public readonly string ParamName;
+        public readonly PropertyValue.ValueType ParamType;
+        public readonly int ParamIndex;
+
+        public Parameter(string paramName, PropertyValue.ValueType paramType, int paramIndex)
+        {
+            ParamName = paramName;
+            ParamType = paramType;
+            ParamIndex = paramIndex;
+        }
+    }
+}
 public record struct EnumDefinitionId(ushort Id);
 public readonly struct EnumDefinition
 {

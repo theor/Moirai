@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
@@ -18,6 +19,8 @@ public class Database
     {
         PerXYear,EveryXYear,
     }
+
+    public readonly List<FunctionDefinition> Functions = new(){default};
     public readonly List<EnumDefinition> Enums = new()
         {default,
             new EnumDefinition(new EnumDefinitionId(1), "Name", EntityNames.Names),
@@ -329,7 +332,7 @@ WHERE default__id = $id;";
             if (e is CallInstruction {Value: AssignPick {VariableIndex: -1}})
                 throw new NotImplementedException("Arg index -1 on p " + index);
 
-            if (!e.Execute(_ctx))
+            if (!e.Execute(_ctx).BoolValue)
             {
                 // Console.WriteLine($"  ABORT [{action.Name}]");
                 // TODO option to keep empty changesets
@@ -395,7 +398,7 @@ WHERE default__id = $id;";
                         {
                             foreach (var e in trigger.Effects)
                             {
-                                if (!e.Execute(_ctx))
+                                if (!e.Execute(_ctx).BoolValue)
                                 {
                                     // continue;
                                     break;
@@ -675,5 +678,12 @@ ON CONFLICT (eid, marker) DO UPDATE SET last_year = excluded.last_year, count = 
     public bool GetLastMarked(EntityId eId, int eventIndex, out long year)
     {
         return _marked.TryGetValue((eId, eventIndex), out year);
+    }
+    
+    
+    public bool GetFunctionDefinition(string name, [NotNullWhen(true)] out FunctionDefinition? descriptor)
+    {
+        descriptor = Functions.FirstOrDefault(f => f.Name == name);
+        return descriptor?.Name != null;
     }
 }
