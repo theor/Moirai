@@ -1380,7 +1380,7 @@ public static class StoryParser
                     var argument = ctx.ParseArgument(i, out var type);
                     if(argument == null)
                         AddError(ErrorCode.MissingArgument, ctx.CallContext, $"Missing argument {i}: {p.ParamName}: {astVisitor.Database.Printer.Print(p.ParamType)}");
-                    if (type != p.ParamType)
+                    else if (type != p.ParamType)
                         AddError(ErrorCode.MismatchedAssignmentTypes, ctx.GetArgumentToken(i), $"Expected {astVisitor.Database.Printer.Print(p.ParamType)} got {astVisitor.Database.Printer.Print(type)}");
                     return argument;
                 }).ToArray()
