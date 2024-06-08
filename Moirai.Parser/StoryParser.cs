@@ -1704,7 +1704,7 @@ public static class StoryParser
                 Linker?.LinkType(new(singletonId), singletonType.Id);
 
                 // TODO chained singleton #Time.x.y
-                var path = new PropertyPath(PropertyId.Null);
+                var path = new PropertyPath(singletonType.Id);
                 ParseProperty(ref path, context, singletonType, out type);
                 return path;
             }

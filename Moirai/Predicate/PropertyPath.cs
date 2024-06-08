@@ -1,6 +1,7 @@
 ﻿public struct PropertyPath : IValue
 {
     public readonly int VariableIndex;
+    public readonly EntityTypeId SingletonId;
     public List<PropertyId>? Property;
 
     public enum PropertyPathMode
@@ -16,13 +17,15 @@
         VariableIndex = variableIndex;
         if (property != null)
             Property = new() { property.Value };
+        SingletonId = default;
         Mode = PropertyPathMode.Variable;
     }
 
-    public PropertyPath(PropertyId propertyId)
+    public PropertyPath(EntityTypeId singletonId)
     {
-        Property = new List<PropertyId> { propertyId };
+        Property = null;
         Mode = PropertyPathMode.Singleton;
+        SingletonId = singletonId;
         VariableIndex = -1;
     }
 
@@ -34,8 +37,12 @@
             return;
         }
 
+        // singletons used to set the Property's prop Id to null but uses the PropertyId's TypeId
         if (Property.Count > 0 && Property[^1].Id == 0)
-            Property[^1] = pid;
+        {
+            throw new InvalidDataException("???");
+            // Property[^1] = pid;
+        }
         else
             Property.Add(pid);
     }
@@ -46,9 +53,9 @@
     {
         if (Mode == PropertyPathMode.Singleton)
         {
-            if (!ctx.GetSingleton(Property[0].TypeId, out var entity))
+            if (!ctx.GetSingleton(SingletonId, out var entity))
                 return default;
-            if (Property[0].Id == 0)
+            if (Property == null || Property.Count == 0)
                 return entity.Id;
 
             return entity.GetProperty(Property[0]);
