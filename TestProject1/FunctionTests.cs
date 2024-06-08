@@ -2,6 +2,26 @@
 
 namespace TestProject1;
 
+public class InstanceFunctionTests : TestsBase
+{
+    [Test]
+    public void ConstantFunction()
+    {
+        var s = @"
+entity Person {
+    function f(): number {
+        2
+    }
+}
+
+@start
+event start {
+    create Person $p: 'test'
+    debug('{$p.f()}')
+}";
+        var db = Run(s, out _, 0);
+    }
+}
 public class FunctionTests : TestsBase
 {
     [Test]

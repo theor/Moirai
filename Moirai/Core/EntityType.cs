@@ -3,6 +3,7 @@ public class EntityType
     public readonly string Name;
     public readonly EntityTypeId Id;
     public readonly List<PropertyDefinition> Properties = Database.DefaultProperties();
+    public readonly List<FunctionDefinition> Functions = new(){default};
 
     public EntityType(string name, uint id)
     {
@@ -34,5 +35,11 @@ public class EntityType
     public PropertyValue.ValueType GetPropertyType(string propName)
     {
         return Properties.FirstOrDefault(p => p.Name == propName).Type;
+    }
+
+    public bool GetFunctionDefinition(string funcName, out FunctionDefinition o)
+    {
+        o = Functions.Skip(1).FirstOrDefault(f => f.Name == funcName);
+        return o.Id.IsValid;
     }
 }

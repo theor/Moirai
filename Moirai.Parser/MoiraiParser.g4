@@ -24,6 +24,7 @@ fun_id: ID;
 //call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;
 call : fun_id  (type VAR_ID COLON)? PAREN_OPEN ((expr (COMMA expr)* ))? PAREN_CLOSE scope?;
 scope: SCOPE_OPEN LINE_BREAK* (when|when_created)?  ((effect SCOPE_CLOSE)|((effect LINE_BREAK+)* SCOPE_CLOSE)) LINE_BREAK*;
+// 'raw' means no parens and one param - eg record 'asd'
 raw_call: fun_id  ((type VAR_ID (COLON value)?)| value) scope?;
 value: raw_call | call | string | enum_value | type_id | path | bool | number | NULL;
 expr
@@ -39,7 +40,7 @@ expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     ;
 
-type_definition: attribute* ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* prop_definition* SCOPE_CLOSE LINE_BREAK+ ;
+type_definition: attribute* ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* (prop_definition|function_definition)* SCOPE_CLOSE LINE_BREAK+ ;
 
 //range: (PAREN_OPEN number COMMA number PAREN_CLOSE);
 prop_definition: PROP property_id COLON type LINE_BREAK+ ;
@@ -56,8 +57,8 @@ bool: TRUE | FALSE;
 type_id: TYPE_ID;
 type: TYPE_ID | ID;
 property_id: ID;
-dot_property: DOT property_id;
+dot_property: DOT (property_id | call);
 var_id_read: SINGLETON_ID | VAR_ID;
-path : var_id_read (dot_property)* | property_id;
+path : (var_id_read | property_id) dot_property*;
 enum_value: TYPE_ID DOT TYPE_ID ;
 number: NUMBER_FLOAT | NUMBER | PERCENT;

@@ -1,17 +1,22 @@
 ﻿using Moirai;
 
-public record struct FunctionDefinitionId(ushort Id);
+public record struct FunctionDefinitionId(ushort Id)
+{
+    public bool IsValid => Id != 0;
+}
 
 public readonly struct FunctionDefinition
 {
     public readonly FunctionDefinitionId Id;
     public readonly string Name;
+    public readonly EntityTypeId InstanceType;
     public readonly PropertyValue.ValueType ReturnType;
     public readonly IInstruction[] Instructions;
     public readonly Parameter[] Parameters;
 
-    public FunctionDefinition(FunctionDefinitionId id, string name, PropertyValue.ValueType returnType, Parameter[] parameters, IInstruction[] instructions)
+    public FunctionDefinition(FunctionDefinitionId id, string name, EntityTypeId instanceType, PropertyValue.ValueType returnType, Parameter[] parameters, IInstruction[] instructions)
     {
+        InstanceType = instanceType;
         Id = id;
         Name = name;
         ReturnType = returnType;

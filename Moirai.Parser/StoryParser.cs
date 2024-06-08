@@ -697,6 +697,11 @@ public static class StoryParser
                     type.Properties.Add(propertyDefinition);
                     Linker?.DeclareTypeProperty(new FileRange(propDefinitionContext), propertyDefinition.PropertyId);
                 }
+
+                foreach (var functionDefinitionContext in typeDefinitionContext.function_definition())
+                {
+                    ParseFunctionDefinition(functionDefinitionContext, type);
+                }
             }
 
             foreach (var (tid, attr) in deferredTypeAttributes)
@@ -751,7 +756,7 @@ public static class StoryParser
             return null;
         }
 
-        private void ParseFunctionDefinition(MoiraiParser.Function_definitionContext fundef)
+        private void ParseFunctionDefinition(MoiraiParser.Function_definitionContext fundef, EntityType? instanceType = null)
         {
             var name = fundef.fun_id().GetText();
             PropertyValue.ValueType returnType = PropertyValue.ValueType.Null;
@@ -759,7 +764,7 @@ public static class StoryParser
             {
                 returnType = ParseType(GetTypeTerminal(fundef.type()));
             }
-
+            
             var parameters = fundef.param().Select(p =>
             {
                 var paramName = p.VAR_ID().GetText();
@@ -767,11 +772,18 @@ public static class StoryParser
                 DeclareVar(paramName, paramType, p.VAR_ID().Symbol, out var paramIndex);
                 return new FunctionDefinition.Parameter(paramName, paramType, paramIndex);
             }).ToArray();
-            this.Database.Functions.Add(new FunctionDefinition(new((ushort)Database.Functions.Count),
+            var functionDefinitionId = new FunctionDefinitionId(
+                (ushort)(instanceType == null ? Database.Functions.Count : instanceType.Functions.Count));
+            var functionDefinition = new FunctionDefinition(functionDefinitionId,
                 name,
+                instanceType?.Id ?? EntityTypeId.Null,
                 returnType,
                 parameters,
-                ParseScope(fundef.scope(), out var actualType)));
+                ParseScope(fundef.scope(), out var actualType));
+            if(instanceType == null)
+                this.Database.Functions.Add(functionDefinition);
+            else
+                instanceType.Functions.Add(functionDefinition);
             if(actualType != returnType)
                 AddError(actualType == PropertyValue.ValueType.Null ? ErrorCode.MissingReturnValue : ErrorCode.MismatchedReturnType, fundef, $"{actualType} != {returnType}");
         }
@@ -1609,26 +1621,68 @@ public static class StoryParser
             throw new NotImplementedException();
         }
 
-
-        private void ParseProperty(ref PropertyPath path, MoiraiParser.PathContext context, int idIndex,
-            EntityType owningType, out PropertyValue.ValueType type)
+        struct PathParser(AstVisitor astVisitor, MoiraiParser.PathContext context)
         {
-            var propId = context.dot_property(idIndex)?.property_id() ?? context.property_id();
-            string propertyName = propId.GetText();
-            var propertyId = owningType.GetPropertyId(propertyName);
-            if (!propertyId.IsValid)
+            internal void Rec(ref PropertyPath path, int idIndex,
+                EntityType owningType, out PropertyValue.ValueType type)
             {
+                var dotPropertyContext = context.dot_property(idIndex);
+                var propId = dotPropertyContext?.property_id();
+
                 type = default;
-                AddError(ErrorCode.UnknownProperty, propId, propertyName);
-                return;
+                if (propId != null)
+                {
+                   ParseProperty(ref path, propId, owningType, out type);
+                }
+                else
+                {
+                    var funcName = dotPropertyContext.call().fun_id().GetText();
+                    if(owningType.GetFunctionDefinition(funcName, out var fd))
+                    {
+                        var ctx = new FunctionDescriptor.ParseContext(astVisitor, context);
+                        var call = astVisitor.ParseUserFunctionCall(astVisitor, fd, ctx, out type);
+                        path.AddCall(call);
+                    }
+                }
+
+                if (context.dot_property() != null && context.dot_property(idIndex + 1) != null)
+                    Rec(ref path, idIndex + 1, astVisitor.Database.GetEntityType(type)!, out type);
             }
 
-            type = owningType.GetPropertyType(propertyName);
-            Linker?.LinkProperty(propId, propertyId);
-            path.AddProperty(propertyId);
-            if (context.dot_property() != null && context.dot_property(idIndex + 1) != null)
-                ParseProperty(ref path, context, idIndex + 1, Database.GetEntityType(type), out type);
+            public void ParseProperty(ref PropertyPath path, MoiraiParser.Property_idContext rootProp, EntityType owningType, out PropertyValue.ValueType type)
+            {
+                string propertyName = rootProp.GetText();
+                var propertyId = owningType.GetPropertyId(propertyName);
+                if (!propertyId.IsValid)
+                {
+                    type = default;
+                    astVisitor.AddError(ErrorCode.UnknownProperty, rootProp, propertyName);
+                    return;
+                }
+
+                type = owningType.GetPropertyType(propertyName);
+                astVisitor.Linker?.LinkProperty(rootProp, propertyId);
+                path.AddProperty(propertyId);
+            }
         }
+
+        private void ParseProperty(ref PropertyPath path, MoiraiParser.PathContext context,
+            EntityType owningType, out PropertyValue.ValueType type)
+        {
+            // TODO path without var isn't implemented ? prop1.prop2 ?
+
+            PathParser pathParser = new(this, context);
+            type = default;
+            if (context.property_id() is { } rootProp)
+            {
+                pathParser.ParseProperty(ref path, rootProp, owningType, out type);
+                
+            }
+
+            if(context.dot_property(0) != null)
+                pathParser.Rec(ref path, 0, owningType, out type);
+        }
+
 
         public PropertyPath ParsePath(MoiraiParser.PathContext context, out PropertyValue.ValueType type)
         {
@@ -1651,7 +1705,7 @@ public static class StoryParser
 
                 // TODO chained singleton #Time.x.y
                 var path = new PropertyPath(PropertyId.Null);
-                ParseProperty(ref path, context, 0, singletonType, out type);
+                ParseProperty(ref path, context, singletonType, out type);
                 return path;
             }
 
@@ -1686,7 +1740,7 @@ public static class StoryParser
             {
                 EntityType? etype = Database.GetEntityType(_current[variableIndex].Type);
                 var path = new PropertyPath(variableIndex);
-                ParseProperty(ref path, context, 0, etype, out type);
+                ParseProperty(ref path, context,  etype, out type);
                 return path;
             }
         }
