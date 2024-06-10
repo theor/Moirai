@@ -61,8 +61,8 @@ public class UserFunctionCall : IValueCall
 
     public PropertyValue Compute(PredicateContext ctx)
     {
-        
-        using var s = ctx.RunScope(false);
+        // TODO Wtf
+        // using var s = ctx.RunScope(true);
         // int valueCountIterationStart = ctx.ValueCount;
         for (int i = 0; i < _definition.Parameters.Length; i++)
         {

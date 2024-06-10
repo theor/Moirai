@@ -758,12 +758,17 @@ public static class StoryParser
 
         private void ParseFunctionDefinition(MoiraiParser.Function_definitionContext fundef, EntityType? instanceType = null)
         {
+            using var _ = new VariableDeclarationScope(this, fundef.scope());
+
             var name = fundef.fun_id().GetText();
             PropertyValue.ValueType returnType = PropertyValue.ValueType.Null;
             if(fundef.type() != null)
             {
                 returnType = ParseType(GetTypeTerminal(fundef.type()));
             }
+
+            if(instanceType != null)
+                DeclareVar("$self", instanceType.RefType, fundef.FUNCTION().Symbol, out var varIndex);
             
             var parameters = fundef.param().Select(p =>
             {
@@ -1640,16 +1645,13 @@ public static class StoryParser
                     // a.b.f() -> f(a.b)
                     // a.f().b -> f(a).b
                     // a.f().g() -> g(f(a))
-                    UserFunctionCall ufc = new(default, new IValue[1]{null});
-                    ufc.Arguments[0] = path;
                     
                     var funcName = dotPropertyContext.call().fun_id().GetText();
                     if(owningType.GetFunctionDefinition(funcName, out var fd))
                     {
-                        var ctx = new FunctionDescriptor.ParseContext(astVisitor, context);
+                        var ctx = new FunctionDescriptor.ParseContext(astVisitor, dotPropertyContext.call());
                         var call = astVisitor.ParseUserFunctionCall(astVisitor, fd, ctx, out type);
-                        // throw new NotImplementedException();
-                        // path.AddCall(call);
+                        path.AddCall(call);
                     }
                 }
 

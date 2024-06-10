@@ -31,13 +31,7 @@ public class StoryPrinter
         }
         foreach (FunctionDefinition fd in _database.Functions.Skip(1))
         {
-            string parameters = string.Join(", ", fd.Parameters.Select(p => $"{p.ParamName}: {Print(p.ParamType)}"));
-            sb.AppendLine($"function {fd.Name}({parameters}){(fd.ReturnType != PropertyValue.ValueType.Null ? $": {Print(fd.ReturnType)}" : "")} {{");
-            foreach (var effect in fd.Instructions)
-            {
-                PrintEffect(effect, sb, 1);
-            }
-            sb.AppendLine("}\n");
+            Print(fd, sb);
         }
 
         foreach (var action in _database.Actions.Concat(_database.Triggers))
@@ -60,6 +54,18 @@ public class StoryPrinter
         return sb.ToString();
     }
 
+    private void Print(FunctionDefinition fd, StringBuilder sb, int indent = 0)
+    {
+        var indentStr = IndentStr(indent);
+        string parameters = string.Join(", ", fd.Parameters.Select(p => $"{p.ParamName}: {Print(p.ParamType)}"));
+        sb.AppendLine($"{indentStr}function {fd.Name}({parameters}){(fd.ReturnType != PropertyValue.ValueType.Null ? $": {Print(fd.ReturnType)}" : "")} {{");
+        foreach (var effect in fd.Instructions)
+        {
+            PrintEffect(effect, sb, 1+indent);
+        }
+        sb.AppendLine(indentStr+"}\n");
+    }
+
     public void PrintType(StringBuilder sb, EntityType type)
     {
         sb.AppendLine(@$"entity {type.Name} {{");
@@ -68,7 +74,10 @@ public class StoryPrinter
             PrintTypeProperty(sb, property);
         }
 
-
+        foreach (var function in type.Functions.Skip(1))
+        {
+            Print(function, sb, 1);
+        }
         sb.AppendLine("}");
     }
 
@@ -179,17 +188,19 @@ public class StoryPrinter
         }
 
         StringBuilder sb = new();
+        if (path.Mode == PropertyPath.PropertyPathMode.Singleton)
+            sb.Append($"#{_database.GetEntityTypeName(path.SingletonTypeId)}");
+        else
+            sb.Append($"${path.VariableIndex}");
         for (int i = 0; i < path.Segments.Count; i++)
         {
-            if (i == 0)
+            if (path.Segments[i].Property.IsValid)
             {
-
-                if (path.Mode == PropertyPath.PropertyPathMode.Singleton)
-                    sb.Append($"#{_database.GetEntityTypeName(path.SingletonTypeId)}");
-                else
-                    sb.Append($"${path.VariableIndex}");
+                sb.Append($".{GetPropertyName(path.Segments[i].Property)}");
+                continue;
             }
-            sb.Append($".{GetPropertyName(path.Segments![i].Property)}");
+            if (path.Segments[i].Call != null)
+                sb.Append($"." + Print(path.Segments[i].Call!));
         }
 
         return sb.ToString();
@@ -411,7 +422,7 @@ public class StoryPrinter
             // case True @true:
             // break;
             case null:
-            return "// !!!!!!!!!!!";
+            return "// !!!!!!!!!!! null ";
                 
             default:
                 // return "// !!!!!!!!!!!";

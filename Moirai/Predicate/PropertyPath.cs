@@ -87,24 +87,29 @@
             return varValue;
         // return e.GetProperty(Property[0]);
 
-        PropertyValue val = default;
         bool prevEntityProp = false;
         for (int i = 0; i < Segments.Count; i++)
         {
             if(Segments[i].Property.IsValid)
-            val = prevEntityProp
+            varValue = prevEntityProp
                 ? ctx.GetPrevEntityProperty(Segments[i].Property)
                 : e.GetProperty(Segments[i].Property);
             else
             {
                 if (prevEntityProp)
                     throw new NotImplementedException("$old entity method call");
-                Segments[i].Call.Compute(ctx);
+                
+                
+                using var s = ctx.RunScope(true);
+                
+                if(((UserFunctionDescriptor)Segments[i].Call.FunctionDescriptor).Definition.InstanceType.IsValid)
+                    ctx.SetArgument(0, varValue);
+                varValue = Segments[i].Call.Compute(ctx);
             }
             prevEntityProp = false;
             if (i < Segments.Count - 1)
             {
-                if (!ctx.Database.TryGetEntity(val.Id, out e))
+                if (!ctx.Database.TryGetEntity(varValue.Id, out e))
                 {
                     if (varValue.Id.Id == Database.ChangePrevEntityId.Id)
                     {
@@ -116,7 +121,7 @@
             }
         }
 
-        return val;
+        return varValue;
     }
 
     public (string where, string? joins) ToSql(PredicateContext ctx)
