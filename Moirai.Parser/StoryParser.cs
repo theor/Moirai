@@ -1186,7 +1186,7 @@ public static class StoryParser
 
             if (value.path() != null)
             {
-                PropertyPath path = ParsePath(value.path(), out type);
+                var path = ParsePath(value.path(), out type);
                 return path;
             }
 
@@ -1536,7 +1536,7 @@ public static class StoryParser
                     pop = BinaryOperator.Operator.Equals;
 
                     if (leftPath is PropertyPath {Nested: false} p &&
-                        (p.Property == null || p.Property[0] == Database.PropType) &&
+                        (p.Segments == null || p.Segments[0].Property == Database.PropType) &&
                         rightValue is Literal l &&
                         l.Value.Type == PropertyValue.TypeEntityType)
                     {
@@ -1636,12 +1636,20 @@ public static class StoryParser
                 }
                 else
                 {
+                    // if we rewrite the calls to desugar the instance methods:
+                    // a.b.f() -> f(a.b)
+                    // a.f().b -> f(a).b
+                    // a.f().g() -> g(f(a))
+                    UserFunctionCall ufc = new(default, new IValue[1]{null});
+                    ufc.Arguments[0] = path;
+                    
                     var funcName = dotPropertyContext.call().fun_id().GetText();
                     if(owningType.GetFunctionDefinition(funcName, out var fd))
                     {
                         var ctx = new FunctionDescriptor.ParseContext(astVisitor, context);
                         var call = astVisitor.ParseUserFunctionCall(astVisitor, fd, ctx, out type);
-                        path.AddCall(call);
+                        // throw new NotImplementedException();
+                        // path.AddCall(call);
                     }
                 }
 

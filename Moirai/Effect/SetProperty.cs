@@ -24,19 +24,19 @@ public class SetProperty : IInstruction
         EntityId eid;
         if (PropertySet.Mode == PropertyPath.PropertyPathMode.Singleton)
         {
-            eid = ctx.GetSingletonId(PropertySet.Property[0].TypeId);
+            eid = ctx.GetSingletonId(PropertySet.SingletonTypeId);
         }
         else
         {
             eid = ctx.Argument(PropertySet.VariableIndex).Id;
         }
 
-        for (int i = 0; i < PropertySet.Property.Count - 1; i++)
+        for (int i = 0; i < PropertySet.Segments.Count - 1; i++)
         {
-            if (!ctx.Database.GetProperty(eid, PropertySet.Property[i], out var v) || !v.Type.IsRefType)
+            if (!ctx.Database.GetProperty(eid, PropertySet.Segments[i].Property, out var v) || !v.Type.IsRefType)
                 throw new InvalidOperationException("path link is not a ref");
             eid = v.Id;
         }
-        return ctx.Database.SetProperty(eid, PropertySet.Property[^1], Parameter.Compute(ctx));
+        return ctx.Database.SetProperty(eid, PropertySet.Segments[^1].Property, Parameter.Compute(ctx));
     }
 }

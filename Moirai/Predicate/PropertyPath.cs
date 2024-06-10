@@ -1,8 +1,9 @@
 ﻿public struct PropertyPath : IValue
 {
+    public record struct PropertyOrCall(PropertyId Property, UserFunctionCall? Call);
     public readonly int VariableIndex;
-    public readonly EntityTypeId SingletonId;
-    public List<PropertyId>? Property;
+    public readonly EntityTypeId SingletonTypeId;
+    public List<PropertyOrCall>? Segments;
 
     public enum PropertyPathMode
     {
@@ -16,49 +17,55 @@
     {
         VariableIndex = variableIndex;
         if (property != null)
-            Property = new() { property.Value };
-        SingletonId = default;
+            Segments = new() { new(property.Value, null) };
         Mode = PropertyPathMode.Variable;
     }
 
-    public PropertyPath(EntityTypeId singletonId)
+    public PropertyPath(EntityTypeId singletonTypeId)
     {
-        Property = null;
+        SingletonTypeId = singletonTypeId;
+        Segments = null;
         Mode = PropertyPathMode.Singleton;
-        SingletonId = singletonId;
         VariableIndex = -1;
     }
 
     public void AddProperty(PropertyId pid)
     {
-        if (Property == null)
+        if (Segments == null)
         {
-            Property = new() { pid };
+            Segments = new() { new(pid, null) };
             return;
         }
 
-        // singletons used to set the Property's prop Id to null but uses the PropertyId's TypeId
-        if (Property.Count > 0 && Property[^1].Id == 0)
+        // ???
+        if (Segments.Count > 0 && Segments[^1].Property.Id == 0)
         {
-            throw new InvalidDataException("???");
-            // Property[^1] = pid;
+            throw new InvalidDataException("wtf");
+            Segments[^1] = new(pid, null);
         }
         else
-            Property.Add(pid);
+            Segments.Add(new(pid, null));
     }
 
-    public bool Nested => (Property?.Count ?? 0) > 1;
+    public void AddCall(UserFunctionCall call)
+    {
+        Segments ??= new();
+        Segments.Add(new(default, call));
+    }
+
+    public bool Nested => (Segments?.Count ?? 0) > 1;
 
     public readonly PropertyValue Compute(PredicateContext ctx)
     {
         if (Mode == PropertyPathMode.Singleton)
         {
-            if (!ctx.GetSingleton(SingletonId, out var entity))
+            // TODO #Singleton.method()
+            if (!ctx.GetSingleton(Segments[0].Property.TypeId, out var entity))
                 return default;
-            if (Property == null || Property.Count == 0)
+            if (Segments[0].Property.Id == 0)
                 return entity.Id;
 
-            return entity.GetProperty(Property[0]);
+            return entity.GetProperty(Segments[0].Property);
         }
 
         PropertyValue varValue = ctx.Argument(VariableIndex);
@@ -69,24 +76,33 @@
         {
             if (varValue.Id.Id == Database.ChangePrevEntityId.Id)
             {
-                return ctx.GetPrevEntityProperty(Property == null || Property[0] == PropertyId.Null ? Database.PropId : Property[0]);
+                return ctx.GetPrevEntityProperty(Segments == null || Segments[0].Property == PropertyId.Null ? Database.PropId : Segments[0].Property);
             }
 
             return default;
         }
-        if (Property == null || Property[0] == PropertyId.Null)
+        if (Segments == null)
+            return varValue;
+        if (Segments[0].Call == null && Segments[0].Property == PropertyId.Null)
             return varValue;
         // return e.GetProperty(Property[0]);
 
         PropertyValue val = default;
         bool prevEntityProp = false;
-        for (int i = 0; i < Property.Count; i++)
+        for (int i = 0; i < Segments.Count; i++)
         {
+            if(Segments[i].Property.IsValid)
             val = prevEntityProp
-                ? ctx.GetPrevEntityProperty(Property[i])
-                : e.GetProperty(Property[i]);
+                ? ctx.GetPrevEntityProperty(Segments[i].Property)
+                : e.GetProperty(Segments[i].Property);
+            else
+            {
+                if (prevEntityProp)
+                    throw new NotImplementedException("$old entity method call");
+                Segments[i].Call.Compute(ctx);
+            }
             prevEntityProp = false;
-            if (i < Property.Count - 1)
+            if (i < Segments.Count - 1)
             {
                 if (!ctx.Database.TryGetEntity(val.Id, out e))
                 {
@@ -110,10 +126,12 @@
         if (Mode == PropertyPathMode.Variable &&
             (VariableIndex == -1 || VariableIndex == ctx.ValueCount - ctx.ValueOffset))
         {
-            if (Property == null || !Property[0].IsValid)
+            if (Segments == null)
                 return ("default__id", null);
+            if (Segments.Any(s => s.Call != null))
+                throw new NotImplementedException("user function calls in sql");
             var s =
-                $"entity.{ctx.Database.GetEntityTypeName(Property[0].TypeId)}__{ctx.Database.GetPropertyName(Property[0])}";
+                $"entity.{ctx.Database.GetEntityTypeName(Segments[0].Property.TypeId)}__{ctx.Database.GetPropertyName(Segments[0].Property)}";
             var prevProp = s;
             /* pick Person $r: ($r.birthplace.type = Place.City)
             SELECT entity.default__id FROM entity
@@ -135,10 +153,10 @@
                     AND (y.birthdate = 1234)
              */
             string? join = null;
-            for (int i = 1; i < Property.Count; i++)
+            for (int i = 1; i < Segments.Count; i++)
             {
                 string thisVar = $"j{i}";
-                string thisProp = $"{thisVar}.{ctx.Database.GetEntityTypeName(Property[i].TypeId)}__{ctx.Database.GetPropertyName(Property[i])}";
+                string thisProp = $"{thisVar}.{ctx.Database.GetEntityTypeName(Segments[i].Property.TypeId)}__{ctx.Database.GetPropertyName(Segments[i].Property)}";
                 s += $" != 0 AND " + thisProp;
                 string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}.default__id";
                 prevProp = thisProp;

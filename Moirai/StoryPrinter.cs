@@ -172,24 +172,24 @@ public class StoryPrinter
 
     private string Print(PropertyPath path)
     {
-        if (path.Property == null)
+        if (path.Segments == null)
         {
             Debug.Assert(path.VariableIndex != -1, "-1 varindex");
             return $"${path.VariableIndex}";
         }
 
         StringBuilder sb = new();
-        for (int i = 0; i < path.Property.Count; i++)
+        for (int i = 0; i < path.Segments.Count; i++)
         {
             if (i == 0)
             {
 
                 if (path.Mode == PropertyPath.PropertyPathMode.Singleton)
-                    sb.Append($"#{_database.GetEntityTypeName(path.Property[0].TypeId)}");
+                    sb.Append($"#{_database.GetEntityTypeName(path.SingletonTypeId)}");
                 else
                     sb.Append($"${path.VariableIndex}");
             }
-            sb.Append($".{GetPropertyName(path.Property![i])}");
+            sb.Append($".{GetPropertyName(path.Segments![i].Property)}");
         }
 
         return sb.ToString();
