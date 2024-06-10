@@ -18,6 +18,75 @@ entity Person {
 event start {
     create Person $p: 'test'
     debug('{$p.f()}')
+    assert_eq(2, $p.f())
+}";
+        var db = Run(s, out _, 0);
+    }
+
+    [Test]
+    public void ComputedProperty()
+    {
+        var s = @"
+entity Person {
+    prop age: number
+    function double_age(): number {
+        $self.age * 2
+    }
+}
+
+@start
+event start {
+    var $y: 2
+    create Person $p: 'test'
+    set $p.age = 10
+    debug('{$p.double_age()}')
+    assert_eq(20, $p.double_age())
+}";
+        var db = Run(s, out _, 0);
+    }
+    
+    [Test]
+    public void ComputedPropertyWithParam()
+    {
+        var s = @"
+entity Person {
+    prop age: number
+    function add_age($x:number): number {
+        $self.age + $x
+    }
+}
+
+@start
+event start {
+    var $y: 2
+    create Person $p: 'test'
+    set $p.age = 10
+    debug('{$p.add_age(5)}')
+    assert_eq(15, $p.add_age(5))
+}";
+        var db = Run(s, out _, 0);
+    }
+    [Test]
+    public void ComputedProperty2()
+    {
+        var s = @"
+entity Person {
+    prop age: number
+    function is_alive(): bool {
+        $self.age > 0
+    }
+}
+
+@start
+event start {
+    var $y: 2
+    create Person $p: 'test'
+    set $p.age = 10
+    debug('{$p.is_alive()}')
+    assert_eq(true, $p.is_alive())
+    set $p.age = 0
+    debug('{$p.is_alive()}')
+    assert_eq(false, $p.is_alive())
 }";
         var db = Run(s, out _, 0);
     }

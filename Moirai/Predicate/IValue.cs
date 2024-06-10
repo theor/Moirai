@@ -51,11 +51,11 @@ public interface IValueCall : IValue
 
 public class UserFunctionCall : IValueCall
 {
-    private FunctionDefinition _definition;
+    public readonly FunctionDefinition Definition;
     public readonly IValue[] Arguments;
     public UserFunctionCall(FunctionDefinition definition, IValue[] arguments)
     {
-        _definition = definition;
+        Definition = definition;
         Arguments = arguments;
     }
 
@@ -64,15 +64,15 @@ public class UserFunctionCall : IValueCall
         // TODO Wtf
         // using var s = ctx.RunScope(true);
         // int valueCountIterationStart = ctx.ValueCount;
-        for (int i = 0; i < _definition.Parameters.Length; i++)
+        for (int i = 0; i < Definition.Parameters.Length; i++)
         {
-            var p = _definition.Parameters[i];
+            var p = Definition.Parameters[i];
             ctx.SetArgument(p.ParamIndex, Arguments[i]?.Compute(ctx) ?? default);
 
         }
         // TODO use default of return type ?
         PropertyValue val = default;
-        foreach (var definitionInstruction in _definition.Instructions)
+        foreach (var definitionInstruction in Definition.Instructions)
         {
             val = definitionInstruction.Execute(ctx);
         }
@@ -82,7 +82,7 @@ public class UserFunctionCall : IValueCall
 
     public (string where, string? joins) ToSql(PredicateContext ctx)
     {
-        if (_definition.Instructions.Length == 1 && _definition.Instructions[0] is CallInstruction call)
+        if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call)
         {
             using var _ = ctx.RunScope(true);
             return call.Value.ToSql(ctx);
@@ -93,7 +93,7 @@ public class UserFunctionCall : IValueCall
 
     public IFunctionDescriptor? FunctionDescriptor
     {
-        get => new UserFunctionDescriptor(_definition);
+        get => new UserFunctionDescriptor(Definition);
         set
         {
         }

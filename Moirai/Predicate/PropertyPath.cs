@@ -91,9 +91,9 @@
         for (int i = 0; i < Segments.Count; i++)
         {
             if(Segments[i].Property.IsValid)
-            varValue = prevEntityProp
-                ? ctx.GetPrevEntityProperty(Segments[i].Property)
-                : e.GetProperty(Segments[i].Property);
+                varValue = prevEntityProp
+                    ? ctx.GetPrevEntityProperty(Segments[i].Property)
+                    : e.GetProperty(Segments[i].Property);
             else
             {
                 if (prevEntityProp)
@@ -102,7 +102,7 @@
                 
                 using var s = ctx.RunScope(true);
                 
-                if(((UserFunctionDescriptor)Segments[i].Call.FunctionDescriptor).Definition.InstanceType.IsValid)
+                if(Segments[i].Call.Definition.IsInstanceMethod)
                     ctx.SetArgument(0, varValue);
                 varValue = Segments[i].Call.Compute(ctx);
             }
