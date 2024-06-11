@@ -373,7 +373,7 @@ public class MoiraiDocument
         try
         {
             var db = new Database();
-            var astVisitor = new StoryParser.AstVisitor(db, null!)
+            var astVisitor = new AstVisitor(db, null!)
             {
                 Linker = (Linker = new SourceLinker()),
             };

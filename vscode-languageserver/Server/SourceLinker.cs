@@ -46,48 +46,48 @@ public class SourceLinker : StoryParser.ILinker
         return _tree.Query(requestPosition).FirstOrDefault(x => x.Type != TokenVisitor.DefinitionType.VariableScope);
     }
 
-    public void DeclareType(StoryParser.AstVisitor.FileRange? range, EntityTypeId typeId, string? inlineDefinition = null)
+    public void DeclareType(FileRange? range, EntityTypeId typeId, string? inlineDefinition = null)
     {
         var r = range?.ToLspRange();
         var typeDefinition = new TokenVisitor.TypeDefinition(typeId, r) { InlineDefinition = inlineDefinition};
         TypeDefinitions.Add(typeId, typeDefinition);
     }
 
-    public void LinkType(StoryParser.AstVisitor.FileRange range, EntityTypeId entityType)
+    public void LinkType(FileRange range, EntityTypeId entityType)
     {
         var r = range.ToLspRange();
         if(TypeDefinitions.TryGetValue(entityType, out var definition))
             _tree.Add(r.Start, r.End, definition);
     }
 
-    public void DeclareTypeProperty(StoryParser.AstVisitor.FileRange? range, PropertyId propertyId, string? inlineDefinition = null)
+    public void DeclareTypeProperty(FileRange? range, PropertyId propertyId, string? inlineDefinition = null)
     {
         var r = range?.ToLspRange();
         var typeDefinition = new TokenVisitor.PropertyDefinition(propertyId, r) { InlineDefinition = inlineDefinition};
         _propertyDefinitions.Add(propertyId, typeDefinition);
     }
 
-    public void LinkProperty(StoryParser.AstVisitor.FileRange range, PropertyId propertyId)
+    public void LinkProperty(FileRange range, PropertyId propertyId)
     {
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, _propertyDefinitions[propertyId]);
         
     }
 
-    public void DeclareEnum(StoryParser.AstVisitor.FileRange range, EnumDefinitionId enumId)
+    public void DeclareEnum(FileRange range, EnumDefinitionId enumId)
     {
         var r = range.ToLspRange();
         var enumDefinition = new TokenVisitor.EnumDefinition(enumId, r);
         _enumDefinitions.Add(enumId, enumDefinition);
     }
 
-    public void LinkEnum(StoryParser.AstVisitor.FileRange range, EnumDefinitionId enumId)
+    public void LinkEnum(FileRange range, EnumDefinitionId enumId)
     {
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, _enumDefinitions[enumId]);
     }
 
-    public void LinkEnumMember(StoryParser.AstVisitor.FileRange range, PropertyValue enumValue)
+    public void LinkEnumMember(FileRange range, PropertyValue enumValue)
     {
         var r = range.ToLspRange();
         var enumType = Database.Instance.Enums[enumValue.Type.Index];
@@ -95,8 +95,8 @@ public class SourceLinker : StoryParser.ILinker
         _tree.Add(r.Start, r.End, enumDef.MemberDefinition(enumValue));
     }
 
-    public void DeclareVariable(StoryParser.AstVisitor.FileRange range,
-        StoryParser.AstVisitor.VariableDeclaration variableDeclaration, StoryParser.AstVisitor.FileRange variableScope)
+    public void DeclareVariable(FileRange range,
+        AstVisitor.VariableDeclaration variableDeclaration, FileRange variableScope)
     {
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
@@ -104,18 +104,18 @@ public class SourceLinker : StoryParser.ILinker
         _tree.Add(scope.Start, scope.End, new TokenVisitor.VariableScopeDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
     }
 
-    public void LinkVariable(StoryParser.AstVisitor.FileRange range, StoryParser.AstVisitor.VariableDeclaration decl)
+    public void LinkVariable(FileRange range, AstVisitor.VariableDeclaration decl)
     {
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(decl, decl.DeclarationRange));
     }
 
-    public void DeclareFunction(StoryParser.AstVisitor.FileRange fileRange, FunctionDescriptor descriptor, string? inlineDef = null)
+    public void DeclareFunction(FileRange fileRange, FunctionDescriptor descriptor, string? inlineDef = null)
     {
         _funDefinitions.Add(descriptor.FuncName, new TokenVisitor.FunctionDefinition(descriptor){InlineDefinition = inlineDef});
     }
 
-    public void LinkFunction(StoryParser.AstVisitor.FileRange range, FunctionDescriptor descriptor)
+    public void LinkFunction(FileRange range, FunctionDescriptor descriptor)
     {
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, _funDefinitions[descriptor.FuncName]);

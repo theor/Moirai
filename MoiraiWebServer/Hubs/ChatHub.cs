@@ -205,7 +205,7 @@ public class ChatHub : Hub
             string? sql = null;
             try
             {
-                StoryParser.AstVisitor v = new StoryParser.AstVisitor(_db, null!);
+                AstVisitor v = new AstVisitor(_db, null!);
                 var e = StoryParser.ParseExpr(v, q, 0, 0, out var errors);
                 if (errors.Any())
                     return new QueryResult { Errors = errors.Select(e => e.ToString()).ToArray() };

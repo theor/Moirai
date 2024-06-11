@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
-using Moirai;
+﻿using Moirai;
 using Moirai.Core;
 
+// TODO rename/move
 public class PredicateContext
 {
     public long Year { get; internal set; }

@@ -75,7 +75,7 @@ public static class MoiraiCodeCompletion
     {
         private readonly Position m_Position;
 
-        public TokenIndexFinder(StoryParser.AstVisitor.FilePosition position)
+        public TokenIndexFinder(FilePosition position)
         {
             m_Position = position.ToLspPosition();
         }

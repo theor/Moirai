@@ -157,9 +157,9 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     }
 
     public class VariableDefinition(
-        StoryParser.AstVisitor.VariableDeclaration decl,
-        StoryParser.AstVisitor.FileRange declarationRange)
-        : Definition<StoryParser.AstVisitor.VariableDeclaration>(DefinitionType.Variable, decl, decl.Name,
+        AstVisitor.VariableDeclaration decl,
+        FileRange declarationRange)
+        : Definition<AstVisitor.VariableDeclaration>(DefinitionType.Variable, decl, decl.Name,
             declarationRange.ToLspRange())
     {
         public override void GetHoverText(List<MarkedString> markedStrings)
@@ -168,9 +168,9 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         }
     }
     public class VariableScopeDefinition(
-        StoryParser.AstVisitor.VariableDeclaration decl,
-        StoryParser.AstVisitor.FileRange declarationRange)
-        : Definition<StoryParser.AstVisitor.VariableDeclaration>(DefinitionType.VariableScope, decl, decl.Name,
+        AstVisitor.VariableDeclaration decl,
+        FileRange declarationRange)
+        : Definition<AstVisitor.VariableDeclaration>(DefinitionType.VariableScope, decl, decl.Name,
             declarationRange.ToLspRange())
     {
         public override void GetHoverText(List<MarkedString> markedStrings)
@@ -197,14 +197,14 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         }
     }
 
-    class ScopedDeclarations(StoryParser.AstVisitor.VariableScope rootScope)
+    class ScopedDeclarations(VariableDeclarationScope rootScope)
     {
         public bool FindDeclaration(IToken token, out VariableDefinition decl)
         {
             decl = default;
             string text = token.Text;
             Range tokenRange = GetRange(token);
-            StoryParser.AstVisitor.VariableScope? smallerContaining =
+            VariableDeclarationScope? smallerContaining =
                 FindSmallerContainingScope(rootScope, tokenRange.Start.ToParserPosition());
             if (smallerContaining == null)
                 return false;
@@ -228,14 +228,14 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             return false;
         }
 
-        private static int GetVariableIndex(StoryParser.AstVisitor.VariableScope smallerContaining, string text,
-            StoryParser.AstVisitor.FilePosition pos)
+        private static int GetVariableIndex(VariableDeclarationScope smallerContaining, string text,
+            FilePosition pos)
         {
             return smallerContaining.Variables.FindLastIndex(v => v.Name == text && v.DeclarationRange.Start < pos);
         }
 
-        private StoryParser.AstVisitor.VariableScope? FindSmallerContainingScope(
-            StoryParser.AstVisitor.VariableScope cur, StoryParser.AstVisitor.FilePosition pos)
+        private VariableDeclarationScope? FindSmallerContainingScope(
+            VariableDeclarationScope cur, FilePosition pos)
         {
             if (cur.Parent != null && !cur.Range.Contains(pos))
                 return null;
