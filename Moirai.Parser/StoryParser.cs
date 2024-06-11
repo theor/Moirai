@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Reflection.Metadata;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
@@ -1392,9 +1393,10 @@ public static class StoryParser
         {
             UserFunctionCall call = new(definition, 
                 // TODO check arg/param type
-                definition.Parameters.Select((p,i) =>
+                definition.Parameters.Skip(definition.IsInstanceMethod ? 1 : 0).Select((p,i) =>
                 {
-                    var argument = ctx.ParseArgument(i, out var type);
+                   
+                    var argument =   ctx.ParseArgument(i, out var type);
                     if(argument == null)
                         AddError(ErrorCode.MissingArgument, ctx.CallContext, $"Missing argument {i}: {p.ParamName}: {astVisitor.Database.Printer.Print(p.ParamType)}");
                     else if (type != p.ParamType)

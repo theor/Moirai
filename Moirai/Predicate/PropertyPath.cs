@@ -98,13 +98,9 @@
             {
                 if (prevEntityProp)
                     throw new NotImplementedException("$old entity method call");
-                
-                
-                using var s = ctx.RunScope(true);
-                
-                if(Segments[i].Call.Definition.IsInstanceMethod)
-                    ctx.SetArgument(0, varValue);
-                varValue = Segments[i].Call.Compute(ctx);
+
+                var userFunctionCall = Segments[i].Call;
+                varValue = userFunctionCall.Compute(ctx, userFunctionCall.Definition.IsInstanceMethod ? varValue : default);
             }
             prevEntityProp = false;
             if (i < Segments.Count - 1)

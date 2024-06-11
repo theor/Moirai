@@ -59,16 +59,23 @@ public class UserFunctionCall : IValueCall
         Arguments = arguments;
     }
 
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(PredicateContext ctx, PropertyValue instance)
     {
-        // TODO Wtf
-        // using var s = ctx.RunScope(true);
-        // int valueCountIterationStart = ctx.ValueCount;
+        // TODO alloc
+        var arguments = new PropertyValue[Definition.Parameters.Length];
+        
+        // f($0): need to evaluate $0 before creating a scope setting the ctx.ValueOffset
+        int offset = Definition.IsInstanceMethod ? 1 : 0;
         for (int i = 0; i < Definition.Parameters.Length; i++)
         {
             var p = Definition.Parameters[i];
-            ctx.SetArgument(p.ParamIndex, Arguments[i]?.Compute(ctx) ?? default);
-
+            arguments[i] = Definition.IsInstanceMethod && i == 0 ? instance : Arguments[i - offset]?.Compute(ctx) ?? default;
+        }
+        using var s = ctx.RunScope(true);
+        for (int i = 0; i < Definition.Parameters.Length; i++)
+        {
+            var p = Definition.Parameters[i];
+            ctx.SetArgument(p.ParamIndex, arguments[i]);
         }
         // TODO use default of return type ?
         PropertyValue val = default;
@@ -78,6 +85,10 @@ public class UserFunctionCall : IValueCall
         }
 
         return val;
+    }
+    public PropertyValue Compute(PredicateContext ctx)
+    {
+        return Compute(ctx, default);
     }
 
     public (string where, string? joins) ToSql(PredicateContext ctx)

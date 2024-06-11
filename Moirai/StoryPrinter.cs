@@ -57,7 +57,7 @@ public class StoryPrinter
     private void Print(FunctionDefinition fd, StringBuilder sb, int indent = 0)
     {
         var indentStr = IndentStr(indent);
-        string parameters = string.Join(", ", fd.Parameters.Select(p => $"{p.ParamName}: {Print(p.ParamType)}"));
+        string parameters = string.Join(", ", fd.Parameters.Skip(fd.IsInstanceMethod ? 1: 0).Select(p => $"{p.ParamName}: {Print(p.ParamType)}"));
         sb.AppendLine($"{indentStr}function {fd.Name}({parameters}){(fd.ReturnType != PropertyValue.ValueType.Null ? $": {Print(fd.ReturnType)}" : "")} {{");
         foreach (var effect in fd.Instructions)
         {
@@ -389,12 +389,12 @@ public class StoryPrinter
             case Literal literal:
                 return indentStr + Print(literal.Value);
             case PropertyPath path:
-                return Print(path);
+                return indentStr + Print(path);
             case RandomEnum rnd:
-                return "random " + _database.Enums[rnd.EnumID.Id].Name;
+                return indentStr+"random " + _database.Enums[rnd.EnumID.Id].Name;
 
             case And and:
-                return string.Join(", ", and.Predicates.Select(Print));
+                return indentStr+string.Join(", ", and.Predicates.Select(Print));
 
             case BinaryOperator propertyEquals:
                 string op = propertyEquals.Op switch
@@ -415,9 +415,9 @@ public class StoryPrinter
                     BinaryOperator.Operator.Coalesce => "??",
                     _ => throw new ArgumentOutOfRangeException()
                 };
-                return $"({Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)})";
+                return indentStr+$"({Print(propertyEquals.Left)} {op} {Print(propertyEquals.Right)})";
             case IsOfType ofType:
-                return $"({Print(ofType.Entity)} = {Print(ofType.ValueTypeId)})";
+                return indentStr+$"({Print(ofType.Entity)} = {Print(ofType.ValueTypeId)})";
             case MatchAnyValue _: return "_";
             // case True @true:
             // break;

@@ -20,7 +20,7 @@ public readonly struct FunctionDefinition
         Id = id;
         Name = name;
         ReturnType = returnType;
-        Parameters = parameters;
+        Parameters = instanceType.IsValid ? Enumerable.Repeat(new Parameter("$self", Database.Instance.GetEntityType(instanceType).RefType, 0), 1).Concat(parameters).ToArray() : parameters;
         Instructions = instructions ?? new IInstruction[0];
     }
 
