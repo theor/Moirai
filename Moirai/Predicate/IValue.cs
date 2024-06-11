@@ -61,23 +61,20 @@ public class UserFunctionCall : IValueCall
 
     public PropertyValue Compute(PredicateContext ctx, PropertyValue instance)
     {
-        // TODO alloc
-        var arguments = new PropertyValue[Definition.Parameters.Length];
-        
-        // f($0): need to evaluate $0 before creating a scope setting the ctx.ValueOffset
         int offset = Definition.IsInstanceMethod ? 1 : 0;
+
+        // f($0): need to evaluate $0 before creating a scope setting the ctx.ValueOffset
+        var valueCount = ctx.ValueCount + ctx.ValueOffset;
+        // don't set the offset - wait for the Start() call below
+        using var s = ctx.RunScope(false);
         for (int i = 0; i < Definition.Parameters.Length; i++)
         {
             var p = Definition.Parameters[i];
-            arguments[i] = Definition.IsInstanceMethod && i == 0 ? instance : Arguments[i - offset]?.Compute(ctx) ?? default;
+            var argValue = Definition.IsInstanceMethod && i == 0 ? instance : Arguments[i - offset]?.Compute(ctx) ?? default;
+            // compute the current arg index by adding the valueCount, which will be the param index after the scope starts
+            ctx.SetArgument(p.ParamIndex + valueCount, argValue);
         }
-        using var s = ctx.RunScope(true);
-        for (int i = 0; i < Definition.Parameters.Length; i++)
-        {
-            var p = Definition.Parameters[i];
-            ctx.SetArgument(p.ParamIndex, arguments[i]);
-        }
-        // TODO use default of return type ?
+        s.Start();
         PropertyValue val = default;
         foreach (var definitionInstruction in Definition.Instructions)
         {

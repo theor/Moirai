@@ -93,8 +93,9 @@ public class PredicateContext
             _valueOffset = valueOffset;
 
             if(setOffset)
-                ctx.ValueOffset = _valuesCount;
+                Start();
         }
+        public void Start() => _predicateContext.ValueOffset = _valuesCount;
         public void Dispose()
         {
             _predicateContext.ValueOffset = _valueOffset;
