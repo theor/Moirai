@@ -1,4 +1,7 @@
-﻿public struct AssertInstr : IValueCall
+﻿using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
+
+public struct AssertInstr : IValueCall
 {
     public enum AssertMode
     {
@@ -21,7 +24,7 @@
         Mode = AssertMode.Eq;
         Right = right;
     }
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(ExecutionContext ctx)
     {
         switch (Mode)
         {
@@ -41,7 +44,7 @@
         return true;
     }
 
-    public (string where, string? joins) ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(ExecutionContext ctx)
     {
         throw new NotImplementedException();
     }

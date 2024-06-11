@@ -1,4 +1,7 @@
-﻿public class And : IValue
+﻿using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
+
+public class And : IValue
 {
     public List<IValue> Predicates = new();
     public And(params IValue[] predicates)
@@ -9,11 +12,11 @@
     {
         Predicates.AddRange(predicates);
     }
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(ExecutionContext ctx)
     {
         throw new NotImplementedException();
     }
-    public bool IsTrue(PredicateContext ctx)
+    public bool IsTrue(ExecutionContext ctx)
     {
         foreach (var p in Predicates)
         {
@@ -22,7 +25,7 @@
         }
         return true;
     }
-    public (string where, string? joins) ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(ExecutionContext ctx)
     {
         var wheres = "";
         var joins = "";

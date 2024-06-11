@@ -1,12 +1,13 @@
 ﻿using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public interface IValue
 {
-    PropertyValue Compute(PredicateContext ctx);
+    PropertyValue Compute(ExecutionContext ctx);
 
-    bool IsTrue(PredicateContext ctx) => Compute(ctx).BoolValue;
+    bool IsTrue(ExecutionContext ctx) => Compute(ctx).BoolValue;
 
-    (string where, string? joins) ToSql(PredicateContext ctx);
+    (string where, string? joins) ToSql(ExecutionContext ctx);
 }
 
 public class Display : IValue
@@ -27,12 +28,12 @@ public class Display : IValue
         ItemDisplay = itemDisplay;
     }
 
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(ExecutionContext ctx)
     {
         throw new NotImplementedException();
     }
 
-    public (string where, string? joins) ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(ExecutionContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -59,7 +60,7 @@ public class UserFunctionCall : IValueCall
         Arguments = arguments;
     }
 
-    public PropertyValue Compute(PredicateContext ctx, PropertyValue instance)
+    public PropertyValue Compute(ExecutionContext ctx, PropertyValue instance)
     {
         int offset = Definition.IsInstanceMethod ? 1 : 0;
 
@@ -83,12 +84,12 @@ public class UserFunctionCall : IValueCall
 
         return val;
     }
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(ExecutionContext ctx)
     {
         return Compute(ctx, default);
     }
 
-    public (string where, string? joins) ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(ExecutionContext ctx)
     {
         if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call)
         {
@@ -136,12 +137,12 @@ public class MatchAnyValue : IValue
 {
     private MatchAnyValue(){}
     public static MatchAnyValue Instance = new();
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(ExecutionContext ctx)
     {
         throw new NotImplementedException();
     }
 
-    public (string where, string? joins) ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(ExecutionContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -155,7 +156,7 @@ public class IsOfType : IValue
         Entity = entity;
         ValueTypeId = valueTypeId;
     }
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(ExecutionContext ctx)
     {
         var typeId = Entity.Compute(ctx).TypeId;
         var result = typeId == ValueTypeId;
@@ -163,7 +164,7 @@ public class IsOfType : IValue
         return result;
     }
 
-    public (string where, string? joins) ToSql(PredicateContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
+    public (string where, string? joins) ToSql(ExecutionContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
 }
 
 

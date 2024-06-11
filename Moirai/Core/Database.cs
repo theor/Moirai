@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
 using Moirai;
 using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public class Database
 {
@@ -42,12 +43,12 @@ public class Database
     public History? History;
     public Changeset CurrentChangeset;
 
-    private PredicateContext _ctx;
+    private ExecutionContext _ctx;
 
     private List<Entity> _entities = new() {default};
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
-    public PredicateContext Ctx
+    public ExecutionContext Ctx
     {
         get { return _ctx; }
     }
@@ -92,7 +93,7 @@ public class Database
                 PropertyValue.TypeNumber)
         };
         BuiltinTypes = Types.Count;
-        _ctx = new PredicateContext(this, seed);
+        _ctx = new ExecutionContext(this, seed);
         Actions = new();
         Triggers = new();
         Printer = new StoryPrinter(this);

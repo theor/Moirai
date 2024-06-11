@@ -1,4 +1,7 @@
-﻿public struct PropertyPath : IValue
+﻿using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
+
+public struct PropertyPath : IValue
 {
     public record struct PropertyOrCall(PropertyId Property, UserFunctionCall? Call);
     public readonly int VariableIndex;
@@ -55,7 +58,7 @@
 
     public bool Nested => (Segments?.Count ?? 0) > 1;
 
-    public readonly PropertyValue Compute(PredicateContext ctx)
+    public readonly PropertyValue Compute(ExecutionContext ctx)
     {
         if (Mode == PropertyPathMode.Singleton)
         {
@@ -120,7 +123,7 @@
         return varValue;
     }
 
-    public (string where, string? joins) ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(ExecutionContext ctx)
     {
         // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
         // TODO ugly

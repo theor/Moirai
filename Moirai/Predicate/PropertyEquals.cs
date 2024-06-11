@@ -1,4 +1,6 @@
 ﻿using System.Reflection;
+using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public class BinaryOperator : IValue
 {
@@ -23,7 +25,7 @@ public class BinaryOperator : IValue
         Left = left;
         Right = right;
     }
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(ExecutionContext ctx)
     {
         var left = Left.Compute(ctx);
         Profiler.Value(left.Type.BaseType);
@@ -73,7 +75,7 @@ public class BinaryOperator : IValue
         }
     }
 
-    public (string where, string? joins) ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(ExecutionContext ctx)
     {
         var (l,lj) = Left.ToSql(ctx);
         var (r,rj) = Right.ToSql(ctx);

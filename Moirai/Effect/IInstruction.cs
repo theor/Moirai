@@ -1,8 +1,9 @@
 ﻿using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public interface IInstruction
 {
-    PropertyValue Execute(PredicateContext ctx);
+    PropertyValue Execute(ExecutionContext ctx);
 }
 
 // public interface IInstructionCall : IInstruction

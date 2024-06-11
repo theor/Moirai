@@ -1,7 +1,5 @@
-﻿using Moirai;
-using Moirai.Core;
+﻿namespace Moirai.Core;
 
-// TODO rename/move
 public class PredicateContext
 {
     public long Year { get; internal set; }
@@ -147,7 +145,7 @@ public class PredicateContext
             return PrevEntity.Id;
         if (PrevEntity.Id.IsNull)
             return default;
-            // throw new InvalidOperationException("Null prev entity access");
+        // throw new InvalidOperationException("Null prev entity access");
         return PrevEntity.GetProperty(property);
     }
 

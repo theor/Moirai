@@ -1,12 +1,13 @@
 ﻿using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public interface IFilter{
-    int Compute(PredicateContext ctx, long currentYear);
+    int Compute(ExecutionContext ctx, long currentYear);
 }
 public class FilterAtStart : IFilter
 {
     // checked separately
-    public int Compute(PredicateContext ctx, long currentYear) => 0;
+    public int Compute(ExecutionContext ctx, long currentYear) => 0;
 }
 
 public class FilterExactlyXEveryYYears : IFilter
@@ -29,7 +30,7 @@ public class FilterExactlyXEveryYYears : IFilter
     }
 
     // TODO only works for "1 every 1 year..."
-    public int Compute(PredicateContext ctx, long currentYear)
+    public int Compute(ExecutionContext ctx, long currentYear)
     {
         if (Years == 1)
         {
@@ -71,5 +72,5 @@ public class FilterProbabilityXPerYears : IFilter
     {
         Event = new RandomEvent(occurences, expectedInterval);
     }
-    public int Compute(PredicateContext ctx, long currentYear) => Event.Sample(ctx.Rnd);
+    public int Compute(ExecutionContext ctx, long currentYear) => Event.Sample(ctx.Rnd);
 }

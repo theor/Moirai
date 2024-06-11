@@ -1,4 +1,6 @@
 ﻿using System.Text;
+using Moirai.Core;
+using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public struct AssignPick : IValueCall
 {
@@ -18,7 +20,7 @@ public struct AssignPick : IValueCall
         _pool = null;
     }
 
-    public PropertyValue Compute(PredicateContext ctx)
+    public PropertyValue Compute(ExecutionContext ctx)
     {
         switch (CallType)
         {
@@ -69,7 +71,7 @@ public struct AssignPick : IValueCall
         }
     }
 
-    public (string where, string? joins) ToSql(PredicateContext ctx)
+    public (string where, string? joins) ToSql(ExecutionContext ctx)
     {
         throw new NotImplementedException();
     }
