@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
-using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
+﻿using Moirai.Core;
+
+using System.Diagnostics;
 
 public struct DebugPrint : IValueCall
 {
@@ -11,7 +11,7 @@ public struct DebugPrint : IValueCall
         Args = args.Where(x => x!=null).ToArray()!;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         string msg = "[DBG] " + string.Join(", ",
             Args.Select(x => $"{ctx.Database.Printer.Print(x)}: {ctx.Database.Printer.Print(x.Compute(ctx))}"));
@@ -22,7 +22,7 @@ public struct DebugPrint : IValueCall
         return true;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }

@@ -6,7 +6,7 @@
 //         Predicates.AddRange(predicates);
 //     }
 //
-//     public bool MakeTrue(PredicateContext ctx)
+//     public bool MakeTrue(ExecuteContext ctx)
 //     {
 //         bool res = true;
 //         foreach (var predicate in Predicates)

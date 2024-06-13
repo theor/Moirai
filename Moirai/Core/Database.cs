@@ -5,7 +5,6 @@ using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
 using Moirai;
 using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public class Database
 {
@@ -43,12 +42,12 @@ public class Database
     public History? History;
     public Changeset CurrentChangeset;
 
-    private ExecutionContext _ctx;
+    private ExecuteContext _ctx;
 
     private List<Entity> _entities = new() {default};
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
-    public ExecutionContext Ctx
+    public ExecuteContext Ctx
     {
         get { return _ctx; }
     }
@@ -93,7 +92,7 @@ public class Database
                 PropertyValue.TypeNumber)
         };
         BuiltinTypes = Types.Count;
-        _ctx = new ExecutionContext(this, seed);
+        _ctx = new ExecuteContext(this, seed);
         Actions = new();
         Triggers = new();
         Printer = new StoryPrinter(this);
@@ -544,7 +543,7 @@ CREATE TABLE marked (
         var sql = $@"SELECT entity.default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
         if (!_commands.TryGetValue(sql, out var cmd))
         {
-            // Console.WriteLine(sql);
+            Console.WriteLine(sql);
             cmd = _connection.CreateCommand();
             // cmd.CommandText = $@"SELECT id FROM entity WHERE {sql} LIMIT 1";
             cmd.CommandText = sql;

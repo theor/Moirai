@@ -1,9 +1,11 @@
 ﻿using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public struct PropertyPath : IValue
 {
-    public record struct PropertyOrCall(PropertyId Property, UserFunctionCall? Call);
+    public record struct PropertyOrCall(PropertyId Property, UserFunctionCall? Call)
+    {
+        public EntityTypeId TypeId => Call?.Definition.InstanceType ?? Property.TypeId;
+    }
     public readonly int VariableIndex;
     public readonly EntityTypeId SingletonTypeId;
     public List<PropertyOrCall>? Segments;
@@ -44,7 +46,6 @@ public struct PropertyPath : IValue
         if (Segments.Count > 0 && Segments[^1].Property.Id == 0)
         {
             throw new InvalidDataException("wtf");
-            Segments[^1] = new(pid, null);
         }
         else
             Segments.Add(new(pid, null));
@@ -58,7 +59,7 @@ public struct PropertyPath : IValue
 
     public bool Nested => (Segments?.Count ?? 0) > 1;
 
-    public readonly PropertyValue Compute(ExecutionContext ctx)
+    public readonly PropertyValue Compute(ExecuteContext ctx)
     {
         if (Mode == PropertyPathMode.Singleton)
         {
@@ -123,7 +124,7 @@ public struct PropertyPath : IValue
         return varValue;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
         // TODO ugly
@@ -132,11 +133,22 @@ public struct PropertyPath : IValue
         {
             if (Segments == null)
                 return ("default__id", null);
-            if (Segments.Any(s => s.Call != null))
-                throw new NotImplementedException("user function calls in sql");
-            var s =
-                $"entity.{ctx.Database.GetEntityTypeName(Segments[0].Property.TypeId)}__{ctx.Database.GetPropertyName(Segments[0].Property)}";
-            var prevProp = s;
+            // if (Segments[0].Call != null)
+                // throw new NotImplementedException("user function calls in sql " + Segments[0].Call.ToSql(ctx));
+            string PropToSql(string thisVar, PropertyOrCall p)
+            {
+                if (p.Call != null)
+                {
+                    var (callWhere, callJoin) = p.Call.ToSql(ctx);
+                    return $"{thisVar}.{callWhere}";
+                }
+                return
+                        $"{thisVar}.{ctx.Database.GetEntityTypeName(p.TypeId)}__{ctx.Database.GetPropertyName(p.Property)}";
+            }
+
+            var where = PropToSql("entity", Segments[0]);
+            string? join = null;
+            var prevProp = where;
             /* pick Person $r: ($r.birthplace.type = Place.City)
             SELECT entity.default__id FROM entity
                 LEFT JOIN entity x
@@ -156,17 +168,16 @@ public struct PropertyPath : IValue
                     AND (x.founder != 0)
                     AND (y.birthdate = 1234)
              */
-            string? join = null;
             for (int i = 1; i < Segments.Count; i++)
             {
                 string thisVar = $"j{i}";
-                string thisProp = $"{thisVar}.{ctx.Database.GetEntityTypeName(Segments[i].Property.TypeId)}__{ctx.Database.GetPropertyName(Segments[i].Property)}";
-                s += $" != 0 AND " + thisProp;
+                string thisProp = PropToSql(thisVar, Segments[i]);
+                where += $" != 0 AND " + thisProp;
                 string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}.default__id";
                 prevProp = thisProp;
                 join = join == null ? pj : (join + "\n" + pj);
             }
-            return (s, join);
+            return (where, join);
         }
         // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
         return (Compute(ctx).ToSql(), null);

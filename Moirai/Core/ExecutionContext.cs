@@ -1,6 +1,6 @@
 ﻿namespace Moirai.Core;
 
-public class PredicateContext
+public class ExecuteContext
 {
     public long Year { get; internal set; }
 
@@ -12,7 +12,7 @@ public class PredicateContext
     public int ValueCount => _values.Count;
     public PropertyValue LastValue => _values.LastOrDefault();
 
-    public PredicateContext(Database database, ulong seed)
+    public ExecuteContext(Database database, ulong seed)
     {
         Database = database;
         Rnd = new Pcg32(seed, 42);
@@ -81,23 +81,23 @@ public class PredicateContext
 
     public struct Scope : IDisposable
     {
-        private readonly PredicateContext _predicateContext;
+        private readonly ExecuteContext _executeContext;
         private readonly int _valuesCount;
         private readonly int _valueOffset;
-        public Scope(PredicateContext ctx, int valuesCount, int valueOffset, bool setOffset)
+        public Scope(ExecuteContext ctx, int valuesCount, int valueOffset, bool setOffset)
         {
-            _predicateContext = ctx;
+            _executeContext = ctx;
             _valuesCount = valuesCount;
             _valueOffset = valueOffset;
 
             if(setOffset)
                 Start();
         }
-        public void Start() => _predicateContext.ValueOffset = _valuesCount;
+        public void Start() => _executeContext.ValueOffset = _valuesCount;
         public void Dispose()
         {
-            _predicateContext.ValueOffset = _valueOffset;
-            _predicateContext._values.RemoveRange(_valuesCount, _predicateContext._values.Count - _valuesCount);
+            _executeContext.ValueOffset = _valueOffset;
+            _executeContext._values.RemoveRange(_valuesCount, _executeContext._values.Count - _valuesCount);
 
         }
     }

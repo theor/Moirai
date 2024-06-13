@@ -1,5 +1,4 @@
 ﻿using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public struct CallRule : IValueCall
 {
@@ -11,7 +10,7 @@ public struct CallRule : IValueCall
         Count = count;
 
     }
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         // DONE offset value stack
         // eg. if $0 $1 are used now, have called.$0 become $2
@@ -27,7 +26,7 @@ public struct CallRule : IValueCall
         return ctxLastValue;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }

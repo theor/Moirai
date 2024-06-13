@@ -1,5 +1,4 @@
 ﻿using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public struct RandomRange : IValueCall
 {
@@ -11,7 +10,7 @@ public struct RandomRange : IValueCall
         Max = max;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         var max = Max.Compute(ctx).IntValue;
         var min = Min.Compute(ctx).IntValue;
@@ -20,7 +19,7 @@ public struct RandomRange : IValueCall
         return ctx.Rnd.GenerateNext((uint)(max - min)) + min;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -40,13 +39,13 @@ public struct RandomEnum : IValueCall
     {
         EnumID = enumId;
     }
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         var def = ctx.Database.Enums[EnumID.Id];
         return def.GetRandomValue(ctx.Rnd);
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         return (Compute(ctx).ToSql(), null);
     }

@@ -1,5 +1,4 @@
 ﻿using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public struct CallInstruction : IInstruction
 {
@@ -10,7 +9,7 @@ public struct CallInstruction : IInstruction
         Value = value;
     }
 
-    public PropertyValue Execute(ExecutionContext ctx)
+    public PropertyValue Execute(ExecuteContext ctx)
     {
         return Value.Compute(ctx);
     }

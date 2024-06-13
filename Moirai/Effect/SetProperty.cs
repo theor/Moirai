@@ -1,5 +1,4 @@
 ﻿using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public class SetProperty : IInstruction
 {
@@ -14,7 +13,7 @@ public class SetProperty : IInstruction
         Parameter = parameter;
     }
    
-    public PropertyValue Execute(ExecutionContext ctx)
+    public PropertyValue Execute(ExecuteContext ctx)
     {
         if (IsLocalVar)
         {

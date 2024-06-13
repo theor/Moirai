@@ -1,5 +1,4 @@
 ﻿using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public class InterpolatedStringLink : IValueCall
 {
@@ -12,12 +11,12 @@ public class InterpolatedStringLink : IValueCall
         LinkText = linkText;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         return $"<{LinkValue.Compute(ctx).Id}>{LinkText.Compute(ctx).Value}</>";
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -40,12 +39,12 @@ public class InterpolatedString : IValue
         Arguments = arguments;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         return ctx.Database.Printer.Format(this, ctx.Database) ?? "";
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx) => ($"'{Compute(ctx)}'", null);
+    public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"'{Compute(ctx)}'", null);
 }
 
 public class MatchWeight : IValue
@@ -59,7 +58,7 @@ public class MatchWeight : IValue
         CumulativeWeights = cumulativeWeights;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         var v = Value.Compute(ctx).IntValue;
         var r = ctx.Rnd.GenerateNext((uint)v);
@@ -81,7 +80,7 @@ public class MatchWeight : IValue
         return true;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -99,7 +98,7 @@ public class Match : IValue
     }
 
     private PropertyValue[] _values = Array.Empty<PropertyValue>();
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         if ( _values.Length < Values.Length)
             _values = new PropertyValue[Values.Length];
@@ -127,12 +126,12 @@ public class Match : IValue
         return true;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
 
-    private bool CaseMatch(PropertyValue[] actual, IValue?[] caseValues, ExecutionContext ctx)
+    private bool CaseMatch(PropertyValue[] actual, IValue?[] caseValues, ExecuteContext ctx)
     {
         for (int i = 0; i < caseValues.Length; i++)
         {
@@ -164,7 +163,7 @@ public class If : IValue
         IfFalse = ifFalse;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         var scope = Condition.Compute(ctx).BoolValue ? IfTrue : IfFalse;
         PropertyValue res = true;
@@ -178,7 +177,7 @@ public class If : IValue
         return true;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -189,7 +188,7 @@ public class Mark(IValue entity, int eventIndex) : IValueCall
     public readonly IValue Entity = entity;
     public readonly int EventIndex = eventIndex;
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         var e = Entity.Compute(ctx);
         if (e.Id.IsNull)
@@ -199,7 +198,7 @@ public class Mark(IValue entity, int eventIndex) : IValueCall
         return true;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -213,7 +212,7 @@ public class Mark(IValue entity, int eventIndex) : IValueCall
 }
 public class SinceLast(IValue Entity, int EventIndex) : IValueCall
 {
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         var e = Entity.Compute(ctx);
         if (e.Id.IsNull)
@@ -223,7 +222,7 @@ public class SinceLast(IValue Entity, int EventIndex) : IValueCall
         return int.MinValue;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
         $"LEFT JOIN marked ON marked.eid = entity.default__id AND marked.marker = {EventIndex}");
@@ -245,14 +244,14 @@ public class Record : IValueCall
         String = str;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year,
             ctx.Database.CurrentChangeset.Categories);
         return true;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -277,7 +276,7 @@ public class CreateEntity : IValueCall
         Name = name;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         // if (!ctx.Database.EntityExists(ctx.EntityId))
         string? name = null;
@@ -291,7 +290,7 @@ public class CreateEntity : IValueCall
         return entity;
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }

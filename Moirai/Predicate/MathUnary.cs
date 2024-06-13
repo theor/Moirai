@@ -1,5 +1,4 @@
 ﻿using Moirai.Core;
-using ExecutionContext = Moirai.Core.ExecutionContext;
 
 public struct MathUnary : IValueCall
 {
@@ -22,7 +21,7 @@ public struct MathUnary : IValueCall
         Function = function;
     }
 
-    public PropertyValue Compute(ExecutionContext ctx)
+    public PropertyValue Compute(ExecuteContext ctx)
     {
         switch (Function)
         {
@@ -41,7 +40,7 @@ public struct MathUnary : IValueCall
         }
     }
 
-    public (string where, string? joins) ToSql(ExecutionContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
