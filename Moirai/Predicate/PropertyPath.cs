@@ -133,8 +133,26 @@ public struct PropertyPath : IValue
         {
             if (Segments == null)
                 return ("default__id", null);
-            // if (Segments[0].Call != null)
-                // throw new NotImplementedException("user function calls in sql " + Segments[0].Call.ToSql(ctx));
+
+                /* pick Person $r: ($r.birthplace.type = Place.City)
+                SELECT entity.default__id FROM entity
+                    LEFT JOIN entity x
+                        ON entity.Person__birthplace = x.default__id
+                    WHERE entity.default__type = 2
+                        AND (entity.Person__birthplace != 0)
+                        AND x.type = 3
+                 */
+                /* pick Person $r: ($r.birthplace.founder.birthdate = 1234)
+                SELECT entity.default__id FROM entity
+                    LEFT JOIN entity x
+                        ON entity.Person__birthplace = x.default__id
+                    LEFT JOIN entity y
+                        ON x.founder = y.default__id
+                    WHERE entity.default__type = 2
+                        AND ((entity.Person__birthplace != 0)
+                        AND (x.founder != 0)
+                        AND (y.birthdate = 1234)
+                 */
             string PropToSql(string thisVar, PropertyOrCall p)
             {
                 if (p.Call != null)
@@ -145,37 +163,22 @@ public struct PropertyPath : IValue
                 return
                         $"{thisVar}.{ctx.Database.GetEntityTypeName(p.TypeId)}__{ctx.Database.GetPropertyName(p.Property)}";
             }
-
-            var where = PropToSql("entity", Segments[0]);
             string? join = null;
-            var prevProp = where;
-            /* pick Person $r: ($r.birthplace.type = Place.City)
-            SELECT entity.default__id FROM entity
-                LEFT JOIN entity x
-                    ON entity.Person__birthplace = x.default__id
-                WHERE entity.default__type = 2
-                    AND (entity.Person__birthplace != 0)
-                    AND x.type = 3
-             */
-            /* pick Person $r: ($r.birthplace.founder.birthdate = 1234)
-            SELECT entity.default__id FROM entity
-                LEFT JOIN entity x
-                    ON entity.Person__birthplace = x.default__id
-                LEFT JOIN entity y
-                    ON x.founder = y.default__id
-                WHERE entity.default__type = 2
-                    AND ((entity.Person__birthplace != 0)
-                    AND (x.founder != 0)
-                    AND (y.birthdate = 1234)
-             */
-            for (int i = 1; i < Segments.Count; i++)
+            string prevProp  = "";
+            string where = null;
+            for (int i = 0; i < Segments.Count; i++)
             {
-                string thisVar = $"j{i}";
+                string thisVar = i == 0  ?  "entity" : $"j{i}";
                 string thisProp = PropToSql(thisVar, Segments[i]);
-                where += $" != 0 AND " + thisProp;
-                string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}.default__id";
+                if (i > 0)
+                {
+                    where += $" != 0 AND " + thisProp;
+                    string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}.default__id";
+                    join = join == null ? pj : (join + "\n" + pj);
+                }
+                else where = thisProp;
+
                 prevProp = thisProp;
-                join = join == null ? pj : (join + "\n" + pj);
             }
             return (where, join);
         }
