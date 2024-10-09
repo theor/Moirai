@@ -15,6 +15,9 @@ entity Person {
     prop birthyear: number
     prop age: Age
     prop alive: bool
+    function available(): bool {
+        $self.alive and ($self.age = Age.Young or $self.age = Age.Adult)
+    }
 }
 
 enum Kind {
@@ -132,7 +135,7 @@ event grow {
 
 @frequency(1, PerXYear, 5)
 event expedition {
-    pick Person $p: (alive and age = Age.Adult)
+    pick Person $p: ($p.available())
     var $loc: '{random Name} Station'
     random_weighted 100 {
         40 => record '{$p.name} at {$loc} success'

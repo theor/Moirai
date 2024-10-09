@@ -11,9 +11,9 @@ internal class Program
     {
         [Option('v', "verbose", Required = false, HelpText = "Set output to verbose messages.")]
         public bool Verbose { get; set; }
-        
+
         [Value(0, MetaName = "inputfile", HelpText = "The Moirai file to load")]
-        public string InputFile { get; set; }
+        public string InputFile { get; set; } = "";
     }
     internal static Options OptionsInstance;
     

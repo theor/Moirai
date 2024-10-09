@@ -9,6 +9,11 @@ public interface IValue
     (string where, string? joins) ToSql(ExecuteContext ctx);
 }
 
+public interface IValueSql : IValue
+{
+    void InlineSql(ExecuteContext ctx, ref string where, ref string? join);
+}
+
 public class Display : IValue
 {
     public readonly EntityType ReferencedType;
@@ -49,7 +54,7 @@ public interface IValueCall : IValue
     IEnumerable<IValue> GetArgs(StoryPrinter printer);
 }
 
-public class UserFunctionCall : IValueCall
+public class UserFunctionCall : IValueCall, IValueSql
 {
     public readonly FunctionDefinition Definition;
     public readonly IValue[] Arguments;
@@ -108,6 +113,18 @@ public class UserFunctionCall : IValueCall
     }
 
     public IEnumerable<IValue> GetArgs(StoryPrinter printer) => Arguments;
+
+    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
+    {
+        if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call && call.Value is IValueSql valueSql)
+        {
+            valueSql.InlineSql(ctx, ref where, ref join);
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+    }
 }
 
 

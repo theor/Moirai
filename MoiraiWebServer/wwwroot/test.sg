@@ -1,6 +1,23 @@
-entity System {}
+entity System {
+    prop typea: string
+}
 
 @start
 event create_solar_system {
-    create $s: ( System, "Solar System")
+    create System $s: 'Solar System'
+    create System $sys: ()
+    // each System $s: () {
+    //     set $s.
+    // }
+}
+trigger born {
+    when_created System
+    // record('!!! BORN {$new.birthdate} {#Time.year}')
+    // assert_eq $new.birthdate, null
+    set $new.name = 'asd'
+}
+
+trigger test {
+    when System
+    set $new.name = 'qweqe'
 }

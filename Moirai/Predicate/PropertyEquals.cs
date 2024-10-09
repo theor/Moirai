@@ -1,6 +1,6 @@
 ﻿using Moirai.Core;
 
-public class BinaryOperator : IValue
+public class BinaryOperator : IValueSql
 {
     public enum Operator
     {
@@ -75,17 +75,17 @@ public class BinaryOperator : IValue
 
     public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
-        var (l,lj) = Left.ToSql(ctx);
-        var (r,rj) = Right.ToSql(ctx);
+        var (lw,lj) = Left.ToSql(ctx);
+        var (rw,rj) = Right.ToSql(ctx);
         var joins = string.Join("", new[]{lj, rj}.Where(s => s!=null));
         if (Op == Operator.Coalesce)
-            return ($"COALESCE({l}, {r})", joins);
+            return ($"COALESCE({lw}, {rw})", joins);
         if (Op == Operator.Equals || Op == Operator.NotEquals)
         {
-            if(l == "null")
-                return ($"({r} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
-            if(r == "null")
-                return ($"({l} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
+            if(lw == "null")
+                return ($"({rw} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
+            if(rw == "null")
+                return ($"({lw} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
         }
         string op = Op switch
         {
@@ -105,6 +105,11 @@ public class BinaryOperator : IValue
             Operator.Le => "<=",
             _ => throw new ArgumentOutOfRangeException()
         };
-        return ($"({l} {op} {r})", joins);
+        return ($"({lw} {op} {rw})", joins);
+    }
+
+    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
+    {
+        (where, join) = ToSql(ctx);
     }
 }

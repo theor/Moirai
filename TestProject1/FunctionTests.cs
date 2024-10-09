@@ -90,6 +90,34 @@ event start {
 }";
         var db = Run(s, out _, 0);
     }
+    
+    [Test]
+    public void FunctionInQuery()
+    {
+        var s = @"
+entity Person {
+    prop age: number
+    function f(): number {
+        $self.age
+    }
+}
+
+
+@start
+event start {
+    create Person $p: 'test'
+    set $p.age = 10
+    if pick Person $p: ($p.f() > 5) {
+        debug('ok {$p}')
+    } else {
+        debug(false)
+    }
+}";
+        var db = Run(s, out _, 0);
+        db.History = new();
+        // db.Printer.PrintDb();
+    }
+
 }
 public class FunctionTests : TestsBase
 {

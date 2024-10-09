@@ -1,11 +1,12 @@
 ﻿using Moirai.Core;
 
-public struct PropertyPath : IValue
+public struct PropertyPath : IValueSql
 {
     public record struct PropertyOrCall(PropertyId Property, UserFunctionCall? Call)
     {
         public EntityTypeId TypeId => Call?.Definition.InstanceType ?? Property.TypeId;
     }
+
     public readonly int VariableIndex;
     public readonly EntityTypeId SingletonTypeId;
     public List<PropertyOrCall>? Segments;
@@ -75,16 +76,19 @@ public struct PropertyPath : IValue
         PropertyValue varValue = ctx.Argument(VariableIndex);
         if (varValue.Type != PropertyValue.TypeRef)
             return varValue;
-        
+
         if (!ctx.Database.TryGetEntity(varValue.Id, out var e))
         {
             if (varValue.Id.Id == Database.ChangePrevEntityId.Id)
             {
-                return ctx.GetPrevEntityProperty(Segments == null || Segments[0].Property == PropertyId.Null ? Database.PropId : Segments[0].Property);
+                return ctx.GetPrevEntityProperty(Segments == null || Segments[0].Property == PropertyId.Null
+                    ? Database.PropId
+                    : Segments[0].Property);
             }
 
             return default;
         }
+
         if (Segments == null)
             return varValue;
         if (Segments[0].Call == null && Segments[0].Property == PropertyId.Null)
@@ -94,7 +98,7 @@ public struct PropertyPath : IValue
         bool prevEntityProp = false;
         for (int i = 0; i < Segments.Count; i++)
         {
-            if(Segments[i].Property.IsValid)
+            if (Segments[i].Property.IsValid)
                 varValue = prevEntityProp
                     ? ctx.GetPrevEntityProperty(Segments[i].Property)
                     : e.GetProperty(Segments[i].Property);
@@ -104,8 +108,10 @@ public struct PropertyPath : IValue
                     throw new NotImplementedException("$old entity method call");
 
                 var userFunctionCall = Segments[i].Call;
-                varValue = userFunctionCall.Compute(ctx, userFunctionCall.Definition.IsInstanceMethod ? varValue : default);
+                varValue = userFunctionCall.Compute(ctx,
+                    userFunctionCall.Definition.IsInstanceMethod ? varValue : default);
             }
+
             prevEntityProp = false;
             if (i < Segments.Count - 1)
             {
@@ -116,6 +122,7 @@ public struct PropertyPath : IValue
                         prevEntityProp = true;
                         continue;
                     }
+
                     return default;
                 }
             }
@@ -126,60 +133,100 @@ public struct PropertyPath : IValue
 
     public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
+        /* pick Person $r: ($r.birthplace.type = Place.City)
+ SELECT entity.default__id FROM entity
+     LEFT JOIN entity x
+         ON entity.Person__birthplace = x.default__id
+     WHERE entity.default__type = 2
+         AND (entity.Person__birthplace != 0)
+         AND x.type = 3
+  */
+        /* pick Person $r: ($r.birthplace.founder.birthdate = 1234)
+        SELECT entity.default__id FROM entity
+            LEFT JOIN entity x
+                ON entity.Person__birthplace = x.default__id
+            LEFT JOIN entity y
+                ON x.founder = y.default__id
+            WHERE entity.default__type = 2
+                AND ((entity.Person__birthplace != 0)
+                AND (x.founder != 0)
+                AND (y.birthdate = 1234)
+         */
+
         // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
         // TODO ugly
-        if (Mode == PropertyPathMode.Variable &&
-            (VariableIndex == -1 || VariableIndex == ctx.ValueCount - ctx.ValueOffset))
+        if (Mode != PropertyPathMode.Variable ||
+            (VariableIndex != -1 && VariableIndex != ctx.ValueCount - ctx.ValueOffset))
+            return (Compute(ctx).ToSql(), null);
+        
+
+        // if (Segments[0].Call != null)
+        // throw new NotImplementedException("user function calls in sql " + Segments[0].Call.ToSql(ctx));
+
+        var where = "";
+        string? join = null;
+        string? prevProp = null;
+
+        InlineSql(ctx, ref where, ref join, prevProp, false);
+
+        return (where, join);
+
+        // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
+    }
+
+    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
+    {
+        InlineSql(ctx, ref where, ref join, null, true);
+    }
+    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join, string? prevProp, bool skipThis)
+    {
+        if (Segments == null)
         {
-            if (Segments == null)
-                return ("default__id", null);
-            // if (Segments[0].Call != null)
-                // throw new NotImplementedException("user function calls in sql " + Segments[0].Call.ToSql(ctx));
-            string PropToSql(string thisVar, PropertyOrCall p)
+            where = "default__id";
+            join = null;
+            return;
+        }
+        for (int i = 0; i < Segments.Count; i++)
+        {
+            PropertyOrCall p = Segments[i];
+            string? thisVar = null;
+            bool isJoin = i != 0;
+            if (!isJoin)
             {
-                if (p.Call != null)
-                {
-                    var (callWhere, callJoin) = p.Call.ToSql(ctx);
-                    return $"{thisVar}.{callWhere}";
-                }
-                return
-                        $"{thisVar}.{ctx.Database.GetEntityTypeName(p.TypeId)}__{ctx.Database.GetPropertyName(p.Property)}";
+                if(!skipThis)
+                    thisVar = "entity.";
+            }
+            else
+            {
+                where += " != 0 AND ";
+                thisVar = $"j{i}.";
             }
 
-            var where = PropToSql("entity", Segments[0]);
-            string? join = null;
-            var prevProp = where;
-            /* pick Person $r: ($r.birthplace.type = Place.City)
-            SELECT entity.default__id FROM entity
-                LEFT JOIN entity x
-                    ON entity.Person__birthplace = x.default__id
-                WHERE entity.default__type = 2
-                    AND (entity.Person__birthplace != 0)
-                    AND x.type = 3
-             */
-            /* pick Person $r: ($r.birthplace.founder.birthdate = 1234)
-            SELECT entity.default__id FROM entity
-                LEFT JOIN entity x
-                    ON entity.Person__birthplace = x.default__id
-                LEFT JOIN entity y
-                    ON x.founder = y.default__id
-                WHERE entity.default__type = 2
-                    AND ((entity.Person__birthplace != 0)
-                    AND (x.founder != 0)
-                    AND (y.birthdate = 1234)
-             */
-            for (int i = 1; i < Segments.Count; i++)
+            string thisProp;
+            if (p.Call != null)
             {
-                string thisVar = $"j{i}";
-                string thisProp = PropToSql(thisVar, Segments[i]);
-                where += $" != 0 AND " + thisProp;
-                string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}.default__id";
-                prevProp = thisProp;
+                string callWhere = "";
+                string? callJoin = null;
+                p.Call.InlineSql(ctx, ref callWhere, ref callJoin);
+                // var (callWhere, callJoin) = p.Call.ToSql(ctx);
+                thisProp = $"{thisVar}{callWhere}";
+            }
+            else
+            {
+                thisProp =
+                    $"{thisVar}{ctx.Database.GetEntityTypeName(p.TypeId)}__{ctx.Database.GetPropertyName(p.Property)}";
+            }
+
+            where += thisProp;
+
+            if (isJoin)
+            {
+                string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}default__id";
                 join = join == null ? pj : (join + "\n" + pj);
             }
-            return (where, join);
+
+            prevProp = thisProp;
         }
-        // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
-        return (Compute(ctx).ToSql(), null);
+
     }
 }

@@ -149,7 +149,7 @@ trigger item_change_owner items {
 
 trigger inherit items {
     when Person and alive = false and $old.alive
-    // record('{$new.name} died')
+    record('{$new.name} died')
     set $new.deathdate = #Time.year
     each Person $child: (parent1 = $new or parent2 = $new, alive) {
         record('{$child.name} lose their parent, {$new.name}')
