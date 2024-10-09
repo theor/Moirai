@@ -73,43 +73,43 @@ public class BinaryOperator : IValueSql
         }
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        var (lw,lj) = Left.ToSql(ctx);
-        var (rw,rj) = Right.ToSql(ctx);
-        var joins = string.Join("", new[]{lj, rj}.Where(s => s!=null));
-        if (Op == Operator.Coalesce)
-            return ($"COALESCE({lw}, {rw})", joins);
-        if (Op == Operator.Equals || Op == Operator.NotEquals)
-        {
-            if(lw == "null")
-                return ($"({rw} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
-            if(rw == "null")
-                return ($"({lw} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
-        }
-        string op = Op switch
-        {
+   // public (string where, string? joins) ToSql(ExecuteContext ctx)
+   // {
+   //     var (lw,lj) = Left.ToSql(ctx);
+   //     var (rw,rj) = Right.ToSql(ctx);
+   //     var joins = string.Join("", new[]{lj, rj}.Where(s => s!=null));
+   //     if (Op == Operator.Coalesce)
+   //         return ($"COALESCE({lw}, {rw})", joins);
+   //     if (Op == Operator.Equals || Op == Operator.NotEquals)
+   //     {
+   //         if(lw == "null")
+   //             return ($"({rw} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
+   //         if(rw == "null")
+   //             return ($"({lw} IS{(Op == Operator.NotEquals ? " NOT" : "")} NULL)", joins);
+   //     }
+   //     string op = Op switch
+   //     {
 
-            Operator.And => "and",
-            Operator.Or => "or",
-            Operator.Equals => "=",
-            Operator.NotEquals => "!=",
-            Operator.Add => "+",
-            Operator.Sub => "-",
-            Operator.Div => "/",
-            Operator.Mul => "*",
-            Operator.Mod => "%",
-            Operator.Gt => ">",
-            Operator.Lt => "<",
-            Operator.Ge => ">=",
-            Operator.Le => "<=",
-            _ => throw new ArgumentOutOfRangeException()
-        };
-        return ($"({lw} {op} {rw})", joins);
-    }
+   //         Operator.And => "and",
+   //         Operator.Or => "or",
+   //         Operator.Equals => "=",
+   //         Operator.NotEquals => "!=",
+   //         Operator.Add => "+",
+   //         Operator.Sub => "-",
+   //         Operator.Div => "/",
+   //         Operator.Mul => "*",
+   //         Operator.Mod => "%",
+   //         Operator.Gt => ">",
+   //         Operator.Lt => "<",
+   //         Operator.Ge => ">=",
+   //         Operator.Le => "<=",
+   //         _ => throw new ArgumentOutOfRangeException()
+   //     };
+   //     return ($"({lw} {op} {rw})", joins);
+   // }
 
-    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
-    {
-        (where, join) = ToSql(ctx);
-    }
+   // public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
+   // {
+   //     (where, join) = ToSql(ctx);
+   // }
 }

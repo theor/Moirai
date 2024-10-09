@@ -43,11 +43,6 @@ public struct AssertInstr : IValueCall
         return true;
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
-    }
-
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {

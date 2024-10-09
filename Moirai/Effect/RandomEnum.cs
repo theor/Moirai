@@ -19,11 +19,6 @@ public struct RandomRange : IValueCall
         return ctx.Rnd.GenerateNext((uint)(max - min)) + min;
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
-    }
-
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
@@ -45,10 +40,10 @@ public struct RandomEnum : IValueCall
         return def.GetRandomValue(ctx.Rnd);
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        return (Compute(ctx).ToSql(), null);
-    }
+    //public (string where, string? joins) ToSql(ExecuteContext ctx)
+    //{
+    //    return (Compute(ctx).ToSql(), null);
+    //}
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)

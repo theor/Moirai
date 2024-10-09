@@ -16,11 +16,6 @@ public class InterpolatedStringLink : IValueCall
         return $"<{LinkValue.Compute(ctx).Id}>{LinkText.Compute(ctx).Value}</>";
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
-    }
-
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
@@ -44,7 +39,7 @@ public class InterpolatedString : IValue
         return ctx.Database.Printer.Format(this, ctx.Database) ?? "";
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"'{Compute(ctx)}'", null);
+    // public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"'{Compute(ctx)}'", null);
 }
 
 public class MatchWeight : IValue
@@ -78,11 +73,6 @@ public class MatchWeight : IValue
         }
 
         return true;
-    }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
     }
 }
 
@@ -124,11 +114,6 @@ public class Match : IValue
         }
 
         return true;
-    }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
     }
 
     private bool CaseMatch(PropertyValue[] actual, IValue?[] caseValues, ExecuteContext ctx)
@@ -176,11 +161,6 @@ public class If : IValue
 
         return true;
     }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
-    }
 }
 
 public class Mark(IValue entity, int eventIndex) : IValueCall
@@ -196,11 +176,6 @@ public class Mark(IValue entity, int eventIndex) : IValueCall
         
         ctx.Mark(e.Id, EventIndex);
         return true;
-    }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
@@ -222,11 +197,11 @@ public class SinceLast(IValue Entity, int EventIndex) : IValueCall
         return int.MinValue;
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
-        $"LEFT JOIN marked ON marked.eid = entity.default__id AND marked.marker = {EventIndex}");
-    }
+    // public (string where, string? joins) ToSql(ExecuteContext ctx)
+    // {
+    //     return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
+    //     $"LEFT JOIN marked ON marked.eid = entity.default__id AND marked.marker = {EventIndex}");
+    // }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
@@ -249,11 +224,6 @@ public class Record : IValueCall
         ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year,
             ctx.Database.CurrentChangeset.Categories);
         return true;
-    }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
@@ -288,11 +258,6 @@ public class CreateEntity : IValueCall
         var entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
         return entity;
-    }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
     }
 
     (int, PropertyValue.ValueType)? IValueCall.VariableIndex => (VariableIndex, new PropertyValue.ValueType(PropertyValue.ValueBaseType.Ref, (ushort)Type.Id));

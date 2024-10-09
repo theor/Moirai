@@ -70,11 +70,6 @@ public struct AssignPick : IValueCall
         }
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
-    }
-
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     (int, PropertyValue.ValueType)? IValueCall.VariableIndex => (VariableIndex,  PropertyValue.TypeTypedRef(EntityType));
 

@@ -6,12 +6,12 @@ public interface IValue
 
     bool IsTrue(ExecuteContext ctx) => Compute(ctx).BoolValue;
 
-    (string where, string? joins) ToSql(ExecuteContext ctx);
+    // (string where, string? joins) ToSql(ExecuteContext ctx);
 }
 
 public interface IValueSql : IValue
 {
-    void InlineSql(ExecuteContext ctx, ref string where, ref string? join);
+ //   void InlineSql(ExecuteContext ctx, ref string where, ref string? join);
 }
 
 public class Display : IValue
@@ -33,11 +33,6 @@ public class Display : IValue
     }
 
     public PropertyValue Compute(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
-    }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         throw new NotImplementedException();
     }
@@ -90,19 +85,19 @@ public class UserFunctionCall : IValueCall, IValueSql
     }
     public PropertyValue Compute(ExecuteContext ctx)
     {
-        return Compute(ctx, default);
+        return Compute(ctx, default); 
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call)
-        {
-            using var _ = ctx.RunScope(true);
-            return call.Value.ToSql(ctx);
-        }
-
-        throw new NotImplementedException();
-    }
+    //public (string where, string? joins) ToSql(ExecuteContext ctx)
+    //{
+    //    if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call)
+    //    {
+    //        using var _ = ctx.RunScope(true);
+    //        return call.Value.ToSql(ctx);
+    //    }
+//
+    //    throw new NotImplementedException();
+    //}
 
     public IFunctionDescriptor? FunctionDescriptor
     {
@@ -114,17 +109,17 @@ public class UserFunctionCall : IValueCall, IValueSql
 
     public IEnumerable<IValue> GetArgs(StoryPrinter printer) => Arguments;
 
-    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
-    {
-        if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call && call.Value is IValueSql valueSql)
-        {
-            valueSql.InlineSql(ctx, ref where, ref join);
-        }
-        else
-        {
-            throw new NotImplementedException();
-        }
-    }
+   //public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
+   //{
+   //    if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call && call.Value is IValueSql valueSql)
+   //    {
+   //        valueSql.InlineSql(ctx, ref where, ref join);
+   //    }
+   //    else
+   //    {
+   //        throw new NotImplementedException();
+   //    }
+   //}
 }
 
 
@@ -157,11 +152,6 @@ public class MatchAnyValue : IValue
     {
         throw new NotImplementedException();
     }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        throw new NotImplementedException();
-    }
 }
 public class IsOfType : IValue
 {
@@ -180,7 +170,7 @@ public class IsOfType : IValue
         return result;
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
+    //public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
 }
 
 
