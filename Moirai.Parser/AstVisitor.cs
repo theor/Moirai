@@ -142,8 +142,12 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             returnType = ParseType(StoryParser.GetTypeTerminal(fundef.type()));
         }
 
-        if(instanceType != null)
-            DeclareVar("$self", instanceType.RefType, fundef.FUNCTION().Symbol, out var varIndex);
+        if (instanceType != null)
+        {
+            var parentTypeContext = fundef.Parent as MoiraiParser.Type_definitionContext;
+            DeclareVar("$self", instanceType.RefType, parentTypeContext.TYPE_ID().Symbol, out var varIndex);
+        }
+        
             
         var parameters = fundef.param().Select(p =>
         {
@@ -165,6 +169,8 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         this.Database.Functions.Add(functionDefinition);
         if(actualType != returnType)
             AddError(actualType == PropertyValue.ValueType.Null ? StoryParser.ErrorCode.MissingReturnValue : StoryParser.ErrorCode.MismatchedReturnType, fundef, $"{actualType} != {returnType}");
+        
+        Linker?.DeclareFunction(fundef, new UserFunctionDescriptor(functionDefinition));
     }
 
 
@@ -746,8 +752,8 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         var funcName = context.fun_id().GetText();
         if(Database.GetFunctionDefinition(funcName, out var fd))
         {
-
             var ctx = new FunctionParseContext(this, context, fd.Value);
+            Linker?.LinkFunction(new FileRange(context.fun_id()), new UserFunctionDescriptor(fd.Value));
             return ParseUserFunctionCall(this,  ctx, out returnType);
         }
         if(StoryParser.GetFunctionDescriptor(funcName, out var f))
@@ -763,7 +769,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     internal UserFunctionCall ParseUserFunctionCall(AstVisitor astVisitor,
         FunctionParseContext ctx, out PropertyValue.ValueType returnType)
     {
-        var definition = ctx.Definition.Value;
+        var definition = ctx.Definition!.Value;
         UserFunctionCall call = new(definition, 
             // TODO check arg/param type
             definition.Parameters

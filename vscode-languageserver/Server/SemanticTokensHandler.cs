@@ -179,19 +179,20 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         }
     }
 
-    public class FunctionDefinition : Definition<FunctionDescriptor>
+    public class FunctionDefinition : Definition<IFunctionDescriptor>
     {
-        public FunctionDefinition(FunctionDescriptor functionDescriptor)
+        public FunctionDefinition(IFunctionDescriptor functionDescriptor, Range? fullDefinition = null)
             : base(DefinitionType.Function,
                 functionDescriptor,
                 functionDescriptor.FuncName,
-                null)
+                fullDefinition)
         {
         }
 
         public override void GetHoverText(List<MarkedString> markedStrings)
         {
-            markedStrings.Add(new MarkedString($"{Data.FuncName}{(Data.ExpectVariable ? "" : "")}()"));
+            // TODO params
+            markedStrings.Add(new MarkedString($"{Data.FuncName}()"));
             if (Data.Documentation != null)
                 markedStrings.Add(new MarkedString(Data.Documentation));
         }
@@ -336,6 +337,15 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         return VisitTerminals(context);
     }
 
+    public override object? VisitFunction_definition(MoiraiParser.Function_definitionContext context)
+    {
+        PushSemanticToken(context.FUNCTION().Symbol, SemanticTokenType.Keyword);
+        PushSemanticToken(context.fun_id().ID().Symbol, SemanticTokenType.Function, SemanticTokenModifier.Definition);
+        context.type()?.Accept(this);
+        context.scope().Accept(this);
+        return VisitTerminals(context);
+    }
+
     public override object? VisitTrigger(MoiraiParser.TriggerContext context)
     {
         var id = context.ID();
@@ -404,6 +414,12 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
                     {
                         propDefinitionContext.Accept(this);
                     }
+                    
+                    foreach (var functionDefinitionContext in typeDefinitionContext.function_definition())
+                    {
+                        functionDefinitionContext.Accept(this);
+                    }
+                    
 
                     break;
                 }
@@ -601,6 +617,17 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         {
             PushSemanticToken(context.property_id().ID().Symbol, SemanticTokenType.Property);
         }
+        
+        if(context.dot_property() != null)
+            foreach (MoiraiParser.Dot_propertyContext dotPropertyContext in context.dot_property())
+            {
+                PushSemanticToken(dotPropertyContext.DOT().Symbol, SemanticTokenType.Operator);
+                if(dotPropertyContext.property_id() != null)
+                    PushSemanticToken(dotPropertyContext.property_id().ID().Symbol, SemanticTokenType.Property);
+                else if (dotPropertyContext.call() != null)
+                    PushSemanticToken(dotPropertyContext.call().fun_id().ID().Symbol, SemanticTokenType.Function);
+                    
+            }
 
         return base.VisitPath(context);
     }

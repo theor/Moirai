@@ -317,8 +317,8 @@ public static class StoryParser
         void LinkVariable(FileRange varId, AstVisitor.VariableDeclaration decl);
         void DeclareVariable(FileRange range, AstVisitor.VariableDeclaration variableDeclaration,
             FileRange variableScope);
-        void DeclareFunction(FileRange fileRange, FunctionDescriptor descriptor, string? inlineDef = null);
-        void LinkFunction(FileRange range, FunctionDescriptor descriptor);
+        void DeclareFunction(FileRange fileRange, IFunctionDescriptor descriptor, string? inlineDef = null);
+        void LinkFunction(FileRange range, IFunctionDescriptor descriptor);
     }
 
     public static ITerminalNode GetTypeTerminal(MoiraiParser.TypeContext type)
@@ -353,6 +353,7 @@ public static class StoryParser
                     var call = astVisitor.ParseUserFunctionCall(astVisitor, ctx, out type);
                     path = new PropertyPath(-1, PropertyValue.ValueType.Null);
                     path.AddCall(call);
+                    astVisitor.Linker?.LinkFunction(dotPropertyContext.call().fun_id(),new UserFunctionDescriptor(fd));
                 }
             }
 

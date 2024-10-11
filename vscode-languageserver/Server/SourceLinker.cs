@@ -3,6 +3,7 @@ using Antlr4.Runtime.Tree;
 using IntervalTree;
 using Moirai.Parser;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 public class SourceLinker : StoryParser.ILinker
 {
@@ -110,12 +111,19 @@ public class SourceLinker : StoryParser.ILinker
         _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(decl, decl.DeclarationRange));
     }
 
-    public void DeclareFunction(FileRange fileRange, FunctionDescriptor descriptor, string? inlineDef = null)
+    public void DeclareFunction(FileRange fileRange, IFunctionDescriptor descriptor, string? inlineDef = null)
     {
-        _funDefinitions.Add(descriptor.FuncName, new TokenVisitor.FunctionDefinition(descriptor){InlineDefinition = inlineDef});
+        var r = fileRange.ToLspRange();
+        var functionDefinition = new TokenVisitor.FunctionDefinition(descriptor, r){InlineDefinition = inlineDef};
+        _funDefinitions.Add(descriptor.FuncName, functionDefinition);
+        if (!r.IsEmpty())
+        {
+            
+            _tree.Add(r.Start, r.End, functionDefinition);
+        }
     }
 
-    public void LinkFunction(FileRange range, FunctionDescriptor descriptor)
+    public void LinkFunction(FileRange range, IFunctionDescriptor descriptor)
     {
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, _funDefinitions[descriptor.FuncName]);

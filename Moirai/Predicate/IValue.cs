@@ -127,6 +127,8 @@ public class UserFunctionCall : IValueCall, IValueSql
 public interface IFunctionDescriptor
 {
     string FuncName { get; }
+    bool ExpectVariable { get; }
+    string Documentation { get; }
     string Print(StoryPrinter printer, IValueCall valueCallParsed);
 }
 
@@ -140,6 +142,9 @@ public class UserFunctionDescriptor : IFunctionDescriptor
     }
 
     public string FuncName => Definition.Name;
+    public bool ExpectVariable => false;
+    public string Documentation => "";
+
     public string Print(StoryPrinter printer, IValueCall valueCallParsed)
     {
         return $"{FuncName}({(string.Join(", ",valueCallParsed.GetArgs(printer).Select(printer.Print)))})";
