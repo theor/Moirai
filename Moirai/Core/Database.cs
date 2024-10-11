@@ -528,76 +528,78 @@ CREATE TABLE marked (
     private Dictionary<string, SqliteCommand> _commands = new();
     private Dictionary<string, SqliteCommand> _commands2 = new();
 
-    public bool PickRandom(EntityTypeId entityTypeId, IValue? predicate, out EntityId id)
+    public bool PickRandom(EntityTypeId entityTypeId, IValueSql? predicate, out EntityId id)
     {
-        throw new NotImplementedException();
-        //if (predicate == null && !entityTypeId.IsValid)
-        //{
-        //    id = default;
-        //    return false;
-        //}
-        //var (where, joins) = predicate.ToSql(_ctx);
-        //if (string.IsNullOrEmpty(where))
-        //    where = "entity.default__type = " + entityTypeId.Id;
-        //else
-        //    where = $"entity.default__type = {entityTypeId.Id} AND {where}";
-        //var sql = $@"SELECT entity.default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
-        //if (!_commands.TryGetValue(sql, out var cmd))
-        //{
-        //    Console.WriteLine(sql);
-        //    cmd = _connection.CreateCommand();
-        //    cmd.CommandText = sql;
-        //    cmd.Prepare();
-        //    _commands.Add(sql, cmd);
-        //}
-//
-        //// Console.WriteLine(cmd.CommandText);
-        //var r = cmd.ExecuteScalar();
-        //if (r is long u)
-        //{
-        //    id = new EntityId((uint) u);
-        //    return true;
-        //}
-//
-        //id = default;
-        //return false;
+        if (predicate == null && !entityTypeId.IsValid)
+        {
+            id = default;
+            return false;
+        }
+        string? where, joins;
+        (where, joins) = predicate.ToSql(_ctx);
+       // (where, joins) = (null, null);
+        if (string.IsNullOrEmpty(where))
+            where = "entity.default__type = " + entityTypeId.Id;
+        else
+            where = $"entity.default__type = {entityTypeId.Id} AND {where}";
+        var sql = $@"SELECT entity.default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
+        if (!_commands.TryGetValue(sql, out var cmd))
+        {
+            Console.WriteLine(sql);
+            cmd = _connection.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Prepare();
+            _commands.Add(sql, cmd);
+        }
+
+        // Console.WriteLine(cmd.CommandText);
+        var r = cmd.ExecuteScalar();
+        if (r is long u)
+        {
+            id = new EntityId((uint) u);
+            return true;
+        }
+
+        id = default;
+        return false;
     }
 
-    public bool FindAll(EntityTypeId entityTypeId, IValue? predicate, ref List<EntityId> results) =>
+    public bool FindAll(EntityTypeId entityTypeId, IValueSql? predicate, ref List<EntityId> results) =>
         FindAll(entityTypeId, predicate, ref results, out _);
-    public bool FindAll(EntityTypeId entityTypeId, IValue? predicate, ref List<EntityId> results, out string? sql)
+    public bool FindAll(EntityTypeId entityTypeId, IValueSql? predicate, ref List<EntityId> results, out string? sql)
     {
-        throw new NotImplementedException();
-        //results.Clear();
-        //if (predicate == null && !entityTypeId.IsValid)
-        //{
-        //    sql = null;
-        //    return false;
-        //}
-//
-        //var (where, joins) = predicate.ToSql(_ctx);
-        //if (string.IsNullOrEmpty(where))
-        //    where = "entity.default__type = " + entityTypeId.Id;
-        //else
-        //    where = $"entity.default__type = {entityTypeId.Id} AND {where}";
-        //sql = $@"SELECT entity.default__id FROM entity {(joins ?? "")} WHERE {where}";
-//
-        //if (!_commands2.TryGetValue(sql, out var cmd))
-        //{
-        //    // Console.WriteLine(sql);
-        //    cmd = _connection.CreateCommand();
-        //    // cmd.CommandText = $@"SELECT id FROM entity WHERE {sql} LIMIT 1";
-        //    cmd.CommandText = sql;
-        //    cmd.Prepare();
-        //    _commands2.Add(sql, cmd);
-        //}
-//
-        //// Console.WriteLine(sql);
-        //// Console.WriteLine(cmd.CommandText);
-        //using var r = cmd.ExecuteReader();
-        //while (r.Read())
-        //    results.Add(new EntityId((uint) r.GetInt32(0)));
-        //return true;
+        results.Clear();
+        if (predicate == null && !entityTypeId.IsValid)
+        {
+            sql = null;
+            return false;
+        }
+
+        string? where, joins;
+        // (where, joins) = (null, null);// predicate.ToSql(_ctx);
+        (where, joins) = predicate.ToSql(_ctx);
+        if (string.IsNullOrEmpty(where))
+            where = "entity.default__type = " + entityTypeId.Id;
+        else
+            where = $"entity.default__type = {entityTypeId.Id} AND {where}";
+        sql = $@"SELECT entity.default__id FROM entity {(joins ?? "")} WHERE {where}";
+
+        if (!_commands2.TryGetValue(sql, out var cmd))
+        {
+            // Console.WriteLine(sql);
+            cmd = _connection.CreateCommand();
+            // cmd.CommandText = $@"SELECT id FROM entity WHERE {sql} LIMIT 1";
+            cmd.CommandText = sql;
+            cmd.Prepare();
+            _commands2.Add(sql, cmd);
+        }
+
+        // Console.WriteLine(sql);
+        // Console.WriteLine(cmd.CommandText);
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+            results.Add(new EntityId((uint) r.GetInt32(0)));
+        return true;
     }
 
     public List<string> Tags = new List<string> {null!};

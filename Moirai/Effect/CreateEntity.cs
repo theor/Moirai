@@ -185,7 +185,7 @@ public class Mark(IValue entity, int eventIndex) : IValueCall
         // yield return new Literal(EventIndex);
     }
 }
-public class SinceLast(IValue Entity, int EventIndex) : IValueCall
+public class SinceLast(IValue Entity, int EventIndex) : IValueCall, IValueSql
 {
     public PropertyValue Compute(ExecuteContext ctx)
     {
@@ -197,11 +197,11 @@ public class SinceLast(IValue Entity, int EventIndex) : IValueCall
         return int.MinValue;
     }
 
-    // public (string where, string? joins) ToSql(ExecuteContext ctx)
-    // {
-    //     return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
-    //     $"LEFT JOIN marked ON marked.eid = entity.default__id AND marked.marker = {EventIndex}");
-    // }
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
+    {
+        return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
+        $"LEFT JOIN marked ON marked.eid = entity.default__id AND marked.marker = {EventIndex}");
+    }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)

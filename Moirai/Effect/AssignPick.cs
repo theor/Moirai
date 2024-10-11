@@ -5,11 +5,11 @@ public struct AssignPick : IValueCall
 {
     public readonly EntityTypeId EntityType;
     public readonly int VariableIndex;
-    public readonly IValue Value;
+    public readonly IValueSql Value;
     public readonly CallType CallType;
     public readonly IInstruction[]? ScopeEffects;
     private List<EntityId>? _pool;
-    public AssignPick(EntityTypeId entityType, int variableIndex, IValue value, CallType callType, IInstruction[]? scopeEffects = null)
+    public AssignPick(EntityTypeId entityType, int variableIndex, IValueSql value, CallType callType, IInstruction[]? scopeEffects = null)
     {
         EntityType = entityType;
         VariableIndex = variableIndex;

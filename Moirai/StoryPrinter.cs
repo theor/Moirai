@@ -31,7 +31,8 @@ public class StoryPrinter
         }
         foreach (FunctionDefinition fd in _database.Functions.Skip(1))
         {
-            Print(fd, sb);
+            // if(!fd.IsInstanceMethod)
+                Print(fd, sb);
         }
 
         foreach (var action in _database.Actions.Concat(_database.Triggers))
@@ -57,7 +58,9 @@ public class StoryPrinter
     private void Print(FunctionDefinition fd, StringBuilder sb, int indent = 0)
     {
         var indentStr = IndentStr(indent);
-        string parameters = string.Join(", ", fd.Parameters.Skip(fd.IsInstanceMethod ? 1: 0).Select(p => $"{p.ParamName}: {Print(p.ParamType)}"));
+        string parameters = string.Join(", ", fd.Parameters
+            // .Skip(fd.IsInstanceMethod ? 1: 0)
+            .Select(p => $"{p.ParamName}: {Print(p.ParamType)}"));
         sb.AppendLine($"{indentStr}function {fd.Name}({parameters}){(fd.ReturnType != PropertyValue.ValueType.Null ? $": {Print(fd.ReturnType)}" : "")} {{");
         foreach (var effect in fd.Instructions)
         {
@@ -74,10 +77,10 @@ public class StoryPrinter
             PrintTypeProperty(sb, property);
         }
 
-        foreach (var function in type.Functions.Skip(1))
-        {
-            Print(function, sb, 1);
-        }
+        // foreach (var function in type.Functions.Skip(1))
+        // {
+        //     Print(function, sb, 1);
+        // }
         sb.AppendLine("}");
     }
 
@@ -188,9 +191,10 @@ public class StoryPrinter
         }
 
         StringBuilder sb = new();
+        var startLength = sb.Length;
         if (path.Mode == PropertyPath.PropertyPathMode.Singleton)
-            sb.Append($"#{_database.GetEntityTypeName(path.SingletonTypeId)}");
-        else
+            sb.Append($"#{_database.GetEntityTypeName(path.TypeId.ToEntityType())}");
+        else if(path.VariableIndex != -1)
             sb.Append($"${path.VariableIndex}");
         for (int i = 0; i < path.Segments.Count; i++)
         {
@@ -199,8 +203,13 @@ public class StoryPrinter
                 sb.Append($".{GetPropertyName(path.Segments[i].Property)}");
                 continue;
             }
+
             if (path.Segments[i].Call != null)
-                sb.Append($"." + Print(path.Segments[i].Call!));
+            {
+                if(sb.Length > startLength)
+                    sb.Append(".");
+                sb.Append(Print(path.Segments[i].Call!));
+            }
         }
 
         return sb.ToString();

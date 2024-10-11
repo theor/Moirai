@@ -1,7 +1,7 @@
 ﻿using Microsoft.VisualBasic;
 using Moirai.Core;
 
-public struct Literal : IValue
+public struct Literal : IValueSql
 {
     public readonly PropertyValue Value;
     public Literal(PropertyValue value)
@@ -10,7 +10,7 @@ public struct Literal : IValue
     }
     public PropertyValue Compute(ExecuteContext ctx) => Value;
 
-    public (string where, string joins) ToSql(ExecuteContext ctx)
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
         return (Value.ToSql(), null);
     }

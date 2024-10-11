@@ -24,7 +24,7 @@ public class SetProperty : IInstruction
         EntityId eid;
         if (PropertySet.Mode == PropertyPath.PropertyPathMode.Singleton)
         {
-            eid = ctx.GetSingletonId(PropertySet.SingletonTypeId);
+            eid = ctx.GetSingletonId(PropertySet.TypeId.ToEntityType());
         }
         else
         {

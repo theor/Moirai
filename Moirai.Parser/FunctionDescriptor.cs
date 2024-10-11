@@ -20,7 +20,7 @@ public class FunctionDescriptor : IFunctionDescriptor
     public IValueCall Parse(AstVisitor parser, MoiraiParser.Raw_callContext call,
         out PropertyValue.ValueType returnType)
     {
-        (IValueCall, PropertyValue.ValueType) c = _parse(new FunctionParseContext(parser, call));
+        (IValueCall, PropertyValue.ValueType) c = _parse(new FunctionParseContext(parser, call, null));
         returnType = c.Item2;
         if (c.Item1 != null)
             c.Item1.FunctionDescriptor = this;
@@ -32,7 +32,7 @@ public class FunctionDescriptor : IFunctionDescriptor
     public IValueCall Parse(AstVisitor parser, MoiraiParser.CallContext call,
         out PropertyValue.ValueType returnType)
     {
-        (IValueCall, PropertyValue.ValueType) c = _parse(new FunctionParseContext(parser, call));
+        (IValueCall, PropertyValue.ValueType) c = _parse(new FunctionParseContext(parser, call, null));
         returnType = c.Item2;
         if (c.Item1 != null)
             c.Item1.FunctionDescriptor = this;

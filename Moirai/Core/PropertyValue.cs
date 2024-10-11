@@ -174,7 +174,7 @@ public struct PropertyValue : IEquatable<PropertyValue>
     {
         return !left.Equals(right);
     }
-    public string ToSql()
+    public readonly string ToSql()
     {
 
         switch (Type.BaseType)

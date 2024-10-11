@@ -103,7 +103,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             {
                 DeclareVar("$self", tid.RefType, id.Symbol, out var varIndex);
                 DeclareVar("$other", refReferencedType, id.Symbol, out var otherVarIndex);
-                var expr = ParseExpr(attr.expr(1))!;
+                var expr = ParseExprSql(attr.expr(1))!;
                 InterpolatedString? itemDisplay = null;
                 if (attr.expr(2)?.value()?.@string() != null)
                     itemDisplay = ParseInterpolatedString(attr.expr(2).value().@string());
@@ -160,10 +160,9 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             returnType,
             parameters,
             ParseScope(fundef.scope(), out var actualType));
-        if(instanceType == null)
-            this.Database.Functions.Add(functionDefinition);
-        else
+        if (instanceType != null)
             instanceType.Functions.Add(functionDefinition);
+        this.Database.Functions.Add(functionDefinition);
         if(actualType != returnType)
             AddError(actualType == PropertyValue.ValueType.Null ? StoryParser.ErrorCode.MissingReturnValue : StoryParser.ErrorCode.MismatchedReturnType, fundef, $"{actualType} != {returnType}");
     }
@@ -486,7 +485,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         var name = context.VAR_ID();
         var expr = ParseExpr(context.expr(), out var type);
         DeclareVar(name.GetText(), type, name.Symbol, out var varIndex);
-        return new SetProperty(new PropertyPath(varIndex), expr, true);
+        return new SetProperty(new PropertyPath(varIndex, type), expr, true);
     }
 
     private SetProperty ParseSet(MoiraiParser.SetContext context)
@@ -729,8 +728,8 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         var funcName = context.fun_id().GetText();
         if(Database.GetFunctionDefinition(funcName, out var fd))
         {
-            var ctx = new FunctionParseContext(this, context);
-            return ParseUserFunctionCall(this, fd.Value, ctx, out returnType);
+            var ctx = new FunctionParseContext(this, context, fd.Value);
+            return ParseUserFunctionCall(this, ctx, out returnType);
         }
         if(StoryParser.GetFunctionDescriptor(funcName, out var f));
         {
@@ -748,8 +747,8 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         if(Database.GetFunctionDefinition(funcName, out var fd))
         {
 
-            var ctx = new FunctionParseContext(this, context);
-            return ParseUserFunctionCall(this, fd.Value, ctx, out returnType);
+            var ctx = new FunctionParseContext(this, context, fd.Value);
+            return ParseUserFunctionCall(this,  ctx, out returnType);
         }
         if(StoryParser.GetFunctionDescriptor(funcName, out var f))
         {
@@ -761,12 +760,15 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         return (AddError(StoryParser.ErrorCode.UnknownInstruction, context, funcName) as IValue)!;
     }
 
-    internal UserFunctionCall ParseUserFunctionCall(AstVisitor astVisitor, FunctionDefinition definition,
+    internal UserFunctionCall ParseUserFunctionCall(AstVisitor astVisitor,
         FunctionParseContext ctx, out PropertyValue.ValueType returnType)
     {
+        var definition = ctx.Definition.Value;
         UserFunctionCall call = new(definition, 
             // TODO check arg/param type
-            definition.Parameters.Skip(definition.IsInstanceMethod ? 1 : 0).Select((p,i) =>
+            definition.Parameters
+                // .Skip(definition.IsInstanceMethod ? 1 : 0)
+                .Select((p,i) =>
             {
                    
                 var argument =   ctx.ParseArgument(i, out var type);
@@ -864,6 +866,14 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         return interpolatedString;
     }
 
+    public IValueSql? ParseExprSql(MoiraiParser.ExprContext context)
+    {
+        IValue v = ParseExpr(context);
+        if (v is IValueSql sql)
+            return sql;
+        AddError(StoryParser.ErrorCode.ExpectedSql, context, context.GetText());
+        return null;
+    }
     public IValue? ParseExpr(MoiraiParser.ExprContext context)
     {
         return ParseExpr(context, out var _);
@@ -1066,7 +1076,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             Linker?.LinkVariable(new FileRange(varName), decl);
             if (context.dot_property().Length == 0)
             {
-                return new PropertyPath(variableIndex);
+                return new PropertyPath(variableIndex, type);
             }
         }
         else
@@ -1074,7 +1084,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 
         {
             EntityType? etype = Database.GetEntityType(_current[variableIndex].Type);
-            var path = new PropertyPath(variableIndex);
+            var path = new PropertyPath(variableIndex, etype.RefType);
             ParseProperty(ref path, context,  etype, out type);
             return path;
         }

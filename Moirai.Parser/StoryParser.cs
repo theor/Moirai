@@ -27,7 +27,7 @@ public static class StoryParser
                 var scopeContext = ctx.GetScopeContext();
                 using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext);
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
-                return (new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
+                return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
                         CallType.Each, ctx.Visitor.ParseRawScope(scopeContext, out _)),
                     PropertyValue.TypeTypedRef(etid));
             }),
@@ -35,7 +35,7 @@ public static class StoryParser
             ctx =>
             {
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
-                return (new AssignPick(etid, variableIndex, ctx.ParsePredicate(etid),
+                return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
                         CallType.Pick),
                     PropertyValue.TypeTypedRef(etid));
             }),
@@ -195,6 +195,7 @@ public static class StoryParser
         MismatchedAssignmentTypes,
         MissingReturnValue,
         MismatchedReturnType,
+        ExpectedSql,
     }
 
     public struct Error
@@ -348,8 +349,9 @@ public static class StoryParser
                 var funcName = dotPropertyContext.call().fun_id().GetText();
                 if(owningType.GetFunctionDefinition(funcName, out var fd))
                 {
-                    var ctx = new FunctionParseContext(astVisitor, dotPropertyContext.call());
-                    var call = astVisitor.ParseUserFunctionCall(astVisitor, fd, ctx, out type);
+                    var ctx = new FunctionParseContext(astVisitor, dotPropertyContext.call(), fd, path);
+                    var call = astVisitor.ParseUserFunctionCall(astVisitor, ctx, out type);
+                    path = new PropertyPath(-1, PropertyValue.ValueType.Null);
                     path.AddCall(call);
                 }
             }

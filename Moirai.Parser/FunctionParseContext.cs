@@ -3,7 +3,7 @@ using Antlr4.Runtime.Tree;
 
 namespace Moirai.Parser;
 
-public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallContext)
+public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallContext, FunctionDefinition? Definition, PropertyPath? SelfPath = null)
 {
     public int ParseVariable(out EntityTypeId entityTypeId, out PropertyValue.ValueType type)
     {
@@ -42,9 +42,17 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
 
     public IValue ParseArgument(int index, out PropertyValue.ValueType type)
     {
+        bool hasInstanceParam = Definition.HasValue && Definition.Value.IsInstanceMethod && SelfPath.HasValue;
+        if (index == 0 && hasInstanceParam)
+        {
+            type =  (SelfPath.GetValueOrDefault().Segments?.Count ?? 0) != 0
+                ? PropertyValue.TypeTypedRef(SelfPath.Value.Segments[^1].TypeId)
+                : SelfPath.Value.TypeId;
+            return SelfPath.Value;
+        }
         if (CallContext is MoiraiParser.CallContext c)
         {
-            return Visitor.ParseExpr(c.expr(index), out type)!;
+            return Visitor.ParseExpr(c.expr(index - (hasInstanceParam ? 1 : 0)), out type)!;
         }
         else if (CallContext is MoiraiParser.Raw_callContext r)
         {
@@ -106,6 +114,14 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
                 $"Expected {i} arguments{(isMaxCount ? " max" : "")}, got {ArgCount}");
     }
 
+    public IValueSql ParsePredicateSql(EntityTypeId entityTypeId)
+    {
+        IValue v = ParsePredicate(entityTypeId);
+        if (v is IValueSql sql)
+            return sql;
+        Visitor.AddError(StoryParser.ErrorCode.ExpectedSql, CallContext, "Expected SQL expression");
+        return null!;
+    }
     public IValue ParsePredicate(EntityTypeId entityTypeId)
     {
         if (ArgCount == 1)

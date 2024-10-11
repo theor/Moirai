@@ -11,6 +11,7 @@ public interface IValue
 
 public interface IValueSql : IValue
 {
+    (string where, string? joins) ToSql(ExecuteContext ctx);
  //   void InlineSql(ExecuteContext ctx, ref string where, ref string? join);
 }
 
@@ -19,10 +20,10 @@ public class Display : IValue
     public readonly EntityType ReferencedType;
     public readonly int VarIndex, OtherVarIndex;
     public readonly string Label;
-    public readonly IValue Value;
+    public readonly IValueSql Value;
     public readonly InterpolatedString ItemDisplay;
 
-    public Display(EntityType referencedType, int varIndex, int otherVarIndex, string label, IValue value, InterpolatedString itemDisplay)
+    public Display(EntityType referencedType, int varIndex, int otherVarIndex, string label, IValueSql value, InterpolatedString itemDisplay)
     {
         ReferencedType = referencedType;
         VarIndex = varIndex;
@@ -61,7 +62,7 @@ public class UserFunctionCall : IValueCall, IValueSql
 
     public PropertyValue Compute(ExecuteContext ctx, PropertyValue instance)
     {
-        int offset = Definition.IsInstanceMethod ? 1 : 0;
+        int offset = /*Definition.IsInstanceMethod ? 1 :*/ 0;
 
         // f($0): need to evaluate $0 before creating a scope setting the ctx.ValueOffset
         var valueCount = ctx.ValueCount + ctx.ValueOffset;
@@ -70,7 +71,7 @@ public class UserFunctionCall : IValueCall, IValueSql
         for (int i = 0; i < Definition.Parameters.Length; i++)
         {
             var p = Definition.Parameters[i];
-            var argValue = Definition.IsInstanceMethod && i == 0 ? instance : Arguments[i - offset]?.Compute(ctx) ?? default;
+            var argValue = /*Definition.IsInstanceMethod && i == 0 ? instance : */Arguments[i - offset]?.Compute(ctx) ?? default;
             // compute the current arg index by adding the valueCount, which will be the param index after the scope starts
             ctx.SetArgument(p.ParamIndex + valueCount, argValue);
         }
@@ -88,16 +89,16 @@ public class UserFunctionCall : IValueCall, IValueSql
         return Compute(ctx, default); 
     }
 
-    //public (string where, string? joins) ToSql(ExecuteContext ctx)
-    //{
-    //    if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call)
-    //    {
-    //        using var _ = ctx.RunScope(true);
-    //        return call.Value.ToSql(ctx);
-    //    }
-//
-    //    throw new NotImplementedException();
-    //}
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
+    {
+        if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call && call.Value is IValueSql valueSql)
+        {
+            using var _ = ctx.RunScope(true);
+            return valueSql.ToSql(ctx);
+        }
+
+        throw new NotImplementedException();
+    }
 
     public IFunctionDescriptor? FunctionDescriptor
     {
@@ -153,7 +154,7 @@ public class MatchAnyValue : IValue
         throw new NotImplementedException();
     }
 }
-public class IsOfType : IValue
+public class IsOfType : IValueSql
 {
     public readonly IValue Entity;
     public readonly EntityTypeId ValueTypeId;
@@ -170,7 +171,7 @@ public class IsOfType : IValue
         return result;
     }
 
-    //public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
+    public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
 }
 
 

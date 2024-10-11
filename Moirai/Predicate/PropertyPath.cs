@@ -1,6 +1,6 @@
 ﻿using Moirai.Core;
 
-public struct PropertyPath : IValueSql
+public struct  PropertyPath : IValueSql
 {
     public record struct PropertyOrCall(PropertyId Property, UserFunctionCall? Call)
     {
@@ -8,7 +8,7 @@ public struct PropertyPath : IValueSql
     }
 
     public readonly int VariableIndex;
-    public readonly EntityTypeId SingletonTypeId;
+    public readonly PropertyValue.ValueType TypeId;
     public List<PropertyOrCall>? Segments;
 
     public enum PropertyPathMode
@@ -19,17 +19,18 @@ public struct PropertyPath : IValueSql
 
     public readonly PropertyPathMode Mode;
 
-    public PropertyPath(int variableIndex, PropertyId? property = null)
+    public PropertyPath(int variableIndex, PropertyValue.ValueType typeId, PropertyId? property = null)
     {
         VariableIndex = variableIndex;
+        TypeId = typeId;
         if (property != null)
             Segments = new() { new(property.Value, null) };
         Mode = PropertyPathMode.Variable;
     }
 
-    public PropertyPath(EntityTypeId singletonTypeId)
+    public PropertyPath(EntityTypeId typeId)
     {
-        SingletonTypeId = singletonTypeId;
+        TypeId = PropertyValue.TypeTypedRef(typeId);
         Segments = null;
         Mode = PropertyPathMode.Singleton;
         VariableIndex = -1;
@@ -54,8 +55,10 @@ public struct PropertyPath : IValueSql
 
     public void AddCall(UserFunctionCall call)
     {
-        Segments ??= new();
-        Segments.Add(new(default, call));
+        Segments = new List<PropertyOrCall>(1) {
+                new (default, call),
+                
+            };
     }
 
     public bool Nested => (Segments?.Count ?? 0) > 1;
@@ -73,21 +76,20 @@ public struct PropertyPath : IValueSql
             return entity.GetProperty(Segments[0].Property);
         }
 
-        PropertyValue varValue = ctx.Argument(VariableIndex);
-        if (varValue.Type != PropertyValue.TypeRef)
-            return varValue;
-
-        if (!ctx.Database.TryGetEntity(varValue.Id, out var e))
-        {
-            if (varValue.Id.Id == Database.ChangePrevEntityId.Id)
+        PropertyValue varValue = VariableIndex != -1 ? ctx.Argument(VariableIndex) : default;
+        Entity e = default;
+        if (varValue.Type == PropertyValue.TypeRef)
+            if (!ctx.Database.TryGetEntity(varValue.Id, out e))
             {
-                return ctx.GetPrevEntityProperty(Segments == null || Segments[0].Property == PropertyId.Null
-                    ? Database.PropId
-                    : Segments[0].Property);
-            }
+                if (varValue.Id.Id == Database.ChangePrevEntityId.Id)
+                {
+                    return ctx.GetPrevEntityProperty(Segments == null || Segments[0].Property == PropertyId.Null
+                        ? Database.PropId
+                        : Segments[0].Property);
+                }
 
-            return default;
-        }
+                return default;
+            }
 
         if (Segments == null)
             return varValue;
@@ -131,102 +133,102 @@ public struct PropertyPath : IValueSql
         return varValue;
     }
 
-//    public (string where, string? joins) ToSql(ExecuteContext ctx)
-//    {
-//        /* pick Person $r: ($r.birthplace.type = Place.City)
-// SELECT entity.default__id FROM entity
-//     LEFT JOIN entity x
-//         ON entity.Person__birthplace = x.default__id
-//     WHERE entity.default__type = 2
-//         AND (entity.Person__birthplace != 0)
-//         AND x.type = 3
-//  */
-//        /* pick Person $r: ($r.birthplace.founder.birthdate = 1234)
-//        SELECT entity.default__id FROM entity
-//            LEFT JOIN entity x
-//                ON entity.Person__birthplace = x.default__id
-//            LEFT JOIN entity y
-//                ON x.founder = y.default__id
-//            WHERE entity.default__type = 2
-//                AND ((entity.Person__birthplace != 0)
-//                AND (x.founder != 0)
-//                AND (y.birthdate = 1234)
-//         */
-//
-//        // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
-//        // TODO ugly
-//        if (Mode != PropertyPathMode.Variable ||
-//            (VariableIndex != -1 && VariableIndex != ctx.ValueCount - ctx.ValueOffset))
-//            return (Compute(ctx).ToSql(), null);
-//        
-//
-//        // if (Segments[0].Call != null)
-//        // throw new NotImplementedException("user function calls in sql " + Segments[0].Call.ToSql(ctx));
-//
-//        var where = "";
-//        string? join = null;
-//        string? prevProp = null;
-//
-//        InlineSql(ctx, ref where, ref join, prevProp, false);
-//
-//        return (where, join);
-//
-//        // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
-//    }
+    public (string where, string? joins) ToSql(ExecuteContext ctx)
+    {
+        /* pick Person $r: ($r.birthplace.type = Place.City)
+ SELECT entity.default__id FROM entity
+     LEFT JOIN entity x
+         ON entity.Person__birthplace = x.default__id
+     WHERE entity.default__type = 2
+         AND (entity.Person__birthplace != 0)
+         AND x.type = 3
+  */
+        /* pick Person $r: ($r.birthplace.founder.birthdate = 1234)
+        SELECT entity.default__id FROM entity
+            LEFT JOIN entity x
+                ON entity.Person__birthplace = x.default__id
+            LEFT JOIN entity y
+                ON x.founder = y.default__id
+            WHERE entity.default__type = 2
+                AND ((entity.Person__birthplace != 0)
+                AND (x.founder != 0)
+                AND (y.birthdate = 1234)
+         */
+
+        // TODO must be contextual - if var is the one assigned, should be prop name, otherwise computed
+        // TODO ugly
+        if (Mode != PropertyPathMode.Variable ||
+            (VariableIndex != -1 && VariableIndex != ctx.ValueCount - ctx.ValueOffset))
+            return (Compute(ctx).ToSql(), null);
+        
+
+        // if (Segments[0].Call != null)
+        // throw new NotImplementedException("user function calls in sql " + Segments[0].Call.ToSql(ctx));
+
+        var where = "";
+        string? join = null;
+        string? prevProp = null;
+
+        InlineSql(ctx, ref where, ref join, prevProp, false);
+
+        return (where, join);
+
+        // return /*Property.IsValid ?*/ ctx.Database.GetPropertyName(Property);// : Compute(ctx).ToSql();
+    }
 //
 //    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
 //    {
 //        InlineSql(ctx, ref where, ref join, null, true);
 //    }
-//    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join, string? prevProp, bool skipThis)
-//    {
-//        if (Segments == null)
-//        {
-//            where = "default__id";
-//            join = null;
-//            return;
-//        }
-//        for (int i = 0; i < Segments.Count; i++)
-//        {
-//            PropertyOrCall p = Segments[i];
-//            string? thisVar = null;
-//            bool isJoin = i != 0;
-//            if (!isJoin)
-//            {
-//                if(!skipThis)
-//                    thisVar = "entity.";
-//            }
-//            else
-//            {
-//                where += " != 0 AND ";
-//                thisVar = $"j{i}.";
-//            }
-//
-//            string thisProp;
-//            if (p.Call != null)
-//            {
-//                string callWhere = "";
-//                string? callJoin = null;
-//                p.Call.InlineSql(ctx, ref callWhere, ref callJoin);
-//                // var (callWhere, callJoin) = p.Call.ToSql(ctx);
-//                thisProp = $"{thisVar}{callWhere}";
-//            }
-//            else
-//            {
-//                thisProp =
-//                    $"{thisVar}{ctx.Database.GetEntityTypeName(p.TypeId)}__{ctx.Database.GetPropertyName(p.Property)}";
-//            }
-//
-//            where += thisProp;
-//
-//            if (isJoin)
-//            {
-//                string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}default__id";
-//                join = join == null ? pj : (join + "\n" + pj);
-//            }
-//
-//            prevProp = thisProp;
-//        }
-//
-//    }
+    public void InlineSql(ExecuteContext ctx, ref string where, ref string? join, string? prevProp, bool skipThis)
+    {
+        if (Segments == null)
+        {
+            where = "default__id";
+            join = null;
+            return;
+        }
+        for (int i = 0; i < Segments.Count; i++)
+        {
+            PropertyOrCall p = Segments[i];
+            string? thisVar = null;
+            bool isJoin = i != 0;
+            if (!isJoin)
+            {
+                if(!(skipThis || p.Call != null))
+                    thisVar = "entity.";
+            }
+            else
+            {
+                where += " != 0 AND ";
+                thisVar = $"j{i}.";
+            }
+
+            string thisProp;
+            if (p.Call != null)
+            {
+                string callWhere = "";
+                string? callJoin = null;
+                // p.Call.To(ctx, ref callWhere, ref callJoin);
+                (callWhere, callJoin) = p.Call.ToSql(ctx);
+                thisProp = $"{thisVar}{callWhere}";
+            }
+            else
+            {
+                thisProp =
+                    $"{thisVar}{ctx.Database.GetEntityTypeName(p.TypeId)}__{ctx.Database.GetPropertyName(p.Property)}";
+            }
+
+            where += thisProp;
+
+            if (isJoin)
+            {
+                string pj = $"LEFT JOIN entity j{i} ON {prevProp} = {thisVar}default__id";
+                join = join == null ? pj : (join + "\n" + pj);
+            }
+
+            prevProp = thisProp;
+        }
+
+    }
 }

@@ -297,8 +297,8 @@ public class ChatHub : Hub
             var personType = _db.GetEntityType("Person");
             _db.FindAll(personType.Id, 
                 new BinaryOperator(BinaryOperator.Operator.Or,
-                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, prop1), new Literal(new EntityId(eid))),
-                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, prop2), new Literal(new EntityId(eid)))
+                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, personType.RefType, prop1), new Literal(new EntityId(eid))),
+                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, personType.RefType,prop2), new Literal(new EntityId(eid)))
                     ), ref results);
             foreach (var id in results)
             {
