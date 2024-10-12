@@ -134,17 +134,25 @@ trigger item_created items {
     set $on.owner = $new.owner
     set $on.item = $new
     set $on.start_year = #Time.year
+    set $on.end_year = -1
+    // record 'ownership record {$on} {$new.name} {$new.owner.name}'
 }
 trigger item_change_owner items {
     when Item and owner != $old.owner
+
+    // record 'search for {$new.name} prev owner'
+    if(pick ItemOwnership $o: (item = $new and end_year = -1)) {
+        // record '{$o} {$old.name} prev owner'
+        set $o.end_year = #Time.year
+    }
 
     create ItemOwnership $on
     set $on.owner = $new.owner
     set $on.item = $new
     set $on.start_year = #Time.year
+    set $on.end_year = -1
+    // record 'new ownership record {$on}'
 
-    pick ItemOwnership $o: (item = $old and end_year = 0)
-    set $o.end_year = #Time.year
 }
 
 trigger inherit items {

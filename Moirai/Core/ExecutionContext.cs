@@ -1,4 +1,6 @@
-﻿namespace Moirai.Core;
+﻿using System.Diagnostics;
+
+namespace Moirai.Core;
 
 public class ExecuteContext
 {
@@ -106,6 +108,7 @@ public class ExecuteContext
     public void PassYears(int years, bool offset) => PassYears(years, CancellationToken.None, null, offset);
     public void PassYears(long years, CancellationToken token, IProgress<int>? progress, bool offset)
     {
+        Stopwatch sw = Stopwatch.StartNew();
         Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue, Array.Empty<CategoryId>());
         var timeType = Database.GetEntityType("Time");
         var timeId = this.GetSingletonId(timeType.Id);
@@ -134,7 +137,8 @@ public class ExecuteContext
                 }
             }
         }
-        
+
+        Console.WriteLine("PassYears " + years + " took " + sw.ElapsedMilliseconds + "ms");
         Profiler.Dump();
     }
 

@@ -56,16 +56,26 @@ public class ChatHub : Hub
 
     public ChannelReader<int> PassYears(int years)
     {
-        var channel = Channel.CreateUnbounded<int>();
+        var channel = Channel.CreateBounded<int>(new BoundedChannelOptions(1)
+        {
+            SingleWriter = true,
+            FullMode = BoundedChannelFullMode.DropOldest,
+        });
 
         if (!_mutex.Wait(100))
         {
             channel.Writer.Complete();
             return channel.Reader;
         }
+
+        int tens = 0;
         IProgress<int>? p = new Progress<int>(i =>
         {
-            channel.Writer.WriteAsync((int)(100 * i / (float)years));
+            if (i / 10 > tens)
+            {
+                tens = i / 10;
+                channel.Writer.TryWrite((int)(100 * i / (float)years));
+            }
         });
         Task.Factory.StartNew(() =>
         {
