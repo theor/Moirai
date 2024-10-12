@@ -520,7 +520,7 @@ public class StoryPrinter
         var propertyValues = formatAction.Arguments.Select(v =>
         {
             var print = Print(v.Compute(database.Ctx), History.HistoryMode.Story);
-            if (injectIdTags && v is PropertyPath path && path.Mode == PropertyPath.PropertyPathMode.Variable)
+            if (injectIdTags && v is PropertyPath path && path.Mode == PropertyPath.PropertyPathMode.Variable && path.VariableIndex != -1)
             {
                 var entity = database.Ctx.Argument(path.VariableIndex);
                 if (entity.Type == PropertyValue.TypeRef)

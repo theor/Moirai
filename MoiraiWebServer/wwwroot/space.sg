@@ -1,3 +1,4 @@
+@display Person ('Persons', location = $self)
 entity Object {
     prop system: System
     prop dead: bool
@@ -9,12 +10,19 @@ entity System {
 
 }
 
+// @display String ($self.age_years_str())
 entity Person {
     prop birthplace: Object
     prop location: Object
     prop birthyear: number
     prop age: Age
     prop alive: bool
+    function age_years(): number {
+        #Time.year - birthyear
+    }
+    function age_years_str(): string {
+        '{$self.age_years()} years old'
+    }
     function available(): bool {
         $self.alive and ($self.age = Age.Young or $self.age = Age.Adult)
     }
@@ -25,6 +33,7 @@ enum Kind {
     Star,
     Planet,
     Satelite,
+    Station,
 }
 enum Age {
     Child,
@@ -33,6 +42,14 @@ enum Age {
     Old,
 }
 
+
+event create_station {
+    create Object $p: '{random Name} Station'
+    set kind = Kind.Station
+    pick System $s
+    set $p.system = $s
+    record '{$p.name} created'
+}
 
 @start
 event create_time {
@@ -84,6 +101,8 @@ event create_solar_system {
     set system = $s
 
     record '{$s.name} created'
+
+    call ('create_station', 10)
 }
 
 // @start
@@ -121,7 +140,7 @@ event grow {
     each Person $p: (alive, age = Age.Old) {
         if random(120) < #Time.year - birthyear {
             set $p.alive = false
-            record '{$p.name} dies of old age at {#Time.year - $p.birthyear}'
+            record '{$p.name} dies of old age at {$p.age_years_str()}'
         }
     }
     each Person $p: (alive, age != Age.Old, #Time.year - birthyear > 0, (#Time.year - birthyear) % 20 = 0) {
@@ -136,15 +155,15 @@ event grow {
 @frequency(1, PerXYear, 5)
 event expedition {
     pick Person $p: ($p.available())
-    var $loc: '{random Name} Station'
+    pick Object $loc: (kind = Kind.Station and not(dead))
     random_weighted 100 {
-        40 => record '{$p.name} at {$loc} success'
+        40 => record '{$p.name}\'s expedition  at {$loc.name} success'
         30 => {
             set $p.alive = false
-            record '{$p.name} dies at {$loc}'
+            record '{$p.name} dies at {$loc.name}'
         }
         _ => {
-            record '{$p.name} is injured at {$loc}'
+            record '{$p.name} is injured at {$loc.name}'
         }
     }
 }

@@ -827,7 +827,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         foreach (var part in stringContext.stringContent())
         {
             if (part.TEXT() != null)
-                result += part.TEXT().GetText();
+                result += part.TEXT().GetText().Replace("\\'", "'");
             else
             {
                 result += $"{{{paths.Count}}}";

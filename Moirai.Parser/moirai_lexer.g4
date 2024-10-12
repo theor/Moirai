@@ -75,7 +75,9 @@ fragment
 ALPHA_LOWER   :   ('a'..'z');
 
 mode IN_STRING;
-TEXT: ~['{]+ ;
+fragment
+QUOTED_QUOTE: '\\\'';
+TEXT: (QUOTED_QUOTE | ~['{])+ ;
 
 EXPR_OPEN: '{' -> pushMode(DEFAULT_MODE);
 QUOTE_IN_STRING: '\'' -> type(QUOTE), popMode;
