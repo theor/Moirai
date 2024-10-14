@@ -544,6 +544,18 @@
     lodash.merge "^4.6.2"
     postcss-selector-parser "6.0.10"
 
+"@tanstack/svelte-table@^8.20.5":
+  version "8.20.5"
+  resolved "https://registry.yarnpkg.com/@tanstack/svelte-table/-/svelte-table-8.20.5.tgz#3356e84de84c42d5c00fb57b59ebd2c51263aa4e"
+  integrity sha512-sFqrA6zAt0mzreg3HWlcPeIwrfKp25tMDTrhkeq5GDzWthv/sW9bRFR3YGRcoxmtmHk3mS1wLQfJrotDXu7eDg==
+  dependencies:
+    "@tanstack/table-core" "8.20.5"
+
+"@tanstack/table-core@8.20.5":
+  version "8.20.5"
+  resolved "https://registry.yarnpkg.com/@tanstack/table-core/-/table-core-8.20.5.tgz#3974f0b090bed11243d4107283824167a395cf1d"
+  integrity sha512-P9dF7XbibHph2PFRz8gfBKEXEY/HJPOhym8CHmjF8y3q5mWpKx9xtZapXQUWCgkqvsK0R46Azuz+VaxD4Xl+Tg==
+
 "@types/cookie@^0.6.0":
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/@types/cookie/-/cookie-0.6.0.tgz#eac397f28bf1d6ae0ae081363eca2f425bedf0d5"
@@ -2270,36 +2282,10 @@ svelte-eslint-parser@^0.41.1:
     postcss "^8.4.39"
     postcss-scss "^4.0.9"
 
-svelte-headless-table@^0.18.2:
-  version "0.18.2"
-  resolved "https://registry.yarnpkg.com/svelte-headless-table/-/svelte-headless-table-0.18.2.tgz#ef1165ab97db1fef0d965b9d75ef309e0a93da55"
-  integrity sha512-dnDTaXW5CNzRUjHVbc/Hb0Zv80zU4VcIUnAja6OuZriXvim1AqcWYQCHPRzBGwqj1m3YEHHNvspSzY0o5HzA0A==
-  dependencies:
-    svelte-keyed "^2.0.0"
-    svelte-render "^2.0.1"
-    svelte-subscribe "^2.0.1"
-
 svelte-hmr@^0.16.0:
   version "0.16.0"
   resolved "https://registry.yarnpkg.com/svelte-hmr/-/svelte-hmr-0.16.0.tgz#9f345b7d1c1662f1613747ed7e82507e376c1716"
   integrity sha512-Gyc7cOS3VJzLlfj7wKS0ZnzDVdv3Pn2IuVeJPk9m2skfhcu5bq3wtIZyQGggr7/Iim5rH5cncyQft/kRLupcnA==
-
-svelte-keyed@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/svelte-keyed/-/svelte-keyed-2.0.0.tgz#57131f4cfab204e9000197049f70cdb772c0e84b"
-  integrity sha512-7TeEn+QbJC2OJrHiuM0T8vMBkms3DNpTE+Ir+NtnVBnBMA78aL4f1ft9t0Hn/pBbD/TnIXi4YfjFRAgtN+DZ5g==
-
-svelte-render@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/svelte-render/-/svelte-render-2.0.1.tgz#4c01c66a0e19b9aa10d0a1f87ebbed266886b4cd"
-  integrity sha512-RpB0SurwXm4xhjvHHtjeqMmvd645FURb79GFOotScOSqnKK5vpqBgoBPGC0pp+E/eZgDSQ9rRAdn/+N4ys1mXQ==
-  dependencies:
-    svelte-subscribe "^2.0.0"
-
-svelte-subscribe@^2.0.0, svelte-subscribe@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/svelte-subscribe/-/svelte-subscribe-2.0.1.tgz#4464991235f85bed347c7423998c38426b123af3"
-  integrity sha512-eKXIjLxB4C7eQWPqKEdxcGfNXm2g/qJ67zmEZK/GigCZMfrTR3m7DPY93R6MX+5uoqM1FRYxl8LZ1oy4URWi2A==
 
 svelte@^4.2.7:
   version "4.2.19"
