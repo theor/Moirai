@@ -5,7 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
-        <SpaRoot>ClientApp\</SpaRoot>
+        <SpaRoot>ClientAppSvelte\</SpaRoot>
     </PropertyGroup>
 
     <ItemGroup>

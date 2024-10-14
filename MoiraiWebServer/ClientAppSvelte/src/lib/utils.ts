@@ -1,0 +1,54 @@
+import { goto } from '$app/navigation';
+import type { GetSetProperty } from './types';
+import { page } from '$app/stores';
+    
+export function parseEntityLink(str: string): ({ type:'text', text: string } | { type:'entity', id: number; link: string })[] {
+  const rx = /(?:(?:<#(?<id>\d+)>(?<link>[^<]+)<\/>)|(?<text>[^<\n]+))/gi;
+  return [...str.matchAll(rx)].map((match: RegExpMatchArray, i) => {
+    if (!match?.groups) return { type: 'text', text: '???' };
+    if (match.groups['text']) {
+      return { type: 'text',text: match.groups['text'] };
+    } else {
+      let id: number = Number(match.groups['id']);
+      return { type: 'entity',id, link: match.groups['link'] };
+    }
+  });
+}
+
+export function urlParam(page: any, name: string) {
+    // console.log(page)
+  return {
+    get: () => page.url.searchParams.get(name) as string, // new URLSearchParams(window.location.search).get(name),
+    set: (value: string) => {
+        console.log('setting', name, value);
+        const p = new URLSearchParams(window.location.search);
+        p.set(name, value);
+        goto(window.location.pathname + '?' + p.toString());
+        // window.location.search = p.toString();
+    }
+  };
+}
+
+export const selectedEntity = (page: any) => urlParam(page, 'e');
+// export function makeEntityLink(str: string, selectedEntity: GetSetProperty<number>, filteredEntity: GetSetProperty<number>): React.JSX.Element[] {
+//     const rx = /(?:(?:<#(?<id>\d+)>(?<link>[^<]+)<\/>)|(?<text>[^<\n]+))/ig;
+//     return [...str.matchAll(rx)].map((match: RegExpMatchArray, i) => {
+//         if (!match?.groups)
+//             return <span key={i}>???</span>;
+//         if (match.groups["text"]) {
+//             return <span key={i}>{match.groups["text"]}</span>;
+//         } else {
+//             let id: number = Number(match.groups["id"]);
+//             return <Tooltip title={"#" + id}
+//                             key={i}>{makeEntityChip(id, match.groups["link"], selectedEntity, filteredEntity)}</Tooltip>
+//         }
+//     });
+// }
+//
+// export function makeEntityChip(id: number, label: string, selectedEntity: GetSetProperty<number>, filteredEntity: GetSetProperty<number>) {
+//     return <Chip size="small" color="primary"
+//                  variant={selectedEntity[0] == id ? "filled" : "outlined"} clickable
+//                  onClick={() => selectedEntity[1](id)}
+//                  onDoubleClick={() => filteredEntity[1](id)}
+//                  label={label}/>;
+// }

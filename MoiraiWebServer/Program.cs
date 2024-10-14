@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using CommandLine;
@@ -126,12 +127,34 @@ internal class Program
         if (app.Environment.IsDevelopment())
             app.UseSpa(spaBuilder =>
             {
-                spaBuilder.Options.SourcePath = "ClientApp";
-                spaBuilder.Options.StartupTimeout = TimeSpan.FromSeconds(5);
+                spaBuilder.Options.SourcePath = "ClientAppSvelte";
+                spaBuilder.Options.StartupTimeout = TimeSpan.FromSeconds(15);
 
                 spaBuilder.Options.DevServerPort = 3000;
+                var loggerFactory = spaBuilder.ApplicationBuilder.ApplicationServices.GetService<ILoggerFactory>();
+                var logger = loggerFactory.CreateLogger("Microsoft.AspNetCore.SpaServices");
                 // relies on the npm script printing 'Starting the development server' so npm dev echoes that before starting vite
-                spaBuilder.UseReactDevelopmentServer("dev");
+                // spaBuilder.UseReactDevelopmentServer("dev");
+                var p = new Process();
+                    p.StartInfo =(new ProcessStartInfo
+                {
+                    FileName = "cmd",
+                    Arguments = "/c yarn run dev",
+                    WorkingDirectory = Path.Combine(Directory.GetCurrentDirectory(), "ClientAppSvelte"),
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    
+                });
+                    
+                p.EnableRaisingEvents = true;
+                p.OutputDataReceived += (sender, eventArgs) => logger.LogInformation(eventArgs.Data);
+                p.ErrorDataReceived += (sender, eventArgs) => logger.LogError(eventArgs.Data);
+                p.Start();
+                p.BeginOutputReadLine();
+                p.BeginErrorReadLine();
+                spaBuilder.UseProxyToSpaDevelopmentServer("http://localhost:3000");
       
             });
         app.Run();
