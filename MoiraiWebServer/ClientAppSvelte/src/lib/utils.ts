@@ -1,6 +1,7 @@
 import { goto } from '$app/navigation';
 import type { GetSetProperty } from './types';
 import { page } from '$app/stores';
+import type { Page } from '@sveltejs/kit';
     
 export function parseEntityLink(str: string): ({ type:'text', text: string } | { type:'entity', id: number; link: string })[] {
   const rx = /(?:(?:<#(?<id>\d+)>(?<link>[^<]+)<\/>)|(?<text>[^<\n]+))/gi;
@@ -15,15 +16,16 @@ export function parseEntityLink(str: string): ({ type:'text', text: string } | {
   });
 }
 
-export function urlParam(page: any, name: string) {
+export function urlParam(page: Page<any>, name: string) {
     // console.log(page)
   return {
+    getNumber: () => Number(page.url.searchParams.get(name) as string) ?? -1, // new URLSearchParams(window.location.search).get(name),
     get: () => page.url.searchParams.get(name) as string, // new URLSearchParams(window.location.search).get(name),
     set: (value: string) => {
-        console.log('setting', name, value);
         const p = new URLSearchParams(window.location.search);
         p.set(name, value);
-        goto(window.location.pathname + '?' + p.toString());
+        console.log('setting', name, value, 'goto', p.toString());
+        goto(window.location.pathname + '?' + p.toString(), {invalidateAll: true});
         // window.location.search = p.toString();
     }
   };

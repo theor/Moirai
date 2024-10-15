@@ -147,7 +147,7 @@ const writableStore = writable<State>(
       let buffer: Record[] = [];
       setInterval(() => {
         if (buffer.length > 0) {
-          // console.log("BUFFER RECORDs")
+          console.log("BUFFER RECORDs", buffer)
           update((x) => ({ ...x, records: [...x.records, ...buffer] }));
           buffer = [];
         }
@@ -171,7 +171,9 @@ const writableStore = writable<State>(
               buffer.push(value.record!);
               break;
             case MessageType.Year:
-              update((x) => ({ ...x, year: value.year }));
+              if(value.year !== get(writableStore).year) {
+                update((x) => ({ ...x, year: value.year }));
+              }
               if (_targetYear !== 0) {
                 try {
                   console.log('fast forward to ', _targetYear);
