@@ -364,6 +364,7 @@ public class ChatHub : Hub
                 _db.GetPropertyName(p.Id),
                 PrintValue(p.Id, p.Value))).ToList();
         var t = _db.GetEntityType(e.Type);
+        details.Insert(0,new EntityPropertyDisplay("Type", t.Name));
         foreach (var display in t.Attributes)
         {
             using var _ = _db.Ctx.RunScope(false);

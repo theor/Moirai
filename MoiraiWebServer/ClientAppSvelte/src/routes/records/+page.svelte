@@ -8,23 +8,34 @@
   import type { Record } from '$lib/types';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import PreChip from '../../components/PreChip.svelte';
-  import { shortcut } from '$lib/shortcut';
-    import { urlParam } from '$lib/utils';
-
+  import { urlParam } from '$lib/utils';
+    import { moiraiViewStore } from '$lib';
+    import binarysearch from "binary-search";
   let selected: number = -1;
 
   $: {
-  let selParam = urlParam($page, 'e');
-    selected = selParam.getNumber();// Number($page.url.searchParams.get('e')) ?? -1;
+    let selParam = urlParam($page, 'e');
+    selected = selParam.getNumber(); // Number($page.url.searchParams.get('e')) ?? -1;
 
     // selected = data.selected;
     tableStore.update((store) => {
       return {
         ...store,
-        selected: selected
+        selected: selected,
       };
     });
   }
+
+$: {
+  if($moiraiViewStore.gotoYear){
+    const index = binarysearch($moiraiStore.records, {year: $moiraiViewStore.gotoYear}, (a, b) => a.year - b.year);
+    const offset = $virtualizer.getOffsetForIndex(index);
+    if(offset)
+      $virtualizer.scrollToOffset(offset[0]);
+  }
+}
+
+
 
   const columns: ColumnDef<Record>[] = [
     {
@@ -33,18 +44,18 @@
       size: 25,
       cell: (info) => {
         return flexRender(PreChip, { text: info.cell.getValue() });
-      }
+      },
     },
     {
       header: 'Text',
       accessorKey: 'text',
       cell: (info) => {
         return flexRender(MoiraiText, { text: info.cell.getValue(), selected: selected });
-      }
+      },
       //   cell: (info) => {
       //     return createRender(MoiraiText, { text: record.value, selected: Number(sel.get()) });
       //   }
-    }
+    },
   ];
   const tableStore = writable({ selected: selected });
 
@@ -55,8 +66,8 @@
       columns,
       data: $moiraiStore.records.map((r) => ({
         ...r,
-        selected: selected // Number(sel.get())
-      }))
+        selected: selected, // Number(sel.get())
+      })),
     };
   });
 
@@ -67,27 +78,22 @@
     console.log('rerender', selected);
   }
 
+  let offset = 0;
+
   $: virtualizer = createVirtualizer<HTMLDivElement, HTMLTableRowElement>({
     count: rows.length,
+    onChange: (range) => {
+      offset = range.scrollOffset ?? 0;
+    },
     getScrollElement: () => virtualListEl,
-    initialOffset: () => $virtualizer?.scrollOffset ?? undefined,
+    initialOffset: offset,
 
     estimateSize: () => 44,
-    overscan: 20
+    overscan: 20,
   });
-
-  function gotoLine() {
-    console.log('gotoLine');
-  }
 </script>
 
-<div use:shortcut={{ control: true, code: 'KeyG', callback: gotoLine }}>
-  <button type="button" class="btn variant-filled" on:click={() => moiraiStore.reset()}
-    >Reset</button
-  >
-  <button type="button" class="btn variant-filled" on:click={() => moiraiStore.passYears(100)}
-    >Pass years</button
-  >
+<div>
   <div class="table-container scroll-container bg-surface-200-700-token" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
       <!-- <table class="table table-hover table-compact table-auto w-full"> -->
@@ -166,7 +172,7 @@
     background-color: rgb(var(--color-surface-500) / 0.05);
   }
   .scroll-container {
-    height: 600px;
+    height: 88vh;
     width: 100%;
     overflow: auto;
     /* border: solid 1px black; */
