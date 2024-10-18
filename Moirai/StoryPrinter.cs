@@ -40,7 +40,7 @@ public class StoryPrinter
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
             sb.AppendLine(
-                $"{(action.IsTrigger ? "trigger" : "event")} {action.Name}{string.Join("", action.Categories.Select(t => $" {_database.GetCategoryName(t)}"))} {{");
+                $"{(action.IsTrigger ? "trigger" : "event")} {action.Name} {{");
             if (action.IsTrigger)
                 sb.AppendLine(
                     $"  when{(action.When.Item1 == EventTrigger.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");

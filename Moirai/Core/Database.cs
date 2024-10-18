@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
@@ -333,8 +332,7 @@ WHERE default__id = $id;";
     public bool RunAction(EventTrigger eventTrigger)
     {
         // Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year,
-            eventTrigger.Categories);
+        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year);
         _currentActionId = eventTrigger.Id;
         // _ctx.Values.Clear();
 
@@ -412,7 +410,7 @@ WHERE default__id = $id;";
                     {
                         EventAttemptSuccess++;
                         // Console.WriteLine("  @ " + @event.Name);
-                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year, trigger.Categories);
+                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year);
                         // using (var s2 = _ctx.RunScope())
                         {
                             foreach (var e in trigger.Effects)
@@ -628,7 +626,6 @@ CREATE TABLE marked (
     }
 
     public List<string> Tags = new List<string> { null! };
-    public List<string> Categories = new List<string> { null! };
 
     public bool DeclareTag(string tag)
     {
@@ -640,49 +637,29 @@ CREATE TABLE marked (
         Tags.Add(tag);
         return true;
     }
-
-    public CategoryId GetCategoryId(string cat)
-    {
-        int index = Categories.IndexOf(cat);
-        if (index == -1)
-        {
-            Categories.Add(cat);
-            return new CategoryId((ulong)(Categories.Count - 1));
-        }
-
-
-        return new CategoryId((ulong)index);
-    }
-
-    public string GetCategoryName(CategoryId tagId)
-    {
-        return Categories[(int)tagId.Id];
-    }
-
+    
     public struct Record
     {
         public readonly string Text;
         public readonly int ChangesetId;
         public readonly int ActionId;
         public readonly long Year;
-        public readonly ulong Categories;
 
-        public Record(string text, long year, ulong categories, int changesetId, int actionId)
+        public Record(string text, long year, int changesetId, int actionId)
         {
             Text = text;
             Year = year;
             ChangesetId = changesetId;
             ActionId = actionId;
-            Categories = categories;
         }
     }
 
     public List<Record> Records = new();
     private int _currentActionId;
 
-    public void AppendRecord(string text, long year, ulong categories)
+    public void AppendRecord(string text, long year)
     {
-        Records.Add(new(text, year, categories, CurrentChangeset.Id, _currentActionId));
+        Records.Add(new(text, year, CurrentChangeset.Id, _currentActionId));
     }
 
     internal Dictionary<(EntityId, int), long> _marked = new();

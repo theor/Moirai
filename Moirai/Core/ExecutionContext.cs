@@ -109,7 +109,7 @@ public class ExecuteContext
     public void PassYears(long years, CancellationToken token, IProgress<int>? progress, bool offset)
     {
         Stopwatch sw = Stopwatch.StartNew();
-        Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue, Array.Empty<CategoryId>());
+        Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue);
         var timeType = Database.GetEntityType("Time");
         var timeId = this.GetSingletonId(timeType.Id);
         var yearsProp = timeType.GetPropertyId("year");
