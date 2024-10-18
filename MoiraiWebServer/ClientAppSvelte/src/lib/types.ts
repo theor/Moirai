@@ -23,8 +23,10 @@ export enum MessageType {
 export type EntityPropertyDisplay = {label: string, value: string}
 
 export interface ActionData { id:number;  name: string; hidden: boolean; }
+export interface TypeData { id:number;  name: string; }
 export interface ClientData {
     actions: ActionData[];
+    types: TypeData[];
 }
 
 

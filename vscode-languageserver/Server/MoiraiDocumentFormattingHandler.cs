@@ -147,12 +147,7 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
                 (context.AT(), 0, 0)    
             );
         }
-
-        public override IEnumerable<TextEdit> VisitCategories(MoiraiParser.CategoriesContext context)
-        {
-            return context.ID()?.SelectMany(x => EnsureSpaces(x?.Symbol, 1, null));
-        }
-
+        
         private IEnumerable<TextEdit> Indent(IEnumerable<TextEdit> indented)
         {
             _indent++;

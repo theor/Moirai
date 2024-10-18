@@ -2,10 +2,9 @@
   import { filteredEntity, selectedEntity, urlParam } from '$lib/utils';
   import { page } from '$app/stores';
   import { moiraiStore } from '$lib/connection';
-  import EntityChip from './EntityChip.svelte';
   import MoiraiText from './MoiraiText.svelte';
   import { SlideToggle } from '@skeletonlabs/skeleton';
-
+  import TypeList from './TypeList.svelte';
   let selected = -1;
   let filter = false;
   $: {
@@ -20,15 +19,23 @@
     let filterParam = filteredEntity($page);
     filterParam.setNumber(filter ? selected : -1);
   }
-</script>
 
-<div class="card p-4">
+  $: typeNames = $moiraiStore.clientData?.types?.map((t) => t.name);
+</script>
+<div class="card p-4 mb-2">
   <div class="flex">
     {#if selected > 0}
       <h3 class="h3 grow">
         Entity #{selected}
       </h3>
-      <SlideToggle checked={filter} on:click={toggleFilter} name="filter" size="sm" label="Filter" class="mt-1">Filter</SlideToggle>
+      <SlideToggle
+        checked={filter}
+        on:click={toggleFilter}
+        name="filter"
+        size="sm"
+        label="Filter"
+        class="mt-1">Filter</SlideToggle
+      >
     {:else}
       No entity selected
     {/if}
@@ -50,3 +57,7 @@
     {/if}
   {/await}
 </div>
+
+{#if typeNames}
+  <TypeList {typeNames} />
+{/if}

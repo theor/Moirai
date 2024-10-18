@@ -286,9 +286,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         }
 
 
-        var cats = ParseCategories(context.categories());
-
-        CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f, cats);
+        CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f);
         foreach (MoiraiParser.EffectContext effectContext in context.scope().effect())
         {
             // if (effectContext.comment() != null)
@@ -308,27 +306,12 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         return null;
     }
 
-    private CategoryId[] ParseCategories(MoiraiParser.CategoriesContext tagIds)
-    {
-        CategoryId[] tags = new CategoryId[tagIds.ID().Length];
-        var nodes = tagIds;
-        for (var index = 0; index < nodes.ID().Length; index++)
-        {
-            var cat = tagIds.ID(index);
-            tags[index] = Database.GetCategoryId(cat.GetText());
-        }
-
-        return tags;
-    }
-
-
     public EventTrigger? CurrentEventTrigger;
 
     public override object? VisitTrigger(MoiraiParser.TriggerContext context)
     {
         string actionId = context.ID().GetText();
-        var categories = ParseCategories(context.categories());
-        CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, categories);
+        CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null);
 
         using var _ = new VariableDeclarationScopeDisposable(this, context.scope());
         if (context.scope().when_created() is { } createdContext)

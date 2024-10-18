@@ -9,9 +9,9 @@ r: (event|trigger|enum_definition|type_definition|function_definition|LINE_BREAK
 attribute: AT ID type_id PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE LINE_BREAK;
 // filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
 filter:AT attr=ID (PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE)? LINE_BREAK?;
-event: filter? EVENT  ID categories scope;
-categories: ID* ;
-trigger: TRIGGER ID categories scope;
+event: filter? EVENT  ID scope;
+//categories: ID* ;
+trigger: TRIGGER ID scope;
 when: WHEN type_id (AND expr)* SPACE* LINE_BREAK+;
 when_created: WHEN_CREATED type_id (AND expr)* SPACE* LINE_BREAK+;
 effect: (set | var | expr) SPACE* (LINE_BREAK)*;

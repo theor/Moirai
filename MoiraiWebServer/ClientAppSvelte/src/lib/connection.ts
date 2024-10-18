@@ -133,7 +133,7 @@ const writableStore = writable<State>(
   },
   (set, update) => {
     console.log('INIT');
-    SignalRConnection.make().then(([x, y, c]) => {
+    SignalRConnection.make().then(([x, clientData, c]) => {
       x.connection.onreconnected((_id) => {
         console.log('RECO ' + true);
         update((x) => ({ ...x, connected: true }));
@@ -193,7 +193,7 @@ const writableStore = writable<State>(
         complete() {}
       });
 
-      update((s) => ({ ...s, conn: x, connected: c }));
+      update((s) => ({ ...s, conn: x, connected: c, clientData }));
     });
   }
 );

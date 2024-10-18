@@ -1,10 +1,9 @@
 ﻿using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
+using JetBrains.Annotations;
 using Moirai.Core;
 using Moirai.Parser;
 
@@ -14,11 +13,11 @@ using Microsoft.AspNetCore.SignalR;
 
 public class ChatHub : Hub
 {
-    private static Database _db;
+    private static Database? _db;
     private static bool _reset;
     private static bool _resetRequested;
 
-    private static SemaphoreSlim _mutex = new(1, 1);
+    private static readonly SemaphoreSlim Mutex = new(1, 1);
     public ChatHub()
     {
         Debug.WriteLine("Ctor");
@@ -33,25 +32,25 @@ public class ChatHub : Hub
     public static void ReloadRequested()
     {
         _resetRequested = true;
-        _targetYears = _db.Ctx.Year;
+        _targetYears = _db?.Ctx.Year;
     }
 
     public long Reset()
     {
-        _mutex.Wait();
+        Mutex.Wait();
         try
         {
-            _db = StoryParser.Parse(File.ReadAllText(Program.OptionsInstance.InputFile), out var errors);
+            _db = StoryParser.Parse(File.ReadAllText(Program.OptionsInstance.InputFile), out List<StoryParser.Error> _);
             _db.History = new();
             _db.Init();
             _reset = true;
         }
         finally
         {
-            _mutex.Release();
+            Mutex.Release();
         }
 
-        return _db?.Ctx?.Year ?? 0;
+        return _db.Ctx.Year;
     }
 
     public ChannelReader<int> PassYears(int years)
@@ -62,14 +61,14 @@ public class ChatHub : Hub
             FullMode = BoundedChannelFullMode.DropOldest,
         });
 
-        if (!_mutex.Wait(100))
+        if (!Mutex.Wait(100))
         {
             channel.Writer.Complete();
             return channel.Reader;
         }
 
         int tens = 0;
-        IProgress<int>? p = new Progress<int>(i =>
+        IProgress<int> p = new Progress<int>(i =>
         {
             if (i / 10 > tens)
             {
@@ -81,12 +80,12 @@ public class ChatHub : Hub
         {
             try
             {
-                _db.Ctx.PassYears(years, CancellationToken.None, p, true);
+                _db!.Ctx.PassYears(years, CancellationToken.None, p, true);
                 channel.Writer.Complete();
             }
             finally
             {
-                _mutex.Release();
+                Mutex.Release();
             }
         });
        
@@ -95,60 +94,66 @@ public class ChatHub : Hub
 
     public void Save()
     {
-        _mutex.Wait();
+        Mutex.Wait();
         try
         {
-            _db.Commit();
+            _db!.Commit();
         }
         finally
         {
-            _mutex.Release();
+            Mutex.Release();
             
         }
     }
 
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public struct ClientData
     {
         public record ActionData(int Id, string Name);
+        public record TypeData(int Id, string Name);
 
         public ActionData[] Actions;
+        public TypeData[] Types;
     }
 
     public async Task<ClientData> GetClientData()
     {
-        await _mutex.WaitAsync();
+        await Mutex.WaitAsync();
         try
         {
             return new ClientData
             {
-                Actions = _db.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
+                Actions = _db!.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
+                Types = _db.Types.Skip(1).Select(a => new ClientData.TypeData((int)a.Id.Id, a.Name)).OrderBy(x => x.Name).ToArray(),
             };
         }
         finally
         {
-            _mutex.Release();
+            Mutex.Release();
         }
     }
 
+    [UsedImplicitly]
     public record EntityPropertyDisplay(string Label, string Value);
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public struct FamilyTreeNode(uint id, string name, uint p1, uint p2) : IEquatable<FamilyTreeNode>
     {
-        public uint id { get; init; } = id;
-        public string name { get; init; } = name;
-        public uint p1 { get; init; } = p1;
-        public uint p2 { get; init; } = p2;
+        public uint Id { get; init; } = id;
+        public string Name { get; init; } = name;
+        public uint P1 { get; init; } = p1;
+        public uint P2 { get; init; } = p2;
 
         public void Deconstruct(out uint id, out string name, out uint p1, out uint p2)
         {
-            id = this.id;
-            name = this.name;
-            p1 = this.p1;
-            p2 = this.p2;
+            id = this.Id;
+            name = this.Name;
+            p1 = this.P1;
+            p2 = this.P2;
         }
 
         public bool Equals(FamilyTreeNode other)
         {
-            return id == other.id;
+            return Id == other.Id;
         }
 
         public override bool Equals(object? obj)
@@ -158,7 +163,7 @@ public class ChatHub : Hub
 
         public override int GetHashCode()
         {
-            return (int)id;
+            return (int)Id;
         }
 
         public static bool operator ==(FamilyTreeNode left, FamilyTreeNode right)
@@ -175,14 +180,15 @@ public class ChatHub : Hub
     private static List<EntityId> results = new();
     private static long? _targetYears;
 
-    public record EntityChangeDisplay(EntityId id, long year, string actionName, IList<EntityPropertyDisplay> changes);
+    [UsedImplicitly]
+    public record EntityChangeDisplay(EntityId Id, long Year, string ActionName, IList<EntityPropertyDisplay> Changes);
 
     private IList<EntityPropertyDisplay> GetChangeDetails(Changeset.Changed c)
     {
             if (c.Prev.Id.IsNull) // new entity
             {
                 return c.New.Properties.Where(p => p.Id.IsValid)
-                    .Select(p => new EntityPropertyDisplay(_db.GetPropertyName(p.Id), PrintValue(p.Id, p.Value)))
+                    .Select(p => new EntityPropertyDisplay(_db!.GetPropertyName(p.Id), PrintValue(p.Id, p.Value)))
                     .ToList();
             }
 
@@ -190,7 +196,7 @@ public class ChatHub : Hub
                 .Select(p =>
                 {
                     var p1 = c.New.GetProperty(p.Id);
-                    return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
+                    return new EntityPropertyDisplay(_db!.GetPropertyName(p.Id),
                         PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
                 }).ToList();
     }
@@ -209,23 +215,23 @@ public class ChatHub : Hub
     }
     public async Task<QueryResult> Query(string q)
     {
-        await _mutex.WaitAsync();
+        await Mutex.WaitAsync();
         try
         {
             string? sql = null;
             try
             {
-                AstVisitor v = new AstVisitor(_db, null!);
+                AstVisitor v = new AstVisitor(_db!, null!);
                 var e = StoryParser.ParseExpr(v, q, 0, 0, out var errors);
                 if (errors.Any())
-                    return new QueryResult { Errors = errors.Select(e => e.ToString()).ToArray() };
+                    return new QueryResult { Errors = errors.Select(error => error.ToString()).ToArray() };
                 if (e is AssignPick pick)
                 {
-                    _db.FindAll(pick.EntityType, pick.Value, ref results, out sql);
+                    _db!.FindAll(pick.EntityType, pick.Value, ref results, out sql);
                     return new QueryResult
                     {
                         Sql = sql,
-                        Query = JsonSerializer.Serialize((object?)e, e.GetType(), new JsonSerializerOptions
+                        Query = JsonSerializer.Serialize(e, e.GetType(), new JsonSerializerOptions
                         {
                             WriteIndented = true,
                             IncludeFields = true, IgnoreReadOnlyFields = false,IgnoreReadOnlyProperties = false, DefaultIgnoreCondition = JsonIgnoreCondition.Never,
@@ -236,7 +242,7 @@ public class ChatHub : Hub
                         }).ToArray()
                     };
                 }
-                return  new QueryResult() { Errors = new[]{ "Instruction unsuited for query: " + e.GetType() } };
+                return  new QueryResult() { Errors = new[]{ "Instruction unsuited for query: " + e!.GetType() } };
             }
             catch (Exception e)
             {
@@ -245,46 +251,46 @@ public class ChatHub : Hub
         }
         finally
         {
-            _mutex.Release();
+            Mutex.Release();
         }
     }
 
     public void RunAction(int actionId)
     {
-        _mutex.Wait();
+        Mutex.Wait();
         try
         {
-            var eventTrigger = _db.Actions.FirstOrDefault(a => a.Id == actionId);
+            var eventTrigger = _db!.Actions.FirstOrDefault(a => a.Id == actionId);
             if(eventTrigger != null)
                 _db.RunAction(eventTrigger);
         }
         finally
         {
-            _mutex.Release();
+            Mutex.Release();
         }
     }
 
     private IList<EntityChangeDisplay> GetChangesetDetails(Changeset cs)
     {
-        _mutex.Wait();
+        Mutex.Wait();
         try
         {
             return cs.Changes.Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x))).ToList();
         }
         finally
         {
-            _mutex.Release();
+            Mutex.Release();
         }
     }
 
     public async Task<List<FamilyTreeNode>> GetFamilyTree(uint eid, int maxDepth)
     {
         HashSet<FamilyTreeNode> nodes = new();
-        if(!await _mutex.WaitAsync(500))
+        if(!await Mutex.WaitAsync(500))
             return new List<FamilyTreeNode>();
         try
         {
-            var prop1 = _db.GetPropertyId("Person", "parent1");
+            var prop1 = _db!.GetPropertyId("Person", "parent1");
             var prop2 = _db.GetPropertyId("Person", "parent2");
             Queue<(EntityId id, int depth)> queue = new();
             queue.Enqueue((new(eid), 0));
@@ -293,14 +299,14 @@ public class ChatHub : Hub
                 if(!_db.TryGetEntity(item.id, out Entity e))
                     continue;
                 var node = new FamilyTreeNode(e.Id.Id, 
-                    e.TryGetProperty( Database.PropName, out var name) ? name.Value : e.Id.ToString(),
+                    e.TryGetProperty( Database.PropName, out var name) ? name.Value! : e.Id.ToString(),
                     item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0,
                     item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0
                     );
-                if(node.p1 != 0)
-                    queue.Enqueue((new(node.p1), item.depth+1));
-                if(node.p2 != 0)
-                    queue.Enqueue((new(node.p2), item.depth+1));
+                if(node.P1 != 0)
+                    queue.Enqueue((new(node.P1), item.depth+1));
+                if(node.P2 != 0)
+                    queue.Enqueue((new(node.P2), item.depth+1));
                 nodes.Add(node);
             }
 
@@ -319,29 +325,29 @@ public class ChatHub : Hub
             {
                 if(!_db.TryGetEntity(item.id, out Entity e))
                     continue;
-                var p1id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0;
-                var p2id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0;
+                var p1Id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0;
+                var p2Id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0;
                 var node = new FamilyTreeNode(e.Id.Id, 
-                    e.TryGetProperty( Database.PropName, out var name) ? name.Value : e.Id.ToString(),
-                    p1id,
-                    p2id
+                    e.TryGetProperty( Database.PropName, out var name) ? name.Value! : e.Id.ToString(),
+                    p1Id,
+                    p2Id
                 );
-                if(p1id != 0)
-                    nodes.Add(new(p1id, "A", 0, 0));
-                if(p2id != 0)
-                    nodes.Add(new(p2id, "B", 0, 0));
+                if(p1Id != 0)
+                    nodes.Add(new(p1Id, "A", 0, 0));
+                if(p2Id != 0)
+                    nodes.Add(new(p2Id, "B", 0, 0));
                 nodes.Add(node);
             }
         }
         finally
         {
-            _mutex.Release();
+            Mutex.Release();
         }
         return nodes.ToList();
     }
     public IList<EntityPropertyDisplay> GetEntityDetails(uint eid)
     {
-        if(!_mutex.Wait(500))
+        if(!Mutex.Wait(500))
             return new List<EntityPropertyDisplay>();
         try
         {
@@ -349,13 +355,13 @@ public class ChatHub : Hub
         }
         finally
         {
-            _mutex.Release();
+            Mutex.Release();
         }
     }
 
     private static IList<EntityPropertyDisplay> EntityPropertyDisplays(uint eid)
     {
-        if (!_db.TryGetEntity(new EntityId(eid), out var e))
+        if (!_db!.TryGetEntity(new EntityId(eid), out var e))
         {
             return ImmutableList<EntityPropertyDisplay>.Empty;
         }
@@ -388,15 +394,13 @@ public class ChatHub : Hub
 
     private static string PrintValue(PropertyId propertyId, PropertyValue propertyValue)
     {
-        var print = _db.Printer.Print(propertyValue);
+        var print = _db!.Printer.Print(propertyValue);
         string value;
         if (_db.GetPropertyType(propertyId, out var type) && type.IsRefType)
         {
-            if (propertyValue.Id.IsNull)
-                value = "null";
-            else
-                value =
-                    $"<{print}>{(_db.GetProperty(propertyValue.Id, Database.PropName, out var val) ? val.Value : print)}</>";
+            value = propertyValue.Id.IsNull
+                ? "null"
+                : $"<{print}>{(_db.GetProperty(propertyValue.Id, Database.PropName, out var val) ? val.Value : print)}</>";
         }
         else
             value = print;
@@ -421,21 +425,21 @@ public class ChatHub : Hub
         ChannelWriter<EntityChangeDisplay> writer,
         CancellationToken cancellationToken)
     {
-        Exception localException = null;
+        Exception? localException = default;
         try
         {
             int lastChangeset = 0;
             while (true)
             {
-                while (_db.History.Changesets.Count > 0 && lastChangeset < _db.History.Changesets.Count)
+                while (_db!.History!.Changesets.Count > 0 && lastChangeset < _db.History.Changesets.Count)
                 {
                     var changeset = _db.History.Changesets[lastChangeset++];
-                    if((changeset.Changes?.Count ?? 0) > 0)
+                    if((changeset.Changes.Count) > 0)
                         foreach (var entityChangeDisplay in GetChangesetDetails(changeset))
                             await writer.WriteAsync(entityChangeDisplay, cancellationToken);
                 }
 
-                await Task.Delay(500);
+                await Task.Delay(500, cancellationToken);
             }
         }
         catch (Exception e)
@@ -471,7 +475,7 @@ public class ChatHub : Hub
         return channel.Reader;
     }
 
-    public struct Message
+    public struct Message(Database.Record? record)
     {
         public enum MessageType
         {
@@ -480,15 +484,9 @@ public class ChatHub : Hub
             Year
         }
 
-        public MessageType Type;
-        public Database.Record? Record;
+        public MessageType Type = MessageType.Record;
+        public Database.Record? Record = record;
         public long Year;
-
-        public Message(Database.Record? record)
-        {
-            Type = MessageType.Record;
-            Record = record;
-        }
 
         public static Message Reset(long? targetYears) => new Message() { Type = MessageType.Reset, Year = targetYears.GetValueOrDefault(0) };
         public static Message YearMessage(long year) => new Message() { Type = MessageType.Year, Year = year, };
@@ -498,7 +496,7 @@ public class ChatHub : Hub
         ChannelWriter<Message> writer,
         CancellationToken cancellationToken)
     {
-        Exception localException = null;
+        Exception? localException = null;
         try
         {
             Debug.WriteLine("Stream");
@@ -523,17 +521,17 @@ public class ChatHub : Hub
                     // }
                 }
 
-                while (_db.Records.Count > 0 && lastRecord < _db.Records.Count)
+                while (_db!.Records.Count > 0 && lastRecord < _db.Records.Count)
                 {
                     await writer.WriteAsync(new Message(_db.Records[lastRecord++]), cancellationToken);
                 }
 
-                await writer.WriteAsync(Message.YearMessage(_db.Ctx.Year));
-                await Task.Delay(500);
+                await writer.WriteAsync(Message.YearMessage(_db.Ctx.Year), cancellationToken);
+                await Task.Delay(500, cancellationToken);
                 
             }
         }
-        catch (Exception e)
+        catch (Exception? e)
         {
             localException = e;
         }

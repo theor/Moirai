@@ -221,8 +221,7 @@ public class Record : IValueCall
 
     public PropertyValue Compute(ExecuteContext ctx)
     {
-        ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year,
-            ctx.Database.CurrentChangeset.Categories);
+        ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year);
         return true;
     }
 

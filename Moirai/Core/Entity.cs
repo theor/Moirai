@@ -46,7 +46,7 @@ public struct Entity
         }
 
         if (!property.IsValid)
-            throw new System.NotImplementedException("Null property");
+            throw new NotImplementedException("Null property");
         if (_properties == null)
         {
             value = default;
@@ -86,28 +86,29 @@ public static class Profiler
 {
     class PropData
     {
-        public EntityType Type;
+        public required EntityType Type;
         public PropertyDefinition Property;
-        public int Get, Set;
+        public int GetCount;
+        public int SetCount;
     }
 
-    static PropData[][]? Hits = null;
-    static int[]? ValueHits = null;
-    static (int, int)[]? HitsOfType = null;
-    private static Database _db;
+    static PropData[][]? Hits;
+    static int[]? ValueHits;
+    static (int, int)[]? HitsOfType;
+    private static Database? _db;
 
     [Conditional("DEBUG")]
     public static void Get(PropertyId id)
     {
         if (Hits != null)
-            Hits[id.TypeId.Id][(int)id.Id].Get++;
+            Hits[id.TypeId.Id][(int)id.Id].GetCount++;
     }
 
     [Conditional("DEBUG")]
     public static void Set(PropertyId id)
     {
         if (Hits != null)
-            Hits[id.TypeId.Id][(int)id.Id].Set++;
+            Hits[id.TypeId.Id][(int)id.Id].SetCount++;
     }
 
     [Conditional("DEBUG")]
@@ -154,25 +155,28 @@ public static class Profiler
     public static void Dump()
     {
         Debug.WriteLine("* HITS");
-        foreach (var property in Hits.SelectMany(x => x)
-                     .OrderByDescending(x => x.Get))
-        {
-            Debug.WriteLine(
-                $"  {property.Type.Name ?? ""}.{property.Property.Name}: get {property.Get} / set {property.Set}");
-        }
+        if(Hits!= null)
+            foreach (var property in Hits.SelectMany(x => x)
+                         .OrderByDescending(x => x.GetCount))
+            {
+                Debug.WriteLine(
+                    $"  {property.Type.Name}.{property.Property.Name}: get {property.GetCount} / set {property.SetCount}");
+            }
 
         Debug.WriteLine("* VALUEHITS");
-        foreach (var type in Enum.GetValues<PropertyValue.ValueBaseType>())
-        {
-            Debug.WriteLine($"  {type,10}: {ValueHits[(int)type]}");
-        }
+        if(ValueHits != null)
+            foreach (var type in Enum.GetValues<PropertyValue.ValueBaseType>())
+            {
+                Debug.WriteLine($"  {type,10}: {ValueHits[(int)type]}");
+            }
 
         Debug.WriteLine("* EVENTS");
-        for (var index = 0; index < HitsOfType.Length; index++)
-        {
-            var (total, success) = HitsOfType[index];
-            Debug.WriteLine($"  {_db.Types[index].Name,10}: {100 * success / (float)total}% {success} / {total}");
-        }
+        if (HitsOfType != null)
+            for (var index = 0; index < HitsOfType.Length; index++)
+            {
+                var (total, success) = HitsOfType[index];
+                Debug.WriteLine($"  {_db!.Types[index].Name,10}: {100 * success / (float)total}% {success} / {total}");
+            }
 
         Debug.WriteLine(
             $"Events: {Database.EventAttemptSuccess} / {Database.EventAttemptCount} = {100f * Database.EventAttemptSuccess / Database.EventAttemptCount}%");

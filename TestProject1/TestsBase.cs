@@ -52,9 +52,9 @@ public class TestsBase
         {
             var reparsed = StoryParser.Parse(printed, out var errors2);
             Assert.That(errors2.Count, Is.EqualTo(errorCount), "During reparse: " + string.Join(", ", errors2));
-            // Console.WriteLine("### REPRINT 2");
             var print2 = reparsed.Printer.Print();
-            // Console.WriteLine(print2);
+            Console.WriteLine("### REPRINT 2");
+            Console.WriteLine(print2);
             Assert.That(print2, Is.EqualTo(printed));
         }
 

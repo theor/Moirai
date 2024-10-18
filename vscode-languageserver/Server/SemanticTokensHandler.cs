@@ -328,10 +328,6 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         PushSemanticToken(context.EVENT().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(id.Symbol, SemanticTokenType.Class);
         PushSymbol(id.Symbol, SymbolKind.Function);
-        foreach (var cat in context.categories().ID())
-        {
-            PushSemanticToken(cat.Symbol, SemanticTokenType.Decorator);
-        }
 
         context.scope().Accept(this);
         return VisitTerminals(context);
@@ -352,10 +348,6 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         PushSemanticToken(context.TRIGGER().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(id.Symbol, SemanticTokenType.Class, SemanticTokenModifier.Definition);
         PushSymbol(id.Symbol, SymbolKind.Event);
-        foreach (var cat in context.categories().ID())
-        {
-            PushSemanticToken(cat.Symbol, SemanticTokenType.Decorator, SemanticTokenModifier.Modification);
-        }
 
         if (context.scope() != null)
             context.scope().Accept(this);
