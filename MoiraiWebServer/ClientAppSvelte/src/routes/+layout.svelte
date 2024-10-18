@@ -29,7 +29,7 @@
     <AppBar>
       <svelte:fragment slot="lead">
         <img src="/icon.png" alt="Moirai" class="w-8 h-8 mr-2" />
-        <strong class="text-xl uppercase mr-4">Moirai</strong>
+        <strong class="text-xl mr-4 font-serif">Moirai</strong>
       </svelte:fragment>
       <svelte:fragment slot="default">
         <TabGroup class="w-100 inline-block">
