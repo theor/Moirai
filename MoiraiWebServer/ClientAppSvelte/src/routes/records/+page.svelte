@@ -32,6 +32,7 @@ $: {
     const offset = $virtualizer.getOffsetForIndex(index);
     if(offset)
       $virtualizer.scrollToOffset(offset[0]);
+      $moiraiViewStore.gotoYear = undefined;
   }
 }
 

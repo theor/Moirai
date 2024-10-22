@@ -11,6 +11,7 @@
   import { page } from '$app/stores';
   
   let yearInput: HTMLInputElement | undefined;
+  let yearValue: number | undefined = undefined;
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
   function gotoLine() {
     console.log('gotoLine');
@@ -39,15 +40,22 @@
         </TabGroup>
         <span class="divider-vertical" />
         <span>Year {$moiraiStore.year}</span>
+          <form class="inline"
+            on:submit|preventDefault={() => {
+              $moiraiViewStore.gotoYear = yearValue;
+              yearValue = undefined;
+            }}>
         <label class="label inline-block">
           <input
             placeholder="Go to"
             bind:this={yearInput}
-            bind:value={$moiraiViewStore.gotoYear}
+          
+            bind:value={yearValue}
             class="input w-30"
             type="text"
           />
         </label>
+          </form>
         <button type="button" class="btn variant-filled-surface" on:click={() => moiraiStore.reset()}>Reset</button>
         <button type="button" class="btn variant-filled-surface" on:click={() => moiraiStore.passYears(100)}
           >Pass years</button
