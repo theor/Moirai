@@ -323,7 +323,7 @@ event char_prestige_update items {
         }
     }
 }
-@frequency(1, PerXYear, 1)
+@frequency(1, PerXYear, 10)
 event char_joins_faith {
     pick Person $x: (alive, god = null)
     pick God $g
