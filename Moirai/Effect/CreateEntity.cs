@@ -156,10 +156,10 @@ public class If : IValue
         {
             res = instr.Execute(ctx);
             if (!res.BoolValue)
-                break;
+               break;
         }
 
-        return true;
+        return res;
     }
 }
 

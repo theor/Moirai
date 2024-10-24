@@ -7,11 +7,20 @@ public class TagsTests : TestsBase
     {
         var db = Run(@"
 @tag('x')
-event r1 x {
+@start
+event r1 {
     record('')
 }
+@start
 @tag('x', 'y')
 event r2 {
+    record('')
+}
+@tag('x')
+@tag('y')
+@frequency(1, EveryXYear, 1)
+@tag('z')
+event r3 {
     record('')
 }
 

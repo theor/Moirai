@@ -141,7 +141,7 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
             
         }
 
-        public override IEnumerable<TextEdit> VisitFilter(MoiraiParser.FilterContext context)
+        public override IEnumerable<TextEdit> VisitAttribute(MoiraiParser.AttributeContext context)
         {
             return EnsureSpaces(
                 (context.AT(), 0, 0)    

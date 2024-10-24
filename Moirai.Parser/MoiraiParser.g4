@@ -5,12 +5,10 @@ options {
   tokenVocab=moirai_lexer;
 
 }
-r: (event|trigger|enum_definition|type_definition|function_definition|LINE_BREAK)+ EOF;
-attribute: AT ID type_id PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE LINE_BREAK;
-// filter:AT (occurence=NUMBER ID years=NUMBER)? ID LINE_BREAK?;
-filter:AT attr=ID (PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE)? LINE_BREAK?;
-event: filter? EVENT  ID scope;
-//categories: ID* ;
+r: (def|LINE_BREAK)+ EOF;
+def: attribute* (event|trigger|enum_definition|type_definition|function_definition); 
+attribute: AT attr=ID (PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE)? LINE_BREAK;
+event: EVENT  ID scope;
 trigger: TRIGGER ID scope;
 when: WHEN type_id (AND expr)* SPACE* LINE_BREAK+;
 when_created: WHEN_CREATED type_id (AND expr)* SPACE* LINE_BREAK+;
@@ -40,7 +38,7 @@ expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     ;
 
-type_definition: attribute* ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* (prop_definition|function_definition)* SCOPE_CLOSE LINE_BREAK+ ;
+type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* (prop_definition|function_definition)* SCOPE_CLOSE LINE_BREAK+ ;
 
 //range: (PAREN_OPEN number COMMA number PAREN_CLOSE);
 prop_definition: PROP property_id COLON type LINE_BREAK+ ;

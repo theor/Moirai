@@ -2,6 +2,7 @@
   import { moiraiStore, type EntityChangeDisplay } from '$lib/connection';
   import type { Changeset } from '$lib/types';
   import MoiraiText from '../../components/MoiraiText.svelte';
+  import EntityChip from "../../components/EntityChip.svelte";
 
   let changesets: EntityChangeDisplay[] = [];
   function subscribe_changesets(node: HTMLElement) {
@@ -47,7 +48,9 @@
     <tbody>
       {#each changesets as changeset}
         <tr>
-          <td>{changeset.id}</td>
+          <td>
+              <EntityChip id={changeset.id} label={''+changeset.id} active={false} />
+          </td>
           <td>{changeset.year}</td>
           <td>{changeset.actionName}</td>
           <td>

@@ -324,7 +324,6 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     public override object? VisitEvent(MoiraiParser.EventContext context)
     {
         var id = context.ID();
-        context.filter()?.Accept(this);
         PushSemanticToken(context.EVENT().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(id.Symbol, SemanticTokenType.Class);
         PushSymbol(id.Symbol, SymbolKind.Function);
@@ -337,6 +336,9 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     {
         PushSemanticToken(context.FUNCTION().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(context.fun_id().ID().Symbol, SemanticTokenType.Function, SemanticTokenModifier.Definition);
+        if(context.type() != null)
+            PushSemanticToken(context.type().ID().Symbol, SemanticTokenType.Type);
+
         context.type()?.Accept(this);
         context.scope().Accept(this);
         return VisitTerminals(context);
@@ -373,49 +375,39 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
 
     public override object? VisitR(MoiraiParser.RContext context)
     {
-        foreach (var c in context.children)
+        foreach (var c in context.def())
         {
-            switch (c)
+            foreach (var attribute in c.attribute())
+                attribute.Accept(this);
+            if (c.enum_definition() is { } e)
             {
-                case TerminalNodeImpl t: break;
-                case MoiraiParser.Enum_definitionContext e:
+                e.Accept(this);
+            }
+            else if (c.@event() is { } ev)
+            {
+                ev.Accept(this);
+            }
+            else if (c.trigger() is {} tr)
+            {
+                tr.Accept(this);
+            }
+            else if (c.type_definition() is {} typeDefinitionContext)
+            {
+                PushSemanticToken(typeDefinitionContext.ENTITY().Symbol, SemanticTokenType.Keyword);
+                PushSemanticToken(typeDefinitionContext.TYPE_ID().Symbol, SemanticTokenType.Type);
+                foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
                 {
-                    e.Accept(this);
-                    break;
+                    propDefinitionContext.Accept(this);
                 }
-                case MoiraiParser.EventContext ev:
-                {
-                    ev.Accept(this);
-                    break;
-                }
-                case MoiraiParser.TriggerContext tr:
-                {
-                    tr.Accept(this);
-                    break;
-                }
-                case MoiraiParser.Type_definitionContext typeDefinitionContext:
-                {
-                    foreach (var attributeContext in typeDefinitionContext.attribute())
-                    {
-                        attributeContext.Accept(this);
-                    }
 
-                    PushSemanticToken(typeDefinitionContext.ENTITY().Symbol, SemanticTokenType.Keyword);
-                    PushSemanticToken(typeDefinitionContext.TYPE_ID().Symbol, SemanticTokenType.Type);
-                    foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
-                    {
-                        propDefinitionContext.Accept(this);
-                    }
-                    
-                    foreach (var functionDefinitionContext in typeDefinitionContext.function_definition())
-                    {
-                        functionDefinitionContext.Accept(this);
-                    }
-                    
-
-                    break;
+                foreach (var functionDefinitionContext in typeDefinitionContext.function_definition())
+                {
+                    functionDefinitionContext.Accept(this);
                 }
-                default: throw new InvalidOperationException($"Not handled: {c} {c.GetType()}");
+            }
+            else
+            {
+                continue;
             }
         }
 
@@ -443,7 +435,6 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     {
         PushSemanticToken(context.AT().Symbol, SemanticTokenType.Decorator);
         PushSemanticToken(context.ID().Symbol, SemanticTokenType.Decorator);
-        PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
         foreach (var expr in context.expr())
             expr.Accept(this);
 
@@ -585,12 +576,6 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             }
 
         return base.VisitTerminal(node);
-    }
-
-    public override object? VisitFilter(MoiraiParser.FilterContext context)
-    {
-        PushSemanticToken(context, SemanticTokenType.Decorator);
-        return null;
     }
 
     public override object? VisitPath(MoiraiParser.PathContext context)

@@ -21,6 +21,7 @@ public class History
 
 public struct Changeset(int id, string actionName, long year)
 {
+    // TODO: Entity prop list is by ref - the new entity is not a copy
     public struct Changed(Entity prev, Entity @new)
     {
         public readonly Entity Prev = prev;

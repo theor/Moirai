@@ -540,7 +540,8 @@ entity Person {
 event born_char {
     create Person $p: ('{random Name}')
 }
-@start event init {
+@start
+event init {
     call (born_char, 10)
 }
 event r {

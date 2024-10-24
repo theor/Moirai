@@ -30,17 +30,35 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         _current = RootScope;
     }
 
+    MoiraiParser.AttributeContext[] _currentAttribute;
+
     public override object? VisitR(MoiraiParser.RContext context)
     {
-        foreach (var enumDefinitionContext in context.enum_definition())
+        void VisitDefinitionsOfType<T>(Func<MoiraiParser.DefContext, T> selector) where T: ParserRuleContext 
         {
-            enumDefinitionContext.Accept(this);
+            foreach (MoiraiParser.DefContext defContext in context.def())
+            {
+                _currentAttribute = defContext.attribute();
+                if(selector(defContext) is { } parserRuleContext)
+                    parserRuleContext.Accept(this);
+                _currentAttribute = null!;
+            }
+        }   
+        IEnumerable<(T, MoiraiParser.AttributeContext[])> Each<T>(Func<MoiraiParser.DefContext, T> selector) where T: ParserRuleContext 
+        {
+            foreach (MoiraiParser.DefContext defContext in context.def())
+            {
+                if(selector(defContext) is { } t)
+                    yield return (t,defContext.attribute());
+            }
         }
 
+        VisitDefinitionsOfType(x => x.enum_definition());
+        
         List<(EntityType Id, MoiraiParser.Type_definitionContext attr)> typesContexts = new();
         List<(EntityType Id, MoiraiParser.AttributeContext attr)> deferredTypeAttributes = new();
 
-        foreach (var typeDefinitionContext in context.type_definition())
+        foreach (var (typeDefinitionContext, attributes) in Each(x => x.type_definition()))
         {
             if (typeDefinitionContext.TYPE_ID() == null)
                 return AddError(StoryParser.ErrorCode.TypenameMustStartWithUpperCase,
@@ -53,7 +71,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             Linker?.DeclareType(new FileRange(typeDefinitionContext), type.Id);
 
             typesContexts.Add((type, typeDefinitionContext));
-            foreach (var attr in typeDefinitionContext.attribute())
+            foreach (var attr in attributes)
                 deferredTypeAttributes.Add((type, attr));
         }
 
@@ -88,14 +106,14 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
                 continue;
             }
 
-            if (attr.expr().Length < 2)
+            if (attr.expr().Length < 3)
             {
                 AddError(StoryParser.ErrorCode.MissingArgument, attr,
                     "display expects two arguments, a string and and expression");
                 continue;
             }
 
-            var refReferencedType = ParseType(attr.type_id().TYPE_ID());
+            var refReferencedType = ParseType(attr.expr(0).value().type_id().TYPE_ID());
             if (!refReferencedType.IsRefType)
                 AddError(StoryParser.ErrorCode.UnknownEntityType, attr, "expected an Entity type");
 
@@ -103,29 +121,32 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             {
                 DeclareVar("$self", tid.RefType, id.Symbol, out var varIndex);
                 DeclareVar("$other", refReferencedType, id.Symbol, out var otherVarIndex);
-                var expr = ParseExprSql(attr.expr(1))!;
+                var expr = ParseExprSql(attr.expr(2))!;
                 InterpolatedString? itemDisplay = null;
-                if (attr.expr(2)?.value()?.@string() != null)
-                    itemDisplay = ParseInterpolatedString(attr.expr(2).value().@string());
-                Display d = new Display(Database.GetEntityType(refReferencedType), varIndex, otherVarIndex,
-                    attr.expr(0).GetText(), expr, itemDisplay);
+                if (attr.expr(3)?.value()?.@string() != null)
+                    itemDisplay = ParseInterpolatedString(attr.expr(3).value().@string());
+                Display d = new Display(Database.GetEntityType(refReferencedType)!, varIndex, otherVarIndex,
+                    attr.expr(1).GetText(), expr, itemDisplay);
                 var t = Database.Types[(int) (tid.Id.Id)];
 
                 t.Attributes.Add(d);
             }
         }
 
-        foreach (var fundef in context.function_definition())
+        foreach (var (fundef, attrs) in Each(x => x.function_definition()))
         {
             ParseFunctionDefinition(fundef);
         }
 
-        foreach (var child in context.children)
+        
+        foreach (var child in context.def())
         {
-            if (child is MoiraiParser.EventContext e)
+            _currentAttribute = child.attribute();
+            if (child.@event() is { } e)
                 e.Accept(this);
-            else if (child is MoiraiParser.TriggerContext t)
+            else if (child.trigger() is {} t)
                 t.Accept(this);
+            _currentAttribute = null;
         }
 
         return null;
@@ -230,73 +251,21 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         string actionId = context.ID().GetText();
         using var _ = new VariableDeclarationScopeDisposable(this, context.scope());
-        IFilter? f = null;
-        if (context.filter() != null)
-        {
-            var p = context.filter();
-            var args = p.expr();
-            switch (p.attr.Text)
-            {
-                case "start":
-                    f = new FilterAtStart();
-                    break;
-                case "frequency":
-                    if (args.Length != 3)
-                    {
-                        AddError(StoryParser.ErrorCode.MissingArgument, context.filter(), "frequency expects 3 arguments");
-                    }
-
-                    if (!ParseEnum<Database.Frequency>(args[1].value(), out var val))
-                        // .TryParse<Database.Frequency>(args[1].GetText(), out var freq))
-                        AddError(StoryParser.ErrorCode.UnknownEnum, args[1],
-                            "Should be a value among " + string.Join(", ", Enum.GetNames<Database.Frequency>()));
-                    var x = int.Parse(args[0].GetText());
-                    var y = int.Parse(args[2].GetText());
-                    switch (val)
-                    {
-                        case Database.Frequency.EveryXYear:
-                            f = new FilterExactlyXEveryYYears(x, y, Database.Actions.Count + 1);
-                            break;
-                        case Database.Frequency.PerXYear:
-                            f = new FilterProbabilityXPerYears(x, y);
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-
-                    break;
-                default:
-                    AddError(StoryParser.ErrorCode.UnknownCall, context.filter(), "Unknown attribute");
-                    break;
-                // case "every":
-                // {
-                //     var x = int.Parse(p.occurence.Text);
-                //     var y = int.Parse(p.years.Text);
-                //     f = new FilterExactlyXEveryYYears(x, y, Database.Actions.Count + 1);
-                //     break;
-                // }
-                // case "per":
-                // {
-                //     var x = int.Parse(p.occurence.Text);
-                //     var y = int.Parse(p.years.Text);
-                //     f = new FilterProbabilityXPerYears(x, y);
-                //     break;
-                // }
-            }
-        }
+        
+        ParseAttributes(out var tags, out var f);
 
 
-        CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f);
+        CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f, tags:tags);
         foreach (MoiraiParser.EffectContext effectContext in context.scope().effect())
         {
             // if (effectContext.comment() != null)
             //     continue;
             var effect = ParseEffect(effectContext, out var _);
-            if (effect == null)
-            {
-                AddError(StoryParser.ErrorCode.NullEffect, effectContext, effectContext.GetText());
-                continue;
-            }
+            // if (effect == null)
+            // {
+            //     AddError(StoryParser.ErrorCode.NullEffect, effectContext, effectContext.GetText());
+            //     continue;
+            // }
 
             CurrentEventTrigger.Effects.Add(effect);
         }
@@ -306,12 +275,85 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         return null;
     }
 
+    private void ParseAttributes(out List<string>? tags, out IFilter? f)
+    {
+        tags = null;
+        f = null;
+        if (_currentAttribute != null)
+        {
+            for (int i = 0; i < _currentAttribute.Length; i++)
+            {
+                var p = _currentAttribute[i];
+                var args = p.expr();
+                switch (p.attr.Text)
+                {
+                    case "tag":
+                        tags ??= new();
+                        MoiraiParser.ExprContext[] exprContexts = p.expr();
+                        for (int j = 0; j < exprContexts.Length; j++)
+                        {
+                            tags.Add(exprContexts[j].value().@string().GetText());
+                            
+                        }
+                        break;
+                    case "start":
+                        f = new FilterAtStart();
+                        break;
+                    case "frequency":
+                        if (args.Length != 3)
+                        {
+                            AddError(StoryParser.ErrorCode.MissingArgument, p,
+                                "frequency expects 3 arguments");
+                        }
+
+                        if (!ParseEnum<Database.Frequency>(args[1].value(), out var val))
+                            // .TryParse<Database.Frequency>(args[1].GetText(), out var freq))
+                            AddError(StoryParser.ErrorCode.UnknownEnum, args[1],
+                                "Should be a value among " + string.Join(", ", Enum.GetNames<Database.Frequency>()));
+                        var x = int.Parse(args[0].GetText());
+                        var y = int.Parse(args[2].GetText());
+                        switch (val)
+                        {
+                            case Database.Frequency.EveryXYear:
+                                f = new FilterExactlyXEveryYYears(x, y, Database.Actions.Count + 1);
+                                break;
+                            case Database.Frequency.PerXYear:
+                                f = new FilterProbabilityXPerYears(x, y);
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException();
+                        }
+
+                        break;
+                    default:
+                        AddError(StoryParser.ErrorCode.UnknownCall, p, "Unknown attribute");
+                        break;
+                    // case "every":
+                    // {
+                    //     var x = int.Parse(p.occurence.Text);
+                    //     var y = int.Parse(p.years.Text);
+                    //     f = new FilterExactlyXEveryYYears(x, y, Database.Actions.Count + 1);
+                    //     break;
+                    // }
+                    // case "per":
+                    // {
+                    //     var x = int.Parse(p.occurence.Text);
+                    //     var y = int.Parse(p.years.Text);
+                    //     f = new FilterProbabilityXPerYears(x, y);
+                    //     break;
+                    // }
+                }
+            }
+        }
+    }
+
     public EventTrigger? CurrentEventTrigger;
 
     public override object? VisitTrigger(MoiraiParser.TriggerContext context)
     {
         string actionId = context.ID().GetText();
-        CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null);
+        ParseAttributes(out var tags, out var _);        
+        CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, tags:tags);
 
         using var _ = new VariableDeclarationScopeDisposable(this, context.scope());
         if (context.scope().when_created() is { } createdContext)

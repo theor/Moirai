@@ -37,6 +37,8 @@ public class StoryPrinter
 
         foreach (var action in _database.Actions.Concat(_database.Triggers))
         {
+            if(action.Tags != null)
+                sb.AppendLine($"@tag({string.Join(", ", action.Tags)})");
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
             sb.AppendLine(
@@ -394,7 +396,7 @@ public class StoryPrinter
             }
             case InterpolatedString interpolatedString:
                 return
-                    $"'{string.Format(interpolatedString.FormatString, interpolatedString.Arguments.Select(a => (object) ($"{{{Print(a)}}}")).ToArray())}'";
+                    $"'{string.Format(interpolatedString.FormatString.Replace("'", "\\'"), interpolatedString.Arguments.Select(a => (object) ($"{{{Print(a)}}}")).ToArray())}'";
             case Literal literal:
                 return indentStr + Print(literal.Value);
             case PropertyPath path:
