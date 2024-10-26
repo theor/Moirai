@@ -20,6 +20,14 @@ public struct Entity
         _properties = new Property[type.Properties.Count];
     }
 
+    private Entity(Entity other)
+    {
+        Id = other.Id;
+        _type = other._type;
+        _properties = new Property[other._properties.Length];
+        other._properties.CopyTo(_properties, 0);
+    }
+
     internal void Reset()
     {
         Id = default;
@@ -79,6 +87,11 @@ public struct Entity
         p.Id = propertyId;
         p.Value = value;
         return prev;
+    }
+
+    public Entity Clone()
+    {
+        return new Entity(this);
     }
 }
 

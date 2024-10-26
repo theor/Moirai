@@ -234,7 +234,7 @@ event olds_dies {
 }
 ";
 
-        var db = StoryParser.Parse(script, out var error);
+        var db = StoryParser.Parse(script, out List<StoryParser.Error> _);
         db.Deserialize(json);
         db.Init();
         db.Printer.PrintDb();

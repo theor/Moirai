@@ -3,7 +3,8 @@
 public class History
 {
     public readonly HistoryMode Mode;
-    public readonly List<Changeset> Changesets = new();
+    private readonly List<Changeset> _changesets = new();
+    public IReadOnlyList<Changeset> Changesets => _changesets;
 
     public History(HistoryMode mode = HistoryMode.Default)
     {
@@ -16,6 +17,12 @@ public class History
         Default = 0,
 
         Story = 1,
+    }
+
+    public void AddChangeset(Changeset currentChangeset)
+    {
+        currentChangeset.CloseChangeset();
+        _changesets.Add(currentChangeset);
     }
 }
 
@@ -30,43 +37,21 @@ public struct Changeset(int id, string actionName, long year)
     public readonly int Id = id;
     public readonly string ActionName = actionName;
     public readonly long Year = year;
-    // public readonly List<Change> Changes = new();
     private List<Changed>? _changes;
     public IReadOnlyCollection<Changed> Changes => _changes as IReadOnlyCollection<Changed> ?? ArraySegment<Changed>.Empty;
-    // public string? Description { get; private set; } = null;
-    // public bool HasDescription => !String.IsNullOrEmpty(Description);
 
-    // public void AppendDescription(string? desc)
-    // {
-    //     if (!String.IsNullOrEmpty(desc))
-    //     {
-    //         if (!String.IsNullOrEmpty(this.Description))
-    //             this.Description += "\n";
-    //         // else
-    //         //     CurrentChangeset.Description = $"{Year}\n";
-    //         this.Description += desc;
-    //     }
-    // }
-    // public void GetAffectedEntities(HashSet<EntityId> changedEntities)
-    // {
-    //     foreach (var change in this.Changes)
-    //     {
-    //         changedEntities.Add(change.EntityId);
-    //         if (change.PrevValue.Type == PropertyValue.TypeRef && !change.PrevValue.Id.IsNull)
-    //             changedEntities.Add(change.PrevValue.Id);
-    //         if (change.NewValue.Type == PropertyValue.TypeRef && !change.NewValue.Id.IsNull)
-    //             changedEntities.Add(change.NewValue.Id);
-    //     }
-    // }
-
-    // public void GetTaggedEntities(List<(EntityId, TagId)> taggedEntities)
-    // {
-    //     foreach (var change in Changes)
-    //     {
-    //         if(change.Type == Change.ChangeType.AddTag)
-    //             taggedEntities.Add((change.EntityId, change.Tag));
-    //     }
-    // }
+    /// <summary>
+    /// for each changed entity, deep clone the new entity so its property values won't change when the actual entity is modified
+    /// this ensure the changeset show values at the time of the action and not the current values
+    /// </summary>
+    public void CloseChangeset()
+    {
+        for (var index = 0; index < _changes.Count; index++)
+        {
+            Changed changed = _changes[index];
+            _changes[index] = new Changed(changed.Prev, changed.New.Clone());
+        }
+    }
     public void RecordSet(Entity modifiedEntity, PropertyId property, PropertyValue prev)
     {
         var i = -1;

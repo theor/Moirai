@@ -360,7 +360,7 @@ WHERE default__id = $id;";
             }
 
             if (CurrentChangeset.Changes.Any())
-                History?.Changesets.Add(CurrentChangeset);
+                History?.AddChangeset(CurrentChangeset);
         }
         // _taggedEntities.Clear();
         // CurrentChangeset.GetTaggedEntities(_taggedEntities);
@@ -423,7 +423,7 @@ WHERE default__id = $id;";
                             }
                         }
                         if (CurrentChangeset.Changes.Any())
-                            History?.Changesets?.Add(CurrentChangeset);
+                            History?.AddChangeset(CurrentChangeset);
                     }
                 }
             }
