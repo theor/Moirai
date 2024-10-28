@@ -10,7 +10,8 @@ import {
   type EntityPropertyDisplay,
   type Message,
   MessageType,
-  type Record
+  type Record,
+  type Changeset
 } from './types';
 import { get, writable } from 'svelte/store';
 export interface Result {
@@ -39,33 +40,29 @@ export class SignalRConnection {
 
   static async make(): Promise<[SignalRConnection, ClientData, boolean]> {
     let connection = new signalR.HubConnectionBuilder()
-      // .withUrl("http://localhost:5028/hub")
-      // .withUrl("https://localhost:7148/hub")
       .withUrl('/hub')
       .configureLogging(signalR.LogLevel.Information)
       .build();
-    // connection.onclose()
     connection.on('messageReceived', (username: string, message: string) => {
       console.log('messageReceived', username, message);
     });
     await connection.start();
     console.log('done', connection.state);
     let clientData = await connection.invoke('GetClientData');
-    // console.log("data", clientData);
     return [
       new SignalRConnection(connection),
       clientData,
       connection.state === HubConnectionState.Connected
     ];
-    // connection.send("newMessage", "theoir", "test")
   }
 
   runAction(actionId: number) {
     return this.connection.send('RunAction', actionId);
   }
 
-  getChangesets(): IStreamResult<EntityChangeDisplay> {
-    return this.connection.stream<EntityChangeDisplay>('GetChangesets');
+  getChangesets(start: number, count: number): Promise<EntityChangeDisplay[]> {
+    console.warn('GET CHANGES', start, count);
+    return this.connection.invoke('GetChangesets', start, count);
   }
 
   async reset() {
@@ -96,23 +93,14 @@ export class SignalRConnection {
   }
 }
 
-// @ts-ignore
-// export const SignalRConnectionContext = createContext<{conn:SignalRConnection, data: [ClientData, (v:ClientData) => void], records: Record[]}>(null);
 interface State {
-  // reset: () => void;
-  // pushChangesets: (buffer: EntityChangeDisplay[]) => void;
-  // handleKeyPress: (this:Window, ev: KeyboardEvent) => any;
-  // keyboardEvent?: KeyboardEvent;
-  // clearEvent: () => void;
   year: number;
   connected: boolean;
   conn?: SignalRConnection;
   records: Record[];
   changesets: EntityChangeDisplay[];
   clientData?: ClientData;
-  // passYears: (amount:number) => void;
   passYearsProgress?: number;
-
   // toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => void;
 }
 export interface EntityChangeDisplay {
@@ -229,9 +217,9 @@ export const moiraiStore = {
   handleKeyPress: (e: any): void => {
     writableStore.update((x) => ({ ...x, keyboardEvent: e }));
   },
-  pushChangesets: (buffer: EntityChangeDisplay[]) => {
-    writableStore.update((x) => ({ ...x, changesets: [...buffer] }));
-  },
+  // pushChangesets: (buffer: EntityChangeDisplay[]) => {
+  //   writableStore.update((x) => ({ ...x, changesets: [...buffer] }));
+  // },
   toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
     const clientData = get(writableStore).clientData!;
     if (switchAll) {
@@ -248,115 +236,8 @@ export const moiraiStore = {
     }
     clientData.actions[id - 1].hidden = !clientData.actions[id - 1].hidden;
     writableStore.update((x) => ({ ...x, clientData: { ...clientData } }));
-  }
+  },
+  getChangesets:(start:number, count: number) => {
+    return get(writableStore).conn!.getChangesets(start, count);
+  },
 };
-
-//     SignalRConnection.make().then(([x, y, c]) => {
-//         console.log("ZUSTAND done")
-//         x.connection.onreconnected(_id => {
-//             console.log("ZUS " + true)
-//             set({connected: true});
-//         });
-//         x.connection.onreconnecting(_id => {
-//             console.log("ZUS " + false)
-//             set({connected: false});
-//         });
-//         let buffer: Record[] = [];
-//         setInterval(() => {
-//             if (buffer.length > 0) {
-//                 // console.log("BUFFER RECORDs")
-//                 set({records: [...get().records, ...buffer]});
-//                 buffer = []
-//             }
-//         }, 500);
-//         x.streamRecords().subscribe({
-//             next(value: Message) {
-//                 // console.log(value, value.type === MessageType.Record);
-//                 switch (value.type) {
-//                     case MessageType.Reset:
-//                         if(value.year !== 0) {
-//                             console.warn(`RESET, fast forward to ${value.year}, current year is ${get().year}`)
-//                             _targetYear = value.year;
-//                         }
-//                         set({year: 0, records: []})
-//                         break;
-//                     case MessageType.Record:
-//                         buffer.push(value.record!);
-//                         break;
-//                     case MessageType.Year:
-//                         set({year: value.year})
-//                         if(_targetYear !== 0) {
-//                             try {
-//                                 console.log("fast forward to ", _targetYear);
-//                                 get().passYears(_targetYear - value.year);
-//                             }
-//                             finally {
-//                                 _targetYear = 0;
-//                             }
-//                         }
-//                         break;
-//                     default: console.error("UNKNOWN MESSAGE TYPE", value.type)
-//                 }
-//             },
-//             error(err: any) {
-//                 console.error(err)
-//             },
-//             complete() {
-//             }
-//         })
-//         set({conn: x, clientData: y, connected: c});
-//     })
-//     return ({
-//         year: 0,
-//         passYearsProgress: 0,
-//         connected: false,
-//         records: [],
-//         changesets: [],
-
-//         passYears: (amount: number) => {
-//             const subscriber: IStreamSubscriber<number> = {
-//                 next(value: number) {
-//                     set({passYearsProgress: value})
-//                 },
-//                 error(err: any) {
-//                     console.error(err)
-//                     set({passYearsProgress: undefined})
-//                 },
-//                 complete() {
-//                     console.log("PROGRESS COMPLETE");
-//                     set({passYearsProgress: undefined})
-//                 }
-//             };
-//             set({passYearsProgress: 0});
-//             return get().conn!.passYears(amount).subscribe(subscriber);
-//         },
-//         reset: async () => {
-//             const newYear = await get().conn!.reset();
-//             console.warn("newyear reset", newYear);
-//             set({year: newYear, records: []});
-//         },
-//         clearEvent: () => set({keyboardEvent: undefined}),
-//         handleKeyPress: (e: any): void => {
-//             set({keyboardEvent: e});
-//         },
-//         pushChangesets: (buffer: EntityChangeDisplay[]) =>  {
-//             set({changesets:  [...buffer]})
-//         },
-//         toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
-//             const clientData = get().clientData!;
-//             if (switchAll) {
-//                 set({
-//                     clientData: {
-//                         ...clientData, actions: clientData.actions.map((a:any) => a.id === id ? {
-//                             ...a,
-//                             hidden: !active
-//                         } : {...a, hidden: active})
-//                     }
-//                 });
-//                 return;
-//             }
-//             clientData.actions[id - 1].hidden = !clientData.actions[id - 1].hidden;
-//             set({clientData: {...clientData}});
-//         }
-//     });
-// });

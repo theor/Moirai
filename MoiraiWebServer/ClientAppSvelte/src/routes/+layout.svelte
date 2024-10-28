@@ -10,6 +10,8 @@
   import { TabGroup, Tab, TabAnchor } from '@skeletonlabs/skeleton';
   import { page } from '$app/stores';
   
+  import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query'
+
   let yearInput: HTMLInputElement | undefined;
   let yearValue: number | undefined = undefined;
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
@@ -18,9 +20,11 @@
     yearInput?.focus();
     yearInput?.select();
   }
+  const queryClient = new QueryClient()
 </script>
 
 <!-- App Shell -->
+<QueryClientProvider client={queryClient}>
 <div
   class="flex flex-col h-full"
   use:shortcut={{ control: true, code: 'KeyG', callback: gotoLine }}
@@ -73,3 +77,4 @@
     </main>
   </div>
 </div>
+</QueryClientProvider>

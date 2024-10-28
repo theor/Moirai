@@ -58,6 +58,6 @@
   {/await}
 </div>
 
-{#if typeNames}
+<!-- {#if typeNames}
   <TypeList {typeNames} />
-{/if}
+{/if} -->

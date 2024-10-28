@@ -408,59 +408,62 @@ public class ChatHub : Hub
         return value;
     }
 
-    public ChannelReader<EntityChangeDisplay> GetChangesets(
-        CancellationToken cancellationToken)
-    {
-        var channel = Channel.CreateUnbounded<EntityChangeDisplay>();
-
-        // We don't want to await WriteItemsAsync, otherwise we'd end up waiting 
-        // for all the items to be written before returning the channel back to
-        // the client.
-        _ = WriteChangesetsAsync(channel.Writer, cancellationToken);
-
-        return channel.Reader;
-    }
-    
-    private async Task WriteChangesetsAsync(
-        ChannelWriter<EntityChangeDisplay> writer,
-        CancellationToken cancellationToken)
-    {
-        Exception? localException = default;
-        try
-        {
-            int lastChangeset = 0;
-            while (true)
-            {
-                while (_db!.History!.Changesets.Count > 0 && lastChangeset < _db.History.Changesets.Count)
-                {
-                    var changeset = _db.History.Changesets[lastChangeset++];
-                    if((changeset.Changes.Count) > 0)
-                        foreach (var entityChangeDisplay in GetChangesetDetails(changeset))
-                            await writer.WriteAsync(entityChangeDisplay, cancellationToken);
-                }
-
-                await Task.Delay(500, cancellationToken);
-            }
-        }
-        catch (Exception e)
-        {
-            localException = e;
-        }
-        finally
-        {
-            writer.Complete(localException);
-        }
-    }
-    // public (int remaining, IEnumerable<Changeset> changesets) GetChangesets(int start, int count)
+    // public ChannelReader<EntityChangeDisplay> GetChangesets(
+    //     CancellationToken cancellationToken)
     // {
-    //     if(_db.History == null)            return (0, ArraySegment<Changeset>.Empty);
+    //     var channel = Channel.CreateUnbounded<EntityChangeDisplay>();
     //
-    //     var r = _db.History.Changesets.Count - start;
-    //     if (r <= 0)
-    //         return (0, ArraySegment<Changeset>.Empty);
-    //     var c = Math.Min(count, r);
-    //     return (r - count, _db.History.Changesets.Skip(start).Take(c));
+    //     // We don't want to await WriteItemsAsync, otherwise we'd end up waiting 
+    //     // for all the items to be written before returning the channel back to
+    //     // the client.
+    //     _ = WriteChangesetsAsync(channel.Writer, cancellationToken);
+    //
+    //     return channel.Reader;
     // }
+    //
+    // private async Task WriteChangesetsAsync(
+    //     ChannelWriter<EntityChangeDisplay> writer,
+    //     CancellationToken cancellationToken)
+    // {
+    //     Exception? localException = default;
+    //     try
+    //     {
+    //         int lastChangeset = 0;
+    //         while (true)
+    //         {
+    //             while (_db!.History!.Changesets.Count > 0 && lastChangeset < _db.History.Changesets.Count)
+    //             {
+    //                 var changeset = _db.History.Changesets[lastChangeset++];
+    //                 if((changeset.Changes.Count) > 0)
+    //                     foreach (var entityChangeDisplay in GetChangesetDetails(changeset))
+    //                         await writer.WriteAsync(entityChangeDisplay, cancellationToken);
+    //             }
+    //
+    //             await Task.Delay(500, cancellationToken);
+    //         }
+    //     }
+    //     catch (Exception e)
+    //     {
+    //         localException = e;
+    //     }
+    //     finally
+    //     {
+    //         writer.Complete(localException);
+    //     }
+    // }
+    public int GetChangesetsCount() => _db?.History?.Changesets.Count ?? 0;
+    public IEnumerable<EntityChangeDisplay> GetChangesets(int start, int count)
+    {
+        if(_db.History == null)            return (ArraySegment<EntityChangeDisplay>.Empty);
+    
+        var r = _db.History.Changesets.Count - start;
+        if (r <= 0)
+            return (ArraySegment<EntityChangeDisplay>.Empty);
+        var c = Math.Min(count, r);
+        return //(r - count,
+            _db.History.Changesets.Skip(start).Take(c).SelectMany(GetChangesetDetails) //);
+            ;
+    }
 
     public ChannelReader<Message> Stream(
         CancellationToken cancellationToken)

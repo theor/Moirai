@@ -609,6 +609,18 @@
     lodash.merge "^4.6.2"
     postcss-selector-parser "6.0.10"
 
+"@tanstack/query-core@5.59.16":
+  version "5.59.16"
+  resolved "https://registry.yarnpkg.com/@tanstack/query-core/-/query-core-5.59.16.tgz#aa4616e8a9c12afeef4cfbf3ed0f55f404d66e67"
+  integrity sha512-crHn+G3ltqb5JG0oUv6q+PMz1m1YkjpASrXTU+sYWW9pLk0t2GybUHNRqYPZWhxgjPaVGC4yp92gSFEJgYEsPw==
+
+"@tanstack/svelte-query@^5.59.16":
+  version "5.59.16"
+  resolved "https://registry.yarnpkg.com/@tanstack/svelte-query/-/svelte-query-5.59.16.tgz#cf2da1104cdf3c3d39b781d513a4ba6570203584"
+  integrity sha512-s0CRtjUK0Lo+uvRU+XFxWjmTRV1hr0fe+Z/R+wDGnTzbMKSyaSKYeC0aZSQKZdAO6R/DvEVrD9tgjof1ojufnQ==
+  dependencies:
+    "@tanstack/query-core" "5.59.16"
+
 "@tanstack/svelte-table@^8.20.5":
   version "8.20.5"
   resolved "https://registry.yarnpkg.com/@tanstack/svelte-table/-/svelte-table-8.20.5.tgz#3356e84de84c42d5c00fb57b59ebd2c51263aa4e"
