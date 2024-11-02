@@ -74,7 +74,7 @@
     <aside class="m-4 basis-1/4 overflow-auto">
       <DetailsPanel />
         {#if $moiraiStore.clientData}
-            <ActionList actionNames={$moiraiStore.clientData.actions} />
+            <ActionList />
         {/if}
     </aside>
     <main class="flex-1 space-y-4 p-4 pl-0">

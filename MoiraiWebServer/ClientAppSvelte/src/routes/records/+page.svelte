@@ -20,6 +20,7 @@
 
     let filterParam = filteredEntity($page);
     filtered = filterParam.getNumber();
+      
     console.log("filtered",filtered);
     // selected = data.selected;
     tableStore.update((store) => {
@@ -45,13 +46,22 @@
 
   const columns: ColumnDef<Record>[] = [
     {
-      header: 'Year2',
+      header: 'Year',
       accessorKey: 'year',
       size: 25,
       cell: (info) => {
         return flexRender(PreChip, { text: info.cell.getValue() });
       },
     },
+      {
+          header: 'Event',
+          minSize: 75,
+          id: 'actionId',
+          accessorKey: 'actionId',
+          cell: (info) => {
+              return flexRender(MoiraiText, { text: $moiraiStore.clientData!.actions[info.cell.getValue<number>()-1].name, selected: selected });
+          },
+      },
     {
       header: 'Text',
       accessorKey: 'text',
@@ -63,13 +73,16 @@
   const tableStore = writable({ selected: selected });
 
   const options = derived([moiraiStore, tableStore], ([$moiraiStore]) => {
-    // console.log('derived');
+    console.log('derived');
     return {
       getCoreRowModel: getCoreRowModel(),
       columns,
 
       data: $moiraiStore.records
-        .filter((r) => filtered < 0 || r.text.indexOf('#' + filtered + '>') !== -1)
+        .filter((r) =>
+            (filtered < 0 || r.text.indexOf('#' + filtered + '>') !== -1) &&
+            $moiraiStore.clientData!.actions.find(a => a.id === r.actionId)?.hidden !== true
+        )
         .map((r) => ({
           ...r,
           selected: selected, // Number(sel.get())
@@ -102,7 +115,7 @@
 <div>
   <div class="table-container scroll-container bg-surface-200-700-token" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
-      <table class="table table-hover table-compact w-full" style="overflow:unset">
+      <table class="table table-fixed table-hover table-compact w-full" style="overflow:unset">
         <thead>
           {#each $table.getHeaderGroups() as headerGroup}
             <tr>
@@ -130,7 +143,7 @@
                 idx * row.size}px);"
             >
               {#each rows[row.index].getVisibleCells() as cell (cell.id)}
-                <td>
+                <td class={cell.column.id}>
                   <svelte:component
                     this={flexRender(cell.column.columnDef.cell, cell.getContext())}
                     data-index={row.index}
@@ -162,5 +175,12 @@
     height: 88vh;
     width: 100%;
     overflow: auto;
+  }
+
+  :global(td.actionId span) {
+      @apply inline-block;
+      @apply overflow-ellipsis;
+      @apply overflow-hidden;
+      @apply w-full;
   }
 </style>
