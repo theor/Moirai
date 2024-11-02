@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { moiraiStore } from '$lib/connection';
   import { filteredEntity, selectedEntity } from '$lib/utils';
   import { page } from '$app/stores';
-  import { popup, type PopupSettings } from '@skeletonlabs/skeleton';
 
   export let id: number;
   export let label: string;
@@ -29,7 +27,9 @@
       filter.set(id + '');
     }}
     on:click={(e) => {
-      sel.set(id + '');
+      setTimeout(() => {
+        sel.set(id + '');
+      }, 300);
     }}
   >
     {label ?? id}

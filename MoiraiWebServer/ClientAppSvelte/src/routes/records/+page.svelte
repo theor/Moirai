@@ -8,15 +8,19 @@
   import type { Record } from '$lib/types';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import PreChip from '../../components/PreChip.svelte';
-  import { urlParam } from '$lib/utils';
-    import { moiraiViewStore } from '$lib';
-    import binarysearch from "binary-search";
+  import { filteredEntity, selectedEntity, urlParam } from '$lib/utils';
+  import { moiraiViewStore } from '$lib';
+  import binarysearch from 'binary-search';
   let selected: number = -1;
+  let filtered: number = -1;
 
   $: {
-    let selParam = urlParam($page, 'e');
+    let selParam = selectedEntity($page);
     selected = selParam.getNumber(); // Number($page.url.searchParams.get('e')) ?? -1;
 
+    let filterParam = filteredEntity($page);
+    filtered = filterParam.getNumber();
+    console.log("filtered",filtered);
     // selected = data.selected;
     tableStore.update((store) => {
       return {
@@ -26,17 +30,18 @@
     });
   }
 
-$: {
-  if($moiraiViewStore.gotoYear){
-    const index = binarysearch($moiraiStore.records, {year: $moiraiViewStore.gotoYear}, (a, b) => a.year - b.year);
-    const offset = $virtualizer.getOffsetForIndex(index);
-    if(offset)
-      $virtualizer.scrollToOffset(offset[0]);
+  $: {
+    if ($moiraiViewStore.gotoYear) {
+      const index = binarysearch(
+        $moiraiStore.records,
+        { year: $moiraiViewStore.gotoYear },
+        (a, b) => a.year - b.year,
+      );
+      const offset = $virtualizer.getOffsetForIndex(index);
+      if (offset) $virtualizer.scrollToOffset(offset[0]);
       $moiraiViewStore.gotoYear = undefined;
+    }
   }
-}
-
-
 
   const columns: ColumnDef<Record>[] = [
     {
@@ -53,31 +58,31 @@ $: {
       cell: (info) => {
         return flexRender(MoiraiText, { text: info.cell.getValue(), selected: selected });
       },
-      //   cell: (info) => {
-      //     return createRender(MoiraiText, { text: record.value, selected: Number(sel.get()) });
-      //   }
     },
   ];
   const tableStore = writable({ selected: selected });
 
   const options = derived([moiraiStore, tableStore], ([$moiraiStore]) => {
-    console.log('derived');
+    // console.log('derived');
     return {
       getCoreRowModel: getCoreRowModel(),
       columns,
-      data: $moiraiStore.records.map((r) => ({
-        ...r,
-        selected: selected, // Number(sel.get())
-      })),
+
+      data: $moiraiStore.records
+        .filter((r) => filtered < 0 || r.text.indexOf('#' + filtered + '>') !== -1)
+        .map((r) => ({
+          ...r,
+          selected: selected, // Number(sel.get())
+        })),
     };
   });
 
   let virtualListEl: HTMLDivElement;
   const table = createSvelteTable(options);
   $: rows = $table.getRowModel().rows;
-  $: {
-    console.log('rerender', selected);
-  }
+  // $: {
+  //   console.log('rerender', selected);
+  // }
 
   let offset = 0;
 
@@ -97,7 +102,6 @@ $: {
 <div>
   <div class="table-container scroll-container bg-surface-200-700-token" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
-      <!-- <table class="table table-hover table-compact table-auto w-full"> -->
       <table class="table table-hover table-compact w-full" style="overflow:unset">
         <thead>
           {#each $table.getHeaderGroups() as headerGroup}
@@ -127,9 +131,6 @@ $: {
             >
               {#each rows[row.index].getVisibleCells() as cell (cell.id)}
                 <td>
-                  <!-- {idx}
-                  {row.size}
-                  {row.index} -->
                   <svelte:component
                     this={flexRender(cell.column.columnDef.cell, cell.getContext())}
                     data-index={row.index}
@@ -139,21 +140,6 @@ $: {
             </tr>
           {/each}
         </tbody>
-        <!-- <tfoot>
-          {#each $table.getFooterGroups() as footerGroup}
-            <tr>
-              {#each footerGroup.headers as header}
-                <th>
-                  {#if !header.isPlaceholder}
-                    <svelte:component
-                      this={flexRender(header.column.columnDef.footer, header.getContext())}
-                    />
-                  {/if}
-                </th>
-              {/each}
-            </tr>
-          {/each}
-        </tfoot> -->
       </table>
     </div>
   </div>
@@ -176,6 +162,5 @@ $: {
     height: 88vh;
     width: 100%;
     overflow: auto;
-    /* border: solid 1px black; */
   }
 </style>

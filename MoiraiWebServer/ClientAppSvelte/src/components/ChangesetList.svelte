@@ -11,7 +11,7 @@
   let virtualItemEls: HTMLDivElement[] = [];
 
   const query = createInfiniteQuery({
-    queryKey: ['projects'],
+    queryKey: ['changesets'],
     queryFn: ({ pageParam }: { pageParam: number }) => fetchServerPage(40, pageParam),
     initialPageParam: 0,
     getNextPageParam: (_lastGroup, groups) => {

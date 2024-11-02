@@ -14,6 +14,7 @@ import {
   type Changeset
 } from './types';
 import { get, writable } from 'svelte/store';
+import { useQueryClient } from '@tanstack/svelte-query';
 export interface Result {
   eid: number;
   properties: EntityPropertyDisplay[];
@@ -41,7 +42,7 @@ export class SignalRConnection {
   static async make(): Promise<[SignalRConnection, ClientData, boolean]> {
     let connection = new signalR.HubConnectionBuilder()
       .withUrl('/hub')
-      .configureLogging(signalR.LogLevel.Information)
+      .configureLogging(signalR.LogLevel.Warning)
       .build();
     connection.on('messageReceived', (username: string, message: string) => {
       console.log('messageReceived', username, message);
@@ -91,6 +92,11 @@ export class SignalRConnection {
   getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]> {
     return this.connection.invoke('GetFamilyTree', entityId, maxDepth);
   }
+
+  // toggleActionFiltering (id: number, active: boolean, switchAll: boolean) {
+  //   this.connection.send('ToggleActionFiltering', id, active, switchAll);
+  //   useQueryClient().refetchQueries({queryKey:});
+  // }
 }
 
 interface State {
@@ -210,16 +216,10 @@ export const moiraiStore = {
     writableStore.update((x) => ({ ...x, passYearsProgress: 0 }));
     return get(writableStore).conn!.passYears(amount).subscribe(subscriber);
   },
-  selectEntity: (id: number) => {
-    console.log('selectEntity', id);	
-  },
   clearEvent: () => writableStore.update((x) => ({ ...x, keyboardEvent: undefined })),
   handleKeyPress: (e: any): void => {
     writableStore.update((x) => ({ ...x, keyboardEvent: e }));
   },
-  // pushChangesets: (buffer: EntityChangeDisplay[]) => {
-  //   writableStore.update((x) => ({ ...x, changesets: [...buffer] }));
-  // },
   toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
     const clientData = get(writableStore).clientData!;
     if (switchAll) {

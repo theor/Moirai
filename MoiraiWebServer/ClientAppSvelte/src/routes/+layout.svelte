@@ -11,6 +11,8 @@
   import { page } from '$app/stores';
   
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query'
+  import TypeList from "../components/TypeList.svelte";
+  import ActionList from "../components/ActionList.svelte";
 
   let yearInput: HTMLInputElement | undefined;
   let yearValue: number | undefined = undefined;
@@ -71,6 +73,9 @@
   <div class="flex-1 h-full flex flex-row">
     <aside class="m-4 basis-1/4 overflow-auto">
       <DetailsPanel />
+        {#if $moiraiStore.clientData}
+            <ActionList actionNames={$moiraiStore.clientData.actions} />
+        {/if}
     </aside>
     <main class="flex-1 space-y-4 p-4 pl-0">
       <slot />
