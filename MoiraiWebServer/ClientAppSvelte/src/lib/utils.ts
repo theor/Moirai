@@ -27,10 +27,11 @@ export function urlParam(page: Page<any>, name: string) {
       // window.location.search = p.toString();
   };
   return {
-    getNumber: () => {
+    getNumber: (def?: number) => {
       const s = page.url.searchParams.get(name) as string;
-      if(s === "" || !s) return -1;
-      return Number(s) ?? -1;
+      const defNumber = def ?? -1;
+      if(s === "" || !s) return defNumber;
+      return Number(s) ?? defNumber;
     }, // new URLSearchParams(window.location.search).get(name),
     get: () => page.url.searchParams.get(name) as string, // new URLSearchParams(window.location.search).get(name),
     set,

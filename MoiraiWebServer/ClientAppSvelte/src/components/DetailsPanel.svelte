@@ -24,7 +24,6 @@
 
     $: typeNames = $moiraiStore.clientData?.types?.map((t) => t.name);
 </script>
-<div class="card p-4 mb-2 h-2/3 flex flex-col">
     <div class="flex">
         {#if selected > 0}
             <h3 class="h3 grow">
@@ -47,7 +46,7 @@
         <p>Loading...</p>
     {:then details}
         {#if details}
-            <div class="overflow-auto px-4 py-1 sm:px-0 grid grid-cols-1 lg:grid-cols-3 gap-x-4 gap-y-1">
+            <div class="overflow-auto h-full px-4 py-1 sm:px-0 grid grid-cols-1 lg:grid-cols-3 gap-x-4 gap-y-1">
                 {#each details as detail, idx}
                         <div class="text-sm lg:justify-self-end font-semibold leading-6 text-gray-900 capitalize">
                             {#if idx === 0 || details[idx - 1].label !== detail.label}
@@ -61,7 +60,6 @@
             </div>
         {/if}
     {/await}
-</div>
 
 <!-- {#if typeNames}
   <TypeList {typeNames} />

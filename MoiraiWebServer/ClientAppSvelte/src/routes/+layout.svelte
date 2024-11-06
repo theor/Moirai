@@ -13,6 +13,7 @@
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query'
   import TypeList from "../components/TypeList.svelte";
   import ActionList from "../components/ActionList.svelte";
+  import {urlParam} from "$lib/utils";
 
   let yearInput: HTMLInputElement | undefined;
   let yearValue: number | undefined = undefined;
@@ -22,16 +23,22 @@
     yearInput?.focus();
     yearInput?.select();
   }
+  function switchTab() {
+      activeTab = (activeTab + 1) % 2;
+  }
   const queryClient = new QueryClient()
+  const activeTabParam = urlParam($page, 'tab');
+  let activeTab = 0;
 </script>
 
 <!-- App Shell -->
 <QueryClientProvider client={queryClient}>
 <div
-  class="flex flex-col h-full"
+  class="grid grid-cols-4 grid-flow-row auto-rows-max h-full w-full"
   use:shortcut={{ control: true, code: 'KeyG', callback: gotoLine }}
+  use:shortcut={{ control: true, code: 'KeyD', callback: switchTab }}
 >
-  <header>
+  <header class="col-span-4">
     <!-- App Bar -->
     <AppBar>
       <svelte:fragment slot="lead">
@@ -42,10 +49,11 @@
         <TabGroup class="w-100 inline-block">
           <TabAnchor href="/records" selected={$page.url.pathname === '/records'}>Records</TabAnchor>
           <TabAnchor href="/changesets" selected={$page.url.pathname === '/changesets'}>Changesets</TabAnchor>
+          <TabAnchor href="/query" selected={$page.url.pathname === '/query'}>Query</TabAnchor>
           <!-- ... -->
         </TabGroup>
-        <span class="divider-vertical" />
-        <span>Year {$moiraiStore.year}</span>
+        <span class="divider-vertical mr-1" />
+        <span class="mx-2">Year {$moiraiStore.year}</span>
           <form class="inline"
             on:submit|preventDefault={() => {
               $moiraiViewStore.gotoYear = yearValue;
@@ -70,16 +78,70 @@
       </svelte:fragment>
     </AppBar>
   </header>
-  <div class="flex-1 h-full flex flex-row">
-    <aside class="m-4 basis-1/4 overflow-auto">
-      <DetailsPanel />
-        {#if $moiraiStore.clientData}
-            <ActionList />
-        {/if}
+    <aside class="m-4 flex-auto overflow-hidden h-full">
+        <div class="card p-4 mb-2  h-full">
+        
+        <TabGroup>
+            <Tab value={0} bind:group={activeTab} name="details">Details</Tab>
+            <Tab value={1} bind:group={activeTab} name="events">Events</Tab>
+
+            <svelte:fragment slot="panel">
+                {#if activeTab === 0}
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+                    <dv>asd</dv>
+<!--                    <DetailsPanel />-->
+
+                {:else if activeTab === 1}
+                    {#if $moiraiStore.clientData}
+                        <ActionList />
+                    {/if}
+               
+                {/if}
+            </svelte:fragment>
+       
+        </TabGroup>
+        </div>
     </aside>
-    <main class="flex-1 space-y-4 p-4 pl-0">
+    <main class="flex-auto col-span-3 space-y-4 p-4 pl-0 h-full">
       <slot />
     </main>
   </div>
-</div>
 </QueryClientProvider>

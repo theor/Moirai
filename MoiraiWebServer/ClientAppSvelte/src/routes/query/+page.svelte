@@ -1,0 +1,111 @@
+﻿<script lang="ts">
+    import Search from 'virtual:icons/mdi/search';
+    import DatabaseSearch from 'virtual:icons/mdi/database-search';
+    import PineTree from 'virtual:icons/mdi/pine-tree';
+    import {moiraiStore, type QueryResult} from "$lib/connection";
+    import MoiraiText from "../../components/MoiraiText.svelte";
+    import {selectedEntity, urlParam} from "$lib/utils";
+    import {page} from '$app/stores';
+    import {Accordion, AccordionItem} from '@skeletonlabs/skeleton';
+
+    let query: string = 'pick Person $p';
+    let results: Promise<QueryResult> = new Promise(() => [] as QueryResult[]);
+    let selected = selectedEntity($page);
+
+    $: detailsOpened = urlParam($page, 'details').getNumber() > 0;
+
+    class Debouncer {
+        private timeout: NodeJS.Timeout | undefined;
+        private readonly callback: () => void;
+        private readonly delay: number;
+
+        constructor(callback: () => void, delay: number) {
+            this.callback = callback;
+            this.delay = delay;
+        }
+
+        public debounce() {
+
+            if (this.timeout) {
+                clearTimeout(this.timeout);
+            }
+            this.timeout = setTimeout(this.callback, this.delay);
+        }
+    }
+
+    let debouncer = new Debouncer(() => {
+        console.log('searching', query);
+        if ($moiraiStore.conn)
+            results = $moiraiStore.conn.query(query);
+    }, 500);
+    debouncer.debounce();
+    let setDetailsOpened = (e: CustomEvent<{ open: boolean }>) => {
+        console.log(e.detail)
+        urlParam($page, 'details').setNumber(e.detail.open ? 1 : 0);
+    };
+</script>
+
+<!--<div class="h-full w-full space-y-4  mb-4 ">-->
+
+    <div class="input-group input-group-divider grid-cols-[auto_1fr_auto]">
+        <div class="input-group-shim">
+            <Search/>
+        </div>
+        <input bind:value={query} on:input={() => debouncer.debounce()} type="search"
+               placeholder="Search..."/>
+        <button class="variant-filled-primary">Submit</button>
+    </div>
+    {#await results}
+    {:then results}
+        <div class="card p-4">
+            <Accordion>
+                <AccordionItem open={detailsOpened} on:toggle={setDetailsOpened}>
+                    <svelte:fragment slot="lead">
+                        <PineTree/>
+                    </svelte:fragment>
+                    <svelte:fragment slot="summary">AST</svelte:fragment>
+                    <svelte:fragment slot="content">
+                        <pre class="pre">{JSON.stringify(JSON.parse(results.query), null, 2)}</pre>
+                    </svelte:fragment>
+                </AccordionItem>
+                <AccordionItem open={detailsOpened} on:toggle={setDetailsOpened}>
+                    <svelte:fragment slot="lead">
+                        <DatabaseSearch/>
+                    </svelte:fragment>
+                    <svelte:fragment slot="summary">SQL</svelte:fragment>
+                    <svelte:fragment slot="content">
+                        <pre class="pre">{results.sql}</pre>
+                    </svelte:fragment>
+                </AccordionItem>
+            </Accordion>
+        </div>
+
+        {#if results.errors}
+            {#each results.errors as error}
+                <p>{error}</p>
+            {/each}
+        {:else}
+<!--            <div class="w-full inline-block overflow-auto">-->
+            <div class="table-container overflow-auto">
+            <table class="table table-fixed overflow-auto" style="display: block">
+                <tbody>
+                {#each results.results as result}
+                    <tr>
+                        <td>{result.eid}</td>
+                        {#each result.properties as prop}
+                            <!--                    <td>{JSON.stringify(result)}</td>-->
+                            <td>
+                                <div class="text-sm lg:justify-self-end font-semibold leading-6 text-gray-900 capitalize">{prop.label}</div>
+                                <MoiraiText text={prop.value} selected={selected.getNumber()}/>
+                            </td>
+                        {/each}
+                    </tr>
+                {/each}
+                </tbody>
+            </table>
+            </div>
+<!--            </div>-->
+        {/if}
+
+    {/await}
+<!--</div>-->
