@@ -17,6 +17,7 @@ public class WsgBenchmark
     public int Years;
 
     private string _story = "";
+    private TextWriter _stdout = TextWriter.Null;
 
     [GlobalSetup]
     public void Setup()
@@ -26,7 +27,16 @@ public class WsgBenchmark
         StoryParser.Parse(_story, out var errors);
         if (errors.Count > 0)
             throw new InvalidOperationException($"w.sg has {errors.Count} parse errors:\n" + string.Join("\n", errors));
+
+        // The engine logs per-run (Init prints cwd, PassYears prints timing). Left on, that console I/O
+        // runs on every measured op, inflating the mean and the variance enough that BenchmarkDotNet
+        // keeps extending iterations to converge. Silence stdout for the measured region.
+        _stdout = Console.Out;
+        Console.SetOut(TextWriter.Null);
     }
+
+    [GlobalCleanup]
+    public void Cleanup() => Console.SetOut(_stdout);
 
     [Benchmark]
     public int Simulate()
