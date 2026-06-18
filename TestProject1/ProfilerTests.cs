@@ -128,6 +128,26 @@ trigger on_death {
         Console.WriteLine($"entities: {entities}, records: {records}");
     }
 
+    // Lightweight managed-allocation metric for a PassYears run (single-threaded -> thread-local
+    // bytes are exact). Printed, not asserted; pair with BenchmarkDotNet's MemoryDiagnoser to track
+    // allocation regressions/improvements over time.
+    [TestCase(200)]
+    [TestCase(1000)]
+    public void AllocPerRun(int years)
+    {
+        var path = Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "..", "..", "..", "..", "MoiraiCli", "w.sg");
+        var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
+        Assert.That(errors, Is.Empty);
+        db.History = new();
+        db.Init();
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        db.Ctx.PassYears(years, true);
+        double mb = (GC.GetAllocatedBytesForCurrentThread() - before) / 1024.0 / 1024.0;
+        Console.WriteLine($"=== Allocated: {years}y -> {mb:F1} MB ({db.Records.Count} records) ===");
+    }
+
     [Test]
     public void NotAllocatedWhenDisabled()
     {

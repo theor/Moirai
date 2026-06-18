@@ -186,9 +186,9 @@ public class Database
         // One prepared UPDATE per column ({Type}__{prop}); a column's type is fixed, so the bound
         // $v parameter's type is stable per cache entry. Value serialization matches the previous
         // inlined form exactly (string -> text, everything else -> IntValue, so null refs -> 0).
-        string column = $"{GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)}";
-        if (!_commandsSet.TryGetValue(column, out var sc))
+        if (!_commandsSet.TryGetValue(property, out var sc))
         {
+            string column = ColumnName(property);
             var c = _connection.CreateCommand();
             c.CommandText = $"UPDATE entity SET {column} = $v WHERE default__id = $id;";
             var vp = c.Parameters.Add("$v",
@@ -196,7 +196,7 @@ public class Database
             var ip = c.Parameters.Add("$id", SqliteType.Integer);
             c.Prepare();
             sc = new SetCommand(c, vp, ip);
-            _commandsSet.Add(column, sc);
+            _commandsSet.Add(property, sc);
         }
 
         sc.Value.Value = value.Type.BaseType == PropertyValue.ValueBaseType.String
@@ -273,6 +273,20 @@ public class Database
     public string GetPropertyName(PropertyId prop)
     {
         return Printer.GetPropertyName(prop);
+    }
+
+    private readonly Dictionary<PropertyId, string> _columnNames = new();
+
+    /// <summary>
+    /// The wide-table column for a property, <c>{TypeName}__{propName}</c>, memoized per
+    /// <see cref="PropertyId"/>. The query/set hot paths build this string on every call otherwise;
+    /// caching it removes that per-call allocation (the name is immutable once types are declared).
+    /// </summary>
+    public string ColumnName(PropertyId prop)
+    {
+        if (!_columnNames.TryGetValue(prop, out var name))
+            _columnNames[prop] = name = $"{GetEntityTypeName(prop.TypeId)}__{GetPropertyName(prop)}";
+        return name;
     }
 
 
@@ -595,9 +609,8 @@ CREATE TABLE marked (
     private Dictionary<string, CommandCreate> _commandsCreate = new();
 
     record struct SetCommand(SqliteCommand Command, SqliteParameter Value, SqliteParameter Id);
-    private readonly Dictionary<string, SetCommand> _commandsSet = new();
+    private readonly Dictionary<PropertyId, SetCommand> _commandsSet = new();
 
-    // TEMP diagnostics
 
     private static SqliteType SqliteTypeOf(PropertyValue.ValueBaseType t) => t switch
     {

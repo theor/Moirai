@@ -215,8 +215,9 @@ public struct  PropertyPath : IValueSql
             }
             else
             {
-                thisProp =
-                    $"{thisVar}{ctx.Database.GetEntityTypeName(p.TypeId)}__{ctx.Database.GetPropertyName(p.Property)}";
+                thisProp = thisVar == null
+                    ? ctx.Database.ColumnName(p.Property)
+                    : thisVar + ctx.Database.ColumnName(p.Property);
             }
 
             where += thisProp;
