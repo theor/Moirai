@@ -10,7 +10,7 @@ internal class MyDocumentSymbolHandler : IDocumentSymbolHandler
     private readonly MoiraiCache _moiraiCache;
 
     
-    public MyDocumentSymbolHandler(ILogger<MyDeclarationHandler> logger, MoiraiCache moiraiCache)
+    public MyDocumentSymbolHandler(ILogger<MyDocumentSymbolHandler> logger, MoiraiCache moiraiCache)
     {
         _logger = logger;
         _moiraiCache = moiraiCache;

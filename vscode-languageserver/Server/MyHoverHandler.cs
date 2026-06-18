@@ -9,7 +9,7 @@ public class MyHoverHandler : HoverHandlerBase
     private readonly MoiraiCache _moiraiCache;
 
     
-    public MyHoverHandler(ILogger<MyDeclarationHandler> logger, MoiraiCache moiraiCache)
+    public MyHoverHandler(ILogger<MyHoverHandler> logger, MoiraiCache moiraiCache)
     {
         _logger = logger;
         _moiraiCache = moiraiCache;

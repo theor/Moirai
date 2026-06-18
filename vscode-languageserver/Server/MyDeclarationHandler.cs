@@ -13,7 +13,7 @@ public class MyUsageHandler : ReferencesHandlerBase
     private readonly MoiraiCache _moiraiCache;
 
     
-    public MyUsageHandler(ILogger<MyDeclarationHandler> logger, MoiraiCache moiraiCache)
+    public MyUsageHandler(ILogger<MyUsageHandler> logger, MoiraiCache moiraiCache)
     {
         _logger = logger;
         _moiraiCache = moiraiCache;

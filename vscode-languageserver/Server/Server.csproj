@@ -25,4 +25,8 @@
     <ProjectReference Include="..\..\Moirai.Parser\Moirai.Parser.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Moirai.LanguageServer.Tests" />
+  </ItemGroup>
+
 </Project>

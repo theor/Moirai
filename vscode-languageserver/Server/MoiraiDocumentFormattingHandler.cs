@@ -9,10 +9,10 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
 {
-    private readonly ILogger<MyWorkspaceSymbolsHandler> _logger;
+    private readonly ILogger<MoiraiDocumentFormattingHandler> _logger;
     private readonly MoiraiCache _moiraiCache;
 
-    public MoiraiDocumentFormattingHandler(ILogger<MyWorkspaceSymbolsHandler> logger, MoiraiCache moiraiCache)
+    public MoiraiDocumentFormattingHandler(ILogger<MoiraiDocumentFormattingHandler> logger, MoiraiCache moiraiCache)
     {
         _logger = logger;
         _moiraiCache = moiraiCache;

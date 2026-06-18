@@ -525,6 +525,8 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     {
         PushSemanticToken(context.WHEN().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
+        foreach (var and in context.AND())
+            PushSemanticToken(and.Symbol, SemanticTokenType.Operator);
 
         return base.VisitWhen(context);
     }
@@ -533,6 +535,8 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
     {
         PushSemanticToken(context.WHEN_CREATED().Symbol, SemanticTokenType.Keyword);
         PushSemanticToken(context.type_id().TYPE_ID().Symbol, SemanticTokenType.Type);
+        foreach (var and in context.AND())
+            PushSemanticToken(and.Symbol, SemanticTokenType.Operator);
 
         return base.VisitWhen_created(context);
     }
