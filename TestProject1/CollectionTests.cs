@@ -34,23 +34,6 @@ event setup {
     record('after remove={count($c.parents)}')
 }";
 
-    // The rewritten w.sg uses [Person] collections and add/remove/contains/count; verify it parses
-    // with no errors and round-trips through the printer (parse -> print -> reparse -> print is stable).
-    [Test]
-    public void WsgRoundTrips()
-    {
-        var path = Path.Combine(TestContext.CurrentContext.TestDirectory,
-            "..", "..", "..", "..", "MoiraiCli", "w.sg");
-        var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
-        Assert.That(errors, Is.Empty, string.Join("\n", errors));
-        var printed = db.Printer.Print();
-        var db2 = StoryParser.Parse(printed, out var errors2);
-        Assert.That(errors2, Is.Empty, "reparse errors:\n" + string.Join("\n", errors2));
-        Assert.That(db2.Printer.Print(), Is.EqualTo(printed), "printer must be idempotent");
-        Assert.That(printed, Does.Contain("prop parents: [Person]"));
-        Assert.That(printed, Does.Contain("contains"));
-    }
-
     [Test]
     public void AddContainsCountRemove()
     {

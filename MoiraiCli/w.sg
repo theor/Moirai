@@ -1,6 +1,6 @@
 @display(Item, 'Items made',maker = $self)
-@display(Person, 'Children', contains($other.parents, $self))
-@display(Person, 'Parents', contains($self.parents, $other))
+@display(Person, 'Children', parent1 = $self or parent2 = $self)
+@display(Person, 'Parents', $other = $self.parent1 or $other = $self.parent2)
 @display(Item, 'Items owned',owner = $self)
 entity Person {
     prop age: Age
@@ -16,7 +16,8 @@ entity Person {
     prop birthplace: Country
     prop place: Country
     prop job: Job
-    prop parents: [Person]
+    prop parent1: Person
+    prop parent2: Person
     prop killer: Person
     prop prosperity: percentage
 }
@@ -84,6 +85,15 @@ enum GodTypes {
     Blood,
     War,
     Death,
+}
+
+// Helper functions that DRY the parent relationships while keeping scalar parent1/parent2 fields.
+// Inlined into pick/each predicates (multi-parameter function -> SQL).
+function is_child_of($ch: Person, $parent: Person): bool {
+    $ch.parent1 = $parent or $ch.parent2 = $parent
+}
+function has_parent($p: Person): bool {
+    $p.parent1 != null or $p.parent2 != null
 }
 
 @tag('country')
@@ -155,7 +165,7 @@ trigger inherit {
     when Person and alive = false and $old.alive
     // record('{$new.name} died')
     set $new.deathdate = #Time.year
-    each Person $child: (contains($child.parents, $new), alive) {
+    each Person $child: (is_child_of($child, $new) and alive) {
         record('{$child.name} lose their parent, {$new.name}')
         if $new.killer {
             var $k: $new.killer
@@ -163,7 +173,7 @@ trigger inherit {
         }
     }
     each Item $i: (owner = $new){
-        if(pick Person $child: (alive, contains($child.parents, $new))) {
+        if(pick Person $child: (alive and is_child_of($child, $new))) {
         // pick $child:( type=Person, id = $l.child, alive)
             set $i.owner = $child
             record('{$child.name} inherits the {$i.name} from {$new.name}')
@@ -179,7 +189,7 @@ trigger inherit {
 trigger buries_children {
     when Person and alive = false and $old.alive
 
-    each Person $parent: (contains($new.parents, $parent), alive) {
+    each Person $parent: (is_child_of($new, $parent) and alive) {
         set $parent.prosperity = $parent.prosperity - 20%
         record('{$parent.name} bury their child, {$new.name}')
     }
@@ -326,7 +336,7 @@ event char_joins_faith {
 @frequency(1, PerXYear, 2)
 event wedding {
     pick Person $x: (alive = true and partner = null and age > Age.Child and age < Age.Old)
-    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place and not(contains($y.parents, $x)) and not(contains($x.parents, id)))
+    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place and not(is_child_of($y, $x)) and not(is_child_of($x, $y)))
     set $x.partner = $y
     set $y.partner = $x
     set $x.prosperity = $x.prosperity + 20%
@@ -473,16 +483,16 @@ event couple_has_child {
         set $c.first_name = $fname
         set $c.birthplace = $x.place
         set $c.god = $x.god
-        add($c.parents, $x)
-        add($c.parents, $y)
+        set $c.parent1 = $x
+        set $c.parent2 = $y
 
         record('{$x.name} and {$y.name} have a child, {$c.name}')
     }
 }
 @frequency(1, PerXYear, 10)
 event parent_child_quarrel {
-    pick Person $x: (alive = true and age > Age.Child and count($x.parents) > 0)
-    pick Person $p: (alive and contains($x.parents, id))
+    pick Person $x: (alive = true and age > Age.Child and has_parent($x))
+    pick Person $p: (alive and is_child_of($x, $p))
     
     set $p.prosperity = $p.prosperity - 10%
     set $x.prosperity = $p.prosperity - 10%
