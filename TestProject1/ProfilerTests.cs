@@ -87,6 +87,8 @@ trigger on_death {
     // report so we can read where time goes and track optimization progress.
     [TestCase(50)]
     [TestCase(200)]
+    [TestCase(500)]
+    [TestCase(1000)]
     public void ProfileWsg(int years)
     {
         var path = Path.Combine(TestContext.CurrentContext.TestDirectory,
@@ -99,6 +101,7 @@ trigger on_death {
         db.ProfilingEnabled = true;
         Database.PickCalls = Database.PickPrepares = Database.FindAllCalls = Database.FindAllPrepares = 0;
         Database.SetCalls = Database.GetCalls = 0;
+        Database.RndUdfCalls = 0;
         db.Init();
         db.Ctx.PassYears(years, true);
 
@@ -108,7 +111,7 @@ trigger on_death {
         Console.WriteLine($"entities: {db.Entities.Count()}, records: {db.Records.Count}");
         Console.WriteLine($"DIAG pick: {Database.PickCalls} calls, {Database.PickPrepares} prepares, cache {db.PickCacheSize} | " +
                           $"findAll: {Database.FindAllCalls} calls, {Database.FindAllPrepares} prepares, cache {db.FindAllCacheSize}");
-        Console.WriteLine($"DIAG set: {Database.SetCalls} calls | get: {Database.GetCalls} calls");
+        Console.WriteLine($"DIAG set: {Database.SetCalls} calls | get: {Database.GetCalls} calls | rnd() udf: {Database.RndUdfCalls} calls");
     }
 
     [Test]

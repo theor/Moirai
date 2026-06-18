@@ -516,17 +516,23 @@ public class Database
     {
         Console.WriteLine(Path.GetFullPath("."));
         _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.CreateFunction("rnd", () => _ctx.Rnd.GenerateNext());
+        _connection.CreateFunction("rnd", () => { RndUdfCalls++; return _ctx.Rnd.GenerateNext(); });
         _connection.Open();
         var cmd = _connection.CreateCommand();
 
         string indices = @"CREATE INDEX types ON entity (default__type);";
-//         if (Properties.Any(p => p.Name == "owner"))
-//             indices += @"
-// CREATE INDEX owners ON entity (owner) WHERE type = 3;";
-//         if (Properties.Any(p => p.Name == "alive"))
-//             indices += @"
-// CREATE INDEX types_alive ON entity (type,alive) WHERE type = 2;";
+        // Composite indices on (default__type, {bool col}) for every bool property. Boolean flags like
+        // `alive`/`dead` are the dominant query discriminant, and because dead entities are never removed
+        // the table accumulates rows the planner would otherwise scan on every pick/each. Indexing them
+        // lets long-horizon queries skip dead/other-type rows instead of scanning the whole table.
+        foreach (var t in Types.Skip(1))
+        {
+            foreach (var p in t.Properties.Skip(4))
+            {
+                if (p.Type.BaseType == PropertyValue.ValueBaseType.Bool)
+                    indices += $"\nCREATE INDEX ix_{t.Name}__{p.Name} ON entity (default__type, {t.Name}__{p.Name});";
+            }
+        }
 
         cmd.CommandText = $@"
 CREATE TABLE entity (
@@ -595,6 +601,7 @@ CREATE TABLE marked (
 
     // TEMP diagnostics
     public static int PickCalls, PickPrepares, FindAllCalls, FindAllPrepares, SetCalls, GetCalls;
+    public static long RndUdfCalls;
     public int PickCacheSize => _commandsPickRandom.Count;
     public int FindAllCacheSize => _commandsFindAll.Count;
 
