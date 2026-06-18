@@ -34,23 +34,31 @@
         }
     }
 
-    let debouncer = new Debouncer(() => {
+    function runQuery() {
         if ($moiraiStore.conn)
             results = $moiraiStore.conn.query(query);
-    }, 500);
-    debouncer.debounce();
+    }
+    let debouncer = new Debouncer(runQuery, 500);
+
+    // Run the initial query once the SignalR connection is ready (on a fresh page
+    // load the connection often isn't up yet when the component first mounts).
+    let ranInitial = false;
+    $: if ($moiraiStore.conn && !ranInitial) {
+        ranInitial = true;
+        runQuery();
+    }
 </script>
 
 <!--<div class="h-full w-full space-y-4  mb-4 ">-->
 
-    <div class="input-group input-group-divider grid-cols-[auto_1fr_auto]">
+    <form class="input-group input-group-divider grid-cols-[auto_1fr_auto]" on:submit|preventDefault={runQuery}>
         <div class="input-group-shim">
             <Search/>
         </div>
         <input bind:value={query} on:input={() => debouncer.debounce()} type="search"
                name="query" aria-label="Query" placeholder="Search..."/>
-        <button class="variant-filled-primary">Submit</button>
-    </div>
+        <button type="submit" class="variant-filled-primary">Submit</button>
+    </form>
     {#await results}
     {:then results}
         <div class="card p-4">
