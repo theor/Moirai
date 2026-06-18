@@ -82,6 +82,35 @@ trigger on_death {
         Assert.That(selfMs, Is.LessThanOrEqualTo(prof.ElapsedMs + 1));
     }
 
+    // Baseline profile of the canonical large story (w.sg) over a realistic horizon.
+    // Not an assertion test — it parses w.sg, simulates `years`, and prints the profiler
+    // report so we can read where time goes and track optimization progress.
+    [TestCase(50)]
+    [TestCase(200)]
+    public void ProfileWsg(int years)
+    {
+        var path = Path.Combine(TestContext.CurrentContext.TestDirectory,
+            "..", "..", "..", "..", "MoiraiCli", "w.sg");
+        var text = File.ReadAllText(path);
+        var db = StoryParser.Parse(text, out var errors);
+        Assert.That(errors, Is.Empty, $"{errors.Count} parse errors:\n" + string.Join("\n", errors));
+
+        db.History = new();
+        db.ProfilingEnabled = true;
+        Database.PickCalls = Database.PickPrepares = Database.FindAllCalls = Database.FindAllPrepares = 0;
+        Database.SetCalls = Database.GetCalls = 0;
+        db.Init();
+        db.Ctx.PassYears(years, true);
+
+        var prof = db.ExecProfiler;
+        Assert.That(prof, Is.Not.Null);
+        Console.WriteLine(prof!.Report());
+        Console.WriteLine($"entities: {db.Entities.Count()}, records: {db.Records.Count}");
+        Console.WriteLine($"DIAG pick: {Database.PickCalls} calls, {Database.PickPrepares} prepares, cache {db.PickCacheSize} | " +
+                          $"findAll: {Database.FindAllCalls} calls, {Database.FindAllPrepares} prepares, cache {db.FindAllCacheSize}");
+        Console.WriteLine($"DIAG set: {Database.SetCalls} calls | get: {Database.GetCalls} calls");
+    }
+
     [Test]
     public void NotAllocatedWhenDisabled()
     {

@@ -164,6 +164,7 @@ public class Database
 
     public bool GetProperty(EntityId entityId, PropertyId property, out PropertyValue value)
     {
+        GetCalls++;
         var cmd = _connection.CreateCommand();
         cmd.CommandText =
             $@"SELECT {GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)} FROM entity WHERE default__id = $id  LIMIT 1;";
@@ -183,14 +184,28 @@ public class Database
 
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
-        var cmd = _connection.CreateCommand();
-        cmd.CommandText = $@"UPDATE entity
-SET {GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)} = {(value.Type.BaseType == PropertyValue.ValueBaseType.String ? ("'" + value.Value + "'") : (int)value.IntValue)}
-WHERE default__id = $id;";
-        // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
-        cmd.Parameters.AddWithValue("$id", entityId.Id);
-        // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
-        cmd.ExecuteNonQuery();
+        SetCalls++;
+        // One prepared UPDATE per column ({Type}__{prop}); a column's type is fixed, so the bound
+        // $v parameter's type is stable per cache entry. Value serialization matches the previous
+        // inlined form exactly (string -> text, everything else -> IntValue, so null refs -> 0).
+        string column = $"{GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)}";
+        if (!_commandsSet.TryGetValue(column, out var sc))
+        {
+            var c = _connection.CreateCommand();
+            c.CommandText = $"UPDATE entity SET {column} = $v WHERE default__id = $id;";
+            var vp = c.Parameters.Add("$v",
+                value.Type.BaseType == PropertyValue.ValueBaseType.String ? SqliteType.Text : SqliteType.Integer);
+            var ip = c.Parameters.Add("$id", SqliteType.Integer);
+            c.Prepare();
+            sc = new SetCommand(c, vp, ip);
+            _commandsSet.Add(column, sc);
+        }
+
+        sc.Value.Value = value.Type.BaseType == PropertyValue.ValueBaseType.String
+            ? (object)(value.Value ?? "")
+            : (long)value.IntValue;
+        sc.Id.Value = entityId.Id;
+        sc.Command.ExecuteNonQuery();
         Profiler.Set(property);
 
         if (!TryGetEntity(entityId, out var entity))
@@ -575,6 +590,49 @@ CREATE TABLE marked (
     private Dictionary<string, SqliteCommand> _commandsFindAll = new();
     private Dictionary<string, CommandCreate> _commandsCreate = new();
 
+    record struct SetCommand(SqliteCommand Command, SqliteParameter Value, SqliteParameter Id);
+    private Dictionary<string, SetCommand> _commandsSet = new();
+
+    // TEMP diagnostics
+    public static int PickCalls, PickPrepares, FindAllCalls, FindAllPrepares, SetCalls, GetCalls;
+    public int PickCacheSize => _commandsPickRandom.Count;
+    public int FindAllCacheSize => _commandsFindAll.Count;
+
+    private static SqliteType SqliteTypeOf(PropertyValue.ValueBaseType t) => t switch
+    {
+        PropertyValue.ValueBaseType.String => SqliteType.Text,
+        PropertyValue.ValueBaseType.Float => SqliteType.Real,
+        _ => SqliteType.Integer,
+    };
+
+    /// <summary>
+    /// Looks up (or prepares and caches) the command for <paramref name="sql"/>, then binds the
+    /// parameters collected on <see cref="ExecuteContext.SqlParameters"/> during predicate compilation.
+    /// The cache key is the parameterized SQL (query shape), so it no longer grows with simulation time.
+    /// </summary>
+    private SqliteCommand GetOrPrepare(Dictionary<string, SqliteCommand> cache, string sql, out bool prepared)
+    {
+        var ps = _ctx.SqlParameters;
+        if (!cache.TryGetValue(sql, out var cmd))
+        {
+            prepared = true;
+            cmd = _connection.CreateCommand();
+            cmd.CommandText = sql;
+            for (int i = 0; i < ps.Count; i++)
+                cmd.Parameters.Add("$p" + i, SqliteTypeOf(ps[i].Type.BaseType));
+            cmd.Prepare();
+            cache.Add(sql, cmd);
+        }
+        else
+        {
+            prepared = false;
+        }
+
+        for (int i = 0; i < ps.Count; i++)
+            cmd.Parameters[i].Value = ps[i].ToSqlParameter();
+        return cmd;
+    }
+
     public bool PickRandom(EntityTypeId entityTypeId, IValueSql? predicate, out EntityId id)
     {
         if (predicate == null && !entityTypeId.IsValid)
@@ -584,6 +642,7 @@ CREATE TABLE marked (
         }
 
         string? where, joins;
+        _ctx.SqlParameters.Clear();
         (where, joins) = predicate.ToSql(_ctx);
         // (where, joins) = (null, null);
         if (string.IsNullOrEmpty(where))
@@ -592,14 +651,9 @@ CREATE TABLE marked (
             where = $"entity.default__type = {entityTypeId.Id} AND {where}";
         var sql =
             $@"SELECT entity.default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
-        if (!_commandsPickRandom.TryGetValue(sql, out var cmd))
-        {
-            // Console.WriteLine(sql);
-            cmd = _connection.CreateCommand();
-            cmd.CommandText = sql;
-            cmd.Prepare();
-            _commandsPickRandom.Add(sql, cmd);
-        }
+        PickCalls++;
+        var cmd = GetOrPrepare(_commandsPickRandom, sql, out var prepared);
+        if (prepared) PickPrepares++;
 
         // Console.WriteLine(cmd.CommandText);
         var r = cmd.ExecuteScalar();
@@ -626,7 +680,7 @@ CREATE TABLE marked (
         }
 
         string? where, joins;
-        // (where, joins) = (null, null);// predicate.ToSql(_ctx);
+        _ctx.SqlParameters.Clear();
         (where, joins) = predicate.ToSql(_ctx);
         if (string.IsNullOrEmpty(where))
             where = "entity.default__type = " + entityTypeId.Id;
@@ -634,15 +688,9 @@ CREATE TABLE marked (
             where = $"entity.default__type = {entityTypeId.Id} AND {where}";
         sql = $@"SELECT entity.default__id FROM entity {(joins ?? "")} WHERE {where}";
 
-        if (!_commandsFindAll.TryGetValue(sql, out var cmd))
-        {
-            // Console.WriteLine(sql);
-            cmd = _connection.CreateCommand();
-            // cmd.CommandText = $@"SELECT id FROM entity WHERE {sql} LIMIT 1";
-            cmd.CommandText = sql;
-            cmd.Prepare();
-            _commandsFindAll.Add(sql, cmd);
-        }
+        FindAllCalls++;
+        var cmd = GetOrPrepare(_commandsFindAll, sql, out var prepared);
+        if (prepared) FindAllPrepares++;
 
         // Console.WriteLine(sql);
         // Console.WriteLine(cmd.CommandText);

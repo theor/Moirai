@@ -12,6 +12,6 @@ public struct Literal : IValueSql
 
     public (string where, string? joins) ToSql(ExecuteContext ctx)
     {
-        return (Value.ToSql(), null);
+        return (ctx.AddSqlParameter(Value), null);
     }
 }

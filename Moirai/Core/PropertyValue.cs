@@ -183,6 +183,27 @@ public struct PropertyValue : IEquatable<PropertyValue>
         }
     }
 
+    /// <summary>
+    /// The CLR value to bind to a SQLite parameter for this value. Mirrors <see cref="ToSql"/>'s
+    /// per-type handling, but as a bound object instead of inlined text. Callers must not bind
+    /// <see cref="ValueBaseType.None"/> (null) values — those stay inline as the literal <c>null</c>
+    /// so the IS [NOT] NULL rewrite in BinaryOperator still applies.
+    /// </summary>
+    public readonly object ToSqlParameter()
+    {
+        switch (Type.BaseType)
+        {
+            case ValueBaseType.String:
+                return Value ?? "";
+            case ValueBaseType.Float:
+                return (double)FloatValue;
+            case ValueBaseType.None:
+                return DBNull.Value;
+            default:
+                return (long)IntValue;
+        }
+    }
+
     public static PropertyValue Percent(int i)
     {
         return new PropertyValue(TypePercent, i);

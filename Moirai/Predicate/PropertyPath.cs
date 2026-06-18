@@ -159,7 +159,7 @@ public struct  PropertyPath : IValueSql
         // TODO ugly
         if (Mode != PropertyPathMode.Variable ||
             (VariableIndex != -1 && VariableIndex != ctx.ValueCount - ctx.ValueOffset))
-            return (Compute(ctx).ToSql(), null);
+            return (ctx.AddSqlParameter(Compute(ctx)), null);
         
 
         // if (Segments[0].Call != null)

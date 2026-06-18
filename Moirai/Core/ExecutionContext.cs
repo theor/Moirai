@@ -20,6 +20,28 @@ public class ExecuteContext
         Rnd = new Pcg32(seed, 42);
     }
 
+    /// <summary>
+    /// Bound parameter values collected while compiling a single query's predicate to SQL.
+    /// <see cref="Database.PickRandom"/>/<see cref="Database.FindAll"/> clear this before calling
+    /// <c>ToSql</c>, then bind these values onto the (shape-keyed, cached) prepared statement.
+    /// Leaf SQL nodes append via <see cref="AddSqlParameter"/>.
+    /// </summary>
+    public readonly List<PropertyValue> SqlParameters = new();
+
+    /// <summary>
+    /// Records <paramref name="v"/> as a bound parameter and returns its placeholder (e.g. <c>$p0</c>),
+    /// so two queries that differ only in runtime values share one cached/prepared statement.
+    /// Null values are returned inline as the literal <c>null</c> (not bound) so that the
+    /// equals/not-equals → IS [NOT] NULL rewrite keeps working.
+    /// </summary>
+    public string AddSqlParameter(PropertyValue v)
+    {
+        if (v.Type.BaseType == PropertyValue.ValueBaseType.None)
+            return "null";
+        SqlParameters.Add(v);
+        return "$p" + (SqlParameters.Count - 1);
+    }
+
     public EntityId GetSingletonId(EntityTypeId type)
     {
         foreach (var entity in Database.Entities)
