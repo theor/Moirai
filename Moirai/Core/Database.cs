@@ -164,7 +164,6 @@ public class Database
 
     public bool GetProperty(EntityId entityId, PropertyId property, out PropertyValue value)
     {
-        GetCalls++;
         var cmd = _connection.CreateCommand();
         cmd.CommandText =
             $@"SELECT {GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)} FROM entity WHERE default__id = $id  LIMIT 1;";
@@ -184,7 +183,6 @@ public class Database
 
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
-        SetCalls++;
         // One prepared UPDATE per column ({Type}__{prop}); a column's type is fixed, so the bound
         // $v parameter's type is stable per cache entry. Value serialization matches the previous
         // inlined form exactly (string -> text, everything else -> IntValue, so null refs -> 0).
@@ -516,7 +514,7 @@ public class Database
     {
         Console.WriteLine(Path.GetFullPath("."));
         _connection = new SqliteConnection("Data Source=:memory:");
-        _connection.CreateFunction("rnd", () => { RndUdfCalls++; return _ctx.Rnd.GenerateNext(); });
+        _connection.CreateFunction("rnd", () => _ctx.Rnd.GenerateNext());
         _connection.Open();
         var cmd = _connection.CreateCommand();
 
@@ -597,13 +595,9 @@ CREATE TABLE marked (
     private Dictionary<string, CommandCreate> _commandsCreate = new();
 
     record struct SetCommand(SqliteCommand Command, SqliteParameter Value, SqliteParameter Id);
-    private Dictionary<string, SetCommand> _commandsSet = new();
+    private readonly Dictionary<string, SetCommand> _commandsSet = new();
 
     // TEMP diagnostics
-    public static int PickCalls, PickPrepares, FindAllCalls, FindAllPrepares, SetCalls, GetCalls;
-    public static long RndUdfCalls;
-    public int PickCacheSize => _commandsPickRandom.Count;
-    public int FindAllCacheSize => _commandsFindAll.Count;
 
     private static SqliteType SqliteTypeOf(PropertyValue.ValueBaseType t) => t switch
     {
@@ -617,22 +611,17 @@ CREATE TABLE marked (
     /// parameters collected on <see cref="ExecuteContext.SqlParameters"/> during predicate compilation.
     /// The cache key is the parameterized SQL (query shape), so it no longer grows with simulation time.
     /// </summary>
-    private SqliteCommand GetOrPrepare(Dictionary<string, SqliteCommand> cache, string sql, out bool prepared)
+    private SqliteCommand GetOrPrepare(Dictionary<string, SqliteCommand> cache, string sql)
     {
         var ps = _ctx.SqlParameters;
         if (!cache.TryGetValue(sql, out var cmd))
         {
-            prepared = true;
             cmd = _connection.CreateCommand();
             cmd.CommandText = sql;
             for (int i = 0; i < ps.Count; i++)
                 cmd.Parameters.Add("$p" + i, SqliteTypeOf(ps[i].Type.BaseType));
             cmd.Prepare();
             cache.Add(sql, cmd);
-        }
-        else
-        {
-            prepared = false;
         }
 
         for (int i = 0; i < ps.Count; i++)
@@ -658,9 +647,7 @@ CREATE TABLE marked (
             where = $"entity.default__type = {entityTypeId.Id} AND {where}";
         var sql =
             $@"SELECT entity.default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
-        PickCalls++;
-        var cmd = GetOrPrepare(_commandsPickRandom, sql, out var prepared);
-        if (prepared) PickPrepares++;
+        var cmd = GetOrPrepare(_commandsPickRandom, sql);
 
         // Console.WriteLine(cmd.CommandText);
         var r = cmd.ExecuteScalar();
@@ -695,9 +682,7 @@ CREATE TABLE marked (
             where = $"entity.default__type = {entityTypeId.Id} AND {where}";
         sql = $@"SELECT entity.default__id FROM entity {(joins ?? "")} WHERE {where}";
 
-        FindAllCalls++;
-        var cmd = GetOrPrepare(_commandsFindAll, sql, out var prepared);
-        if (prepared) FindAllPrepares++;
+        var cmd = GetOrPrepare(_commandsFindAll, sql);
 
         // Console.WriteLine(sql);
         // Console.WriteLine(cmd.CommandText);

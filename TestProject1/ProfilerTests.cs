@@ -83,8 +83,12 @@ trigger on_death {
     }
 
     // Baseline profile of the canonical large story (w.sg) over a realistic horizon.
-    // Not an assertion test — it parses w.sg, simulates `years`, and prints the profiler
-    // report so we can read where time goes and track optimization progress.
+    // Not an assertion test — it parses w.sg, simulates `years`, and prints the profiler report.
+    // Each horizon is run REPEATS times on a fresh DB and we report the MIN PassYears time: wall-clock
+    // here is dominated by host contention (observed ~2-3x variance across runs), so min is the most
+    // stable proxy for actual compute and the only number safe to A/B optimizations against.
+    private const int Repeats = 5;
+
     [TestCase(50)]
     [TestCase(200)]
     [TestCase(500)]
@@ -94,24 +98,34 @@ trigger on_death {
         var path = Path.Combine(TestContext.CurrentContext.TestDirectory,
             "..", "..", "..", "..", "MoiraiCli", "w.sg");
         var text = File.ReadAllText(path);
-        var db = StoryParser.Parse(text, out var errors);
-        Assert.That(errors, Is.Empty, $"{errors.Count} parse errors:\n" + string.Join("\n", errors));
 
-        db.History = new();
-        db.ProfilingEnabled = true;
-        Database.PickCalls = Database.PickPrepares = Database.FindAllCalls = Database.FindAllPrepares = 0;
-        Database.SetCalls = Database.GetCalls = 0;
-        Database.RndUdfCalls = 0;
-        db.Init();
-        db.Ctx.PassYears(years, true);
+        double best = double.MaxValue;
+        ExecutionProfiler? bestProf = null;
+        int entities = 0, records = 0;
+        for (int rep = 0; rep < Repeats; rep++)
+        {
+            var db = StoryParser.Parse(text, out var errors);
+            Assert.That(errors, Is.Empty, $"{errors.Count} parse errors:\n" + string.Join("\n", errors));
 
-        var prof = db.ExecProfiler;
-        Assert.That(prof, Is.Not.Null);
-        Console.WriteLine(prof!.Report());
-        Console.WriteLine($"entities: {db.Entities.Count()}, records: {db.Records.Count}");
-        Console.WriteLine($"DIAG pick: {Database.PickCalls} calls, {Database.PickPrepares} prepares, cache {db.PickCacheSize} | " +
-                          $"findAll: {Database.FindAllCalls} calls, {Database.FindAllPrepares} prepares, cache {db.FindAllCacheSize}");
-        Console.WriteLine($"DIAG set: {Database.SetCalls} calls | get: {Database.GetCalls} calls | rnd() udf: {Database.RndUdfCalls} calls");
+            db.History = new();
+            db.ProfilingEnabled = true;
+            db.Init();
+            db.Ctx.PassYears(years, true);
+
+            var prof = db.ExecProfiler!;
+            if (prof.ElapsedMs < best)
+            {
+                best = prof.ElapsedMs;
+                bestProf = prof;
+                entities = db.Entities.Count();
+                records = db.Records.Count;
+            }
+        }
+
+        Assert.That(bestProf, Is.Not.Null);
+        Console.WriteLine($"=== BEST of {Repeats}: {years} years in {best:F1} ms ===");
+        Console.WriteLine(bestProf!.Report());
+        Console.WriteLine($"entities: {entities}, records: {records}");
     }
 
     [Test]
