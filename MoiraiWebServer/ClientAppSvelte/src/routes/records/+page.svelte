@@ -20,9 +20,7 @@
 
     let filterParam = filteredEntity($page);
     filtered = filterParam.getNumber();
-      
-    console.log("filtered",filtered);
-    // selected = data.selected;
+
     tableStore.update((store) => {
       return {
         ...store,
@@ -48,7 +46,7 @@
     {
       header: 'Year',
       accessorKey: 'year',
-      size: 25,
+      size: 70,
       cell: (info) => {
         return flexRender(PreChip, { text: info.cell.getValue() });
       },
@@ -73,7 +71,6 @@
   const tableStore = writable({ selected: selected });
 
   const options = derived([moiraiStore, tableStore], ([$moiraiStore]) => {
-    console.log('derived');
     return {
       getCoreRowModel: getCoreRowModel(),
       columns,
@@ -93,9 +90,6 @@
   let virtualListEl: HTMLDivElement;
   const table = createSvelteTable(options);
   $: rows = $table.getRowModel().rows;
-  // $: {
-  //   console.log('rerender', selected);
-  // }
 
   let offset = 0;
 

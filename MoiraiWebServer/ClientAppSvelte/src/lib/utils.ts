@@ -18,13 +18,10 @@ export function parseEntityLink(str: string): ({ type:'text', text: string } | {
 }
 
 export function urlParam(page: Page<any>, name: string) {
-    // console.log(page)
     const set = (value: string) => {
       const p = new URLSearchParams(window.location.search);
       p.set(name, value);
-      console.log('setting', name, value, 'goto', p.toString());
       goto(window.location.pathname + '?' + p.toString(), {invalidateAll: true});
-      // window.location.search = p.toString();
   };
   return {
     getNumber: (def?: number) => {

@@ -9,34 +9,23 @@
   const sel = selectedEntity($page);
   const filter = filteredEntity($page);
 
-  // const popupHover: PopupSettings = {
-  //   event: 'hover',
-  //   target: 'popupHover',
-  //   placement: 'bottom'
-  // };
-  // export function makeEntityChip(id: number, label: string, selectedEntity: GetSetProperty<number>, filteredEntity: GetSetProperty<number>) {
+  function onClick(e: MouseEvent) {
+    // Shift+click filters the records to this entity; a plain click selects it.
+    if (e.shiftKey) {
+      filter.setNumber(filter.getNumber() === id ? -1 : id);
+    } else {
+      sel.setNumber(id);
+    }
+  }
 </script>
 
-<!-- <span> -->
-  <a
-    class="badge mr-1 [&>*]:pointer-events-none"
-    class:variant-filled-secondary={active}
-    class:variant-ghost-secondary={!active}
-    href={undefined}
-    on:dblclick={(e) => {
-      filter.set(id + '');
-    }}
-    on:click={(e) => {
-      setTimeout(() => {
-        sel.set(id + '');
-      }, 300);
-    }}
-  >
-    {label ?? id}
-  </a>
-
-  <!-- <div class="card p-2 variant-filled-secondary z-50" data-popup="popupHover">
-    <p>#{id}</p>
-    <div class="arrow variant-filled-secondary" />
-  </div> -->
-<!-- </span> -->
+<button
+  type="button"
+  class="badge mr-1 [&>*]:pointer-events-none"
+  class:variant-filled-secondary={active}
+  class:variant-ghost-secondary={!active}
+  title={`Click to select #${id} · Shift+click to filter`}
+  on:click={onClick}
+>
+  {label ?? id}
+</button>

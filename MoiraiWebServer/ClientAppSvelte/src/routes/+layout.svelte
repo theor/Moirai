@@ -7,19 +7,20 @@
   import { moiraiStore } from '$lib/connection';
   import { moiraiViewStore } from '$lib';
   import { shortcut } from '$lib/shortcut';
-  import { TabGroup, Tab, TabAnchor } from '@skeletonlabs/skeleton';
+  import { TabGroup, Tab, TabAnchor, ProgressBar } from '@skeletonlabs/skeleton';
   import { page } from '$app/stores';
-  
+
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query'
-  import TypeList from "../components/TypeList.svelte";
   import ActionList from "../components/ActionList.svelte";
   import {urlParam} from "$lib/utils";
 
   let yearInput: HTMLInputElement | undefined;
   let yearValue: number | undefined = undefined;
+  let passYearsCount = 100;
+  $: passYearsProgress = $moiraiStore.passYearsProgress;
+  $: passYearsRunning = passYearsProgress !== undefined;
   storePopup.set({ computePosition, autoUpdate, offset, shift, flip, arrow });
   function gotoLine() {
-    console.log('gotoLine');
     yearInput?.focus();
     yearInput?.select();
   }
@@ -60,20 +61,40 @@
               yearValue = undefined;
             }}>
         <label class="label inline-block">
+          <span class="sr-only">Go to year</span>
           <input
             placeholder="Go to"
             bind:this={yearInput}
-          
             bind:value={yearValue}
+            name="gotoYear"
+            aria-label="Go to year"
             class="input w-30"
-            type="text"
+            type="number"
           />
         </label>
           </form>
         <button type="button" class="btn variant-filled-surface" on:click={() => moiraiStore.reset()}>Reset</button>
-        <button type="button" class="btn variant-filled-surface" on:click={() => moiraiStore.passYears(100)}
-          >Pass years</button
-        >
+        <div class="input-group input-group-divider grid-cols-[auto_1fr] w-44 inline-grid align-middle">
+          <input
+            type="number"
+            min="1"
+            name="passYearsCount"
+            aria-label="Number of years to pass"
+            bind:value={passYearsCount}
+            class="input"
+          />
+          <button
+            type="button"
+            class="btn variant-filled-surface whitespace-nowrap"
+            disabled={passYearsRunning}
+            on:click={() => moiraiStore.passYears(passYearsCount)}
+          >Pass years</button>
+        </div>
+        {#if passYearsRunning}
+          <div class="w-24 mx-2 inline-block align-middle">
+            <ProgressBar value={passYearsProgress} max={passYearsCount} meter="bg-primary-500" />
+          </div>
+        {/if}
         <div class="mr-4" />
       </svelte:fragment>
     </AppBar>
@@ -87,48 +108,7 @@
 
             <svelte:fragment slot="panel">
                 {#if activeTab === 0}
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-                    <dv>asd</dv>
-<!--                    <DetailsPanel />-->
-
+                    <DetailsPanel />
                 {:else if activeTab === 1}
                     {#if $moiraiStore.clientData}
                         <ActionList />

@@ -4,26 +4,12 @@
     import Play from 'virtual:icons/mdi/play';
     import type {ActionData} from '$lib/types';
     import {moiraiStore} from '$lib/connection';
-    import {onMount} from 'svelte';
     import {SlideToggle} from '@skeletonlabs/skeleton';
 
     let actionNames: ActionData[] = $moiraiStore.clientData!.actions;
-    // let visibleActions: ActionData[] | undefined = [...actionNames];
-    // let visibleActions: ActionData[] = [];
-    onMount(() => {
-        // visibleActions = [...actionNames];
-        // console.log('onMount', visibleActions);
-    });
-
-    $: {
-        // console.log(visibleActions);
-        // $moiraiStore.clientData!.actions = $moiraiStore.clientData!.actions.map((a) => ({ ...a, visible: visibleActions!.includes(a) }));
-    }
 
     function setAll(hide: boolean) {
-        console.log('setting all', hide);
         actionNames = actionNames.map(a => ({...a, hidden: hide}));
-        console.log('visibleActions', actionNames);
         moiraiStore.update(x => {
             x.clientData!.actions = actionNames;
             return x;
@@ -31,22 +17,18 @@
     }
 
     function toggleAction(a: ActionData, e: Event) {
-        console.log('toggling action', a, (e.target as HTMLInputElement).checked);
         actionNames = actionNames.map(al => al.id === a.id ? {
             ...al,
             hidden: !(e.target as HTMLInputElement).checked
         } : al);
-        console.log('visibleActions', actionNames);
         moiraiStore.update(x => {
             x.clientData!.actions = actionNames;
             return x;
         })
-        // $moiraiStore.conn?.toggleAction(a.id);
     }
 
     function toggle(action: ActionData) {
         actionNames = actionNames.map(a => a.id === action.id ? {...a, hidden: !a.hidden} : a);
-        console.log('toggling', actionNames);
         moiraiStore.update(x => {
             x.clientData!.actions = actionNames;
             return x;
@@ -54,7 +36,6 @@
     }
 
     function runAction(a: ActionData) {
-        console.log('running action', a);
         $moiraiStore.conn?.runAction(a.id);
     }
 </script>
@@ -75,24 +56,22 @@
     <!-- <ListBox padding="px-4 py-1" multiple active="variant-filled-primary"> -->
     {#each actionNames as action,i}
         <!-- <ListBoxItem       bind:group={visibleActions} -->
-        <div class="flex">
+        <div class="flex items-center">
             <button on:click={() => runAction(action)}
+                    title={'Run ' + action.name}
+                    aria-label={'Run ' + action.name}
                     class="variant-outline hover:variant-ghost active:variant-filled rounded-lg flex-shrink-0">
                 <Play class="w-6 flex-shrink-0"/>
             </button>
-            <span class="flex-auto truncate mx-0 px-1"
+            <button type="button"
+                  class="flex-auto truncate mx-0 px-1 text-left"
+                  title={action.name}
                   on:click={() => toggle(action)}>
           {action.name}
-        </span>
+        </button>
             <SlideToggle on:change={(e) => toggleAction(action,e)} name="slider" checked={!action.hidden}
-                         active="bg-primary-500" size="sm">
-                <style>
-                    .slide-toggle-track {
-                        @apply w-8 h-4;
-                    }
-                </style>
-
-            </SlideToggle>
+                         active="bg-primary-500" size="sm" />
+            <!-- visibility toggle -->
         </div>
         <!-- </ListBoxItem> -->
     {/each}

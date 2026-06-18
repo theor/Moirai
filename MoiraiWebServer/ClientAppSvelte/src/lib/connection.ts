@@ -14,7 +14,6 @@ import {
   type Changeset
 } from './types';
 import { get, writable } from 'svelte/store';
-import { useQueryClient } from '@tanstack/svelte-query';
 export interface Result {
   eid: number;
   properties: EntityPropertyDisplay[];
@@ -44,11 +43,7 @@ export class SignalRConnection {
       .withUrl('/hub')
       .configureLogging(signalR.LogLevel.Warning)
       .build();
-    connection.on('messageReceived', (username: string, message: string) => {
-      console.log('messageReceived', username, message);
-    });
     await connection.start();
-    console.log('done', connection.state);
     let clientData = await connection.invoke('GetClientData');
     return [
       new SignalRConnection(connection),
@@ -62,7 +57,6 @@ export class SignalRConnection {
   }
 
   getChangesets(start: number, count: number): Promise<EntityChangeDisplay[]> {
-    console.warn('GET CHANGES', start, count);
     return this.connection.invoke('GetChangesets', start, count);
   }
 
@@ -92,11 +86,6 @@ export class SignalRConnection {
   getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]> {
     return this.connection.invoke('GetFamilyTree', entityId, maxDepth);
   }
-
-  // toggleActionFiltering (id: number, active: boolean, switchAll: boolean) {
-  //   this.connection.send('ToggleActionFiltering', id, active, switchAll);
-  //   useQueryClient().refetchQueries({queryKey:});
-  // }
 }
 
 interface State {
@@ -118,22 +107,18 @@ export interface EntityChangeDisplay {
 let _targetYear: number = 0;
 const writableStore = writable<State>(
   {
-    // selectedEntity: -1,
     year: 0,
-    passYearsProgress: 0,
+    passYearsProgress: undefined,
     connected: false,
     records: [],
     changesets: []
   },
   (set, update) => {
-    console.log('INIT');
     SignalRConnection.make().then(([x, clientData, c]) => {
       x.connection.onreconnected((_id) => {
-        console.log('RECO ' + true);
         update((x) => ({ ...x, connected: true }));
       });
       x.connection.onreconnecting((_id) => {
-        console.log('RECO ' + false);
         update((x) => ({ ...x, connected: false }));
       });
 
@@ -141,7 +126,6 @@ const writableStore = writable<State>(
       let buffer: Record[] = [];
       setInterval(() => {
         if (buffer.length > 0) {
-          console.log("BUFFER RECORDs", buffer)
           update((x) => ({ ...x, records: [...x.records, ...buffer] }));
           buffer = [];
         }
@@ -149,12 +133,10 @@ const writableStore = writable<State>(
 
       x.streamRecords().subscribe({
         next(value: Message) {
-          // console.log(value, value.type === MessageType.Record);
           switch (value.type) {
             case MessageType.Reset:
               if (value.year !== 0) {
                 update((x) => {
-                  console.warn(`RESET, fast forward to ${value.year}, current year is ${x.year}`);
                   _targetYear = value.year;
                   return x;
                 });
@@ -169,12 +151,7 @@ const writableStore = writable<State>(
                 update((x) => ({ ...x, year: value.year }));
               }
               if (_targetYear !== 0) {
-                try {
-                  console.log('fast forward to ', _targetYear);
-                  //   get().passYears(_targetYear - value.year);
-                } finally {
-                  _targetYear = 0;
-                }
+                _targetYear = 0;
               }
               break;
             default:
@@ -196,7 +173,6 @@ export const moiraiStore = {
   ...writableStore,
   reset: async () => {
     const newYear = await get(writableStore).conn!.reset();
-    console.warn('newyear reset', newYear);
     writableStore.update((x) => ({ ...x, year: newYear, records: [] }));
   },
   passYears: (amount: number) => {
@@ -209,7 +185,6 @@ export const moiraiStore = {
         writableStore.update((x) => ({ ...x, passYearsProgress: undefined }));
       },
       complete() {
-        console.log('PROGRESS COMPLETE');
         writableStore.update((x) => ({ ...x, passYearsProgress: undefined }));
       }
     };

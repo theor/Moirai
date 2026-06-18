@@ -15,7 +15,6 @@
     queryFn: ({ pageParam }: { pageParam: number }) => fetchServerPage(40, pageParam),
     initialPageParam: 0,
     getNextPageParam: (_lastGroup, groups) => {
-      console.log('next page param', groups.length, groups, _lastGroup);
       return (_lastGroup.rows?.length ?? 0) > 0 ? groups.length : undefined;
     },
   });
@@ -39,14 +38,12 @@
     });
 
     const [lastItem] = [...$virtualizer.getVirtualItems()].reverse();
-    // console.warn("has next", $query.hasNextPage, "last item", lastItem)
     if (
       lastItem &&
       lastItem.index > allRows.length - 1 &&
       $query.hasNextPage &&
       !$query.isFetchingNextPage
     ) {
-      console.warn('fetching next page');
       $query.fetchNextPage();
     }
   }
@@ -55,9 +52,7 @@
     limit: number,
     offset: number = 0,
   ): Promise<{ rows: EntityChangeDisplay[]; nextOffset: number }> {
-    console.log('fetch', limit, offset, $moiraiStore.conn);
     const changesets = await $moiraiStore.conn?.getChangesets(offset * limit, limit)!;
-    console.warn(changesets);
     return { rows: changesets, nextOffset: offset + 1 };
   }
 </script>
@@ -119,12 +114,6 @@
 {/if}
 
 <style>
-  .table tbody tr {
-    overflow: unset;
-  }
-  .table {
-    background-color: transparent;
-  }
   .list-item-odd {
     background-color: rgb(var(--color-surface-500) / 0.05);
   }

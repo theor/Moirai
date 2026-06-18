@@ -4,7 +4,7 @@
     import PineTree from 'virtual:icons/mdi/pine-tree';
     import {moiraiStore, type QueryResult} from "$lib/connection";
     import MoiraiText from "../../components/MoiraiText.svelte";
-    import {selectedEntity, urlParam} from "$lib/utils";
+    import {selectedEntity} from "$lib/utils";
     import {page} from '$app/stores';
     import {Accordion, AccordionItem} from '@skeletonlabs/skeleton';
 
@@ -12,7 +12,8 @@
     let results: Promise<QueryResult> = new Promise(() => [] as QueryResult[]);
     let selected = selectedEntity($page);
 
-    $: detailsOpened = urlParam($page, 'details').getNumber() > 0;
+    let astOpen = false;
+    let sqlOpen = false;
 
     class Debouncer {
         private timeout: NodeJS.Timeout | undefined;
@@ -34,15 +35,10 @@
     }
 
     let debouncer = new Debouncer(() => {
-        console.log('searching', query);
         if ($moiraiStore.conn)
             results = $moiraiStore.conn.query(query);
     }, 500);
     debouncer.debounce();
-    let setDetailsOpened = (e: CustomEvent<{ open: boolean }>) => {
-        console.log(e.detail)
-        urlParam($page, 'details').setNumber(e.detail.open ? 1 : 0);
-    };
 </script>
 
 <!--<div class="h-full w-full space-y-4  mb-4 ">-->
@@ -52,14 +48,14 @@
             <Search/>
         </div>
         <input bind:value={query} on:input={() => debouncer.debounce()} type="search"
-               placeholder="Search..."/>
+               name="query" aria-label="Query" placeholder="Search..."/>
         <button class="variant-filled-primary">Submit</button>
     </div>
     {#await results}
     {:then results}
         <div class="card p-4">
             <Accordion>
-                <AccordionItem open={detailsOpened} on:toggle={setDetailsOpened}>
+                <AccordionItem bind:open={astOpen}>
                     <svelte:fragment slot="lead">
                         <PineTree/>
                     </svelte:fragment>
@@ -68,7 +64,7 @@
                         <pre class="pre">{JSON.stringify(JSON.parse(results.query), null, 2)}</pre>
                     </svelte:fragment>
                 </AccordionItem>
-                <AccordionItem open={detailsOpened} on:toggle={setDetailsOpened}>
+                <AccordionItem bind:open={sqlOpen}>
                     <svelte:fragment slot="lead">
                         <DatabaseSearch/>
                     </svelte:fragment>
@@ -80,9 +76,9 @@
             </Accordion>
         </div>
 
-        {#if results.errors}
+        {#if results.errors && results.errors.length > 0}
             {#each results.errors as error}
-                <p>{error}</p>
+                <aside class="alert variant-filled-error my-2"><div class="alert-message">{error}</div></aside>
             {/each}
         {:else}
 <!--            <div class="w-full inline-block overflow-auto">-->

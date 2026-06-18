@@ -5,8 +5,6 @@
   import Select from 'virtual:icons/mdi/select';
   export let typeNames: string[];
   let visibleTypes: string[] | undefined = [...typeNames];
-
-  $: console.log(visibleTypes);
 </script>
 
 <div class="card p-4 mb-2">
