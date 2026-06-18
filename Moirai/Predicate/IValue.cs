@@ -1,4 +1,6 @@
-﻿using Moirai.Core;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Moirai.Core;
 
 public interface IValue
 {
@@ -93,11 +95,37 @@ public class UserFunctionCall : IValueCall, IValueSql
     {
         if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call && call.Value is IValueSql valueSql)
         {
-            using var _ = ctx.RunScope(true);
-            return valueSql.ToSql(ctx);
+            // Inline: replace each parameter reference in the body with its call argument, then compile
+            // the result in the CALLER's scope. This handles any arity (the old value-stack binding only
+            // worked when the single argument happened to be the query variable).
+            var map = new Dictionary<int, IValue>(Definition.Parameters.Length);
+            for (int i = 0; i < Definition.Parameters.Length; i++)
+                map[Definition.Parameters[i].ParamIndex] = Arguments[i];
+            var inlined = (IValueSql)InlineParams(valueSql, map);
+            return inlined.ToSql(ctx);
         }
 
         throw new NotImplementedException();
+    }
+
+    // Recursively replace parameter references (by variable index) with the corresponding argument.
+    // Handles the predicate/expression node types a SQL-compilable function body can contain.
+    private static IValue InlineParams(IValue node, Dictionary<int, IValue> map)
+    {
+        switch (node)
+        {
+            case PropertyPath pp when pp.Mode == PropertyPath.PropertyPathMode.Variable
+                                      && map.TryGetValue(pp.VariableIndex, out var arg):
+                return pp.RebaseOnto(arg);
+            case BinaryOperator b:
+                return new BinaryOperator(b.Op, InlineParams(b.Left, map), InlineParams(b.Right, map));
+            case And a:
+                return new And(a.Predicates.Select(p => InlineParams(p, map)).ToList());
+            case MathUnary m:
+                return new MathUnary(m.Function, InlineParams(m.Arg, map));
+            default:
+                return node;
+        }
     }
 
     public IFunctionDescriptor? FunctionDescriptor

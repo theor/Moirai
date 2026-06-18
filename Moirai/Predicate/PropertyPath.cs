@@ -47,6 +47,38 @@ public struct  PropertyPath : IValueSql
         Segments = src.Segments!.Count <= 1 ? null : src.Segments.Take(src.Segments.Count - 1).ToList();
     }
 
+    // General constructor used when inlining a function call: arbitrary base + segments.
+    private PropertyPath(int variableIndex, PropertyPathMode mode, PropertyValue.ValueType typeId,
+        List<PropertyOrCall>? segments)
+    {
+        VariableIndex = variableIndex;
+        Mode = mode;
+        TypeId = typeId;
+        Segments = segments;
+    }
+
+    /// <summary>
+    /// Re-roots this path (which references a function parameter) onto the call argument
+    /// <paramref name="arg"/>. A bare parameter (<c>$p</c>) becomes the argument as-is; a parameter
+    /// with trailing access (<c>$p.prop</c>) appends those segments onto the argument's path. Used to
+    /// inline a function body into the caller's scope so it compiles to SQL with multiple parameters.
+    /// </summary>
+    public readonly IValue RebaseOnto(IValue arg)
+    {
+        if (Segments == null || Segments.Count == 0)
+            return arg;
+        if (arg is PropertyPath ap)
+        {
+            var segs = new List<PropertyOrCall>();
+            if (ap.Segments != null)
+                segs.AddRange(ap.Segments);
+            segs.AddRange(Segments);
+            return new PropertyPath(ap.VariableIndex, ap.Mode, TypeId, segs);
+        }
+
+        throw new NotImplementedException("inlining a non-path argument with trailing property access");
+    }
+
     /// <summary>
     /// Splits a path whose final segment is a collection property into the owner entity path and the
     /// collection <see cref="PropertyId"/>. Returns false if there is no trailing property segment.
