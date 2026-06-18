@@ -26,6 +26,9 @@ dotnet test --filter "Name~MyTestMethod"
 dotnet run --project MoiraiWebServer -- MoiraiCli/w.sg
 # (if no/invalid file is passed, it prompts on stdin for a path)
 
+# Same, but profile every simulation run (see "Profiling" below)
+dotnet run --project MoiraiWebServer -- --profile MoiraiCli/w.sg
+
 # Production publish — this also runs `yarn install` && `yarn build` in ClientAppSvelte
 dotnet publish -c Release MoiraiWebServer/MoiraiWebServer.csproj
 ```
@@ -44,6 +47,36 @@ yarn test      # vitest
 VS Code language server: building `vscode-languageserver/Server/Server.csproj` outputs the LSP binary directly into `vscode-languageserver/client/server/` (see its `OutputPath`); the TS client lives in `vscode-languageserver/client/`.
 
 CI (`.github/workflows/dotnet.yml`) on `main` / PRs: restore → build → `dotnet test` → publish the web server. Tags `v*` cut a GitHub release zip.
+
+## Profiling
+
+Pass `-p` / `--profile` to the web server to profile the simulation. When enabled, **every** `PassYears` run (each "pass N years" from the UI) prints a per-run report to the server console — it does not affect the HTTP/SignalR responses. Use this to find optimization targets; the profiler is plain runtime code (not `[Conditional("DEBUG")]`), so it works in Release builds too.
+
+```
+=== Execution profile: 50 years in 47.6 ms ===
+
+Events (executed):
+  name                              exec        ok   hit%    self ms    incl ms    avg us
+  age_up                              50        50 100.0%      32.76      32.76     655.2
+  spawn                               50        50 100.0%       4.31       4.31      86.2
+  TOTAL                              100       100 100.0%      37.07      37.07
+
+Triggers (attempted):
+  name                          attempts        ok   hit%    self ms    incl ms    avg us
+  on_death                          1275         0   0.0%       1.14       1.14       0.9
+  on_birth                            50        50 100.0%       1.12       1.12      22.3
+  TOTAL                             1325        50   3.8%       2.25       2.25
+
+Coverage: events 37.1 ms + triggers 2.3 ms = 39.3 ms of 47.6 ms (82.6% self; remainder is scheduling/query overhead)
+```
+
+Reading the report:
+- **Events** are scheduled actions (one row per `event`); **exec** = invocations, **ok** = ran to completion (a `pick` that finds nothing aborts the event → counts against the hit rate).
+- **Triggers** are reactive rules (one row per `trigger`); **attempts** = times evaluated against a change, **ok** = predicate matched and effects ran. A low trigger **hit%** over many attempts is the prime optimization signal — e.g. `on_death` above is evaluated 1275× and matches 0×, all wasted work (triggers are currently re-checked for every change in a changeset).
+- **self ms** excludes nested measured scopes (an event's `call()` into other events, and the triggers fired after an event); **incl ms** includes them. For leaf rules the two are equal. Sort is by self time descending.
+- The **Coverage** line reconciles event + trigger self time against total wall time; the gap is per-year scheduling, the `Time.year` update, and SQL query overhead (`PickRandom`/`FindAll`).
+
+Mechanics (for changing the profiler): `Database.ProfilingEnabled` gates it; `ExecuteContext.PassYears` allocates a fresh `ExecutionProfiler` per run and prints `Report()`; recording happens in `Database.RunAction` (events) and `Database.RunTriggers` (triggers). See `Moirai/Core/ExecutionProfiler.cs`. Tests/tools can profile directly by setting `db.ProfilingEnabled = true` before `db.Ctx.PassYears(...)` and reading `db.ExecProfiler`. This is separate from the older `[Conditional("DEBUG")]` `Profiler` in `Entity.cs`, which counts per-property get/set hits.
 
 ## Architecture
 
@@ -78,7 +111,11 @@ The pipeline is: **`.sg` text → ANTLR parse → AstVisitor builds engine objec
 `MoiraiCli/w.sg` is the canonical large example. Core constructs:
 - `entity Person { prop age: Age  prop partner: Person ... }` — types and typed properties (refs, enums, `number`, `bool`, `percentage`, `string`).
 - `enum Job { Farmer, Smith, ... }`
-- `event name tags { ... }` with a scheduling annotation: `@start` (run once at init), `@1 per N years` (≈ once every N years, probabilistic), `@N every M year` (exactly N times every M years).
+- `event name { ... }` with a scheduling attribute: `@start` (run once at init), `@frequency(X, PerXYear, Y)` (probabilistic, avg X occurrences per Y years), or `@frequency(X, EveryXYear, Y)` (deterministic, exactly X every Y years). An event with no scheduling attribute only runs when invoked via `call(...)`.
 - `trigger name { when_created Person ... }` or `when Person and <predicate> { ... }` — reactive rules run after changesets; `$new` / `$old` reference the changed entity.
 - Effects inside bodies: `create T $v: '...'`, `set $v.prop = ...`, `pick T $v: (predicate)`, `each T $v: (predicate) { ... }`, `if`, `match`, `random_weighted N { w => ... }`, `record('...')`, `call(event, count)`.
-- `$var` are scoped locals; `#Time.year` reads the `Time` singleton; `@display Type ('Label', predicate, 'fmt')` configures derived fields shown in the entity details panel.
+- `$var` are scoped locals; `#Time.year` reads the `Time` singleton.
+- **Attributes** (all use the `@name(args...)` call form, one per line, immediately before the event/trigger/entity they annotate):
+  - `@tag('a', 'b')` — categorize an event/trigger (string literals).
+  - `@display(ReferencedType, 'Label', <predicate>, ['itemFmt'])` — derived/back-reference field on the preceding entity type, shown in the details panel; `$self` is the entity, `$other` the referenced one.
+  - **Gotcha:** older sources used bare-word forms (`@1 per N years`, `event name tag {`, `@display Type (...)`) that the current grammar rejects — the parser emits errors but the web server *silently ignores them*, so a malformed annotation just drops its filter/tag/display with no visible failure. Always use the `@name(...)` call form.
