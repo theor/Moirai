@@ -75,6 +75,29 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
         return ParseArgument(index, out _);
     }
 
+    /// <summary>
+    /// Parses argument <paramref name="index"/> as a path whose final segment is a collection property
+    /// (e.g. <c>$e.parents</c>), returning the full path (for printing) plus its split into the owner
+    /// entity path and the collection <see cref="PropertyId"/>. Emits an error and returns false otherwise.
+    /// </summary>
+    public bool ParseCollectionPath(int index, out PropertyPath full, out PropertyPath owner, out PropertyId collProp)
+    {
+        full = default;
+        owner = default;
+        collProp = default;
+        var arg = ParseArgument(index);
+        if (arg is PropertyPath pp && pp.TrySplitCollection(out owner, out collProp)
+                                   && Visitor.Database.IsCollectionProperty(collProp))
+        {
+            full = pp;
+            return true;
+        }
+
+        Visitor.AddError(StoryParser.ErrorCode.ExpectedCollection, GetArgumentToken(index),
+            "expected a collection property path (e.g. $e.items)");
+        return false;
+    }
+
     public int ArgCount => CallContext is MoiraiParser.CallContext c
         ? c.expr().Length
         : (CallContext is MoiraiParser.Raw_callContext r && r.value() != null ? 1 : 0);

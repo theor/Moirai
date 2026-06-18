@@ -18,6 +18,8 @@ SCOPE_OPEN: '{' ->pushMode(DEFAULT_MODE);
 SCOPE_CLOSE: '}' -> popMode;
 PAREN_OPEN: '(';
 PAREN_CLOSE: ')';
+LBRACK: '[';
+RBRACK: ']';
 EVENT: 'event';
 ENTITY: 'entity';
 TRIGGER: 'trigger';

@@ -1,4 +1,5 @@
-﻿using Moirai.Core;
+﻿using System.Linq;
+using Moirai.Core;
 
 public struct  PropertyPath : IValueSql
 {
@@ -34,6 +35,31 @@ public struct  PropertyPath : IValueSql
         Segments = null;
         Mode = PropertyPathMode.Singleton;
         VariableIndex = -1;
+    }
+
+    // Owner path = this path minus its last segment. Used to split a collection path like
+    // `$c.parents` into (owner=`$c`, collProp=`parents`).
+    private PropertyPath(in PropertyPath src, PropertyValue.ValueType ownerType)
+    {
+        VariableIndex = src.VariableIndex;
+        Mode = src.Mode;
+        TypeId = ownerType;
+        Segments = src.Segments!.Count <= 1 ? null : src.Segments.Take(src.Segments.Count - 1).ToList();
+    }
+
+    /// <summary>
+    /// Splits a path whose final segment is a collection property into the owner entity path and the
+    /// collection <see cref="PropertyId"/>. Returns false if there is no trailing property segment.
+    /// </summary>
+    public bool TrySplitCollection(out PropertyPath owner, out PropertyId collProp)
+    {
+        owner = default;
+        collProp = default;
+        if (Segments == null || Segments.Count == 0 || Segments[^1].Call != null)
+            return false;
+        collProp = Segments[^1].Property;
+        owner = new PropertyPath(in this, PropertyValue.TypeTypedRef(collProp.TypeId));
+        return true;
     }
 
     public void AddProperty(PropertyId pid)

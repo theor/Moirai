@@ -53,7 +53,7 @@ string: QUOTE stringContent* QUOTE ;
 
 bool: TRUE | FALSE;
 type_id: TYPE_ID;
-type: TYPE_ID | ID;
+type: TYPE_ID | ID | LBRACK (TYPE_ID | ID) RBRACK;
 property_id: ID;
 dot_property: DOT (property_id | call);
 var_id_read: SINGLETON_ID | VAR_ID;

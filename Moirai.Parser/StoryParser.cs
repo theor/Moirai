@@ -140,6 +140,38 @@ public static class StoryParser
             return (null!, PropertyValue.ValueType.Null);
         },
             ""),
+        new("add", false, ctx =>
+        {
+            ctx.ExpectArgcount(2);
+            if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
+                return (new CollectionMutate(full, owner, coll, ctx.ParseArgument(1), true),
+                    PropertyValue.ValueType.Null);
+            return (null!, PropertyValue.ValueType.Null);
+        }, "Adds a value to a collection property: add($e.coll, $x)"),
+        new("remove", false, ctx =>
+        {
+            ctx.ExpectArgcount(2);
+            if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
+                return (new CollectionMutate(full, owner, coll, ctx.ParseArgument(1), false),
+                    PropertyValue.ValueType.Null);
+            return (null!, PropertyValue.ValueType.Null);
+        }, "Removes a value from a collection property: remove($e.coll, $x)"),
+        new("contains", false, ctx =>
+        {
+            ctx.ExpectArgcount(2);
+            if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
+                return (new CollectionQuery(CollectionQuery.QueryKind.Contains, full, owner, coll,
+                    ctx.ParseArgument(1)), PropertyValue.TypeBool);
+            return (null!, PropertyValue.TypeBool);
+        }, "Tests collection membership: contains($e.coll, $x)"),
+        new("count", false, ctx =>
+        {
+            ctx.ExpectArgcount(1);
+            if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
+                return (new CollectionQuery(CollectionQuery.QueryKind.Count, full, owner, coll, null),
+                    PropertyValue.TypeNumber);
+            return (null!, PropertyValue.TypeNumber);
+        }, "Number of elements in a collection property: count($e.coll)"),
         new("not", false,
             ctx => (new MathUnary(MathUnary.UnaryFunction.Not, ctx.ParseArgument(0)), PropertyValue.TypeBool)),
         new("floor", false,
@@ -196,6 +228,7 @@ public static class StoryParser
         MissingReturnValue,
         MismatchedReturnType,
         ExpectedSql,
+        ExpectedCollection,
     }
 
     public struct Error

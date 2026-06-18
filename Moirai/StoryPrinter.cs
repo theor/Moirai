@@ -88,7 +88,8 @@ public class StoryPrinter
 
     public void PrintTypeProperty(StringBuilder sb, PropertyDefinition property)
     {
-        sb.AppendLine($"    prop {property.Name}: {Print(property.Type)}");
+        var t = Print(property.Type);
+        sb.AppendLine($"    prop {property.Name}: {(property.IsCollection ? $"[{t}]" : t)}");
     }
 
     public void PrintDefaultProperties(StringBuilder sb)

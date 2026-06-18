@@ -83,10 +83,12 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
                 if (type.GetPropertyId(propName).Id != 0)
                     return AddError(StoryParser.ErrorCode.DuplicatePropertyDefinition, typeDefinitionContext, propName);
 
+                var propTypeCtx = propDefinitionContext.type();
+                bool isCollection = propTypeCtx.LBRACK() != null;
                 PropertyValue.ValueType proptype =
-                    ParseType(StoryParser.GetTypeTerminal(propDefinitionContext.type()));
+                    ParseType(StoryParser.GetTypeTerminal(propTypeCtx));
                 var propertyDefinition = new PropertyDefinition(propName, type.Id, (uint) type.Properties.Count,
-                    proptype);
+                    proptype, isCollection);
                 type.Properties.Add(propertyDefinition);
                 Linker?.DeclareTypeProperty(new FileRange(propDefinitionContext), propertyDefinition.PropertyId);
             }

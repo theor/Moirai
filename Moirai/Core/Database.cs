@@ -290,6 +290,74 @@ public class Database
     }
 
 
+    public bool IsCollectionProperty(PropertyId prop)
+    {
+        var t = GetEntityType(prop.TypeId);
+        return prop.Id < t.Properties.Count && t.Properties[(int)prop.Id].IsCollection;
+    }
+
+    /// <summary>
+    /// Stable per-property key stored in the <c>collection.prop</c> column, also emitted inline by the
+    /// SQL form of contains/count. Packs (type, property index) so different types' props never collide.
+    /// </summary>
+    public static long CollPropKey(PropertyId p) => ((long)p.TypeId.Id << 32) | p.Id;
+
+    // Fixed, parameterized commands for the collection child table (prepared once, reused).
+    private SqliteCommand? _collAdd, _collRemove, _collContains, _collCount;
+
+    private SqliteCommand CollCmd(ref SqliteCommand? slot, string sql, bool withValue)
+    {
+        if (slot == null)
+        {
+            slot = _connection.CreateCommand();
+            slot.CommandText = sql;
+            slot.Parameters.Add("$o", SqliteType.Integer);
+            slot.Parameters.Add("$p", SqliteType.Integer);
+            if (withValue) slot.Parameters.Add("$v", SqliteType.Integer);
+            slot.Prepare();
+        }
+        return slot;
+    }
+
+    public void AddToCollection(EntityId owner, PropertyId coll, EntityId value)
+    {
+        var c = CollCmd(ref _collAdd,
+            "INSERT OR IGNORE INTO collection(owner, prop, value) VALUES ($o, $p, $v)", true);
+        c.Parameters[0].Value = (long)owner.Id;
+        c.Parameters[1].Value = CollPropKey(coll);
+        c.Parameters[2].Value = (long)value.Id;
+        c.ExecuteNonQuery();
+    }
+
+    public void RemoveFromCollection(EntityId owner, PropertyId coll, EntityId value)
+    {
+        var c = CollCmd(ref _collRemove,
+            "DELETE FROM collection WHERE owner = $o AND prop = $p AND value = $v", true);
+        c.Parameters[0].Value = (long)owner.Id;
+        c.Parameters[1].Value = CollPropKey(coll);
+        c.Parameters[2].Value = (long)value.Id;
+        c.ExecuteNonQuery();
+    }
+
+    public bool CollectionContains(EntityId owner, PropertyId coll, EntityId value)
+    {
+        var c = CollCmd(ref _collContains,
+            "SELECT 1 FROM collection WHERE owner = $o AND prop = $p AND value = $v LIMIT 1", true);
+        c.Parameters[0].Value = (long)owner.Id;
+        c.Parameters[1].Value = CollPropKey(coll);
+        c.Parameters[2].Value = (long)value.Id;
+        return c.ExecuteScalar() is long;
+    }
+
+    public int CollectionCount(EntityId owner, PropertyId coll)
+    {
+        var c = CollCmd(ref _collCount,
+            "SELECT COUNT(*) FROM collection WHERE owner = $o AND prop = $p", false);
+        c.Parameters[0].Value = (long)owner.Id;
+        c.Parameters[1].Value = CollPropKey(coll);
+        return (int)(long)c.ExecuteScalar()!;
+    }
+
     public EntityType? GetEntityType(PropertyValue.ValueType type)
     {
         if (type.BaseType != PropertyValue.ValueBaseType.EntityType && type.BaseType != PropertyValue.ValueBaseType.Ref)
@@ -541,7 +609,7 @@ public class Database
         {
             foreach (var p in t.Properties.Skip(4))
             {
-                if (p.Type.BaseType == PropertyValue.ValueBaseType.Bool)
+                if (!p.IsCollection && p.Type.BaseType == PropertyValue.ValueBaseType.Bool)
                     indices += $"\nCREATE INDEX ix_{t.Name}__{p.Name} ON entity (default__type, {t.Name}__{p.Name});";
             }
         }
@@ -551,7 +619,7 @@ CREATE TABLE entity (
     default__id INTEGER PRIMARY KEY,
     default__type INTEGER NOT NULL,
     default__name TEXT,
-    {string.Join(",\n  ", Types.Skip(1).SelectMany(t => t.Properties.Skip(4).Select(p => {
+    {string.Join(",\n  ", Types.Skip(1).SelectMany(t => t.Properties.Skip(4).Where(p => !p.IsCollection).Select(p => {
         // if (p.Type.BaseType == PropertyValue.ValueBaseType.Ref)
         // return $"FOREIGN KEY({p.Name}) REFERENCES entity(id)";
         return $@"{t.Name}__{p.Name} {ToSqlType(p.Type)}";
@@ -562,7 +630,13 @@ CREATE TABLE marked (
     eid INTEGER NOT NULL,
     marker INTEGER NOT NULL,
     last_year INTEGER NOT NULL,
-    count  INTEGER DEFAULT 1, PRIMARY KEY(eid, marker))
+    count  INTEGER DEFAULT 1, PRIMARY KEY(eid, marker));
+-- Multi-valued (collection) properties: one row per (owner entity, collection prop, member value).
+-- Set semantics via the composite primary key; the PK also indexes contains/count lookups.
+CREATE TABLE collection (
+    owner INTEGER NOT NULL,
+    prop  INTEGER NOT NULL,
+    value INTEGER NOT NULL, PRIMARY KEY(owner, prop, value));
 ";
         cmd.ExecuteNonQuery();
         Profiler.Init(this);
