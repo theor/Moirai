@@ -466,6 +466,24 @@ public class ChatHub : Hub
             ;
     }
 
+    public IEnumerable<EntityChangeDisplay> GetEntityChangesets(uint eid)
+    {
+        if (_db?.History == null) return ArraySegment<EntityChangeDisplay>.Empty;
+        Mutex.Wait();
+        try
+        {
+            return _db.History.Changesets
+                .SelectMany(cs => cs.Changes
+                    .Where(x => x.New.Id.Id == eid)
+                    .Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x))))
+                .ToList();
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
     public ChannelReader<Message> Stream(
         CancellationToken cancellationToken)
     {

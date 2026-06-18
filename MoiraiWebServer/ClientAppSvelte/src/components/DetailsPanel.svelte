@@ -1,10 +1,12 @@
 <script lang="ts">
     import {filteredEntity, selectedEntity} from '$lib/utils';
     import {page} from '$app/stores';
-    import {moiraiStore} from '$lib/connection';
+    import {moiraiStore, type EntityChangeDisplay} from '$lib/connection';
     import MoiraiText from './MoiraiText.svelte';
     import PreChip from './PreChip.svelte';
     import {SlideToggle} from '@skeletonlabs/skeleton';
+    import {onMount} from 'svelte';
+    import {get} from 'svelte/store';
 
     let selected = -1;
     let filter = false;
@@ -16,16 +18,25 @@
     }
     $: details = selected > 0 ? $moiraiStore.conn?.getEntityDetails(selected) : undefined;
 
-    // All streamed records that reference the selected entity. Record text encodes
-    // entity links as `<#42>Label</>`, so `#42>` uniquely matches that entity.
-    $: entityRecords =
-        selected > 0
-            ? $moiraiStore.records.filter((r) => r.text.includes(`#${selected}>`))
-            : [];
-
-    function actionName(actionId: number): string {
-        return $moiraiStore.clientData?.actions[actionId - 1]?.name ?? '';
+    // Changesets that touched the selected entity. Fetched on demand (not derived
+    // from the store) so the per-second record stream doesn't trigger refetches;
+    // we refresh on selection change and whenever the simulation year advances.
+    let changesets: Promise<EntityChangeDisplay[]> | undefined;
+    function refreshChangesets() {
+        changesets =
+            selected > 0 ? get(moiraiStore).conn?.getEntityChangesets(selected) : undefined;
     }
+    $: selected, refreshChangesets();
+
+    onMount(() => {
+        let prevYear = get(moiraiStore).year;
+        return moiraiStore.subscribe((s) => {
+            if (s.year !== prevYear) {
+                prevYear = s.year;
+                if (selected > 0) refreshChangesets();
+            }
+        });
+    });
 
     function toggleFilter() {
         filter = !filter;
@@ -73,20 +84,32 @@
 
 {#if selected > 0}
     <hr class="!my-3" />
-    <h4 class="h4 mb-1">Records ({entityRecords.length})</h4>
-    {#if entityRecords.length === 0}
-        <p class="text-sm opacity-60">No records mention this entity yet.</p>
-    {:else}
-        <div class="overflow-auto max-h-[45vh] pr-1">
-            {#each entityRecords as r}
-                <div class="py-1 border-b border-surface-500/20 text-sm">
-                    <div class="flex items-center gap-2 text-xs opacity-70">
-                        <PreChip text={r.year} />
-                        <span class="truncate">{actionName(r.actionId)}</span>
+    {#await changesets}
+        <h4 class="h4 mb-1">Changesets</h4>
+        <p class="text-sm opacity-60">Loading…</p>
+    {:then changesets}
+        <h4 class="h4 mb-1">Changesets ({changesets?.length ?? 0})</h4>
+        {#if !changesets || changesets.length === 0}
+            <p class="text-sm opacity-60">No changesets for this entity yet.</p>
+        {:else}
+            <div class="overflow-auto max-h-[45vh] pr-1">
+                {#each changesets as cs}
+                    <div class="py-1 border-b border-surface-500/20 text-sm">
+                        <div class="flex items-center gap-2 text-xs opacity-70">
+                            <PreChip text={cs.year} />
+                            <span class="truncate">{cs.actionName}</span>
+                        </div>
+                        <div class="flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
+                            {#each cs.changes as change}
+                                <span class="inline-flex items-center gap-1">
+                                    <kbd class="kbd">{change.label}</kbd>
+                                    <MoiraiText text={change.value} {selected} />
+                                </span>
+                            {/each}
+                        </div>
                     </div>
-                    <MoiraiText text={r.text} {selected} />
-                </div>
-            {/each}
-        </div>
-    {/if}
+                {/each}
+            </div>
+        {/if}
+    {/await}
 {/if}

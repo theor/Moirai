@@ -60,6 +60,10 @@ export class SignalRConnection {
     return this.connection.invoke('GetChangesets', start, count);
   }
 
+  getEntityChangesets(entityId: number): Promise<EntityChangeDisplay[]> {
+    return this.connection.invoke('GetEntityChangesets', entityId);
+  }
+
   async reset() {
     return this.connection.invoke<number>('Reset');
   }
