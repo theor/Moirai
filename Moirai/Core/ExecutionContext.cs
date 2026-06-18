@@ -109,6 +109,7 @@ public class ExecuteContext
     public void PassYears(long years, CancellationToken token, IProgress<int>? progress, bool offset)
     {
         Stopwatch sw = Stopwatch.StartNew();
+        Database.ExecProfiler = Database.ProfilingEnabled ? new ExecutionProfiler() : null;
         Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue);
         var timeType = Database.GetEntityType("Time");
         var timeId = this.GetSingletonId(timeType.Id);
@@ -140,6 +141,13 @@ public class ExecuteContext
 
         Console.WriteLine("PassYears " + years + " took " + sw.ElapsedMilliseconds + "ms");
         Profiler.Dump();
+
+        if (Database.ExecProfiler != null)
+        {
+            Database.ExecProfiler.Years = howMany;
+            Database.ExecProfiler.ElapsedTicks = sw.ElapsedTicks;
+            Console.WriteLine(Database.ExecProfiler.Report());
+        }
     }
 
     public Entity PrevEntity;

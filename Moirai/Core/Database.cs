@@ -43,6 +43,12 @@ public class Database
     public History? History;
     public Changeset CurrentChangeset;
 
+    /// <summary>When set, <see cref="ExecuteContext.PassYears"/> allocates a fresh <see cref="ExecProfiler"/> per run.</summary>
+    public bool ProfilingEnabled;
+
+    /// <summary>Non-null while a profiled run is in progress (and afterwards, holding the last run's results).</summary>
+    public ExecutionProfiler? ExecProfiler;
+
     private ExecuteContext _ctx;
 
     private List<Entity> _entities = new() { default };
@@ -336,6 +342,10 @@ WHERE default__id = $id;";
         _currentActionId = eventTrigger.Id;
         // _ctx.Values.Clear();
 
+        var prof = ExecProfiler;
+        var scope = prof?.Begin() ?? default;
+        bool success = true;
+
         // NOT a using statement
         using (var s = _ctx.RunScope(false))
         {
@@ -355,13 +365,20 @@ WHERE default__id = $id;";
                         Console.Error.WriteLine("Action failed but left changes:");
                     }
 
-                    return false;
+                    success = false;
+                    break;
                 }
             }
 
-            if (CurrentChangeset.Changes.Any())
+            if (success && CurrentChangeset.Changes.Any())
                 History?.AddChangeset(CurrentChangeset);
         }
+
+        // Record the event's own effect time (excludes the triggers fired below).
+        prof?.RecordEvent(eventTrigger, scope, success);
+
+        if (!success)
+            return false;
         // _taggedEntities.Clear();
         // CurrentChangeset.GetTaggedEntities(_taggedEntities);
 
@@ -381,6 +398,7 @@ WHERE default__id = $id;";
 
     private void RunTriggers(Changeset cs)
     {
+        var prof = ExecProfiler;
         foreach (Changeset.Changed changed in cs.Changes)
         {
             _ctx.PrevEntity = changed.Prev;
@@ -395,37 +413,46 @@ WHERE default__id = $id;";
                 // if (!@event.WhenTags.Contains(tag))
                 //     continue;
                 EventAttemptCount++;
-                using var s = _ctx.RunScope(false);
-                if (trigger.When.Item2 == changed.New.Type)
+                var scope = prof?.Begin() ?? default;
+                bool matched = false;
+                using (var s = _ctx.RunScope(false))
                 {
-                    // $old value
-                    int varIdx = 0;
-
-                    if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
-                        _ctx.SetArgument(varIdx++, ChangePrevEntityId);
-                    // $new value
-                    _ctx.SetArgument(varIdx, changed.New.Id);
-
-                    if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
+                    if (trigger.When.Item2 == changed.New.Type)
                     {
-                        EventAttemptSuccess++;
-                        // Console.WriteLine("  @ " + @event.Name);
-                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year);
-                        // using (var s2 = _ctx.RunScope())
+                        // $old value
+                        int varIdx = 0;
+
+                        if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
+                            _ctx.SetArgument(varIdx++, ChangePrevEntityId);
+                        // $new value
+                        _ctx.SetArgument(varIdx, changed.New.Id);
+
+                        if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
                         {
-                            foreach (var e in trigger.Effects)
+                            matched = true;
+                            EventAttemptSuccess++;
+                            // Console.WriteLine("  @ " + @event.Name);
+                            CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year);
+                            // using (var s2 = _ctx.RunScope())
                             {
-                                if (!e.Execute(_ctx).BoolValue)
+                                foreach (var e in trigger.Effects)
                                 {
-                                    // continue;
-                                    break;
+                                    if (!e.Execute(_ctx).BoolValue)
+                                    {
+                                        // continue;
+                                        break;
+                                    }
                                 }
                             }
+                            if (CurrentChangeset.Changes.Any())
+                                History?.AddChangeset(CurrentChangeset);
                         }
-                        if (CurrentChangeset.Changes.Any())
-                            History?.AddChangeset(CurrentChangeset);
                     }
                 }
+
+                // An "attempt" mirrors EventAttemptCount (the when-type matched); "matched" means the
+                // entity type + predicate matched and the trigger's effects ran.
+                prof?.RecordTrigger(trigger, scope, matched);
             }
             // break;
         }

@@ -42,6 +42,7 @@ public class ChatHub : Hub
         {
             _db = StoryParser.Parse(File.ReadAllText(Program.OptionsInstance.InputFile), out List<StoryParser.Error> _);
             _db.History = new();
+            _db.ProfilingEnabled = Program.OptionsInstance.Profile;
             _db.Init();
             _reset = true;
         }

@@ -54,7 +54,7 @@ public struct Changeset(int id, string actionName, long year)
     }
     public void RecordSet(Entity modifiedEntity, PropertyId property, PropertyValue prev)
     {
-        var i = -1;
+        var i = -1; 
         if (_changes != null)
             i = _changes.FindIndex(c => c.New.Id.Id == modifiedEntity.Id.Id);
         _changes ??= new();
