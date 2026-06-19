@@ -145,6 +145,25 @@ trigger grows {
                   "TokenVisitor), or add to ExemptKeywords: " + string.Join(", ", missing));
     }
 
+    // `:=` is punctuation (not a bare-word keyword), so the keyword drift tests don't cover it.
+    // This pins that the object-initializer operator and its property are highlighted by TokenVisitor.
+    [Test]
+    public void Init_colon_equals_is_highlighted()
+    {
+        const string src = "entity T {\n    prop a: number\n}\nevent e {\n    create T $t: 'x' {\n        a := 5\n    }\n}\n";
+        var doc = Process(src);
+        Assert.That(doc.Errors, Is.Empty, () => string.Join("\n", doc.Errors.Select(e => e.Message)));
+
+        var lexer = new moirai_lexer(new AntlrInputStream(src));
+        var colonEq = lexer.GetAllTokens().Single(t => t.Type == moirai_lexer.COLON_EQ);
+        var highlighted = doc.SemanticTokens
+            .Select(t => (t.range.Start.Line, t.range.Start.Character))
+            .ToHashSet();
+
+        Assert.That(highlighted, Does.Contain((colonEq.Line - 1, colonEq.Column)),
+            "the := initializer operator must be emitted as a semantic token");
+    }
+
     [Test]
     public void Every_keyword_occurrence_is_highlighted()
     {

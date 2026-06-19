@@ -492,6 +492,14 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         return context.expr().Accept(this);
     }
 
+    public override object? VisitInit(MoiraiParser.InitContext context)
+    {
+        // object-initializer assignment: `prop := value`
+        PushSemanticToken(context.property_id().ID().Symbol, SemanticTokenType.Property);
+        PushSemanticToken(context.COLON_EQ().Symbol, SemanticTokenType.Operator);
+        return context.expr().Accept(this);
+    }
+
     public override object? VisitRaw_call(MoiraiParser.Raw_callContext context)
     {
         PushSemanticToken(context.fun_id().ID().Symbol, SemanticTokenType.Function);

@@ -217,6 +217,11 @@ internal class MoiraiDocumentFormattingHandler : DocumentFormattingHandlerBase
             return EnsureSpaces(context.EQ(), 1, 1).Concat(base.VisitSet(context));
         }
 
+        public override IEnumerable<TextEdit> VisitInit(MoiraiParser.InitContext context)
+        {
+            return EnsureSpaces(context.COLON_EQ(), 1, 1).Concat(base.VisitInit(context));
+        }
+
         public override IEnumerable<TextEdit> VisitCall(MoiraiParser.CallContext context)
         {
             if (context.VAR_ID() != null)

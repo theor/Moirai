@@ -136,7 +136,7 @@
           "name": "variable.moirai"
         },
         {
-          "match": "(:|\\.|=>|\\+|-|/|\\*|,|and|or|<=|<|>=|>)",
+          "match": "(:=|:|\\.|=>|\\+|-|/|\\*|,|and|or|<=|<|>=|>|=)",
           "name": "keyword.moirai"
         },
         {
