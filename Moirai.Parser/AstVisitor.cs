@@ -191,7 +191,9 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         if (instanceType != null)
             instanceType.Functions.Add(functionDefinition);
         this.Database.Functions.Add(functionDefinition);
-        if(actualType != returnType)
+        // A function with no declared return type is a procedure: its body is effects (create/set/
+        // record/call) and any trailing value is ignored, so only value functions check the body type.
+        if (returnType != PropertyValue.ValueType.Null && actualType != returnType)
             AddError(actualType == PropertyValue.ValueType.Null ? StoryParser.ErrorCode.MissingReturnValue : StoryParser.ErrorCode.MismatchedReturnType, fundef, $"{actualType} != {returnType}");
         
         Linker?.DeclareFunction(fundef, new UserFunctionDescriptor(functionDefinition));

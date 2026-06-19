@@ -96,12 +96,6 @@ public static class StoryParser
                 return (null!, PropertyValue.ValueType.Null);
             }
 
-            var eventIndex = ctx.Visitor.Database.Actions.FindIndex(r => r.Name == eventName);
-            if (eventIndex == -1)
-            {
-                ctx.Visitor.AddError(ErrorCode.UnknownRule, arg, eventName);
-            }
-
             int count = 1;
             if (ctx.ArgCount > 1)
             {
@@ -114,8 +108,20 @@ public static class StoryParser
                 }
             }
 
-            // TODO type calls ?
-            return (new CallRule(eventIndex, count), PropertyValue.ValueType.Null);
+            // call() invokes either a scheduled event (run via RunAction, own changeset + triggers)
+            // or a procedural function (run inline in the caller's changeset).
+            var eventIndex = ctx.Visitor.Database.Actions.FindIndex(r => r.Name == eventName);
+            if (eventIndex != -1)
+                return (new CallRule(eventIndex, count), PropertyValue.ValueType.Null);
+
+            var funcIndex = ctx.Visitor.Database.Functions
+                .FindIndex(f => f.Name == eventName && !f.IsInstanceMethod);
+            if (funcIndex != -1)
+                return (new CallFunction(ctx.Visitor.Database.Functions[funcIndex], count),
+                    PropertyValue.ValueType.Null);
+
+            ctx.Visitor.AddError(ErrorCode.UnknownRule, arg, eventName);
+            return (null!, PropertyValue.ValueType.Null);
         }),
 
         new("random", false, ctx =>

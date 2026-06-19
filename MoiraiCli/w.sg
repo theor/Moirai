@@ -96,8 +96,8 @@ function has_parent($p: Person): bool {
     $p.parent1 != null or $p.parent2 != null
 }
 
-@tag('country')
-event create_country {
+// Procedural subroutines (invoked via call(...), not scheduled) — `function`, not `event`.
+function create_country() {
     create Country $c: '{random(CountryName)} {random(Name)}' {
         prosperity := 50%
         health := CountryHealth.Neutral
@@ -105,9 +105,9 @@ event create_country {
     record('{$c.name} is created')
 }
 
-event create_god {
+function create_god() {
     create God $g: '{random(Name)}, God of {random(GodTypes)}'
-    record '{name} appears'
+    record '{$g.name} appears'
 }
 @start
 event create_time {

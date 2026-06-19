@@ -25,8 +25,8 @@ Functions with >1 parameter used to throw `IndexOutOfRange` in `pick`/`each`. No
 caller scope, so bool helpers like `is_child_of($ch, $parent)` DRY repeated predicates. Two
 follow-ups surfaced:
 - Global functions aren't resolvable inside `@display` attributes (parsed before functions register).
-- No **void/effect functions** — functions must return a value, so an *effect* block (`set`+`record`)
-  can't be factored into a helper (only predicates/expressions can).
+- ~~No void/effect functions~~ ✅ A function with no declared return type is now a **procedure**: its
+  body is effects (create/set/record/call) and any trailing value is ignored. See `event` keyword below.
 
 ### 🟡 Aggregates over a query
 `count` exists (for collections), but there's no `sum` / `avg` / `min` / `max` over a `pick`/`each`
@@ -103,9 +103,12 @@ In triggers, a bare property means `$new.<prop>` while `$old.<prop>` is explicit
 (`when Item and owner != $old.owner`). Powerful but subtle — document the "bare prop = `$new`" rule
 prominently.
 
-### ⬜ `event` keyword is overloaded
-Scheduled simulation steps and `call`-only subroutines (`create_country`, `create_god`) share one
-keyword. A `rule`/`proc` vs `event` split would clarify intent.
+### ✅ `event` keyword is overloaded
+`function` now doubles as the procedural keyword: a no-return `function name() { ...effects... }` is a
+subroutine, invoked via `call(name)` / `call(name, count)` (which now resolves functions, running them
+inline in the caller's changeset) or directly as `name()`. w.sg's call-only `create_country` /
+`create_god` are now functions, leaving `event` for scheduled actions. (Not enforced: a non-scheduled
+`event` is still allowed; making that a warning is a possible follow-up.)
 
 ### ⬜ Number→enum implicit cast is opaque
 `set $c.health = ($c.prosperity / 10 + 1) / 2` assigns a computed number to an enum-typed property
