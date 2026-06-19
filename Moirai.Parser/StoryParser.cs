@@ -244,11 +244,22 @@ public static class StoryParser
         MismatchedReturnType,
         ExpectedSql,
         ExpectedCollection,
+        RedundantTypeFilter,
+    }
+
+    /// <summary>How a <see cref="Error"/> should be surfaced. Defaults to <see cref="Error"/> (value 0)
+    /// so existing diagnostics are unaffected; <see cref="Warning"/> is used for non-fatal lints such as
+    /// <see cref="ErrorCode.RedundantTypeFilter"/>.</summary>
+    public enum Severity
+    {
+        Error,
+        Warning,
     }
 
     public struct Error
     {
         public readonly ErrorCode Code;
+        public readonly Severity Severity;
         public int Line, Col;
         public int LineEnd, ColEnd;
         public string Message;
@@ -256,6 +267,7 @@ public static class StoryParser
         public Error(ErrorCode code, int line, int col, string message)
         {
             Code = code;
+            Severity = Severity.Error;
             Line = line;
             Col = col;
             Message = message;
@@ -266,6 +278,7 @@ public static class StoryParser
         public Error(ErrorCode code, ITerminalNode loc, string message, (int, int) offset)
         {
             Code = code;
+            Severity = Severity.Error;
             Line = loc.Symbol.Line + offset.Item1;
             Col = loc.Symbol.Column + offset.Item2;
             Message = message;
@@ -273,9 +286,11 @@ public static class StoryParser
             ColEnd = loc.Symbol.Column + loc.Symbol.Text.Length;
         }
 
-        public Error(ErrorCode code, ParserRuleContext loc, string message, (int, int) offset)
+        public Error(ErrorCode code, ParserRuleContext loc, string message, (int, int) offset,
+            Severity severity = Severity.Error)
         {
             Code = code;
+            Severity = severity;
             Line = loc.Start.Line + offset.Item1;
             Col = loc.Start.Column + offset.Item2;
             Message = message;
@@ -283,7 +298,7 @@ public static class StoryParser
             ColEnd = loc.Stop.Column + offset.Item2;
         }
 
-        public override string ToString() => $"M{(int) Code}: {Code} {Line}:{Col}: {Message}";
+        public override string ToString() => $"M{(int) Code}: {Severity} {Code} {Line}:{Col}: {Message}";
     }
 
     class Listener : IAntlrErrorListener<int>, IAntlrErrorListener<IToken>

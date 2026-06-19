@@ -253,7 +253,7 @@ event children_grow {
 
 @frequency(1, EveryXYear, 1)
 event youngs_grow {
-    each Person $p: (type = Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year){
+    each Person $p: (alive = true, age = Age.Young, (birthdate + 40) <= #Time.year){
         set $p.age = Age.Adult
     //    record('{$p.name} grew up as a {$p.age}')
     }

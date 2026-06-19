@@ -232,7 +232,13 @@ public class MoiraiCache
                     diagnostics.Add(new Diagnostic()
                     {
                         Code = "MR" + (int)error.Code,
-                        Severity = DiagnosticSeverity.Error,
+                        Severity = error.Severity == StoryParser.Severity.Warning
+                            ? DiagnosticSeverity.Warning
+                            : DiagnosticSeverity.Error,
+                        // Fade out redundant code (e.g. a `type = T` filter that repeats the iteration's type).
+                        Tags = error.Code == StoryParser.ErrorCode.RedundantTypeFilter
+                            ? new Container<DiagnosticTag>(DiagnosticTag.Unnecessary)
+                            : null,
                         Message = error.Code + ": " + error.Message,
                         Range = new Range(error.Line - 1, error.Col, error.LineEnd - 1, error.ColEnd),
                         Source = "Moirai",

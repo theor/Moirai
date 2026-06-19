@@ -1,4 +1,5 @@
-﻿using Moirai.Parser;
+﻿using System.Linq;
+using Moirai.Parser;
 
 namespace TestProject1;
 
@@ -47,11 +48,13 @@ public class TestsBase
         // {
             // Console.WriteLine(e);
         // }
-        Assert.That(errors.Count, Is.EqualTo(errorCount), string.Join("\n", errors));
+        Assert.That(errors.Count(e => e.Severity == StoryParser.Severity.Error), Is.EqualTo(errorCount),
+            string.Join("\n", errors));
         if (errorCount == 0)
         {
             var reparsed = StoryParser.Parse(printed, out var errors2);
-            Assert.That(errors2.Count, Is.EqualTo(errorCount), "During reparse: " + string.Join(", ", errors2));
+            Assert.That(errors2.Count(e => e.Severity == StoryParser.Severity.Error), Is.EqualTo(errorCount),
+                "During reparse: " + string.Join(", ", errors2));
             var print2 = reparsed.Printer.Print();
             Console.WriteLine("### REPRINT 2");
             Console.WriteLine(print2);

@@ -250,7 +250,7 @@ event children_grow {
 
 @frequency(1, EveryXYear, 1)
 event youngs_grow {
-    each Person $p: (type = Person, alive = true, age = Age.Young, (birthdate + 40) <= #Time.year){
+    each Person $p: (alive = true, age = Age.Young, (birthdate + 40) <= #Time.year){
         set $p.age = Age.Adult
     //    record('{$p.name} grew up as a {$p.age}')
     }
@@ -560,8 +560,9 @@ event item_sold {
 @frequency(1, PerXYear, 20)
 event create_faction {
     pick Person $p: (alive, faction = null, age > Age.Child)
-    create Faction $f: ('Faction of {random(Name)}')
-    set $f.founder = $p
+    create Faction $f: ('Faction of {random(Name)}') {
+        founder := $p
+    }
     set $p.faction = $f
     record('{$p.name} creates the {$f.name}')
 }

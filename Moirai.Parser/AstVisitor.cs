@@ -196,7 +196,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         if (returnType != PropertyValue.ValueType.Null && actualType != returnType)
             AddError(actualType == PropertyValue.ValueType.Null ? StoryParser.ErrorCode.MissingReturnValue : StoryParser.ErrorCode.MismatchedReturnType, fundef, $"{actualType} != {returnType}");
         
-        Linker?.DeclareFunction(fundef, new UserFunctionDescriptor(functionDefinition));
+        Linker?.DeclareFunction(new FileRange(fundef.fun_id()), new UserFunctionDescriptor(functionDefinition));
     }
 
 
@@ -1058,6 +1058,12 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         Errors.Add(new StoryParser.Error(code, loc, msg, Offset));
         return null;
+    }
+
+    public void AddWarning(StoryParser.ErrorCode code, ParserRuleContext loc, string msg)
+    {
+        Errors.Add(new StoryParser.Error(code, loc, Parser.TokenStream.GetText(loc) + ": " + msg, Offset,
+            StoryParser.Severity.Warning));
     }
 
     public override object? VisitCall(MoiraiParser.CallContext context)

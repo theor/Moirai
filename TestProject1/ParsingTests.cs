@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Linq;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using Moirai.Parser;
@@ -59,6 +60,75 @@ public class ParsingTests : TestsBase
         var parser = new MoiraiParser(tokens);
         var r = parser.r();
         r.Accept(new TestVisitor(){Parser = parser, Lexer = lexer, Stream = fromString});
+    }
+
+    private const string PersonEntity = @"
+entity Person {
+prop alive: bool
+}
+";
+
+    [Test]
+    public void RedundantTypeFilter_TypedEach_Warns()
+    {
+        StoryParser.Parse(PersonEntity + @"
+event e {
+    each Person $p: (type = Person, alive = true) {
+        record ''
+    }
+}", out var errors);
+
+        Assert.That(errors.Where(e => e.Severity == StoryParser.Severity.Error), Is.Empty,
+            string.Join("\n", errors));
+        var warnings = errors.Where(e => e.Code == StoryParser.ErrorCode.RedundantTypeFilter).ToList();
+        Assert.That(warnings, Has.Count.EqualTo(1), string.Join("\n", errors));
+        Assert.That(warnings[0].Severity, Is.EqualTo(StoryParser.Severity.Warning));
+    }
+
+    [Test]
+    public void RedundantTypeFilter_TypedPick_Warns()
+    {
+        StoryParser.Parse(PersonEntity + @"
+event e {
+    pick Person $p: (type = Person, alive = true)
+}", out var errors);
+
+        Assert.That(errors.Count(e => e.Code == StoryParser.ErrorCode.RedundantTypeFilter), Is.EqualTo(1),
+            string.Join("\n", errors));
+    }
+
+    [Test]
+    public void RedundantTypeFilter_NoTypeFilter_DoesNotWarn()
+    {
+        StoryParser.Parse(PersonEntity + @"
+event e {
+    each Person $p: (alive = true) {
+        record ''
+    }
+}", out var errors);
+
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+    }
+
+    [Test]
+    public void RedundantTypeFilter_DifferentType_DoesNotWarn()
+    {
+        // `type = Item` inside a `Person` iteration is a (different) contradiction, not the redundant
+        // self-type case, so it must not be flagged by the redundancy lint.
+        StoryParser.Parse(@"
+entity Person {
+prop alive: bool
+}
+entity Item {
+}
+event e {
+    each Person $p: (type = Item, alive = true) {
+        record ''
+    }
+}", out var errors);
+
+        Assert.That(errors.Count(e => e.Code == StoryParser.ErrorCode.RedundantTypeFilter), Is.EqualTo(0),
+            string.Join("\n", errors));
     }
 
     class TestVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor

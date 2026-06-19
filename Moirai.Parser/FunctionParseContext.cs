@@ -148,13 +148,37 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
     public IValue ParsePredicate(EntityTypeId entityTypeId)
     {
         if (ArgCount == 1)
-            return ParseArgument(0);
+        {
+            var only = ParseArgument(0);
+            WarnIfRedundantTypeFilter(only, 0, entityTypeId);
+            return only;
+        }
         IValue[] preds = new IValue[ArgCount];
         for (int i = 0; i < ArgCount; i++)
         {
             preds[i] = ParseArgument(i);
+            WarnIfRedundantTypeFilter(preds[i], i, entityTypeId);
         }
 
         return new And(preds);
+    }
+
+    /// <summary>
+    /// Flags a <c>type = T</c> filter that repeats the iteration's declared type, e.g.
+    /// <c>each Person $p: (type = Person, ...)</c> — the typed <c>each</c>/<c>pick</c> already
+    /// constrains to that type, so the filter is always true and can be dropped. Only fires when the
+    /// declaration carries an explicit type; the untyped form <c>each $p: (type = Item)</c> (where the
+    /// filter is what selects the type) leaves <paramref name="entityTypeId"/> null and is left alone.
+    /// </summary>
+    private void WarnIfRedundantTypeFilter(IValue pred, int index, EntityTypeId entityTypeId)
+    {
+        if (entityTypeId != EntityTypeId.Null
+            && pred is IsOfType { } iot
+            && iot.ValueTypeId == entityTypeId)
+        {
+            Visitor.AddWarning(StoryParser.ErrorCode.RedundantTypeFilter, GetArgumentToken(index),
+                $"redundant 'type = {Visitor.Database.GetEntityTypeName(entityTypeId)}' filter; " +
+                "the iteration is already constrained to this type by its declaration");
+        }
     }
 }
