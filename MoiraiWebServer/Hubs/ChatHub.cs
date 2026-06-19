@@ -40,18 +40,68 @@ public class ChatHub : Hub
         Mutex.Wait();
         try
         {
-            _db = StoryParser.Parse(File.ReadAllText(Program.OptionsInstance.InputFile), out List<StoryParser.Error> _);
-            _db.History = new();
-            _db.ProfilingEnabled = Program.OptionsInstance.Profile;
-            _db.Init();
-            _reset = true;
+            ResetLocked();
         }
         finally
         {
             Mutex.Release();
         }
 
-        return _db.Ctx.Year;
+        return _db!.Ctx.Year;
+    }
+
+    // Rebuild the world from the input file. Caller must hold Mutex.
+    private static void ResetLocked()
+    {
+        _db = StoryParser.Parse(File.ReadAllText(Program.OptionsInstance.InputFile), out List<StoryParser.Error> _);
+        _db.History = new();
+        _db.ProfilingEnabled = Program.OptionsInstance.Profile;
+        _db.Init();
+        _reset = true;
+    }
+
+    /// <summary>Get the shared world, creating it from the input file if no client has yet.</summary>
+    public static Database GetOrCreateDb()
+    {
+        Mutex.Wait();
+        try
+        {
+            if (_db == null)
+                ResetLocked();
+            return _db!;
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
+    /// <summary>
+    /// Run a debugged simulation: install <paramref name="session"/> as the engine's debug hook and
+    /// pass <paramref name="years"/> years under the shared mutex (so it does not race other clients).
+    /// Called by the debug adapter on a worker thread; blocks until the pass completes.
+    /// </summary>
+    public static void RunDebugged(int years, Moirai.Core.DebugSession session, CancellationToken ct)
+    {
+        Mutex.Wait();
+        try
+        {
+            if (_db == null)
+                ResetLocked();
+            _db!.DebugHook = session;
+            try
+            {
+                _db.Ctx.PassYears(years, ct, null, true);
+            }
+            finally
+            {
+                _db.DebugHook = null;
+            }
+        }
+        finally
+        {
+            Mutex.Release();
+        }
     }
 
     public ChannelReader<int> PassYears(int years)

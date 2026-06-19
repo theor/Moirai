@@ -12,3 +12,7 @@ MoiraiWebServer/Client/node_modules
 MoiraiWebServer/Client/MoiraiWebClient/node_modules
 moirai-log*.txt
 BenchmarkDotNet.Artifacts/
+node_modules/
+*.log
+*.tsbuildinfo
+.yarn/install-state.gz

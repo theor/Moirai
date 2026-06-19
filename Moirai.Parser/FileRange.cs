@@ -31,6 +31,10 @@ public record FileRange(FilePosition Start, FilePosition End)
     {
     }
 
+    /// Engine-local span (no ANTLR dependency) for attaching to runtime instructions.
+    public Moirai.Core.SourceSpan ToSpan() =>
+        new(Start.Line, Start.Column, End.Line, End.Column);
+
     public bool Contains(FilePosition pos)
     {
         return Start.Line <= pos.Line && pos.Line <= End.Line &&

@@ -64,6 +64,7 @@ public class MatchWeight : IValue
                 PropertyValue val = true;
                 foreach (var instr in @CumulativeWeights[i].Item2)
                 {
+                    ctx.Database.DebugHook?.OnStatement(instr, ctx);
                     val = instr.Execute(ctx);
                     if (!val.BoolValue)
                         break;
@@ -104,6 +105,7 @@ public class Match : IValue
                 PropertyValue val = true;
                 foreach (var instr in @case.Item2)
                 {
+                    ctx.Database.DebugHook?.OnStatement(instr, ctx);
                     val = instr.Execute(ctx);
                      if (!val.BoolValue)
                         break;
@@ -154,6 +156,7 @@ public class If : IValue
         PropertyValue res = true;
         foreach (var instr in scope)
         {
+            ctx.Database.DebugHook?.OnStatement(instr, ctx);
             res = instr.Execute(ctx);
             if (!res.BoolValue)
                break;
@@ -261,7 +264,10 @@ public class CreateEntity : IValueCall
         ctx.SetArgument(VariableIndex, entity);
         if (Init != null)
             foreach (var instruction in Init)
+            {
+                ctx.Database.DebugHook?.OnStatement(instruction, ctx);
                 instruction.Execute(ctx);
+            }
         return entity;
     }
 

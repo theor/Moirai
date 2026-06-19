@@ -5,6 +5,7 @@
 
 import { copyFileSync, cpSync } from "fs";
 import * as path from "path";
+import * as vscode from "vscode";
 import { workspace, ExtensionContext, commands, RelativePattern } from "vscode";
 
 import {
@@ -104,8 +105,45 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand(restartCommand, restartHandler)
   );
 
+  registerDebugging(context);
+
   // Start the client. This will also launch the server
   client.start();
+}
+
+// Wire the Debug Adapter Protocol client. The adapter itself runs inside the Moirai web server
+// (started with --debug-port), so we connect to it as a TCP server rather than spawning a process.
+function registerDebugging(context: ExtensionContext) {
+  const DEFAULT_PORT = 4711;
+  const DEFAULT_HOST = "127.0.0.1";
+
+  context.subscriptions.push(
+    vscode.debug.registerDebugAdapterDescriptorFactory("moirai", {
+      createDebugAdapterDescriptor(session) {
+        const cfg = session.configuration;
+        const port = typeof cfg.port === "number" ? cfg.port : DEFAULT_PORT;
+        const host = typeof cfg.host === "string" ? cfg.host : DEFAULT_HOST;
+        return new vscode.DebugAdapterServer(port, host);
+      },
+    })
+  );
+
+  // Provide a default config so F5 works in a .sg file with no launch.json.
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider("moirai", {
+      resolveDebugConfiguration(_folder, config) {
+        if (!config.type && !config.request && !config.name) {
+          config.type = "moirai";
+          config.request = "launch";
+          config.name = "Moirai: debug story";
+          config.years = 100;
+        }
+        if (config.port === undefined) config.port = DEFAULT_PORT;
+        if (config.host === undefined) config.host = DEFAULT_HOST;
+        return config;
+      },
+    })
+  );
 }
 
 export function deactivate(): Thenable<void> | undefined {

@@ -17,7 +17,8 @@
 		"vscode": "^1.75.0"
 	},
 	"activationEvents": [
-		"onLanguage:plaintext"
+		"onLanguage:moirai",
+		"onDebug"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
@@ -36,6 +37,90 @@
 				"language": "moirai",
 				"scopeName": "source.moirai",
 				"path": "./moirai.tmLanguage.json"
+			}
+		],
+		"breakpoints": [
+			{
+				"language": "moirai"
+			}
+		],
+		"debuggers": [
+			{
+				"type": "moirai",
+				"label": "Moirai",
+				"languages": [
+					"moirai"
+				],
+				"configurationAttributes": {
+					"launch": {
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "Path to the .sg story being debugged (for source mapping).",
+								"default": "${workspaceFolder}/MoiraiCli/w.sg"
+							},
+							"host": {
+								"type": "string",
+								"description": "Host of the Moirai web server's debug adapter.",
+								"default": "127.0.0.1"
+							},
+							"port": {
+								"type": "number",
+								"description": "Port passed to the web server via --debug-port.",
+								"default": 4711
+							},
+							"years": {
+								"type": "number",
+								"description": "Number of years to simulate under the debugger.",
+								"default": 100
+							},
+							"stopOnEntry": {
+								"type": "boolean",
+								"description": "Break on the first executed statement.",
+								"default": false
+							}
+						}
+					},
+					"attach": {
+						"properties": {
+							"host": {
+								"type": "string",
+								"default": "127.0.0.1"
+							},
+							"port": {
+								"type": "number",
+								"default": 4711
+							}
+						}
+					}
+				},
+				"initialConfigurations": [
+					{
+						"type": "moirai",
+						"request": "launch",
+						"name": "Moirai: debug story",
+						"program": "${workspaceFolder}/MoiraiCli/w.sg",
+						"host": "127.0.0.1",
+						"port": 4711,
+						"years": 100,
+						"stopOnEntry": false
+					}
+				],
+				"configurationSnippets": [
+					{
+						"label": "Moirai: Debug story (launch)",
+						"description": "Drive a simulation under the debugger (web server must run with --debug-port).",
+						"body": {
+							"type": "moirai",
+							"request": "launch",
+							"name": "Moirai: debug story",
+							"program": "^\"\\${workspaceFolder}/MoiraiCli/w.sg\"",
+							"host": "127.0.0.1",
+							"port": 4711,
+							"years": 100
+						}
+					}
+				]
 			}
 		],
     "commands": [

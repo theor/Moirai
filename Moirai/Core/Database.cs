@@ -49,6 +49,9 @@ public class Database
     /// <summary>Non-null while a profiled run is in progress (and afterwards, holding the last run's results).</summary>
     public ExecutionProfiler? ExecProfiler;
 
+    /// <summary>When non-null, a step-through debugger observes execution through this hook (see <see cref="IDebugHook"/>). Null = no overhead.</summary>
+    public IDebugHook? DebugHook;
+
     private ExecuteContext _ctx;
 
     private List<Entity> _entities = new() { default };
@@ -454,12 +457,14 @@ public class Database
         // NOT a using statement
         using (var s = _ctx.RunScope(false))
         {
+            DebugHook?.OnEnterFrame(DebugFrameKind.Event, eventTrigger.Name, eventTrigger.DebugScopeRoot, _ctx.ValueOffset);
             for (var index = 0; index < eventTrigger.Effects.Count; index++)
             {
                 var e = eventTrigger.Effects[index];
                 if (e is CallInstruction { Value: AssignPick { VariableIndex: -1 } })
                     throw new NotImplementedException("Arg index -1 on p " + index);
 
+                DebugHook?.OnStatement(e, _ctx);
                 if (!e.Execute(_ctx).BoolValue)
                 {
                     // Console.WriteLine($"  ABORT [{action.Name}]");
@@ -475,6 +480,7 @@ public class Database
                 }
             }
 
+            DebugHook?.OnExitFrame();
             if (success && CurrentChangeset.Changes.Any())
                 History?.AddChangeset(CurrentChangeset);
         }
@@ -540,14 +546,17 @@ public class Database
                             CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year);
                             // using (var s2 = _ctx.RunScope())
                             {
+                                DebugHook?.OnEnterFrame(DebugFrameKind.Trigger, trigger.Name, trigger.DebugScopeRoot, _ctx.ValueOffset);
                                 foreach (var e in trigger.Effects)
                                 {
+                                    DebugHook?.OnStatement(e, _ctx);
                                     if (!e.Execute(_ctx).BoolValue)
                                     {
                                         // continue;
                                         break;
                                     }
                                 }
+                                DebugHook?.OnExitFrame();
                             }
                             if (CurrentChangeset.Changes.Any())
                                 History?.AddChangeset(CurrentChangeset);

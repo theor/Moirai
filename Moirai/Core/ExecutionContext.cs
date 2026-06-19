@@ -102,6 +102,39 @@ public class ExecuteContext
         _values.RemoveRange(ValueOffset, _values.Count - ValueOffset);
     }
 
+    /// <summary>
+    /// Read a local variable slot of the current frame (slot is relative to <see cref="ValueOffset"/>).
+    /// Used by the debugger to inspect <c>$vars</c>; returns false when the slot has not been written yet.
+    /// </summary>
+    public bool TryGetLocal(int slot, out PropertyValue value)
+    {
+        int i = slot + ValueOffset;
+        if (i >= 0 && i < _values.Count)
+        {
+            value = _values[i];
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Read a value-stack entry by absolute index (i.e. a frame's <c>valueOffset + slot</c>).
+    /// Used by the debugger to inspect locals of frames other than the current one.
+    /// </summary>
+    public bool TryGetValueAt(int absoluteIndex, out PropertyValue value)
+    {
+        if (absoluteIndex >= 0 && absoluteIndex < _values.Count)
+        {
+            value = _values[absoluteIndex];
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
 
     public Scope RunScope(bool setOffset)
     {

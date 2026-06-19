@@ -52,6 +52,7 @@ public struct AssignPick : IValueCall
                             foreach (var e in ScopeEffects)
                             {
                                 // Console.WriteLine("  Exec " + ctx.Database.Printer.PrintEffect(e));
+                                ctx.Database.DebugHook?.OnStatement(e, ctx);
                                 if (!e.Execute(ctx).BoolValue)
                                 {
                                     break;

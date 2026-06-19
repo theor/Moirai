@@ -4,6 +4,8 @@ public struct CallInstruction : IInstruction
 {
     public readonly IValue Value;
 
+    public SourceSpan Source { get; set; } = SourceSpan.None;
+
     public CallInstruction(IValue value)
     {
         Value = value;

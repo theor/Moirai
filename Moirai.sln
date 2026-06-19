@@ -18,6 +18,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moirai.SourceGenerators.Tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moirai.Benchmarks", "Moirai.Benchmarks\Moirai.Benchmarks.csproj", "{CE533D08-86E9-4045-A5EC-89E1EECD3AD1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Moirai.DebugAdapter", "Moirai.DebugAdapter\Moirai.DebugAdapter.csproj", "{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -136,6 +138,18 @@ Global
 		{CE533D08-86E9-4045-A5EC-89E1EECD3AD1}.Release|x64.Build.0 = Release|Any CPU
 		{CE533D08-86E9-4045-A5EC-89E1EECD3AD1}.Release|x86.ActiveCfg = Release|Any CPU
 		{CE533D08-86E9-4045-A5EC-89E1EECD3AD1}.Release|x86.Build.0 = Release|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Debug|x64.Build.0 = Debug|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Debug|x86.Build.0 = Debug|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Release|x64.ActiveCfg = Release|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Release|x64.Build.0 = Release|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Release|x86.ActiveCfg = Release|Any CPU
+		{4E388491-0DB1-4F80-A87E-0CDEF36F8CF5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

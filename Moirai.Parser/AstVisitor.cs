@@ -158,6 +158,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     private void ParseFunctionDefinition(MoiraiParser.Function_definitionContext fundef, EntityType? instanceType = null)
     {
         using var _ = new VariableDeclarationScopeDisposable(this, fundef.scope());
+        var rootScope = _current;
 
         var name = fundef.fun_id().GetText();
         PropertyValue.ValueType returnType = PropertyValue.ValueType.Null;
@@ -182,12 +183,14 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         }).ToArray();
         var functionDefinitionId = new FunctionDefinitionId(
             (ushort)(instanceType == null ? Database.Functions.Count : instanceType.Functions.Count));
+        var instructions = ParseScope(fundef.scope(), out var actualType);
         var functionDefinition = new FunctionDefinition(functionDefinitionId,
             name,
             instanceType?.Id ?? EntityTypeId.Null,
             returnType,
             parameters,
-            ParseScope(fundef.scope(), out var actualType));
+            instructions,
+            ConvertScope(rootScope));
         if (instanceType != null)
             instanceType.Functions.Add(functionDefinition);
         this.Database.Functions.Add(functionDefinition);
@@ -256,7 +259,8 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         string actionId = context.ID().GetText();
         using var _ = new VariableDeclarationScopeDisposable(this, context.scope());
-        
+        var rootScope = _current;
+
         ParseAttributes(out var tags, out var f);
 
 
@@ -275,6 +279,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             CurrentEventTrigger.Effects.Add(effect);
         }
 
+        CurrentEventTrigger.DebugScopeRoot = ConvertScope(rootScope);
         Database.Actions.Add(CurrentEventTrigger);
         CurrentEventTrigger = null;
         return null;
@@ -361,6 +366,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, tags:tags);
 
         using var _ = new VariableDeclarationScopeDisposable(this, context.scope());
+        var rootScope = _current;
         if (context.scope().when_created() is { } createdContext)
         {
             EntityType type = Database.GetEntityType(createdContext.type_id().TYPE_ID().GetText());
@@ -393,11 +399,23 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
                 CurrentEventTrigger.Effects.Add(effect);
         }
 
+        CurrentEventTrigger.DebugScopeRoot = ConvertScope(rootScope);
         CurrentEventTrigger = null;
         return null;
     }
 
     private IInstruction ParseEffect(MoiraiParser.EffectContext effectContext, out PropertyValue.ValueType type)
+    {
+        // Single funnel for every statement (events, triggers, if/else, match cases,
+        // each/create bodies, function bodies all reach here). Attaching the source span
+        // here gives the debugger line-granular breakpoints with one touch point.
+        var instr = ParseEffectInner(effectContext, out type);
+        if (instr != null)
+            instr.Source = new FileRange(effectContext).ToSpan();
+        return instr;
+    }
+
+    private IInstruction ParseEffectInner(MoiraiParser.EffectContext effectContext, out PropertyValue.ValueType type)
     {
         if (effectContext.expr() != null)
         {
@@ -785,6 +803,18 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         if(_current.Parent == null)
             throw new InvalidOperationException("Null parent scope");
         _current = _current.Parent!;
+    }
+
+    /// Translate the parser's lexical scope tree into the engine-side <see cref="Moirai.Core.DebugScope"/>
+    /// the debugger uses to resolve value-stack slots back to variable names.
+    private static Moirai.Core.DebugScope ConvertScope(Parser.VariableDeclarationScope scope)
+    {
+        var d = new Moirai.Core.DebugScope(scope.Range.ToSpan());
+        for (int i = 0; i < scope.Variables.Count; i++)
+            d.AddVariable(scope.ParentCount + i, scope.Variables[i].Name);
+        foreach (var child in scope.Children)
+            d.AddChild(ConvertScope(child));
+        return d;
     }
 
     private IValue ParseRawCall(MoiraiParser.Raw_callContext context, out PropertyValue.ValueType returnType)

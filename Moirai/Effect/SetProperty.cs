@@ -8,6 +8,8 @@ public class SetProperty : IInstruction
     public readonly PropertyPath PropertySet;
     public readonly IValue Parameter;
 
+    public SourceSpan Source { get; set; } = SourceSpan.None;
+
     public SetProperty(PropertyPath property, IValue parameter, bool isLocalVar, bool isInit = false)
     {
         IsLocalVar = isLocalVar;

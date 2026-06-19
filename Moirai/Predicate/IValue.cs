@@ -78,12 +78,16 @@ public class UserFunctionCall : IValueCall, IValueSql
             ctx.SetArgument(p.ParamIndex + valueCount, argValue);
         }
         s.Start();
+        var hook = ctx.Database.DebugHook;
+        hook?.OnEnterFrame(DebugFrameKind.Function, Definition.Name, Definition.DebugScopeRoot, ctx.ValueOffset);
         PropertyValue val = default;
         foreach (var definitionInstruction in Definition.Instructions)
         {
+            hook?.OnStatement(definitionInstruction, ctx);
             val = definitionInstruction.Execute(ctx);
         }
 
+        hook?.OnExitFrame();
         return val;
     }
     public PropertyValue Compute(ExecuteContext ctx)

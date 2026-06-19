@@ -17,6 +17,10 @@ internal class Program
             HelpText = "Profile each simulation run: per-event/per-trigger timings, counts and trigger hit rates printed to the console.")]
         public bool Profile { get; set; }
 
+        [Option('d', "debug-port", Required = false, Default = 0,
+            HelpText = "If > 0, start a Debug Adapter Protocol server on this loopback TCP port for step-through debugging from VS Code.")]
+        public int DebugPort { get; set; }
+
         [Value(0, MetaName = "inputfile", HelpText = "The Moirai file to load")]
         public string InputFile { get; set; } = "";
     }
@@ -72,7 +76,14 @@ internal class Program
             ChatHub.ReloadRequested();
         });
         watcher.EnableRaisingEvents = true;
-        
+
+        if (options.DebugPort > 0)
+        {
+            var debugHost = new MoiraiWebServer.MoiraiDebugHost();
+            new Moirai.DebugAdapter.DapListener(debugHost, options.DebugPort).Start();
+            Console.WriteLine($"Debug adapter listening on 127.0.0.1:{options.DebugPort}");
+        }
+
         var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

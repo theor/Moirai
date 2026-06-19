@@ -15,4 +15,7 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
 
     public readonly IFilter? Filter = filter;
     // public List<TagId> WhenTags = new();
+
+    /// Lexical variable-scope tree for the debugger (null when not parsed for debugging info).
+    public DebugScope? DebugScopeRoot;
 }
