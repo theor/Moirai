@@ -408,6 +408,8 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             return ParseLocalVar(effectContext.var());
         if (effectContext.set() != null)
             return ParseSet(effectContext.set());
+        if (effectContext.init() != null)
+            return ParseInit(effectContext.init());
 
         AddError(StoryParser.ErrorCode.Exception, effectContext, "NULL");
         return new SetProperty(default, null, false);
@@ -528,6 +530,32 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         if (assignedType != Cast(assignedType, rightType))
             AddError(StoryParser.ErrorCode.MismatchedAssignmentTypes, context, $"{assignedType} != {rightType}");
         return new SetProperty(left, right, false);
+    }
+
+    // `prop := value` — object-initializer assignment of `prop` on the current scope entity
+    // (the last-declared variable, e.g. the entity created by an enclosing `create ... { }` block).
+    private SetProperty ParseInit(MoiraiParser.InitContext context)
+    {
+        var propName = context.property_id().GetText();
+        int variableIndex = _current.Count - 1;
+        EntityType owningType = Database.GetEntityType(_current[variableIndex].Type)!;
+        var path = new PropertyPath(variableIndex, owningType.RefType);
+
+        var propertyId = owningType.GetPropertyId(propName);
+        PropertyValue.ValueType assignedType = default;
+        if (!propertyId.IsValid)
+            AddError(StoryParser.ErrorCode.UnknownProperty, context.property_id(), propName);
+        else
+        {
+            assignedType = owningType.GetPropertyType(propName);
+            Linker?.LinkProperty(new FileRange(context.property_id()), propertyId);
+            path.AddProperty(propertyId);
+        }
+
+        var right = ParseExpr(context.expr(), out var rightType);
+        if (assignedType != Cast(assignedType, rightType))
+            AddError(StoryParser.ErrorCode.MismatchedAssignmentTypes, context, $"{assignedType} != {rightType}");
+        return new SetProperty(path, right, false, isInit: true);
     }
 
     static PropertyValue.ValueType Cast(PropertyValue.ValueType to, PropertyValue.ValueType from)

@@ -16,10 +16,19 @@ public static class StoryParser
     [
         new("create", true, ctx =>
         {
-            return (
-                new CreateEntity(ctx.ParseVariable(out var etid, out _), etid,
-                    ctx.ArgCount == 0 ? null : (InterpolatedString) ctx.ParseArgument(0)),
-                PropertyValue.TypeTypedRef(etid));
+            // $var is declared in the enclosing scope (it persists after the create). An optional
+            // `{ ... }` block is an initializer whose `prop := value` lines target the new entity.
+            var variableIndex = ctx.ParseVariable(out var etid, out _);
+            var name = ctx.ArgCount == 0 ? null : (InterpolatedString) ctx.ParseArgument(0);
+            var scopeContext = ctx.GetScopeContext();
+            IInstruction[]? init = null;
+            if (scopeContext != null)
+            {
+                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext);
+                init = ctx.Visitor.ParseRawScope(scopeContext, out _);
+            }
+
+            return (new CreateEntity(variableIndex, etid, name, init), PropertyValue.TypeTypedRef(etid));
         }),
         new("each", true,
             ctx =>

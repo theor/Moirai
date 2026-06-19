@@ -237,12 +237,15 @@ public class CreateEntity : IValueCall
     public readonly int VariableIndex;
     public readonly EntityTypeId Type;
     public readonly InterpolatedString? Name;
+    // Optional object-initializer block effects, run against the new entity right after allocation.
+    public readonly IInstruction[]? Init;
 
-    public CreateEntity(int variableIndex, EntityTypeId type, InterpolatedString? name)
+    public CreateEntity(int variableIndex, EntityTypeId type, InterpolatedString? name, IInstruction[]? init = null)
     {
         VariableIndex = variableIndex;
         Type = type;
         Name = name;
+        Init = init;
     }
 
     public PropertyValue Compute(ExecuteContext ctx)
@@ -256,6 +259,9 @@ public class CreateEntity : IValueCall
 
         var entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
+        if (Init != null)
+            foreach (var instruction in Init)
+                instruction.Execute(ctx);
         return entity;
     }
 
@@ -266,5 +272,20 @@ public class CreateEntity : IValueCall
         // yield return new Literal(Type);
         if(Name != null)
             yield return Name;
+    }
+
+    // Render the call plus, if present, the `{ prop := value ... }` initializer block (round-trip).
+    public string Print(StoryPrinter printer, int indent)
+    {
+        var b = new System.Text.StringBuilder(FunctionDescriptor?.Print(printer, this));
+        if (Init is { Length: > 0 })
+        {
+            b.AppendLine(" {");
+            foreach (var effect in Init)
+                printer.PrintEffect(effect, b, indent + 1);
+            b.Append(StoryPrinter.IndentStr(indent) + "}");
+        }
+
+        return b.ToString();
     }
 }

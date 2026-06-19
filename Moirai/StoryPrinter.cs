@@ -158,6 +158,10 @@ public class StoryPrinter
 
                 sb.Append(Print(call.Value, indent) + Environment.NewLine);
                 break;
+            case SetProperty { IsInit: true } setProperty:
+                sb.AppendLine(
+                    $"{indentStr}{GetPropertyName(setProperty.PropertySet.Segments![^1].Property)} := {Print(setProperty.Parameter)}");
+                break;
             case SetProperty setProperty:
                 sb.AppendLine(
                     $"{indentStr}{(setProperty.IsLocalVar ? "var" : "set")} {Print(setProperty.PropertySet)}{(setProperty.IsLocalVar ? ":" : " =")} {Print(setProperty.Parameter)}");

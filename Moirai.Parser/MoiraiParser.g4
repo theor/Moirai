@@ -12,11 +12,14 @@ event: EVENT  ID scope;
 trigger: TRIGGER ID scope;
 when: WHEN type_id (AND expr)* SPACE* LINE_BREAK+;
 when_created: WHEN_CREATED type_id (AND expr)* SPACE* LINE_BREAK+;
-effect: (set | var | expr) SPACE* (LINE_BREAK)*;
+effect: (set | init | var | expr) SPACE* (LINE_BREAK)*;
 if: IF cond=expr then=scope (ELSE LINE_BREAK*  else=scope)? ;
 match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE  LINE_BREAK*;
 match_case: value (COMMA value)* ARROW ((effect LINE_BREAK+)|scope) ;
 set: SET  path EQ expr;
+// object-initializer assignment: `prop := value` sets `prop` on the current scope entity
+// (e.g. the entity created by an enclosing `create T $e: '...' { ... }` block).
+init: property_id COLON_EQ expr;
 var: VAR  VAR_ID COLON expr;
 fun_id: ID;
 //call_assign : ID (VAR_ID COLON)?  ((expr (COMMA expr)* )) scope?;

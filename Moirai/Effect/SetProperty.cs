@@ -3,12 +3,15 @@
 public class SetProperty : IInstruction
 {
     public readonly bool IsLocalVar;
+    // True when written via the `prop := value` object-initializer form; affects printing only.
+    public readonly bool IsInit;
     public readonly PropertyPath PropertySet;
     public readonly IValue Parameter;
 
-    public SetProperty(PropertyPath property, IValue parameter, bool isLocalVar)
+    public SetProperty(PropertyPath property, IValue parameter, bool isLocalVar, bool isInit = false)
     {
         IsLocalVar = isLocalVar;
+        IsInit = isInit;
         PropertySet = property;
         Parameter = parameter;
     }

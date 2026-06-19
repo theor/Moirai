@@ -98,10 +98,11 @@ function has_parent($p: Person): bool {
 
 @tag('country')
 event create_country {
-    create Country $c: '{random(CountryName)} {random(Name)}'
-    set prosperity = 50%
-    set health = CountryHealth.Neutral
-    record('{name} is created')
+    create Country $c: '{random(CountryName)} {random(Name)}' {
+        prosperity := 50%
+        health := CountryHealth.Neutral
+    }
+    record('{$c.name} is created')
 }
 
 event create_god {
@@ -110,8 +111,9 @@ event create_god {
 }
 @start
 event create_time {
-    create Time $t: 'time'
-    set $t.year = 764
+    create Time $t: 'time' {
+        year := 764
+    }
     call(create_country, 10)
     call(create_god, 10)
 }
