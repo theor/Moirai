@@ -43,6 +43,10 @@ singleton World {
     prop turn: number
 }
 
+function global_score($c: Country): number {
+    $c.health * 3
+}
+
 @start
 event start {
     create Country $c: ('Test')

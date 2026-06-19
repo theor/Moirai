@@ -391,6 +391,10 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             {
                 tr.Accept(this);
             }
+            else if (c.function_definition() is {} fn)
+            {
+                fn.Accept(this);
+            }
             else if (c.type_definition() is {} typeDefinitionContext)
             {
                 PushSemanticToken(
