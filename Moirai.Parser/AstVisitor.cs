@@ -443,6 +443,12 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 
     private bool _parsingMatchCase;
 
+    // > 0 while parsing a pick/each predicate, which is compiled to SQL. User-function calls inside
+    // such a predicate are inlined into the query (UserFunctionCall.ToSql) rather than executed as
+    // steppable instructions, so we flag those call sites for the editor.
+    internal int InSqlPredicateDepth;
+    internal bool InSqlPredicate => InSqlPredicateDepth > 0;
+
     private IValue ParseMatch(MoiraiParser.MatchContext match, out PropertyValue.ValueType valueType)
     {
         bool weight = match.MATCH_WEIGHT() != null;
@@ -847,6 +853,9 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         {
             var ctx = new FunctionParseContext(this, context, fd.Value);
             Linker?.LinkFunction(new FileRange(context.fun_id()), new UserFunctionDescriptor(fd.Value));
+            if (InSqlPredicate)
+                AddInfo(StoryParser.ErrorCode.FunctionInlinedToSql, context,
+                    $"'{funcName}' is inlined into the SQL query here — its body is not executed step-by-step, so breakpoints inside it won't hit for this call.");
             return ParseUserFunctionCall(this,  ctx, out returnType);
         }
         if(StoryParser.GetFunctionDescriptor(funcName, out var f))
@@ -1099,6 +1108,16 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
     {
         Errors.Add(new StoryParser.Error(code, loc, Parser.TokenStream.GetText(loc) + ": " + msg, Offset,
             StoryParser.Severity.Warning));
+    }
+
+    // Informational, non-error annotations (e.g. "inlined into SQL"). Kept OUT of Errors so the
+    // web server's query/parse paths — which treat any Errors entry as a failure — are unaffected;
+    // the language server surfaces these separately as Information diagnostics.
+    public readonly List<StoryParser.Error> InfoMarkers = new();
+
+    public void AddInfo(StoryParser.ErrorCode code, ParserRuleContext loc, string msg)
+    {
+        InfoMarkers.Add(new StoryParser.Error(code, loc, msg, Offset, StoryParser.Severity.Information));
     }
 
     public override object? VisitCall(MoiraiParser.CallContext context)

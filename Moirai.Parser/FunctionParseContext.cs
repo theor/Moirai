@@ -139,7 +139,18 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
 
     public IValueSql ParsePredicateSql(EntityTypeId entityTypeId)
     {
-        IValue v = ParsePredicate(entityTypeId);
+        // The predicate compiles to SQL: flag user-function calls within it as inlined (not steppable).
+        Visitor.InSqlPredicateDepth++;
+        IValue v;
+        try
+        {
+            v = ParsePredicate(entityTypeId);
+        }
+        finally
+        {
+            Visitor.InSqlPredicateDepth--;
+        }
+
         if (v is IValueSql sql)
             return sql;
         Visitor.AddError(StoryParser.ErrorCode.ExpectedSql, CallContext, "Expected SQL expression");

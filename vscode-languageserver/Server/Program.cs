@@ -232,9 +232,12 @@ public class MoiraiCache
                     diagnostics.Add(new Diagnostic()
                     {
                         Code = "MR" + (int)error.Code,
-                        Severity = error.Severity == StoryParser.Severity.Warning
-                            ? DiagnosticSeverity.Warning
-                            : DiagnosticSeverity.Error,
+                        Severity = error.Severity switch
+                        {
+                            StoryParser.Severity.Warning => DiagnosticSeverity.Warning,
+                            StoryParser.Severity.Information => DiagnosticSeverity.Information,
+                            _ => DiagnosticSeverity.Error,
+                        },
                         // Fade out redundant code (e.g. a `type = T` filter that repeats the iteration's type).
                         Tags = error.Code == StoryParser.ErrorCode.RedundantTypeFilter
                             ? new Container<DiagnosticTag>(DiagnosticTag.Unnecessary)
@@ -398,6 +401,7 @@ public class MoiraiDocument
             r.Accept(visitor);
             Errors = visitor.Errors;
             Errors.AddRange(astVisitor.Errors);
+            Errors.AddRange(astVisitor.InfoMarkers);   // Information-severity annotations (e.g. SQL-inlined calls)
             Symbols = symbols;
         }
         catch (Exception e)

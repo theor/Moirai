@@ -245,6 +245,7 @@ public static class StoryParser
         ExpectedSql,
         ExpectedCollection,
         RedundantTypeFilter,
+        FunctionInlinedToSql,
     }
 
     /// <summary>How a <see cref="Error"/> should be surfaced. Defaults to <see cref="Error"/> (value 0)
@@ -254,6 +255,7 @@ public static class StoryParser
     {
         Error,
         Warning,
+        Information,
     }
 
     public struct Error
