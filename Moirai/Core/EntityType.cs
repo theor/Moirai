@@ -2,6 +2,8 @@ public class EntityType
 {
     public readonly string Name;
     public readonly EntityTypeId Id;
+    /// <summary>Declared with the <c>singleton</c> keyword: at most one instance, looked up O(1).</summary>
+    public bool IsSingleton;
     public readonly List<PropertyDefinition> Properties = Database.DefaultProperties();
     public readonly List<FunctionDefinition> Functions = new(){default};
 

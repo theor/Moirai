@@ -95,7 +95,7 @@ public class Database
         Types = new List<EntityType>
         {
             new EntityType("default", 0),
-            new EntityType("Time", 1).DeclareProperty("year", PropYear.Id,
+            new EntityType("Time", 1) { IsSingleton = true }.DeclareProperty("year", PropYear.Id,
                 PropertyValue.TypeNumber)
         };
         BuiltinTypes = Types.Count;
@@ -112,9 +112,17 @@ public class Database
     }
 
 
+    // Cached instance id per `singleton`-declared type, so #Type lookups are O(1) instead of an
+    // entity scan. Cleared on Init(); kept correct by AllocateEntity. GetSingleton falls back to a
+    // scan if the cache misses, so this is purely an optimization layer.
+    private readonly Dictionary<uint, EntityId> _singletons = new();
+
+    public bool TryGetSingleton(EntityTypeId type, out EntityId id) => _singletons.TryGetValue(type.Id, out id);
+
     public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
     {
-        Entity e = new(GetEntityType(entityType));
+        var type = GetEntityType(entityType);
+        Entity e = new(type);
 
         if (!String.IsNullOrEmpty(name))
         {
@@ -123,6 +131,8 @@ public class Database
 
         e.Id = new EntityId((uint)_entities.Count);
         _entities.Add(e);
+        if (type.IsSingleton)
+            _singletons[entityType.Id] = e.Id;
         // PerTypeIndices[(int)entityType.Id].Add(e.Id);
         // TODO CS
         CurrentChangeset.RecordCreate(e);
@@ -595,6 +605,7 @@ public class Database
     public void Init()
     {
         Console.WriteLine(Path.GetFullPath("."));
+        _singletons.Clear();
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.CreateFunction("rnd", () => _ctx.Rnd.GenerateNext());
         _connection.Open();

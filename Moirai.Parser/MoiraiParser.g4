@@ -41,7 +41,7 @@ expr
     | (PAREN_OPEN paren_expr=expr PAREN_CLOSE)
     ;
 
-type_definition: ENTITY TYPE_ID SCOPE_OPEN LINE_BREAK* (prop_definition|function_definition)* SCOPE_CLOSE LINE_BREAK+ ;
+type_definition: (ENTITY | SINGLETON) TYPE_ID SCOPE_OPEN LINE_BREAK* (prop_definition|function_definition)* SCOPE_CLOSE LINE_BREAK+ ;
 
 //range: (PAREN_OPEN number COMMA number PAREN_CLOSE);
 prop_definition: PROP property_id COLON type LINE_BREAK+ ;

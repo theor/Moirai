@@ -50,6 +50,9 @@ public class ExecuteContext
 
     public EntityId GetSingletonId(EntityTypeId type)
     {
+        // Fast path for `singleton`-declared types (O(1)); scan as a fallback for plain types.
+        if (Database.TryGetSingleton(type, out var cached))
+            return cached;
         foreach (var entity in Database.Entities)
         {
             if (entity.Type == type)
@@ -61,6 +64,8 @@ public class ExecuteContext
     }
     public bool GetSingleton(EntityTypeId type, out Entity value)
     {
+        if (Database.TryGetSingleton(type, out var cached) && Database.TryGetEntity(cached, out value))
+            return true;
 
         foreach (var entity in Database.Entities)
         {

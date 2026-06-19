@@ -22,6 +22,7 @@ LBRACK: '[';
 RBRACK: ']';
 EVENT: 'event';
 ENTITY: 'entity';
+SINGLETON: 'singleton';
 TRIGGER: 'trigger';
 //NAME: 'name';
 PROP: 'prop';

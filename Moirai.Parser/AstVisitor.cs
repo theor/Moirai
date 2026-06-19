@@ -67,6 +67,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 
             string? typeName = typeDefinitionContext.TYPE_ID().GetText();
             EntityType type = DeclareEntityType(typeName);
+            type.IsSingleton = typeDefinitionContext.SINGLETON() != null;
 
             Linker?.DeclareType(new FileRange(typeDefinitionContext), type.Id);
 

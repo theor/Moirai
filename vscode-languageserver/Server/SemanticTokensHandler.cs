@@ -393,7 +393,9 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
             }
             else if (c.type_definition() is {} typeDefinitionContext)
             {
-                PushSemanticToken(typeDefinitionContext.ENTITY().Symbol, SemanticTokenType.Keyword);
+                PushSemanticToken(
+                    (typeDefinitionContext.ENTITY() ?? typeDefinitionContext.SINGLETON()).Symbol,
+                    SemanticTokenType.Keyword);
                 PushSemanticToken(typeDefinitionContext.TYPE_ID().Symbol, SemanticTokenType.Type);
                 foreach (var propDefinitionContext in typeDefinitionContext.prop_definition())
                 {

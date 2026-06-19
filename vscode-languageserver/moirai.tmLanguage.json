@@ -21,7 +21,7 @@
           "name": "entity.other.attribute.moirai"
         },
         {
-          "match": "(entity\\W)([A-Z][0-9a-zA-Z_]*)(\\W\\{)",
+          "match": "((?:entity|singleton)\\W)([A-Z][0-9a-zA-Z_]*)(\\W\\{)",
           "captures": {
             "1": {
               "name": "keyword.moirai"

@@ -73,7 +73,7 @@ public class StoryPrinter
 
     public void PrintType(StringBuilder sb, EntityType type)
     {
-        sb.AppendLine(@$"entity {type.Name} {{");
+        sb.AppendLine(@$"{(type.IsSingleton ? "singleton" : "entity")} {type.Name} {{");
         foreach (var property in type.Properties.Skip(Database.DefaultProperties().Count))
         {
             PrintTypeProperty(sb, property);

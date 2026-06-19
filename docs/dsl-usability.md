@@ -44,10 +44,16 @@ and remove a footgun.
 sugar for the common single-branch case (`char_prestige_update`'s suicide check is exactly this written
 the long way).
 
-### ⬜ Declared singletons
-`#Time.year` relies on there being exactly one `Time` by convention (`create_time`). A
-`singleton Time { prop year: number }` keyword would make intent explicit, let the engine enforce
-uniqueness, and enable a fast-path lookup instead of an entity scan.
+### ✅ Declared singletons
+Added a `singleton` type keyword (`singleton World { prop turn: number }`) that marks a type as a
+singleton: the instance id is cached on creation, so `#World.turn` is an O(1) lookup instead of an
+entity scan (`GetSingleton` falls back to a scan if the cache misses, so it's purely an optimization
+layer). The built-in `Time` type is now marked singleton too, speeding up the very common
+`#Time.year` reads. Round-trips through the printer; highlighted by the LSP.
+
+Not yet done: hard uniqueness *enforcement* (creating a second instance currently just updates the
+cache, last-wins, rather than erroring). Deferred to avoid edge cases around reload/deserialize; easy
+follow-up if desired.
 
 ### ⬜ Parametrized / unified events
 `call(create_country, 10)` can only repeat an event N times — no arguments. Bridging events and

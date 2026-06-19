@@ -39,6 +39,10 @@ enum Mood {
     Sad
 }
 
+singleton World {
+    prop turn: number
+}
+
 @start
 event start {
     create Country $c: ('Test')
