@@ -411,7 +411,12 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         // here gives the debugger line-granular breakpoints with one touch point.
         var instr = ParseEffectInner(effectContext, out type);
         if (instr != null)
-            instr.Source = new FileRange(effectContext).ToSpan();
+        {
+            var span = new FileRange(effectContext).ToSpan();
+            instr.Source = span;
+            if (span.IsValid)
+                Database.DebugStatementLines.Add(span.StartLine);
+        }
         return instr;
     }
 

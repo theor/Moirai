@@ -111,6 +111,110 @@ trigger on_birth {
     }
 
     [Test]
+    public void EntityVariablesExpandToProperties()
+    {
+        var db = StoryParser.Parse(Story, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+
+        var session = new DebugSession();
+        db.History = new();
+        db.DebugHook = session;
+        db.Init();
+
+        // Break inside age_up's each-loop, where $p is an existing Person with alive/age set.
+        int bpLine = LineOf(Story, "set $p.age = $p.age + 1");
+        session.SetBreakpoints("story.sg", new[] { bpLine });
+
+        var stops = new BlockingCollection<DebugSession.StopInfo>();
+        session.Stopped += s => stops.Add(s);
+
+        var done = new ManualResetEventSlim(false);
+        var worker = new Thread(() =>
+        {
+            try { db.Ctx.PassYears(2, true); }
+            finally { done.Set(); }
+        }) { IsBackground = true };
+        worker.Start();
+
+        Assert.That(stops.TryTake(out _, 5000), Is.True, "did not stop");
+
+        // $p is an entity-typed local: it must be expandable.
+        var locals = session.GetVariables(0);
+        var p = locals.FirstOrDefault(v => v.Name == "$p");
+        Assert.That(p, Is.Not.Null, "$p not found");
+        Assert.That(p!.VariablesReference, Is.GreaterThan(0), "$p should be expandable");
+        Assert.That(p.Value, Does.Contain("Person"), "entity summary should name its type");
+
+        // Expanding $p yields its properties, including the ones set during simulation.
+        var props = session.GetVariablesByReference(p.VariablesReference);
+        Assert.That(props, Is.Not.Empty);
+        var alive = props.FirstOrDefault(v => v.Name == "alive");
+        Assert.That(alive, Is.Not.Null, "expanded entity should expose 'alive'");
+        Assert.That(alive!.Value.ToLowerInvariant(), Does.Contain("true"));
+        Assert.That(props.Any(v => v.Name == "age"), Is.True, "expanded entity should expose 'age'");
+
+        // Drain remaining stops so the run can finish.
+        session.Continue();
+        while (!done.Wait(50))
+        {
+            if (stops.TryTake(out _, 2000))
+                session.Continue();
+            else
+                break;
+        }
+        Assert.That(done.Wait(5000), Is.True);
+    }
+
+    [Test]
+    public void WorldScopeListsYearAndEntityCounts()
+    {
+        var db = StoryParser.Parse(Story, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+
+        var session = new DebugSession();
+        db.History = new();
+        db.DebugHook = session;
+        db.Init();
+
+        int bpLine = LineOf(Story, "set $p.age = $p.age + 1");
+        session.SetBreakpoints("story.sg", new[] { bpLine });
+
+        var stops = new BlockingCollection<DebugSession.StopInfo>();
+        session.Stopped += s => stops.Add(s);
+
+        var done = new ManualResetEventSlim(false);
+        var worker = new Thread(() =>
+        {
+            try { db.Ctx.PassYears(2, true); }
+            finally { done.Set(); }
+        }) { IsBackground = true };
+        worker.Start();
+
+        Assert.That(stops.TryTake(out _, 5000), Is.True, "did not stop");
+
+        var world = session.GetVariablesByReference(session.GetWorldReference());
+        var year = world.FirstOrDefault(v => v.Name == "year");
+        Assert.That(year, Is.Not.Null, "World should expose year");
+        Assert.That(int.Parse(year!.Value), Is.GreaterThanOrEqualTo(1));
+
+        Assert.That(world.Any(v => v.Name == "entities"), Is.True, "World should expose total entity count");
+
+        var person = world.FirstOrDefault(v => v.Name == "Person");
+        Assert.That(person, Is.Not.Null, "World should list the Person type");
+        Assert.That(int.Parse(person!.Value), Is.GreaterThanOrEqualTo(1), "at least one Person exists");
+
+        session.Continue();
+        while (!done.Wait(50))
+        {
+            if (stops.TryTake(out _, 2000))
+                session.Continue();
+            else
+                break;
+        }
+        Assert.That(done.Wait(5000), Is.True);
+    }
+
+    [Test]
     public void StepOverAdvancesToNextStatement()
     {
         var db = StoryParser.Parse(Story, out var errors);

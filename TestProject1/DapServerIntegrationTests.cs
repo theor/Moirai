@@ -60,6 +60,125 @@ event spawn {
         return -1;
     }
 
+    private const string FuncStory = @"
+entity Country {
+    prop founded: number
+}
+function make_country() {
+    create Country $c: 'c'
+    record('made')
+}
+@start
+event setup {
+    create Time $t: 'time'
+    set $t.year = 0
+}
+@frequency(1, EveryXYear, 1)
+event run {
+    call(make_country, 1)
+}";
+
+    [Test]
+    public void BreakpointInsideFunctionHitsOverWire()
+    {
+        var db = StoryParser.Parse(FuncStory, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        db.History = new();
+        db.Init();
+
+        int bpLine = LineOf(FuncStory, "record('made')");
+
+        var listener = new DapListener(new FakeHost(db, "story.sg", 1), 0);
+        listener.Start();
+
+        using var tcp = new TcpClient();
+        Assert.That(tcp.ConnectAsync("127.0.0.1", listener.Port).Wait(5000), Is.True);
+        var stream = tcp.GetStream();
+        stream.ReadTimeout = 5000;
+        var conn = new DapConnection(stream, stream);
+
+        conn.SendRequest("initialize", new JsonObject { ["adapterID"] = "moirai" });
+        WaitFor(conn, m => m["event"]?.GetValue<string>() == "initialized");
+        conn.SendRequest("setBreakpoints", new JsonObject
+        {
+            ["source"] = new JsonObject { ["path"] = "story.sg" },
+            ["breakpoints"] = new JsonArray { new JsonObject { ["line"] = bpLine } },
+        });
+        WaitFor(conn, m => m["command"]?.GetValue<string>() == "setBreakpoints");
+        conn.SendRequest("launch", new JsonObject { ["years"] = 1 });
+        conn.SendRequest("configurationDone");
+
+        var stopped = WaitFor(conn, m => m["event"]?.GetValue<string>() == "stopped");
+        Assert.That(stopped, Is.Not.Null, "never stopped inside the function");
+        Assert.That(((JsonObject)stopped!["body"]!)["line"]!.GetValue<int>(), Is.EqualTo(bpLine));
+
+        conn.SendRequest("stackTrace", new JsonObject { ["threadId"] = 1 });
+        var stack = WaitFor(conn, m => m["command"]?.GetValue<string>() == "stackTrace");
+        var frames = (JsonArray)((JsonObject)stack!["body"]!)["stackFrames"]!;
+        Assert.That(((JsonObject)frames[0]!)["name"]!.GetValue<string>(), Is.EqualTo("make_country"));
+
+        conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+        WaitFor(conn, m =>
+        {
+            if (m["event"]?.GetValue<string>() == "stopped")
+                conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+            return m["event"]?.GetValue<string>() == "terminated";
+        }, 8000);
+        conn.SendRequest("disconnect");
+    }
+
+    [Test]
+    public void BreakpointOnSignatureLineSnapsToFunctionBody()
+    {
+        var db = StoryParser.Parse(FuncStory, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        db.History = new();
+        db.Init();
+
+        // User drops the breakpoint on the (non-executable) `function make_country() {` line.
+        int sigLine = LineOf(FuncStory, "function make_country()");
+        int firstBody = LineOf(FuncStory, "create Country $c");
+
+        var listener = new DapListener(new FakeHost(db, "story.sg", 1), 0);
+        listener.Start();
+
+        using var tcp = new TcpClient();
+        Assert.That(tcp.ConnectAsync("127.0.0.1", listener.Port).Wait(5000), Is.True);
+        var stream = tcp.GetStream();
+        stream.ReadTimeout = 5000;
+        var conn = new DapConnection(stream, stream);
+
+        conn.SendRequest("initialize", new JsonObject { ["adapterID"] = "moirai" });
+        WaitFor(conn, m => m["event"]?.GetValue<string>() == "initialized");
+
+        conn.SendRequest("setBreakpoints", new JsonObject
+        {
+            ["source"] = new JsonObject { ["path"] = "story.sg" },
+            ["breakpoints"] = new JsonArray { new JsonObject { ["line"] = sigLine } },
+        });
+        var bpResp = WaitFor(conn, m => m["command"]?.GetValue<string>() == "setBreakpoints");
+        // The adapter should report the breakpoint snapped down to the first body statement.
+        var reported = (JsonObject)((JsonArray)((JsonObject)bpResp!["body"]!)["breakpoints"]!)[0]!;
+        Assert.That(reported["verified"]!.GetValue<bool>(), Is.True);
+        Assert.That(reported["line"]!.GetValue<int>(), Is.EqualTo(firstBody), "breakpoint should snap to the first body line");
+
+        conn.SendRequest("launch", new JsonObject { ["years"] = 1 });
+        conn.SendRequest("configurationDone");
+
+        var stopped = WaitFor(conn, m => m["event"]?.GetValue<string>() == "stopped");
+        Assert.That(stopped, Is.Not.Null, "never stopped after snapping the breakpoint into the function");
+        Assert.That(((JsonObject)stopped!["body"]!)["line"]!.GetValue<int>(), Is.EqualTo(firstBody));
+
+        conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+        WaitFor(conn, m =>
+        {
+            if (m["event"]?.GetValue<string>() == "stopped")
+                conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+            return m["event"]?.GetValue<string>() == "terminated";
+        }, 8000);
+        conn.SendRequest("disconnect");
+    }
+
     [Test]
     public void FullHandshakeStopsAtBreakpoint()
     {
@@ -118,11 +237,32 @@ event spawn {
         // scopes -> variables: $p is present.
         conn.SendRequest("scopes", new JsonObject { ["frameId"] = top["id"]!.GetValue<int>() });
         var scopes = WaitFor(conn, m => m["command"]?.GetValue<string>() == "scopes");
-        int varRef = ((JsonObject)((JsonArray)((JsonObject)scopes!["body"]!)["scopes"]!)[0]!)["variablesReference"]!.GetValue<int>();
+        var scopeArr = (JsonArray)((JsonObject)scopes!["body"]!)["scopes"]!;
+        var scopeNames = scopeArr.Select(s => ((JsonObject)s!)["name"]!.GetValue<string>()).ToArray();
+        Assert.That(scopeNames, Does.Contain("Locals"));
+        Assert.That(scopeNames, Does.Contain("World"));
+
+        // World scope expands to the year + entity counts.
+        int worldRef = scopeArr.Select(s => (JsonObject)s!).First(s => s["name"]!.GetValue<string>() == "World")["variablesReference"]!.GetValue<int>();
+        conn.SendRequest("variables", new JsonObject { ["variablesReference"] = worldRef });
+        var worldVars = WaitFor(conn, m => m["command"]?.GetValue<string>() == "variables");
+        var worldArr = (JsonArray)((JsonObject)worldVars!["body"]!)["variables"]!;
+        Assert.That(worldArr.Select(v => ((JsonObject)v!)["name"]!.GetValue<string>()), Does.Contain("year"));
+
+        int varRef = scopeArr.Select(s => (JsonObject)s!).First(s => s["name"]!.GetValue<string>() == "Locals")["variablesReference"]!.GetValue<int>();
         conn.SendRequest("variables", new JsonObject { ["variablesReference"] = varRef });
         var vars = WaitFor(conn, m => m["command"]?.GetValue<string>() == "variables");
         var varArray = (JsonArray)((JsonObject)vars!["body"]!)["variables"]!;
         Assert.That(varArray.Select(v => ((JsonObject)v!)["name"]!.GetValue<string>()), Does.Contain("$p"));
+
+        // $p is an entity: it must be expandable, and expanding it yields its properties.
+        var pVar = varArray.Select(v => (JsonObject)v!).First(v => v["name"]!.GetValue<string>() == "$p");
+        int pRef = pVar["variablesReference"]!.GetValue<int>();
+        Assert.That(pRef, Is.GreaterThan(0), "entity variable should be expandable");
+        conn.SendRequest("variables", new JsonObject { ["variablesReference"] = pRef });
+        var pProps = WaitFor(conn, m => m["command"]?.GetValue<string>() == "variables");
+        var pPropArr = (JsonArray)((JsonObject)pProps!["body"]!)["variables"]!;
+        Assert.That(pPropArr.Count, Is.GreaterThan(0), "expanding an entity should list its properties");
 
         // Run to completion: the breakpoint fires again each subsequent year, so keep continuing.
         conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });

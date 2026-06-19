@@ -179,19 +179,56 @@ public sealed class DapServer
     private JsonObject HandleSetBreakpoints(JsonObject? args)
     {
         var path = (args?["source"] as JsonObject)?["path"]?.GetValue<string>() ?? "";
-        var lines = new List<int>();
+        var requested = new List<int>();
         if (args?["breakpoints"] is JsonArray bps)
         {
             foreach (var bp in bps)
                 if (bp?["line"] is { } l && int.TryParse(l.ToString(), out var ln))
-                    lines.Add(ln);
+                    requested.Add(ln);
         }
 
-        var accepted = new HashSet<int>(_session.SetBreakpoints(path, lines));
+        // Snap each requested line to the nearest executable statement at or below it. A breakpoint
+        // on a signature line (e.g. `function foo() {`), a blank line, or inside a multi-line
+        // statement otherwise never matches an instruction's start line and silently never fires.
+        var executable = ExecutableLines();
         var verified = new JsonArray();
-        foreach (var l in lines)
-            verified.Add(new JsonObject { ["verified"] = accepted.Contains(l), ["line"] = l });
+        var resolved = new List<int>();
+        foreach (var l in requested)
+        {
+            int snapped = NearestExecutable(executable, l);
+            if (snapped > 0)
+            {
+                resolved.Add(snapped);
+                verified.Add(new JsonObject { ["verified"] = true, ["line"] = snapped });
+            }
+            else
+            {
+                verified.Add(new JsonObject { ["verified"] = false, ["line"] = l });
+            }
+        }
+
+        _session.SetBreakpoints(path, resolved);
         return new JsonObject { ["breakpoints"] = verified };
+    }
+
+    // 1-based executable lines (the engine records 0-based statement starts).
+    private SortedSet<int> ExecutableLines()
+    {
+        var set = new SortedSet<int>();
+        foreach (var line0 in _host.Database.DebugStatementLines)
+            set.Add(line0 + 1);
+        return set;
+    }
+
+    // Smallest executable line >= requested; if none above, the closest one at/below it.
+    private static int NearestExecutable(SortedSet<int> executable, int requested)
+    {
+        if (executable.Count == 0)
+            return requested; // no info: trust the client's line
+        foreach (var e in executable)
+            if (e >= requested)
+                return e;
+        return executable.Max;
     }
 
     private JsonObject HandleStackTrace()
@@ -219,7 +256,6 @@ public sealed class DapServer
     private JsonObject HandleScopes(JsonObject? args)
     {
         int frameId = args?["frameId"]?.GetValue<int>() ?? 0;
-        // Encode the frame id into the variablesReference (1-based; 0 means "no variables").
         return new JsonObject
         {
             ["scopes"] = new JsonArray
@@ -227,7 +263,13 @@ public sealed class DapServer
                 new JsonObject
                 {
                     ["name"] = "Locals",
-                    ["variablesReference"] = frameId + 1,
+                    ["variablesReference"] = _session.GetScopeReference(frameId),
+                    ["expensive"] = false,
+                },
+                new JsonObject
+                {
+                    ["name"] = "World",
+                    ["variablesReference"] = _session.GetWorldReference(),
                     ["expensive"] = false,
                 },
             },
@@ -238,18 +280,15 @@ public sealed class DapServer
     {
         int reference = args?["variablesReference"]?.GetValue<int>() ?? 0;
         var vars = new JsonArray();
-        if (reference > 0)
+        foreach (var v in _session.GetVariablesByReference(reference))
         {
-            int frameId = reference - 1;
-            foreach (var v in _session.GetVariables(frameId))
+            vars.Add(new JsonObject
             {
-                vars.Add(new JsonObject
-                {
-                    ["name"] = v.Name,
-                    ["value"] = v.Value,
-                    ["variablesReference"] = 0,
-                });
-            }
+                ["name"] = v.Name,
+                ["value"] = v.Value,
+                // Non-zero => the client shows an expand arrow and re-requests with this reference.
+                ["variablesReference"] = v.VariablesReference,
+            });
         }
 
         return new JsonObject { ["variables"] = vars };

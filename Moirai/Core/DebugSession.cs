@@ -34,6 +34,8 @@ public sealed class DebugSession : IDebugHook
     {
         public string Name = "";
         public string Value = "";
+        /// <summary>0 for a leaf; otherwise a handle the client passes back to expand children (e.g. an entity's properties).</summary>
+        public int VariablesReference;
     }
 
     public readonly record struct StopInfo(StopReason Reason, int Line, int Column);
@@ -82,6 +84,12 @@ public sealed class DebugSession : IDebugHook
     // Captured at a stop so the protocol thread can read locals while the sim thread is frozen.
     private ExecuteContext? _stoppedCtx;
     private StackFrame[] _stoppedFrames = Array.Empty<StackFrame>();
+
+    // variablesReference handles, valid only for the current stop. reference == index + 1
+    // (0 means "no children"). A handle resolves to a frame's locals, an entity to expand,
+    // or the top-level world overview.
+    private enum HandleKind { FrameLocals, Entity, World }
+    private readonly List<(HandleKind Kind, int FrameId, EntityId Entity)> _handles = new();
 
     public bool IsStopped => _stopped;
     public long CurrentYear => _stoppedCtx?.Year ?? 0;
@@ -164,6 +172,7 @@ public sealed class DebugSession : IDebugHook
         {
             _stoppedCtx = ctx;
             _stoppedFrames = SnapshotFramesLocked();
+            _handles.Clear();   // references are per-stop
             _stopped = true;
         }
 
@@ -213,31 +222,150 @@ public sealed class DebugSession : IDebugHook
             return _stoppedFrames;
     }
 
-    public Variable[] GetVariables(int frameId)
+    /// <summary>Allocate (per-stop) a variablesReference for a frame's Locals scope.</summary>
+    public int GetScopeReference(int frameId)
     {
-        ExecuteContext? ctx;
-        StackFrame? frame;
         lock (_stateLock)
         {
-            ctx = _stoppedCtx;
-            frame = frameId >= 0 && frameId < _stoppedFrames.Length ? _stoppedFrames[frameId] : null;
+            _handles.Add((HandleKind.FrameLocals, frameId, default));
+            return _handles.Count;
         }
+    }
 
-        if (ctx == null || frame?.Scope == null || !frame.Source.IsValid)
+    /// <summary>Allocate (per-stop) a variablesReference for the top-level World overview scope.</summary>
+    public int GetWorldReference()
+    {
+        lock (_stateLock)
+        {
+            _handles.Add((HandleKind.World, 0, default));
+            return _handles.Count;
+        }
+    }
+
+    /// <summary>
+    /// Resolve a variablesReference to its children: a frame's locals, or — for an entity-typed
+    /// variable — that entity's properties. Entity-valued children get their own reference so the
+    /// watch/variables tree can be expanded recursively. Valid only while stopped.
+    /// </summary>
+    public Variable[] GetVariablesByReference(int reference)
+    {
+        lock (_stateLock)
+        {
+            var ctx = _stoppedCtx;
+            if (ctx == null || reference <= 0 || reference > _handles.Count)
+                return Array.Empty<Variable>();
+
+            var handle = _handles[reference - 1];
+            return handle.Kind switch
+            {
+                HandleKind.Entity => EntityMembersLocked(ctx, handle.Entity),
+                HandleKind.World => WorldMembersLocked(ctx),
+                _ => FrameLocalsLocked(ctx, handle.FrameId),
+            };
+        }
+    }
+
+    /// <summary>Back-compat convenience: a frame's locals (used by tests).</summary>
+    public Variable[] GetVariables(int frameId) =>
+        GetVariablesByReference(GetScopeReference(frameId));
+
+    // --- the following run under _stateLock (sim thread frozen, so reads are safe) ---
+
+    private Variable[] FrameLocalsLocked(ExecuteContext ctx, int frameId)
+    {
+        if (frameId < 0 || frameId >= _stoppedFrames.Length)
+            return Array.Empty<Variable>();
+        var frame = _stoppedFrames[frameId];
+        if (frame.Scope == null || !frame.Source.IsValid)
             return Array.Empty<Variable>();
 
         var result = new List<Variable>();
         var seen = new HashSet<int>();
-        var innermost = frame.Scope.Innermost(frame.Source);
-        foreach (var (slot, name) in innermost.VisibleVariables())
+        foreach (var (slot, name) in frame.Scope.Innermost(frame.Source).VisibleVariables())
         {
             if (!seen.Add(slot))
                 continue;
             if (ctx.TryGetValueAt(frame.ValueOffset + slot, out var value))
-                result.Add(new Variable { Name = name, Value = ctx.Database.Printer.Print(value) });
+                result.Add(MakeVariableLocked(ctx, name, value));
         }
 
         return result.ToArray();
+    }
+
+    private Variable[] EntityMembersLocked(ExecuteContext ctx, EntityId id)
+    {
+        if (!ctx.Database.TryGetEntity(id, out var entity))
+            return Array.Empty<Variable>();
+
+        var result = new List<Variable>();
+        foreach (var p in entity.Properties)
+        {
+            if (!p.Id.IsValid)
+                continue;
+            result.Add(MakeVariableLocked(ctx, ctx.Database.GetPropertyName(p.Id), p.Value));
+        }
+
+        return result.ToArray();
+    }
+
+    // The top-level World overview: current year, total entity count, and per-type counts.
+    // Singleton types (e.g. Time) are shown as expandable entities so their props are reachable.
+    private Variable[] WorldMembersLocked(ExecuteContext ctx)
+    {
+        var db = ctx.Database;
+        var result = new List<Variable> { new() { Name = "year", Value = ctx.Year.ToString() } };
+
+        var counts = new Dictionary<uint, int>();
+        int total = 0;
+        foreach (var e in db.Entities)
+        {
+            counts.TryGetValue(e.Type.Id, out var c);
+            counts[e.Type.Id] = c + 1;
+            total++;
+        }
+
+        result.Add(new Variable { Name = "entities", Value = total.ToString() });
+
+        foreach (var t in db.Types)
+        {
+            if (t.Id.Id == 0)
+                continue; // the default/placeholder type
+            if (db.TryGetSingleton(t.Id, out var sid) && !sid.IsNull)
+            {
+                _handles.Add((HandleKind.Entity, 0, sid));
+                result.Add(new Variable { Name = t.Name, Value = DescribeEntity(db, sid), VariablesReference = _handles.Count });
+            }
+            else
+            {
+                counts.TryGetValue(t.Id.Id, out var c);
+                result.Add(new Variable { Name = t.Name, Value = c.ToString() });
+            }
+        }
+
+        return result.ToArray();
+    }
+
+    // Build a Variable; entity-typed (non-null ref) values become expandable.
+    private Variable MakeVariableLocked(ExecuteContext ctx, string name, PropertyValue value)
+    {
+        var db = ctx.Database;
+        if (value.Type.BaseType == PropertyValue.ValueBaseType.Ref && !value.Id.IsNull)
+        {
+            _handles.Add((HandleKind.Entity, 0, value.Id));
+            return new Variable { Name = name, Value = DescribeEntity(db, value.Id), VariablesReference = _handles.Count };
+        }
+
+        return new Variable { Name = name, Value = db.Printer.Print(value) };
+    }
+
+    private static string DescribeEntity(Database db, EntityId id)
+    {
+        if (!db.TryGetEntity(id, out var e))
+            return id.ToString();
+        var label = db.GetEntityType(e.Type).Name + " " + id;
+        if (db.GetProperty(id, Database.PropName, out var n) && !string.IsNullOrEmpty(n.Value))
+            label += " '" + n.Value + "'";
+        return label;
     }
 
     // ---- resume controls (protocol thread) ---------------------------------

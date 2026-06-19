@@ -52,6 +52,9 @@ public class Database
     /// <summary>When non-null, a step-through debugger observes execution through this hook (see <see cref="IDebugHook"/>). Null = no overhead.</summary>
     public IDebugHook? DebugHook;
 
+    /// <summary>0-based source lines that carry an executable statement, collected by the parser. Used by the debugger to snap a breakpoint to the nearest runnable line.</summary>
+    public readonly HashSet<int> DebugStatementLines = new();
+
     private ExecuteContext _ctx;
 
     private List<Entity> _entities = new() { default };
