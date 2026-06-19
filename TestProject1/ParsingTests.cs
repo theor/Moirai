@@ -10,7 +10,7 @@ public class ParsingTests : TestsBase
 {
     static IEnumerable<string> GetFilePaths()
     {
-        yield return "../../../../MoiraiWebServer/wwwroot/w.sg";
+        yield return "../../../../MoiraiCli/w.sg";
         yield return "../../../../MoiraiWebServer/wwwroot/space.sg";
     }
     [Test]

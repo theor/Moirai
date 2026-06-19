@@ -15,4 +15,4 @@ BenchmarkDotNet.Artifacts/
 node_modules/
 *.log
 *.tsbuildinfo
-.yarn/install-state.gz
+**/.yarn/install-state.gz
