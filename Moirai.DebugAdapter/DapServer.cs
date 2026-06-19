@@ -22,6 +22,7 @@ public sealed class DapServer
 
     private int _pendingYears = 100;
     private bool _runStarted;
+    private bool _attachMode;
     private Thread? _worker;
 
     public DapServer(DapConnection conn, IDebugHost host)
@@ -67,6 +68,7 @@ public sealed class DapServer
             catch (Exception e) { _conn.SendResponse(msg, false, message: e.Message); }
         }
 
+        _host.DetachSession(_session);
         _session.Terminate();
         _cts.Cancel();
     }
@@ -95,13 +97,22 @@ public sealed class DapServer
                 _conn.SendResponse(req, true);
                 break;
 
+            case "attach":
+                // Don't drive a run; install the session so web-UI-triggered runs hit breakpoints.
+                _attachMode = true;
+                _conn.SendResponse(req, true);
+                break;
+
             case "setBreakpoints":
                 _conn.SendResponse(req, true, HandleSetBreakpoints(args));
                 break;
 
             case "configurationDone":
                 _conn.SendResponse(req, true);
-                StartRun();
+                if (_attachMode)
+                    _host.AttachSession(_session);
+                else
+                    StartRun();
                 break;
 
             case "threads":
@@ -150,6 +161,7 @@ public sealed class DapServer
 
             case "disconnect":
             case "terminate":
+                _host.DetachSession(_session);
                 _session.Terminate();
                 _conn.SendResponse(req, true);
                 break;

@@ -17,4 +17,8 @@ public sealed class MoiraiDebugHost : IDebugHost
 
     public void RunDebugged(int years, DebugSession session, CancellationToken ct)
         => ChatHub.RunDebugged(years, session, ct);
+
+    public void AttachSession(DebugSession session) => ChatHub.AttachSession(session);
+
+    public void DetachSession(DebugSession session) => ChatHub.DetachSession(session);
 }

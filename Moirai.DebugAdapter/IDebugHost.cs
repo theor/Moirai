@@ -18,6 +18,17 @@ public interface IDebugHost
     /// Install <paramref name="session"/> as the engine's debug hook and run a simulation of
     /// <paramref name="years"/> years under the host's lock. Called on a worker thread; blocks until
     /// the pass completes, is cancelled, or the session terminates. Must clear the hook on exit.
+    /// Used by <c>launch</c> (the debugger drives the run).
     /// </summary>
     void RunDebugged(int years, DebugSession session, CancellationToken ct);
+
+    /// <summary>
+    /// Install <paramref name="session"/> as the engine's persistent debug hook without driving a
+    /// run, so simulations triggered elsewhere (e.g. "pass years" from the web UI) hit its
+    /// breakpoints. Used by <c>attach</c>.
+    /// </summary>
+    void AttachSession(DebugSession session);
+
+    /// <summary>Remove <paramref name="session"/> as the debug hook and release any thread it has paused.</summary>
+    void DetachSession(DebugSession session);
 }

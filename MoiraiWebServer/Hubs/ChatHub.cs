@@ -17,6 +17,10 @@ public class ChatHub : Hub
     private static bool _reset;
     private static bool _resetRequested;
 
+    // A DAP client attached in "attach" mode: installed as the engine's debug hook so that
+    // runs triggered from the web UI (PassYears/RunAction) hit its breakpoints. Survives reloads.
+    private static Moirai.Core.DebugSession? _attachedSession;
+
     private static readonly SemaphoreSlim Mutex = new(1, 1);
     public ChatHub()
     {
@@ -57,7 +61,29 @@ public class ChatHub : Hub
         _db.History = new();
         _db.ProfilingEnabled = Program.OptionsInstance.Profile;
         _db.Init();
+        _db.DebugHook = _attachedSession;   // keep an attached debugger hooked across reloads
         _reset = true;
+    }
+
+    /// <summary>Install a DAP session as the persistent debug hook (attach mode).</summary>
+    public static void AttachSession(Moirai.Core.DebugSession session)
+    {
+        _attachedSession = session;
+        var db = GetOrCreateDb();
+        db.DebugHook = session;
+    }
+
+    /// <summary>Detach a DAP session: release any paused run, then clear the hook.</summary>
+    public static void DetachSession(Moirai.Core.DebugSession session)
+    {
+        // Terminate first so a thread paused at a breakpoint resumes and releases the mutex;
+        // the writes below are plain reference assignments (single-tenant server), no lock needed.
+        session.Terminate();
+        if (_attachedSession == session)
+            _attachedSession = null;
+        var db = _db;
+        if (db != null && db.DebugHook == session)
+            db.DebugHook = null;
     }
 
     /// <summary>Get the shared world, creating it from the input file if no client has yet.</summary>

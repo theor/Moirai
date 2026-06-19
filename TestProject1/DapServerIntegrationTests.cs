@@ -49,6 +49,15 @@ event spawn {
             try { Database.Ctx.PassYears(_years, ct, null, true); }
             finally { Database.DebugHook = null; }
         }
+
+        // Attach: install the hook persistently; a "web UI" run (driven by the test) then hits it.
+        public void AttachSession(DebugSession session) => Database.DebugHook = session;
+
+        public void DetachSession(DebugSession session)
+        {
+            session.Terminate();
+            if (Database.DebugHook == session) Database.DebugHook = null;
+        }
     }
 
     private static int LineOf(string text, string needle)
@@ -124,6 +133,72 @@ event run {
                 conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
             return m["event"]?.GetValue<string>() == "terminated";
         }, 8000);
+        conn.SendRequest("disconnect");
+    }
+
+    [Test]
+    public void AttachHitsBreakpointFromExternalRun()
+    {
+        // Simulates: VS Code attaches, sets a breakpoint, then the user clicks "pass years" in the
+        // web UI. The externally-driven run must hit the breakpoint via the attached session.
+        var db = StoryParser.Parse(Story, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        db.History = new();
+        db.Init();
+
+        int bpLine = LineOf(Story, "set $p.alive = true");
+        var listener = new DapListener(new FakeHost(db, "story.sg", 2), 0);
+        listener.Start();
+
+        using var tcp = new TcpClient();
+        Assert.That(tcp.ConnectAsync("127.0.0.1", listener.Port).Wait(5000), Is.True);
+        var stream = tcp.GetStream();
+        stream.ReadTimeout = 5000;
+        var conn = new DapConnection(stream, stream);
+
+        conn.SendRequest("initialize", new JsonObject { ["adapterID"] = "moirai" });
+        WaitFor(conn, m => m["event"]?.GetValue<string>() == "initialized");
+        conn.SendRequest("setBreakpoints", new JsonObject
+        {
+            ["source"] = new JsonObject { ["path"] = "story.sg" },
+            ["breakpoints"] = new JsonArray { new JsonObject { ["line"] = bpLine } },
+        });
+        WaitFor(conn, m => m["command"]?.GetValue<string>() == "setBreakpoints");
+
+        // attach (not launch): no DAP-driven run starts.
+        conn.SendRequest("attach", new JsonObject());
+        conn.SendRequest("configurationDone");
+        WaitFor(conn, m => m["command"]?.GetValue<string>() == "configurationDone");
+
+        // Now the "web UI" drives a run on its own thread; the attached hook is already installed.
+        var done = new ManualResetEventSlim(false);
+        new Thread(() => { try { db.Ctx.PassYears(2, true); } finally { done.Set(); } })
+            { IsBackground = true }.Start();
+
+        var stopped = WaitFor(conn, m => m["event"]?.GetValue<string>() == "stopped");
+        Assert.That(stopped, Is.Not.Null, "external run did not hit the attached breakpoint");
+        Assert.That(((JsonObject)stopped!["body"]!)["line"]!.GetValue<int>(), Is.EqualTo(bpLine));
+
+        conn.SendRequest("stackTrace", new JsonObject { ["threadId"] = 1 });
+        var stack = WaitFor(conn, m => m["command"]?.GetValue<string>() == "stackTrace");
+        Assert.That(((JsonObject)((JsonArray)((JsonObject)stack!["body"]!)["stackFrames"]!)[0]!)["name"]!.GetValue<string>(),
+            Is.EqualTo("spawn"));
+
+        // The breakpoint fires once per simulated year; continue past each until the run finishes.
+        // (attach has no DAP "terminated" event, so we poll the external run's done signal.)
+        conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+        stream.ReadTimeout = 500;   // short, so a quiet socket doesn't block the drain loop
+        while (!done.Wait(0))
+        {
+            bool wasStopped;
+            try { wasStopped = conn.Read()?["event"]?.GetValue<string>() == "stopped"; }
+            catch { wasStopped = false; }   // read timed out: no pending message
+            if (wasStopped)
+                conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+        }
+        Assert.That(done.Wait(5000), Is.True, "external run never finished");
+
+        stream.ReadTimeout = 5000;
         conn.SendRequest("disconnect");
     }
 
