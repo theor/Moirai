@@ -180,14 +180,8 @@ public class Database
 
     public bool GetProperty(EntityId entityId, PropertyId property, out PropertyValue value)
     {
-        var cmd = _connection.CreateCommand();
-        cmd.CommandText =
-            $@"SELECT {GetEntityTypeName(property.TypeId)}__{GetPropertyName(property)} FROM entity WHERE default__id = $id  LIMIT 1;";
-        // cmd.Parameters.AddWithValue("$p", GetPropertyName(property));
-        cmd.Parameters.AddWithValue("$id", entityId.Id);
-        // cmd.Parameters.AddWithValue("$v",  value.Type.BaseType == PropertyValue.ValueBaseType.String ? value.Value : (int)value.IntValue);
-        var res = cmd.ExecuteScalar();
-        // Console.WriteLine($"get {GetPropertyName(property)} = {res}");
+        // Reads are served entirely from the in-memory mirror; there is no need to touch SQLite here.
+        // (This previously ran a SELECT whose result was discarded — pure overhead per call.)
         if (!TryGetEntity(entityId, out var entity))
         {
             value = default;
