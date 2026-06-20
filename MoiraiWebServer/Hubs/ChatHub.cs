@@ -86,6 +86,13 @@ public class ChatHub : Hub
             db.DebugHook = null;
     }
 
+    /// <summary>
+    /// The current world without acquiring the mutex (null if not built yet). Safe for the debug
+    /// adapter's protocol thread to read while a run is paused holding the mutex — it only reads the
+    /// reference and parse-time data (e.g. DebugStatementLines), never mutates.
+    /// </summary>
+    public static Database? CurrentDb => _db;
+
     /// <summary>Get the shared world, creating it from the input file if no client has yet.</summary>
     public static Database GetOrCreateDb()
     {

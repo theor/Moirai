@@ -136,6 +136,106 @@ event run {
         conn.SendRequest("disconnect");
     }
 
+    // A host whose Database accessor contends with the running simulation, like the real web server
+    // (ChatHub.Mutex held for the whole run, incl. while paused). Reproduces the toggle-while-paused
+    // deadlock if the protocol thread touches the host during a pause.
+    private sealed class LockingFakeHost : IDebugHost
+    {
+        private readonly SemaphoreSlim _lock = new(1, 1);
+        private readonly Database _db;
+        private readonly int _years;
+
+        public LockingFakeHost(Database db, int years) { _db = db; _years = years; }
+
+        public Database Database
+        {
+            get { _lock.Wait(); try { return _db; } finally { _lock.Release(); } }
+        }
+
+        public string ProgramPath => "story.sg";
+
+        public void RunDebugged(int years, DebugSession session, CancellationToken ct)
+        {
+            _lock.Wait();                 // held for the whole run, including while paused
+            try
+            {
+                _db.DebugHook = session;
+                _db.Ctx.PassYears(_years, ct, null, true);
+            }
+            finally { _db.DebugHook = null; _lock.Release(); }
+        }
+
+        public void AttachSession(DebugSession session) => _db.DebugHook = session;
+        public void DetachSession(DebugSession session)
+        {
+            session.Terminate();
+            if (_db.DebugHook == session) _db.DebugHook = null;
+        }
+    }
+
+    [Test]
+    public void TogglingBreakpointWhilePausedDoesNotStall()
+    {
+        var db = StoryParser.Parse(Story, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        db.History = new();
+        db.Init();
+
+        int createLine = LineOf(Story, "create Person $p");
+        int setLine = LineOf(Story, "set $p.alive = true");
+
+        var listener = new DapListener(new LockingFakeHost(db, 1), 0);
+        listener.Start();
+
+        using var tcp = new TcpClient();
+        Assert.That(tcp.ConnectAsync("127.0.0.1", listener.Port).Wait(5000), Is.True);
+        var stream = tcp.GetStream();
+        stream.ReadTimeout = 5000;
+        var conn = new DapConnection(stream, stream);
+
+        conn.SendRequest("initialize", new JsonObject { ["adapterID"] = "moirai" });
+        WaitFor(conn, m => m["event"]?.GetValue<string>() == "initialized");
+        conn.SendRequest("setBreakpoints", new JsonObject  // captures the engine ref while idle
+        {
+            ["source"] = new JsonObject { ["path"] = "story.sg" },
+            ["breakpoints"] = new JsonArray { new JsonObject { ["line"] = createLine } },
+        });
+        WaitFor(conn, m => m["command"]?.GetValue<string>() == "setBreakpoints");
+        conn.SendRequest("launch", new JsonObject { ["years"] = 1 });
+        conn.SendRequest("configurationDone");
+        WaitFor(conn, m => m["event"]?.GetValue<string>() == "stopped");  // paused, run holds the lock
+
+        // Toggle a second breakpoint WHILE PAUSED: must respond promptly, not deadlock on the lock.
+        conn.SendRequest("setBreakpoints", new JsonObject
+        {
+            ["source"] = new JsonObject { ["path"] = "story.sg" },
+            ["breakpoints"] = new JsonArray
+            {
+                new JsonObject { ["line"] = createLine },
+                new JsonObject { ["line"] = setLine },
+            },
+        });
+        var resp = WaitFor(conn, m => m["command"]?.GetValue<string>() == "setBreakpoints", 4000);
+        Assert.That(resp, Is.Not.Null, "setBreakpoints while paused stalled (deadlock)");
+
+        // And continue/step still work afterwards.
+        var done = false;
+        stream.ReadTimeout = 500;
+        conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+        for (int i = 0; i < 40 && !done; i++)
+        {
+            JsonObject? m;
+            try { m = conn.Read(); } catch { m = null; }
+            var ev = m?["event"]?.GetValue<string>();
+            if (ev == "stopped") conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+            if (ev == "terminated") done = true;
+        }
+        Assert.That(done, Is.True, "continue did not progress after toggling a breakpoint");
+
+        stream.ReadTimeout = 5000;
+        conn.SendRequest("disconnect");
+    }
+
     [Test]
     public void StepResponsePrecedesStoppedEvent()
     {

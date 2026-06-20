@@ -25,6 +25,11 @@ public sealed class DapServer
     private bool _attachMode;
     private Thread? _worker;
 
+    // Cached engine reference for executable-line lookups. We only read it from the host while the
+    // session is NOT paused — a host's Database accessor may contend with a paused run's lock, which
+    // would deadlock the protocol thread (it's the same thread that must process continue/step).
+    private Database? _engine;
+
     public DapServer(DapConnection conn, IDebugHost host)
     {
         _conn = conn;
@@ -226,12 +231,20 @@ public sealed class DapServer
         return new JsonObject { ["breakpoints"] = verified };
     }
 
-    // 1-based executable lines (the engine records 0-based statement starts).
+    // 1-based executable lines (the engine records 0-based statement starts). Refresh the engine
+    // reference from the host only while not paused; while paused, reuse the last-known reference so
+    // toggling a breakpoint never blocks on a paused run's lock (which would freeze continue/step).
     private SortedSet<int> ExecutableLines()
     {
+        if (!_session.IsStopped)
+        {
+            try { _engine = _host.Database; } catch { /* host not ready yet */ }
+        }
+
         var set = new SortedSet<int>();
-        foreach (var line0 in _host.Database.DebugStatementLines)
-            set.Add(line0 + 1);
+        if (_engine != null)
+            foreach (var line0 in _engine.DebugStatementLines)
+                set.Add(line0 + 1);
         return set;
     }
 

@@ -11,7 +11,9 @@ namespace MoiraiWebServer;
 /// </summary>
 public sealed class MoiraiDebugHost : IDebugHost
 {
-    public Database Database => ChatHub.GetOrCreateDb();
+    // Non-blocking once the world exists: never wait on the engine mutex from the debugger's
+    // protocol thread (a paused run holds it), which would deadlock continue/step.
+    public Database Database => ChatHub.CurrentDb ?? ChatHub.GetOrCreateDb();
 
     public string ProgramPath => Path.GetFullPath(Program.OptionsInstance.InputFile);
 
