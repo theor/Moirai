@@ -153,13 +153,18 @@ trigger item_created {
 trigger item_change_owner {
     when Item and owner != $old.owner
 
+    // Close the currently-open ownership record BEFORE opening the new one. Otherwise the pick below
+    // matches the just-created (end_year = 0) record too and, picking at random, may close that one
+    // instead of the previous owner's — leaving the real record open forever and writing a bogus
+    // same-year record. (if-pick so a missing open record doesn't abort the trigger.)
+    if (pick ItemOwnership $o: (item = $old and end_year = 0)) {
+        set $o.end_year = #Time.year
+    }
+
     create ItemOwnership $on
     set $on.owner = $new.owner
     set $on.item = $new
     set $on.start_year = #Time.year
-
-    pick ItemOwnership $o: (item = $old and end_year = 0)
-    set $o.end_year = #Time.year
 }
 
 @tag('items')
