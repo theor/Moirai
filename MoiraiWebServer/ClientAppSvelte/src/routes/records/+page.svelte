@@ -57,7 +57,9 @@
           id: 'actionId',
           accessorKey: 'actionId',
           cell: (info) => {
-              return flexRender(MoiraiText, { text: $moiraiStore.clientData!.actions[info.cell.getValue<number>()-1].name, selected: selected });
+              const actionId = info.cell.getValue<number>();
+              const action = $moiraiStore.clientData!.actions.find((a) => a.id === actionId);
+              return flexRender(MoiraiText, { text: action?.name ?? '', selected: selected });
           },
       },
     {

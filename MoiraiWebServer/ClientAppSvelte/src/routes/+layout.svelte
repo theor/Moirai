@@ -100,7 +100,7 @@
     </AppBar>
   </header>
     <aside class="m-4 flex-auto overflow-hidden h-full">
-        <div class="card p-4 mb-2  h-full">
+        <div class="card p-4 mb-2 h-full max-h-[88vh] overflow-y-auto">
         
         <TabGroup>
             <Tab value={0} bind:group={activeTab} name="details">Details</Tab>
