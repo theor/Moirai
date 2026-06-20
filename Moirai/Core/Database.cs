@@ -478,7 +478,7 @@ public class Database
             }
 
             DebugHook?.OnExitFrame();
-            if (success && CurrentChangeset.Changes.Any())
+            if (success && CurrentChangeset.Changes.Count != 0)
                 History?.AddChangeset(CurrentChangeset);
         }
 
@@ -555,7 +555,7 @@ public class Database
                                 }
                                 DebugHook?.OnExitFrame();
                             }
-                            if (CurrentChangeset.Changes.Any())
+                            if (CurrentChangeset.Changes.Count != 0)
                                 History?.AddChangeset(CurrentChangeset);
                         }
                     }
