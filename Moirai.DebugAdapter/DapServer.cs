@@ -134,24 +134,27 @@ public sealed class DapServer
                 _conn.SendResponse(req, true, HandleVariables(args));
                 break;
 
+            // For resume requests the response MUST reach the client before the resulting `stopped`
+            // event, or VS Code wedges (ignores the stop). Resuming wakes the worker thread, which can
+            // emit `stopped` immediately — so always send the response first, then resume.
             case "continue":
-                _session.Continue();
                 _conn.SendResponse(req, true, new JsonObject { ["allThreadsContinued"] = true });
+                _session.Continue();
                 break;
 
             case "next":
-                _session.StepOver();
                 _conn.SendResponse(req, true);
+                _session.StepOver();
                 break;
 
             case "stepIn":
-                _session.StepIn();
                 _conn.SendResponse(req, true);
+                _session.StepIn();
                 break;
 
             case "stepOut":
-                _session.StepOut();
                 _conn.SendResponse(req, true);
+                _session.StepOut();
                 break;
 
             case "pause":

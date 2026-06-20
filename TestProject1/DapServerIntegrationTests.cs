@@ -137,6 +137,66 @@ event run {
     }
 
     [Test]
+    public void StepResponsePrecedesStoppedEvent()
+    {
+        // Regression: the response to a resume request must reach the client before the resulting
+        // `stopped` event, or VS Code intermittently wedges (continue/step "stops responding").
+        var db = StoryParser.Parse(Story, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        db.History = new();
+        db.Init();
+
+        int createLine = LineOf(Story, "create Person $p");
+        var listener = new DapListener(new FakeHost(db, "story.sg", 1), 0);
+        listener.Start();
+
+        using var tcp = new TcpClient();
+        Assert.That(tcp.ConnectAsync("127.0.0.1", listener.Port).Wait(5000), Is.True);
+        var stream = tcp.GetStream();
+        stream.ReadTimeout = 5000;
+        var conn = new DapConnection(stream, stream);
+
+        conn.SendRequest("initialize", new JsonObject { ["adapterID"] = "moirai" });
+        WaitFor(conn, m => m["event"]?.GetValue<string>() == "initialized");
+        conn.SendRequest("setBreakpoints", new JsonObject
+        {
+            ["source"] = new JsonObject { ["path"] = "story.sg" },
+            ["breakpoints"] = new JsonArray { new JsonObject { ["line"] = createLine } },
+        });
+        WaitFor(conn, m => m["command"]?.GetValue<string>() == "setBreakpoints");
+        conn.SendRequest("launch", new JsonObject { ["years"] = 1 });
+        conn.SendRequest("configurationDone");
+        WaitFor(conn, m => m["event"]?.GetValue<string>() == "stopped");
+
+        // Step over; read messages strictly in order and confirm the `next` response comes first.
+        conn.SendRequest("next");
+        bool sawNextResponse = false;
+        for (int i = 0; i < 10; i++)
+        {
+            var m = conn.Read();
+            Assert.That(m, Is.Not.Null);
+            if (m!["type"]?.GetValue<string>() == "response" && m["command"]?.GetValue<string>() == "next")
+                sawNextResponse = true;
+            if (m["event"]?.GetValue<string>() == "stopped")
+            {
+                Assert.That(sawNextResponse, Is.True, "stopped event arrived before the 'next' response");
+                break;
+            }
+        }
+        Assert.That(sawNextResponse, Is.True, "never saw the 'next' response");
+
+        stream.ReadTimeout = 500;
+        conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+        WaitFor(conn, m =>
+        {
+            if (m["event"]?.GetValue<string>() == "stopped")
+                conn.SendRequest("continue", new JsonObject { ["threadId"] = 1 });
+            return m["event"]?.GetValue<string>() == "terminated";
+        }, 8000);
+        conn.SendRequest("disconnect");
+    }
+
+    [Test]
     public void AttachHitsBreakpointFromExternalRun()
     {
         // Simulates: VS Code attaches, sets a breakpoint, then the user clicks "pass years" in the
