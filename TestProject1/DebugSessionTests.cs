@@ -214,6 +214,71 @@ trigger on_birth {
         Assert.That(done.Wait(5000), Is.True);
     }
 
+    private const string ScheduleStory = @"
+entity Person {
+    prop birthdate: number
+    prop grown: bool
+}
+@start
+event create_time {
+    create Time $t: 'time'
+    set $t.year = 100
+}
+@frequency(1, EveryXYear, 1)
+event make {
+    create Person $p
+    set $p.birthdate = #Time.year
+}
+trigger born {
+    when_created Person
+    schedule($new, $new.birthdate + 1) {
+        set $self.grown = true
+        record('grew')
+    }
+}";
+
+    [Test]
+    public void ScheduledBodyExposesSelf()
+    {
+        var db = StoryParser.Parse(ScheduleStory, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+
+        var session = new DebugSession();
+        db.History = new();
+        db.DebugHook = session;
+        db.Init();
+
+        int bpLine = LineOf(ScheduleStory, "set $self.grown = true");
+        session.SetBreakpoints("s.sg", new[] { bpLine });
+
+        var stops = new BlockingCollection<DebugSession.StopInfo>();
+        session.Stopped += s => stops.Add(s);
+        var done = new ManualResetEventSlim(false);
+        new Thread(() => { try { db.Ctx.PassYears(3, true); } finally { done.Set(); } })
+            { IsBackground = true }.Start();
+
+        Assert.That(stops.TryTake(out var info, 5000), Is.True, "scheduled body breakpoint never hit");
+        Assert.That(info.Line, Is.EqualTo(bpLine));
+
+        var stack = session.GetStack();
+        Assert.That(stack[0].Name, Does.StartWith("schedule@"), "top frame should be the scheduled body");
+
+        // The deferred body binds $self — it must be visible and valued (an entity).
+        var locals = session.GetVariables(0);
+        var self = locals.FirstOrDefault(v => v.Name == "$self");
+        Assert.That(self, Is.Not.Null, "$self should be visible in a scheduled body");
+        Assert.That(self!.Value, Does.Contain("Person"), "$self should resolve to the bound entity");
+        Assert.That(self.VariablesReference, Is.GreaterThan(0), "$self should be expandable");
+
+        session.Continue();
+        while (!done.Wait(50))
+        {
+            if (stops.TryTake(out _, 1000)) session.Continue();
+            else break;
+        }
+        Assert.That(done.Wait(5000), Is.True);
+    }
+
     [Test]
     public void StepOverAdvancesToNextStatement()
     {

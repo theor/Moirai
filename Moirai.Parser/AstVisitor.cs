@@ -816,6 +816,11 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         _current = _current.Parent!;
     }
 
+    /// Capture the current lexical scope as an engine-side <see cref="Moirai.Core.DebugScope"/>.
+    /// Used for triggers built by hand outside Visit* (e.g. a <c>schedule(...)</c> body) so the
+    /// debugger can still resolve their locals (<c>$self</c>, body vars).
+    public Moirai.Core.DebugScope CaptureCurrentDebugScope() => ConvertScope(_current);
+
     /// Translate the parser's lexical scope tree into the engine-side <see cref="Moirai.Core.DebugScope"/>
     /// the debugger uses to resolve value-stack slots back to variable names.
     private static Moirai.Core.DebugScope ConvertScope(Parser.VariableDeclarationScope scope)

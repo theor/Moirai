@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Moirai.Core;
 
 namespace Moirai.DebugAdapter;
@@ -45,7 +46,19 @@ public sealed class DapServer
             });
         _session.Continued += () =>
             _conn.SendEvent("continued", new JsonObject { ["threadId"] = ThreadId, ["allThreadsContinued"] = true });
+        // Stream each record(...) to the client's Debug Console as it's emitted (sim thread, non-blocking).
+        _session.RecordEmitted += rec =>
+            _conn.SendEvent("output", new JsonObject
+            {
+                ["category"] = "console",
+                ["output"] = $"[{rec.Year}] {StripLinkTags(rec.Text)}\n",
+            });
     }
+
+    // Records carry web-UI link markup (e.g. "<#3>River</>") injected for the SignalR client; the Debug
+    // Console wants plain text, so drop the open "<#N>" and close "</>" tags, keeping the inner label.
+    private static readonly Regex LinkTagRegex = new(@"<#\d+>|</>", RegexOptions.Compiled);
+    private static string StripLinkTags(string text) => LinkTagRegex.Replace(text, "");
 
     private static string Reason(DebugSession.StopReason r) => r switch
     {

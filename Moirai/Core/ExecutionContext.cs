@@ -192,6 +192,9 @@ public class ExecuteContext
             //Console.WriteLine("\tTIME " + _year);
             Database.SetProperty(timeId, yearsProp, ++Year);
             progress?.Report(i);
+            // Fire any deferred `schedule(...)` effects that have come due before this year's regular events,
+            // so a state transition (e.g. a person turning Young) is visible to this year's events.
+            Database.DrainScheduled(Year);
             foreach (var action in Database.Actions)
             {
                 if (action.Filter == null || action.Skip)

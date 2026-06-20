@@ -49,6 +49,48 @@ public static class StoryParser
                     PropertyValue.TypeTypedRef(etid));
             }),
 
+        new("schedule", false, ctx =>
+        {
+            // schedule(entity, year) { body } — defer `body` (with `entity` bound as $self) to fire once
+            // the simulation reaches `year`. Both args are evaluated now, in the enclosing scope; only the
+            // body is deferred. The body sees $self (the bound entity) but NOT the enclosing locals.
+            ctx.ExpectArgcount(2);
+            var entity = ctx.ParseArgument(0, out var entityType);
+            var year = ctx.ParseArgument(1);
+
+            var scopeContext = ctx.GetScopeContext();
+            if (scopeContext == null)
+            {
+                ctx.Visitor.AddError(ErrorCode.MissingEachScope, ctx.CallContext,
+                    "schedule requires a { } body");
+                return (null!, PropertyValue.ValueType.Null);
+            }
+
+            int selfVarIndex;
+            IInstruction[] body;
+            Moirai.Core.DebugScope? debugScope;
+            using (var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext))
+            {
+                // $self takes the static type of the target entity expression, so `$self.prop` resolves.
+                ctx.Visitor.DeclareVar("$self", entityType, ctx.GetArgumentToken(0).Start, out selfVarIndex);
+                body = ctx.Visitor.ParseRawScope(scopeContext, out _);
+                // Capture the body's scope (with $self) so the debugger can show locals when stopped here.
+                debugScope = ctx.Visitor.CaptureCurrentDebugScope();
+            }
+
+            // The body runs later via Database.RunAction, so wrap it as a standalone EventTrigger (not added
+            // to Actions/Triggers, so it never auto-fires). The high id base keeps schedule sites from
+            // colliding with real event ids in the profiler's per-id stats table.
+            var site = new EventTrigger(1_000_000 + ctx.Visitor.Database.ScheduleSiteCount,
+                $"schedule@{ctx.CallContext.Start.Line}", false, null)
+            {
+                DebugScopeRoot = debugScope,
+            };
+            site.Effects.AddRange(body);
+            var siteIndex = ctx.Visitor.Database.RegisterScheduleSite(site, selfVarIndex);
+
+            return (new ScheduleEffect(entity, year, siteIndex, body), PropertyValue.ValueType.Null);
+        }),
         new("assert", false, ctx =>
             (new AssertInstr(ctx.ParseArgument(0), ctx.GetText(ctx.GetArgumentToken(0))),
                 PropertyValue.ValueType.Null)),

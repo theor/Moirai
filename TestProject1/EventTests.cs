@@ -244,4 +244,113 @@ event olds_dies {
         Console.WriteLine(db.Records.Last().Text);
     }
 
+    private const string ScheduleStory = @"
+entity Person {
+    prop birthdate: number
+    prop grown: bool
+}
+event create_time {
+    create Time $t: 'time'
+    set $t.year = 100
+}
+event make {
+    create Person $p
+    set $p.birthdate = #Time.year
+}
+trigger born {
+    when_created Person
+    schedule($new, $new.birthdate + 3) {
+        set $self.grown = true
+        record('grew at {#Time.year}')
+    }
+}";
+
+    private static bool FirstPersonGrown(Database db)
+    {
+        var personType = db.GetEntityType("Person").Id;
+        var grownProp = db.GetPropertyId("Person", "grown");
+        var person = db.Entities.First(e => e.Type == personType);
+        return person.GetProperty(grownProp).BoolValue;
+    }
+
+    [Test]
+    public void ScheduleFiresWhenDue()
+    {
+        var db = Run(ScheduleStory, out _);
+        db.History = new();
+        db.RunAction("create_time");
+        db.RunAction("make");
+
+        // Scheduled for birthdate(100) + 3 = 103; not due during years 101, 102.
+        db.Ctx.PassYears(2, true);
+        Assert.That(FirstPersonGrown(db), Is.False, "should not have grown before year 103");
+        Assert.That(db.Records, Is.Empty, "no scheduled record before it is due");
+
+        // Year 103: the deferred effect fires.
+        db.Ctx.PassYears(1, true);
+        Assert.That(FirstPersonGrown(db), Is.True, "should have grown at year 103");
+        Assert.That(db.Records.Count, Is.EqualTo(1));
+        Assert.That(db.Records.Last().Text, Is.EqualTo("grew at 103"));
+
+        // It fires exactly once.
+        db.Ctx.PassYears(3, true);
+        Assert.That(db.Records.Count, Is.EqualTo(1), "deferred effect must fire only once");
+    }
+
+    [Test]
+    public void ScheduleCatchesUpOnMultiYearJump()
+    {
+        var db = Run(ScheduleStory, out _);
+        db.History = new();
+        db.RunAction("create_time");
+        db.RunAction("make");
+
+        // Jump straight past year 103 in a single PassYears call; the drain uses `<=` so it still fires.
+        db.Ctx.PassYears(20, true);
+        Assert.That(FirstPersonGrown(db), Is.True, "should catch up when the due year is jumped over");
+        Assert.That(db.Records.Count, Is.EqualTo(1));
+        Assert.That(db.Records.Last().Text, Is.EqualTo("grew at 103"));
+    }
+
+    [Test]
+    public void ScheduleIsDeterministic([Values(1ul, 2ul, 3ul)] ulong seed)
+    {
+        // A scheduled body that consumes the shared RNG, fired for several entities the same year, must
+        // produce an identical record stream across runs with the same seed (fixed (year, seq) drain order).
+        const string story = @"
+enum Job { Farmer, Smith, Monk }
+entity Person {
+    prop birthdate: number
+    prop job: Job
+}
+event create_time {
+    create Time $t: 'time'
+    set $t.year = 100
+}
+@frequency(3, EveryXYear, 1)
+event make {
+    create Person $p
+    set $p.birthdate = #Time.year
+}
+trigger born {
+    when_created Person
+    schedule($new, $new.birthdate + 2) {
+        set $self.job = random(Job)
+        record('job {$self.job} at {#Time.year}')
+    }
+}";
+        string Records(ulong s)
+        {
+            var db = Run(story, out _);
+            db.SetSeed(s);
+            db.RunAction("create_time");
+            db.Ctx.PassYears(10, true);
+            return string.Join("\n", db.Records.Select(r => r.Text));
+        }
+
+        var first = Records(seed);
+        Assert.That(first, Is.Not.Empty);
+        Assert.That(Records(seed), Is.EqualTo(first));
+    }
+
 }

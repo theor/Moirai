@@ -40,10 +40,14 @@ public sealed class DebugSession : IDebugHook
 
     public readonly record struct StopInfo(StopReason Reason, int Line, int Column);
 
+    public readonly record struct RecordInfo(string Text, long Year);
+
     /// <summary>Raised on the simulation thread when execution suspends. The handler must not block.</summary>
     public event Action<StopInfo>? Stopped;
     /// <summary>Raised when execution resumes after a stop.</summary>
     public event Action? Continued;
+    /// <summary>Raised on the simulation thread when a <c>record(...)</c> fires. The handler must not block.</summary>
+    public event Action<RecordInfo>? RecordEmitted;
 
     // ---- breakpoints -------------------------------------------------------
     // Breakpoints are matched by 1-based line only (single-story server). Path is retained for
@@ -109,6 +113,13 @@ public sealed class DebugSession : IDebugHook
         lock (_stateLock)
             if (_frames.Count > 0)
                 _frames.RemoveAt(_frames.Count - 1);
+    }
+
+    public void OnRecord(string text, long year)
+    {
+        if (_terminated)
+            return;
+        RecordEmitted?.Invoke(new RecordInfo(text, year));
     }
 
     public void OnStatement(IInstruction instruction, ExecuteContext ctx)

@@ -34,4 +34,12 @@ public interface IDebugHook
     /// breakpoint or an in-progress step.
     /// </summary>
     void OnStatement(IInstruction instruction, ExecuteContext ctx);
+
+    /// <summary>
+    /// A <c>record(...)</c> statement just produced its interpolated <paramref name="text"/> (the same
+    /// string appended to world history) at simulation <paramref name="year"/>. Fired on the simulation
+    /// thread while running (not while suspended); implementations must not block. Default: no-op, so the
+    /// hook stays opt-in for implementers that don't surface records.
+    /// </summary>
+    void OnRecord(string text, long year) { }
 }

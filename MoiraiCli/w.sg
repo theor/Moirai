@@ -207,6 +207,66 @@ trigger born {
     set $new.birthdate = #Time.year
     set $new.place = $new.birthplace
 
+    // A person's age transitions are known the instant they're born, so schedule each one to fire at its
+    // exact future year instead of re-scanning the whole population every year. This replaces the old
+    // children_grow / youngs_grow / adults_grow events (each was an `each Person` poll). $self is the
+    // person; `if $self.alive` skips anyone who died before the transition came due.
+    schedule($new, $new.birthdate + 20) {
+        if $self.alive {
+            set $self.age = Age.Young
+            random_weighted 100 {
+                5 => set $self.job = Job.Smith
+                10 => set $self.job = Job.Merchant
+                10 => set $self.job = Job.Monk
+                25 => set $self.job = Job.Soldier
+                10 => set $self.job = Job.Bandit
+
+                5 => set $self.job = Job.Painter
+                5 => set $self.job = Job.Sculptor
+
+                5 => set $self.job = Job.Bard
+                5 => set $self.job = Job.Wizard
+
+                10 => set $self.job = Job.Hunter
+                10 => set $self.job = Job.Fisher
+                _ => set $self.job = Job.Farmer
+            }
+            set $self.mastery = Mastery.Novice
+            record('{$self.name} becomes a {$self.job}')
+        }
+    }
+    schedule($new, $new.birthdate + 40) {
+        if $self.alive {
+            set $self.age = Age.Adult
+        }
+    }
+    schedule($new, $new.birthdate + 60) {
+        if $self.alive {
+            set $self.age = Age.Old
+            if random(100) < 10 {
+                set $self.alive = false
+                random_weighted 50 {
+                    40 => record('{$self.name} dies of sickness at {#Time.year - $self.birthdate} in {#Time.year}')
+                    _ => record('{$self.name} dies in an accident at {#Time.year - $self.birthdate} in {#Time.year}')
+                }
+            } else {
+                record('{$self.name} grew old')
+                // Draw the natural death year ONCE and schedule it, instead of re-rolling every year past
+                // 80 (this replaces the olds_dies poll). #Time.year here is birthdate+60, so the death age
+                // is 80..94. `if $self.alive` skips anyone who died of other causes (war, murder, ...) first.
+                schedule($self, #Time.year + 20 + random(0, 15)) {
+                    if $self.alive {
+                        set $self.alive = false
+                        random_weighted 100 {
+                            40 => record('{$self.name} dies of old age at {#Time.year - $self.birthdate} in {#Time.year}')
+                            40 => record('{$self.name} dies of sickness at {#Time.year - $self.birthdate} in {#Time.year}')
+                            _ => record('{$self.name} dies in an accident at {#Time.year - $self.birthdate} in {#Time.year}')
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @frequency(1, PerXYear, 2)
@@ -221,73 +281,9 @@ event char_born {
 }
 
 
-@frequency(1, EveryXYear, 1)
-event children_grow {
-    each Person $p: (alive = true, age = Age.Child, (birthdate + 20) <= #Time.year){
-        set $p.age = Age.Young
-        random_weighted 100 {
-            5 => set $p.job = Job.Smith
-            10 => set $p.job = Job.Merchant
-            10 => set $p.job = Job.Monk
-            25 => set $p.job = Job.Soldier
-            10 => set $p.job = Job.Bandit
-
-            5 => set $p.job = Job.Painter
-            5 => set $p.job = Job.Sculptor
-
-            5 => set $p.job = Job.Bard
-            5 => set $p.job = Job.Wizard
-
-            10 => set $p.job = Job.Hunter
-            10 => set $p.job = Job.Fisher
-            _ => set $p.job = Job.Farmer
-        }
-        set $p.mastery = Mastery.Novice
-
-        record('{$p.name} becomes a {$p.job}')
-    }
-}
-
-@frequency(1, EveryXYear, 1)
-event youngs_grow {
-    each Person $p: (alive = true, age = Age.Young, (birthdate + 40) <= #Time.year){
-        set $p.age = Age.Adult
-    //    record('{$p.name} grew up as a {$p.age}')
-    }
-}
-
-@frequency(1, EveryXYear, 1)
-@tag('death')
-event adults_grow {
-    each Person $p: (alive = true, age = Age.Adult, (birthdate + 60) <= #Time.year){
-        set $p.age = Age.Old
-        if random(100) < 10 {
-            set $p.alive = false
-            random_weighted 50 {
-                40 => record('{$p.name} dies of sickness at {#Time.year - $p.birthdate} in {#Time.year}')
-                _ => record('{$p.name} dies in an accident at {#Time.year - $p.birthdate} in {#Time.year}')
-            }
-        } else {
-            record('{$p.name} grew old')
-        }
-    }
-}
-
-@frequency(1, EveryXYear, 1)
-@tag('death')
-event olds_dies {
-    each Person $p: (alive = true, age = Age.Old, (birthdate + 80) <= #Time.year){
-        if random(100) < 20 {
-            set $p.alive = false
-            random_weighted 100 {
-                40 => record('{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}')
-                40 => record('{$p.name} dies of sickness at {#Time.year - $p.birthdate} in {#Time.year}')
-                _ => record('{$p.name} dies in an accident at {#Time.year - $p.birthdate} in {#Time.year}')
-            }
-
-        }
-    }
-}
+// All aging is now scheduled per-person at birth (see the `born` trigger above): the Child→Young→Adult→Old
+// transitions, and natural death — drawn once when a person turns Old, instead of the old children_grow /
+// youngs_grow / adults_grow / olds_dies events that re-scanned the whole population every year.
 
 // event _parent_dies {
 //     each $l:( type = Link ){

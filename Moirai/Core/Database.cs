@@ -846,6 +846,7 @@ CREATE TABLE collection (
     public void AppendRecord(string text, long year)
     {
         Records.Add(new(text, year, CurrentChangeset.Id, _currentActionId));
+        DebugHook?.OnRecord(text, year);
     }
 
     internal Dictionary<(EntityId, int), long> _marked = new();
@@ -881,6 +882,84 @@ ON CONFLICT (eid, marker) DO UPDATE SET last_year = excluded.last_year, count = 
     public bool GetLastMarked(EntityId eId, int eventIndex, out long year)
     {
         return _marked.TryGetValue((eId, eventIndex), out year);
+    }
+
+    // --- Deferred per-entity effects (the `schedule(entity, year) { body }` DSL instruction) ---
+    // Schedule sites (compiled bodies) are registered at parse time; the queue of pending firings is
+    // in-memory runtime state, rebuilt from scratch on reset/hot-reload like the rest of the world.
+
+    private readonly List<ScheduleSite> _scheduleSites = new();
+
+    /// <summary>Number of registered schedule sites (used by the parser to assign each a unique id).</summary>
+    public int ScheduleSiteCount => _scheduleSites.Count;
+
+    /// <summary>Registers a compiled <c>schedule</c> body; returns its index, stored on the <see cref="ScheduleEffect"/>.</summary>
+    public int RegisterScheduleSite(EventTrigger trigger, int selfVarIndex)
+    {
+        _scheduleSites.Add(new ScheduleSite(trigger, selfVarIndex));
+        return _scheduleSites.Count - 1;
+    }
+
+    // (fireYear, boundEntity, siteIndex, seq). `seq` is a monotonic insertion counter giving a deterministic
+    // tiebreak when several effects fall due the same year — all randomness flows through one Pcg32, so fire
+    // order must be stable for runs to stay reproducible per seed.
+    private readonly List<(long year, EntityId entity, int site, long seq)> _scheduled = new();
+    private long _scheduleSeq;
+
+    /// <summary>Enqueues a deferred body to fire when the simulation reaches <paramref name="year"/>.</summary>
+    public void EnqueueScheduled(long year, EntityId entity, int site)
+    {
+        if (entity.IsNull)
+            return;
+        // Always fire strictly in the future so `schedule(x, #Time.year)` (or a body that re-schedules
+        // itself) can never loop within a single year's drain.
+        if (year <= _ctx.Year)
+            year = _ctx.Year + 1;
+        _scheduled.Add((year, entity, site, _scheduleSeq++));
+    }
+
+    /// <summary>
+    /// Fires every scheduled effect whose year has arrived (<c>year &lt;= upToYear</c>, so a multi-year jump
+    /// catches up), in deterministic (year, seq) order. Each firing runs through <see cref="RunAction"/>, so it
+    /// opens its own changeset, lands in History under the site name, and replays triggers. Entities that no
+    /// longer exist are skipped; the body itself guards state (e.g. <c>if $self.alive</c>).
+    /// </summary>
+    public void DrainScheduled(long upToYear)
+    {
+        if (_scheduled.Count == 0)
+            return;
+
+        List<(long year, EntityId entity, int site, long seq)>? due = null;
+        var remaining = new List<(long, EntityId, int, long)>(_scheduled.Count);
+        foreach (var s in _scheduled)
+        {
+            if (s.year <= upToYear)
+                (due ??= new()).Add(s);
+            else
+                remaining.Add(s);
+        }
+
+        if (due == null)
+            return;
+
+        // Rebuild the queue with only the not-yet-due entries before firing, so bodies that enqueue further
+        // (strictly future) effects append cleanly without disturbing this drain pass.
+        _scheduled.Clear();
+        _scheduled.AddRange(remaining);
+
+        due.Sort((a, b) => a.year != b.year ? a.year.CompareTo(b.year) : a.seq.CompareTo(b.seq));
+
+        foreach (var d in due)
+        {
+            if (!TryGetEntity(d.entity, out _))
+                continue;
+            var siteDef = _scheduleSites[d.site];
+            using (var _ = _ctx.RunScope(false))
+            {
+                _ctx.SetArgument(siteDef.SelfVarIndex, d.entity);
+                RunAction(siteDef.Trigger);
+            }
+        }
     }
 
 

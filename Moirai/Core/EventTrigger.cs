@@ -19,3 +19,14 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
     /// Lexical variable-scope tree for the debugger (null when not parsed for debugging info).
     public DebugScope? DebugScopeRoot;
 }
+
+/// <summary>
+/// A registered <c>schedule(...) { body }</c> site: the deferred body compiled as an <see cref="EventTrigger"/>
+/// (so it fires through <see cref="Moirai.Core.Database.RunAction"/>, reusing changeset/history/trigger replay),
+/// plus the value-stack slot the bound entity (<c>$self</c>) must be written to before firing.
+/// </summary>
+public class ScheduleSite(EventTrigger trigger, int selfVarIndex)
+{
+    public readonly EventTrigger Trigger = trigger;
+    public readonly int SelfVarIndex = selfVarIndex;
+}

@@ -513,6 +513,57 @@ event run {
         conn.SendRequest("disconnect");
     }
 
+    private const string RecordStory = @"
+entity Person {
+    prop alive: bool
+}
+@start
+event setup {
+    create Time $t: 'time'
+    set $t.year = 5
+}
+@frequency(1, EveryXYear, 1)
+event spawn {
+    create Person $p: 'Bob'
+    record('{$p.name} appears')
+}";
+
+    [Test]
+    public void RecordStreamsToDebugConsole()
+    {
+        // A record(...) fired during the run should arrive as a `console` output event, with the
+        // web-UI link markup (<#id>…</>) stripped and the simulation year prefixed.
+        var db = StoryParser.Parse(RecordStory, out var errors);
+        Assert.That(errors, Is.Empty, string.Join("\n", errors));
+        db.History = new();
+        db.Init();
+
+        var listener = new DapListener(new FakeHost(db, "story.sg", 1), 0);
+        listener.Start();
+
+        using var tcp = new TcpClient();
+        Assert.That(tcp.ConnectAsync("127.0.0.1", listener.Port).Wait(5000), Is.True);
+        var stream = tcp.GetStream();
+        stream.ReadTimeout = 5000;
+        var conn = new DapConnection(stream, stream);
+
+        conn.SendRequest("initialize", new JsonObject { ["adapterID"] = "moirai" });
+        WaitFor(conn, m => m["event"]?.GetValue<string>() == "initialized");
+        conn.SendRequest("launch", new JsonObject { ["years"] = 1 });
+        conn.SendRequest("configurationDone");
+
+        var output = WaitFor(conn, m => m["event"]?.GetValue<string>() == "output");
+        Assert.That(output, Is.Not.Null, "no output event for the record");
+        var body = (JsonObject)output!["body"]!;
+        Assert.That(body["category"]!.GetValue<string>(), Is.EqualTo("console"));
+        var text = body["output"]!.GetValue<string>();
+        Assert.That(text, Does.Contain("Bob appears"));
+        Assert.That(text, Does.Contain("[6]"), "year 5 +1 tick -> record fires at year 6");
+        Assert.That(text, Does.Not.Contain("<#"), "link tags must be stripped for the console");
+
+        conn.SendRequest("disconnect");
+    }
+
     // Read messages until predicate matches or the timeout/stream closes.
     private static JsonObject? WaitFor(DapConnection conn, Func<JsonObject, bool> predicate, int timeoutMs = 5000)
     {

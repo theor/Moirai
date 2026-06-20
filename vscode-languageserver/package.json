@@ -17,7 +17,6 @@
 		"vscode": "^1.75.0"
 	},
 	"activationEvents": [
-		"onLanguage:moirai",
 		"onDebug"
 	],
 	"main": "./client/out/extension",
@@ -85,10 +84,12 @@
 						"properties": {
 							"host": {
 								"type": "string",
+								"description": "Host of the Moirai web server's debug adapter.",
 								"default": "127.0.0.1"
 							},
 							"port": {
 								"type": "number",
+								"description": "Port passed to the web server via --debug-port.",
 								"default": 4711
 							}
 						}
