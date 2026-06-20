@@ -504,68 +504,83 @@ public class Database
     internal static int EventAttemptCount;
     internal static int EventAttemptSuccess;
 
+    // Triggers grouped by the (entity type, when-type) they react to, so RunTriggers only evaluates
+    // the triggers that can possibly match a given change instead of scanning every trigger for every
+    // change. Built lazily (Triggers is fixed after parsing); preserves trigger declaration order
+    // within each bucket so firing order is unchanged.
+    private Dictionary<(EntityTypeId, EventTrigger.WhenType), List<EventTrigger>>? _triggerIndex;
+
+    private List<EventTrigger>? TriggersFor(EntityTypeId type, EventTrigger.WhenType whenType)
+    {
+        if (_triggerIndex == null)
+        {
+            var index = new Dictionary<(EntityTypeId, EventTrigger.WhenType), List<EventTrigger>>();
+            foreach (var t in Triggers)
+            {
+                var key = (t.When.Item2, t.When.Item1);
+                if (!index.TryGetValue(key, out var list))
+                    index[key] = list = new List<EventTrigger>();
+                list.Add(t);
+            }
+
+            _triggerIndex = index;
+        }
+
+        return _triggerIndex.TryGetValue((type, whenType), out var result) ? result : null;
+    }
+
     private void RunTriggers(Changeset cs)
     {
         var prof = ExecProfiler;
         foreach (Changeset.Changed changed in cs.Changes)
         {
             _ctx.PrevEntity = changed.Prev;
-            // Console.ForegroundColor = ConsoleColor.Yellow;
-            // Console.WriteLine("Event entity: " + entity);
-            // Console.ResetColor();
-            foreach (var trigger in Triggers)
+
+            // Only triggers registered for this change's entity type AND when-type can match; look
+            // them up rather than scanning every trigger (a null-Prev change = create, else change).
+            var whenType = changed.Prev.Id.IsNull
+                ? EventTrigger.WhenType.Created
+                : EventTrigger.WhenType.Changed;
+            var triggers = TriggersFor(changed.New.Type, whenType);
+            if (triggers == null)
+                continue;
+
+            foreach (var trigger in triggers)
             {
-                // if entity created but trigger is on change
-                if (changed.Prev.Id.IsNull == (trigger.When.Item1 == EventTrigger.WhenType.Changed))
-                    continue;
-                // if (!@event.WhenTags.Contains(tag))
-                //     continue;
                 EventAttemptCount++;
                 var scope = prof?.Begin() ?? default;
                 bool matched = false;
                 using (var s = _ctx.RunScope(false))
                 {
-                    if (trigger.When.Item2 == changed.New.Type)
+                    // Entity type + when-type already matched via the index.
+                    // $old value
+                    int varIdx = 0;
+                    if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
+                        _ctx.SetArgument(varIdx++, ChangePrevEntityId);
+                    // $new value
+                    _ctx.SetArgument(varIdx, changed.New.Id);
+
+                    if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
                     {
-                        // $old value
-                        int varIdx = 0;
-
-                        if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
-                            _ctx.SetArgument(varIdx++, ChangePrevEntityId);
-                        // $new value
-                        _ctx.SetArgument(varIdx, changed.New.Id);
-
-                        if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
+                        matched = true;
+                        EventAttemptSuccess++;
+                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year);
+                        DebugHook?.OnEnterFrame(DebugFrameKind.Trigger, trigger.Name, trigger.DebugScopeRoot, _ctx.ValueOffset);
+                        foreach (var e in trigger.Effects)
                         {
-                            matched = true;
-                            EventAttemptSuccess++;
-                            // Console.WriteLine("  @ " + @event.Name);
-                            CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year);
-                            // using (var s2 = _ctx.RunScope())
-                            {
-                                DebugHook?.OnEnterFrame(DebugFrameKind.Trigger, trigger.Name, trigger.DebugScopeRoot, _ctx.ValueOffset);
-                                foreach (var e in trigger.Effects)
-                                {
-                                    DebugHook?.OnStatement(e, _ctx);
-                                    if (!e.Execute(_ctx).BoolValue)
-                                    {
-                                        // continue;
-                                        break;
-                                    }
-                                }
-                                DebugHook?.OnExitFrame();
-                            }
-                            if (CurrentChangeset.Changes.Count != 0)
-                                History?.AddChangeset(CurrentChangeset);
+                            DebugHook?.OnStatement(e, _ctx);
+                            if (!e.Execute(_ctx).BoolValue)
+                                break;
                         }
+                        DebugHook?.OnExitFrame();
+                        if (CurrentChangeset.Changes.Count != 0)
+                            History?.AddChangeset(CurrentChangeset);
                     }
                 }
 
-                // An "attempt" mirrors EventAttemptCount (the when-type matched); "matched" means the
-                // entity type + predicate matched and the trigger's effects ran.
+                // "matched" means the predicate matched and the trigger's effects ran.
                 prof?.RecordTrigger(trigger, scope, matched);
             }
-            // break;
         }
 
         _ctx.PrevEntity = default;
