@@ -6,6 +6,7 @@ entity Person {
     prop age: Age
     prop first_name: string
     prop family_name: string
+    prop title: Title
     prop alive: bool
     prop birthdate: number
     prop prestige: percentage
@@ -41,10 +42,12 @@ entity Faction {
 
 }
 @display(Person, 'Citizens',birthplace = $self)
+@display(Person, 'Ruler', $other = $self.ruler)
 entity Country {
     prop war_with: Country
     prop health: CountryHealth
     prop prosperity: percentage
+    prop ruler: Person
 
 }
 @display(Person, 'Believers',god = $self)
@@ -62,6 +65,9 @@ enum Job {
     Prince, King,
 }
 enum Age { Child, Young, Adult, Old }
+// Political rank. Most people are Commoner; a Country's reigning monarch holds King (see crown_monarch
+// and the succession trigger). King was previously a dead Job value with no mechanics.
+enum Title { Commoner, King }
 enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
 enum ItemSource { Forged, Painted, Sculpted }
 enum Mastery { Novice, Seasoned, Master, Legendary }
@@ -142,6 +148,19 @@ event update_country_health {
     }
 }
 
+// Raise a ruler over any country whose throne is empty (a newly founded realm, or one left vacant by
+// a heirless death). Crowning lends the new monarch standing, so their House becomes prominent.
+@frequency(1, PerXYear, 3)
+@tag('politics')
+event crown_monarch {
+    pick Country $realm: (ruler = null)
+    pick Person $p: (alive and age > Age.Young and place = $realm and title = Title.Commoner)
+    set $realm.ruler = $p
+    set $p.title = Title.King
+    set $p.prestige = $p.prestige + 30%
+    record('{$p.name} of House {$p.family_name} is crowned ruler of {$realm.name}')
+}
+
 @tag('items')
 trigger item_created {
     when_created Item
@@ -203,6 +222,27 @@ trigger buries_children {
     }
 }
 
+// When a reigning monarch dies, the crown passes to a living child of their house; with no living
+// child the throne is left vacant and crown_monarch later raises a new ruler. Fires alongside
+// `inherit` (both react to a Person's death).
+@tag('politics')
+trigger succession {
+    when Person and alive = false and $old.alive
+
+    // Acts only when the deceased was actually a reigning monarch (some realm names them ruler).
+    if (pick Country $realm: (ruler = $new)) {
+        if (pick Person $heir: (alive and is_child_of($heir, $new))) {
+            set $realm.ruler = $heir
+            set $heir.title = Title.King
+            set $heir.prestige = $heir.prestige + 20%
+            record('{$heir.name} of House {$heir.family_name} succeeds {$new.name} as ruler of {$realm.name}')
+        } else {
+            set $realm.ruler = null
+            record('The throne of {$realm.name} is left vacant after the death of {$new.name}')
+        }
+    }
+}
+
 trigger born {
     when_created Person
     // record('!!! BORN {$new.birthdate} {#Time.year}')
@@ -210,6 +250,7 @@ trigger born {
     set $new.alive = true
     set $new.prosperity = 50%
     set $new.age = Age.Child
+    set $new.title = Title.Commoner
     set $new.birthdate = #Time.year
     set $new.place = $new.birthplace
 

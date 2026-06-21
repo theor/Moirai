@@ -69,4 +69,47 @@ public class WsgStoryTests
         Assert.That(checkedPairs, Is.GreaterThan(0),
             "a 200-year run should produce at least one parent-child pair to verify inheritance");
     }
+
+    [Test]
+    public void MonarchsAreCrownedAndSucceeded()
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var crownings = db.Records.Count(r => r.Text.Contains("is crowned ruler of"));
+        var successions = db.Records.Count(r => r.Text.Contains("succeeds"));
+        var vacancies = db.Records.Count(r => r.Text.Contains("is left vacant"));
+
+        Assert.That(crownings, Is.GreaterThan(0), "adults should be crowned over a 400-year run");
+        // Monarchs die over the centuries, each death passing the crown to an heir or vacating it.
+        Assert.That(successions, Is.GreaterThan(0), "heirs should succeed dead monarchs");
+        Assert.That(vacancies, Is.GreaterThan(0), "some heirless deaths should vacate a throne");
+
+        // Invariant: no realm may keep a dead person on the throne — succession must transfer or vacate.
+        var countryType = db.GetEntityType("Country");
+        var rulerProp = countryType.GetPropertyId("ruler");
+        var personType = db.GetEntityType("Person");
+        var titleProp = personType.GetPropertyId("title");
+        var aliveProp = personType.GetPropertyId("alive");
+
+        int ruled = 0;
+        foreach (var e in db.Entities)
+        {
+            if (e.Type != countryType.Id) continue;
+            var ruler = e.GetProperty(rulerProp);
+            if (ruler.Id.IsNull) continue;
+            Assert.That(db.TryGetEntity(ruler.Id, out var king), Is.True);
+            // Title enum is { Commoner=1, King=2 }; a sitting ruler must be a living King.
+            Assert.That(king.GetProperty(titleProp).IntValue, Is.EqualTo(2),
+                "a country's ruler must hold the King title");
+            Assert.That(king.GetProperty(aliveProp).BoolValue, Is.True,
+                "a sitting ruler must be alive (no corpse on the throne)");
+            ruled++;
+        }
+
+        Assert.That(ruled, Is.GreaterThan(0), "at least one realm should have a reigning monarch");
+    }
 }

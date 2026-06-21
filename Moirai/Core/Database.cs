@@ -458,7 +458,11 @@ public class Database
         return false;
     }
 
-    public bool RunAction(EventTrigger eventTrigger)
+    // selfVarIndex >= 0 binds a `$self` value-stack slot for the action body (used by scheduled
+    // `schedule(...)` sites). It is set INSIDE the body scope below so it is gone by the time
+    // RunTriggers runs — otherwise the leftover $self pollutes the value stack and corrupts the
+    // computed-vs-SQL-variable decision for $new in trigger pick/each predicates (e.g. `ruler = $new`).
+    public bool RunAction(EventTrigger eventTrigger, int selfVarIndex = -1, EntityId self = default)
     {
         // Console.WriteLine($"[{action.Name}]");
         CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year);
@@ -473,6 +477,8 @@ public class Database
         // NOT a using statement
         using (var s = _ctx.RunScope(false))
         {
+            if (selfVarIndex >= 0)
+                _ctx.SetArgument(selfVarIndex, self);
             DebugHook?.OnEnterFrame(DebugFrameKind.Event, eventTrigger.Name, eventTrigger.DebugScopeRoot, _ctx.ValueOffset);
             for (var index = 0; index < eventTrigger.Effects.Count; index++)
             {
@@ -984,11 +990,9 @@ ON CONFLICT (eid, marker) DO UPDATE SET last_year = excluded.last_year, count = 
             if (!TryGetEntity(d.entity, out _))
                 continue;
             var siteDef = _scheduleSites[d.site];
-            using (var _ = _ctx.RunScope(false))
-            {
-                _ctx.SetArgument(siteDef.SelfVarIndex, d.entity);
-                RunAction(siteDef.Trigger);
-            }
+            // Bind $self inside RunAction's own body scope (not an enclosing one) so it is cleared
+            // before RunAction replays triggers — see the note on RunAction's selfVarIndex parameter.
+            RunAction(siteDef.Trigger, siteDef.SelfVarIndex, d.entity);
         }
     }
 
