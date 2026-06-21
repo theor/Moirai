@@ -27,7 +27,7 @@ public struct AssignPick : IValueCall
             case CallType.Pick:
             {
                 // Console.WriteLine($"PICK {ctx.Database.Printer.Print(Value)}");
-                bool res = ctx.PickRandom(EntityType, Value, out var val);
+                bool res = ctx.PickRandom(EntityType, Value, VariableIndex, out var val);
                 ctx.SetArgument(VariableIndex, val);
                 // Console.WriteLine($"ENDPICK {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                 return res;
@@ -40,7 +40,7 @@ public struct AssignPick : IValueCall
                     // Console.ForegroundColor = ConsoleColor.Blue;
                     // Console.WriteLine($"FIND ALL {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                     // Console.ResetColor(); 
-                    if (ctx.Database.FindAll(EntityType, Value, ref _pool))
+                    if (ctx.Database.FindAll(EntityType, Value, VariableIndex, ref _pool))
                     {
                         for (var index = 0; index < _pool.Count; index++)
                         {

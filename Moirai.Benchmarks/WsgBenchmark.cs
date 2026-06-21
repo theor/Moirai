@@ -16,6 +16,10 @@ public class WsgBenchmark
     [Params(50, 200, 500, 1000)]
     public int Years;
 
+    // Compare the SQLite mirror (false) against the in-memory query backend (true).
+    [Params(false, true)]
+    public bool InMemory;
+
     private string _story = "";
     private TextWriter _stdout = TextWriter.Null;
 
@@ -41,6 +45,7 @@ public class WsgBenchmark
     [Benchmark]
     public int Simulate()
     {
+        Database.UseInMemoryQuery = InMemory;
         var db = StoryParser.Parse(_story, out _);
         db.History = new();
         db.Init();

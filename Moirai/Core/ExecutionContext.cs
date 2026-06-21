@@ -80,9 +80,9 @@ public class ExecuteContext
     }
 
 
-    public bool PickRandom(EntityTypeId entityTypeId, IValueSql value, out EntityId id)
+    public bool PickRandom(EntityTypeId entityTypeId, IValueSql value, int varIdx, out EntityId id)
     {
-        return Database.PickRandom(entityTypeId, value, out id);
+        return Database.PickRandom(entityTypeId, value, varIdx, out id);
     }
 
     public PropertyValue Argument(int idx)

@@ -136,6 +136,17 @@ public sealed class Pcg32
 		_state = unchecked(_state * Helpers.Multiplier64 + _inc);
 	}
 
+	/// <summary>
+	/// The mutable LCG state. Exposed so a caller can snapshot it before a draw-consuming operation and
+	/// restore it afterwards — used by the query layer's differential-test mode to run the SQLite and
+	/// in-memory pick paths over the same RNG draws and compare results without double-consuming the stream.
+	/// </summary>
+	internal ulong State
+	{
+		get => _state;
+		set => _state = value;
+	}
+
 	readonly ulong _inc;
 	ulong _state;
 }

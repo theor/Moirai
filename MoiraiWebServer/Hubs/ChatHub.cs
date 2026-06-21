@@ -311,7 +311,7 @@ public class ChatHub : Hub
                     return new QueryResult { Errors = errors.Select(error => error.ToString()).ToArray() };
                 if (e is AssignPick pick)
                 {
-                    _db!.FindAll(pick.EntityType, pick.Value, ref results, out sql);
+                    _db!.FindAll(pick.EntityType, pick.Value, pick.VariableIndex, ref results, out sql);
                     return new QueryResult
                     {
                         Sql = sql,
@@ -399,7 +399,7 @@ public class ChatHub : Hub
                 new BinaryOperator(BinaryOperator.Operator.Or,
                     new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, personType.RefType, prop1), new Literal(new EntityId(eid))),
                     new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, personType.RefType,prop2), new Literal(new EntityId(eid)))
-                    ), ref results);
+                    ), -1, ref results);
             foreach (var id in results)
             {
                 queue.Enqueue((id, 0));
@@ -459,7 +459,7 @@ public class ChatHub : Hub
         {
             using var _ = _db.Ctx.RunScope(false);
             _db.Ctx.SetArgument(display.VarIndex, e.Id);
-            _db.FindAll(display.ReferencedType.Id, display.Value, ref results);
+            _db.FindAll(display.ReferencedType.Id, display.Value, display.OtherVarIndex, ref results);
             foreach (var id in results)
             {
                 if (!_db.TryGetEntity(id, out var ee)) continue;

@@ -55,7 +55,10 @@ event since {
         db.RunAction("since");
         db.Printer.PrintMarked();
         db.Printer.PrintRecords();
-        Assert.That(db.Records[0].Text, Is.EqualTo("since last: " +int.MinValue));
+        // Never marked yet: since_last returns `year - 0 = year` (= 10 here), matching the SQL form's
+        // COALESCE(last_year, 0). (Previously the in-memory Compute path returned int.MinValue, which
+        // diverged from SQL and gave the wrong sign for since_last comparisons on unmarked entities.)
+        Assert.That(db.Records[0].Text, Is.EqualTo("since last: 10"));
         Assert.That(db.Records[1].Text, Is.EqualTo("since last: 15"));
     }
     

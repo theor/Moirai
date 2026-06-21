@@ -63,6 +63,35 @@ public class Database
     private List<Entity> _entities = new() { default };
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
+    // --- In-memory query backend (spike; see plan could-sqlite-be-replaced) ---
+    /// <summary>When true, pick/each scans run against the in-memory backend instead of SQLite.</summary>
+    public static bool UseInMemoryQuery = true;
+    /// <summary>When true, every pick/each runs BOTH backends over the same RNG draws and asserts they
+    /// agree. SQLite stays authoritative for the returned result and the consumed RNG state. Pure
+    /// differential-test instrumentation; leave off for normal runs.</summary>
+    public static bool VerifyInMemoryQuery;
+
+    /// <summary>Whether to mirror writes (entity inserts, property updates, marks, collection changes) into
+    /// SQLite. Only needed while the SQL query path can still run — i.e. the SQLite backend is live, or
+    /// dual-run verification is reading SQLite. When the in-memory backend is the sole reader, the mirror
+    /// is dead weight (per-write P/Invoke round-trips) and is skipped.</summary>
+    private static bool MirrorToSqlite => !UseInMemoryQuery || VerifyInMemoryQuery;
+
+    /// <summary>Entity ids bucketed by type, in allocation (== id == SQLite rowid) order. Append-only,
+    /// matching SQLite (dead entities are flagged, never removed). Lets the in-memory scan visit only
+    /// the candidate type and reproduce SQLite's row order — which the deterministic pick relies on.</summary>
+    private List<EntityId>[] _perTypeEntities = System.Array.Empty<List<EntityId>>();
+
+    // In-memory equivalent of SQLite's `(default__type, {bool})` composite indexes: for each indexed bool
+    // property, the set of entity ids currently holding `true`, kept in ascending id order (== rowid order)
+    // so an indexed scan visits the same rows in the same order SQLite would. Only the `true` side is
+    // tracked — a freshly created entity defaults to false and is simply absent, so the set is always exact
+    // without create-time seeding. Pick/each route a `prop = true` conjunct here to skip the (accumulating)
+    // dead/false rows; the full predicate is still re-checked per candidate, so correctness is unchanged.
+    private readonly HashSet<PropertyId> _indexedBoolProps = new();
+    private readonly Dictionary<PropertyId, SortedSet<uint>> _boolIndex = new();
+    private static readonly SortedSet<uint> EmptyUintSet = new();
+
     public ExecuteContext Ctx
     {
         get { return _ctx; }
@@ -142,11 +171,13 @@ public class Database
         _entities.Add(e);
         if (type.IsSingleton)
             _singletons[entityType.Id] = e.Id;
-        // PerTypeIndices[(int)entityType.Id].Add(e.Id);
-        // TODO CS
+        _perTypeEntities[(int)entityType.Id].Add(e.Id);
         CurrentChangeset.RecordCreate(e);
         // CurrentChangeset.Changes?.Add(Change.Create(e.Id, entityType, name));
 
+
+        if (!MirrorToSqlite)
+            return e.Id;
 
         var sql = @"INSERT INTO entity (default__name, default__type)
                     VALUES ($name, $type)
@@ -199,24 +230,28 @@ public class Database
         // One prepared UPDATE per column ({Type}__{prop}); a column's type is fixed, so the bound
         // $v parameter's type is stable per cache entry. Value serialization matches the previous
         // inlined form exactly (string -> text, everything else -> IntValue, so null refs -> 0).
-        if (!_commandsSet.TryGetValue(property, out var sc))
+        if (MirrorToSqlite)
         {
-            string column = ColumnName(property);
-            var c = _connection.CreateCommand();
-            c.CommandText = $"UPDATE entity SET {column} = $v WHERE default__id = $id;";
-            var vp = c.Parameters.Add("$v",
-                value.Type.BaseType == PropertyValue.ValueBaseType.String ? SqliteType.Text : SqliteType.Integer);
-            var ip = c.Parameters.Add("$id", SqliteType.Integer);
-            c.Prepare();
-            sc = new SetCommand(c, vp, ip);
-            _commandsSet.Add(property, sc);
+            if (!_commandsSet.TryGetValue(property, out var sc))
+            {
+                string column = ColumnName(property);
+                var c = _connection.CreateCommand();
+                c.CommandText = $"UPDATE entity SET {column} = $v WHERE default__id = $id;";
+                var vp = c.Parameters.Add("$v",
+                    value.Type.BaseType == PropertyValue.ValueBaseType.String ? SqliteType.Text : SqliteType.Integer);
+                var ip = c.Parameters.Add("$id", SqliteType.Integer);
+                c.Prepare();
+                sc = new SetCommand(c, vp, ip);
+                _commandsSet.Add(property, sc);
+            }
+
+            sc.Value.Value = value.Type.BaseType == PropertyValue.ValueBaseType.String
+                ? (object)(value.Value ?? "")
+                : (long)value.IntValue;
+            sc.Id.Value = entityId.Id;
+            sc.Command.ExecuteNonQuery();
         }
 
-        sc.Value.Value = value.Type.BaseType == PropertyValue.ValueBaseType.String
-            ? (object)(value.Value ?? "")
-            : (long)value.IntValue;
-        sc.Id.Value = entityId.Id;
-        sc.Command.ExecuteNonQuery();
         Profiler.Set(property);
 
         if (!TryGetEntity(entityId, out var entity))
@@ -247,6 +282,15 @@ public class Database
         }
 
         PropertyValue prev = entity.SetProperty(property, value);
+
+        // Maintain the in-memory bool index: track only entities currently holding `true`.
+        if (_indexedBoolProps.Contains(property))
+        {
+            if (!_boolIndex.TryGetValue(property, out var set))
+                _boolIndex[property] = set = new SortedSet<uint>();
+            if (value.BoolValue) set.Add(entityId.Id);
+            else set.Remove(entityId.Id);
+        }
 
         // TODO CS
         CurrentChangeset.RecordSet(entity, property, prev);
@@ -316,7 +360,13 @@ public class Database
     public static long CollPropKey(PropertyId p) => ((long)p.TypeId.Id << 32) | p.Id;
 
     // Fixed, parameterized commands for the collection child table (prepared once, reused).
-    private SqliteCommand? _collAdd, _collRemove, _collContains, _collCount;
+    // Only the mutating commands remain; contains/count now read the in-memory store below.
+    private SqliteCommand? _collAdd, _collRemove;
+
+    // In-memory collection store, keyed by (owner, packed type/prop). HashSet gives the same set
+    // semantics as the table's `INSERT OR IGNORE` + PK. Authoritative for in-memory reads; the SQLite
+    // table is kept in lock-step (dual-write) so the SQL query path stays valid during the spike.
+    private readonly Dictionary<(EntityId owner, long propKey), HashSet<EntityId>> _collections = new();
 
     private SqliteCommand CollCmd(ref SqliteCommand? slot, string sql, bool withValue)
     {
@@ -334,6 +384,13 @@ public class Database
 
     public void AddToCollection(EntityId owner, PropertyId coll, EntityId value)
     {
+        var key = (owner, CollPropKey(coll));
+        if (!_collections.TryGetValue(key, out var set))
+            _collections[key] = set = new HashSet<EntityId>();
+        set.Add(value);
+
+        if (!MirrorToSqlite)
+            return;
         var c = CollCmd(ref _collAdd,
             "INSERT OR IGNORE INTO collection(owner, prop, value) VALUES ($o, $p, $v)", true);
         c.Parameters[0].Value = (long)owner.Id;
@@ -344,6 +401,11 @@ public class Database
 
     public void RemoveFromCollection(EntityId owner, PropertyId coll, EntityId value)
     {
+        if (_collections.TryGetValue((owner, CollPropKey(coll)), out var set))
+            set.Remove(value);
+
+        if (!MirrorToSqlite)
+            return;
         var c = CollCmd(ref _collRemove,
             "DELETE FROM collection WHERE owner = $o AND prop = $p AND value = $v", true);
         c.Parameters[0].Value = (long)owner.Id;
@@ -352,24 +414,11 @@ public class Database
         c.ExecuteNonQuery();
     }
 
-    public bool CollectionContains(EntityId owner, PropertyId coll, EntityId value)
-    {
-        var c = CollCmd(ref _collContains,
-            "SELECT 1 FROM collection WHERE owner = $o AND prop = $p AND value = $v LIMIT 1", true);
-        c.Parameters[0].Value = (long)owner.Id;
-        c.Parameters[1].Value = CollPropKey(coll);
-        c.Parameters[2].Value = (long)value.Id;
-        return c.ExecuteScalar() is long;
-    }
+    public bool CollectionContains(EntityId owner, PropertyId coll, EntityId value) =>
+        _collections.TryGetValue((owner, CollPropKey(coll)), out var set) && set.Contains(value);
 
-    public int CollectionCount(EntityId owner, PropertyId coll)
-    {
-        var c = CollCmd(ref _collCount,
-            "SELECT COUNT(*) FROM collection WHERE owner = $o AND prop = $p", false);
-        c.Parameters[0].Value = (long)owner.Id;
-        c.Parameters[1].Value = CollPropKey(coll);
-        return (int)(long)c.ExecuteScalar()!;
-    }
+    public int CollectionCount(EntityId owner, PropertyId coll) =>
+        _collections.TryGetValue((owner, CollPropKey(coll)), out var set) ? set.Count : 0;
 
     public EntityType? GetEntityType(PropertyValue.ValueType type)
     {
@@ -652,6 +701,17 @@ public class Database
     {
         Console.WriteLine(Path.GetFullPath("."));
         _singletons.Clear();
+        _collections.Clear();
+        _boolIndex.Clear();
+        _indexedBoolProps.Clear();
+        _perTypeEntities = new List<EntityId>[Types.Count];
+        for (int i = 0; i < _perTypeEntities.Length; i++)
+            _perTypeEntities[i] = new List<EntityId>();
+        // Same set SQLite indexes below: non-collection bool properties of user types.
+        foreach (var t in Types.Skip(1))
+            foreach (var p in t.Properties.Skip(4))
+                if (!p.IsCollection && p.Type.BaseType == PropertyValue.ValueBaseType.Bool)
+                    _indexedBoolProps.Add(p.PropertyId);
         _connection = new SqliteConnection("Data Source=:memory:");
         _connection.CreateFunction("rnd", () => _ctx.Rnd.GenerateNext());
         _connection.Open();
@@ -773,7 +833,9 @@ CREATE TABLE collection (
         return cmd;
     }
 
-    public bool PickRandom(EntityTypeId entityTypeId, IValueSql? predicate, out EntityId id)
+    // pick T $v: (pred). varIdx is $v's value-stack slot — bound to each candidate before the predicate
+    // is evaluated by the in-memory backend (SQL doesn't need it; the slot maps to the entity row).
+    public bool PickRandom(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx, out EntityId id)
     {
         if (predicate == null && !entityTypeId.IsValid)
         {
@@ -781,10 +843,41 @@ CREATE TABLE collection (
             return false;
         }
 
+        if (VerifyInMemoryQuery)
+        {
+            // Run SQLite first (authoritative for result and consumed RNG), rewind the RNG to before its
+            // draws, re-run in-memory over the identical stream, then restore the post-SQLite RNG state.
+            ulong before = _ctx.Rnd.State;
+            bool sqlOk = PickRandomSql(entityTypeId, predicate, out var sqlId);
+            ulong afterSql = _ctx.Rnd.State;
+
+            _ctx.Rnd.State = before;
+            // The in-memory pass binds varIdx via SetArgument, growing the value stack; isolate it in a
+            // scope so that growth doesn't disturb the SQL path's ValueCount-based query-var detection.
+            bool memOk;
+            EntityId memId;
+            using (var _ = _ctx.RunScope(false))
+                memOk = PickRandomInMemory(entityTypeId, predicate, varIdx, out memId);
+            if (sqlOk != memOk || (sqlOk && sqlId.Id != memId.Id) || _ctx.Rnd.State != afterSql)
+                throw new InvalidOperationException(
+                    $"PickRandom divergence on {Printer.Print(predicate!)}: sql=({sqlOk},{sqlId.Id},rng={afterSql}) " +
+                    $"mem=({memOk},{memId.Id},rng={_ctx.Rnd.State})");
+
+            _ctx.Rnd.State = afterSql;
+            id = sqlId;
+            return sqlOk;
+        }
+
+        return UseInMemoryQuery
+            ? PickRandomInMemory(entityTypeId, predicate, varIdx, out id)
+            : PickRandomSql(entityTypeId, predicate, out id);
+    }
+
+    private bool PickRandomSql(EntityTypeId entityTypeId, IValueSql? predicate, out EntityId id)
+    {
         string? where, joins;
         _ctx.SqlParameters.Clear();
-        (where, joins) = predicate.ToSql(_ctx);
-        // (where, joins) = (null, null);
+        (where, joins) = predicate!.ToSql(_ctx);
         if (string.IsNullOrEmpty(where))
             where = "entity.default__type = " + entityTypeId.Id;
         else
@@ -793,7 +886,6 @@ CREATE TABLE collection (
             $@"SELECT entity.default__id, rnd() as r FROM entity {(joins ?? "")} WHERE {where} ORDER BY r LIMIT 1";
         var cmd = GetOrPrepare(_commandsPickRandom, sql);
 
-        // Console.WriteLine(cmd.CommandText);
         var r = cmd.ExecuteScalar();
         if (r is long u)
         {
@@ -805,21 +897,78 @@ CREATE TABLE collection (
         return false;
     }
 
-    public bool FindAll(EntityTypeId entityTypeId, IValueSql? predicate, ref List<EntityId> results) =>
-        FindAll(entityTypeId, predicate, ref results, out _);
-
-    public bool FindAll(EntityTypeId entityTypeId, IValueSql? predicate, ref List<EntityId> results, out string? sql)
+    // Reservoir-of-size-1 with SQLite's exact RNG discipline: visit candidates in id order, draw once per
+    // matching row, keep the row with the smallest key. `ORDER BY rnd() LIMIT 1` does the same — one rnd()
+    // per matching row, take the minimum — so this consumes the identical Pcg32 draws and selects the same
+    // entity per seed. The key is compared as signed long to match SQLite's numeric sort of the uint result.
+    private bool PickRandomInMemory(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx, out EntityId id)
     {
-        results.Clear();
-        if (predicate == null && !entityTypeId.IsValid)
+        long minKey = 0;
+        bool found = false;
+        id = default;
+        foreach (var candidate in Candidates(entityTypeId, predicate, varIdx))
         {
-            sql = null;
-            return false;
+            if (predicate != null)
+            {
+                _ctx.SetArgument(varIdx, candidate);
+                if (!predicate.IsTrue(_ctx))
+                    continue;
+            }
+
+            long key = _ctx.Rnd.GenerateNext();
+            if (!found || key < minKey)
+            {
+                minKey = key;
+                id = candidate;
+                found = true;
+            }
         }
 
+        return found;
+    }
+
+    public bool FindAll(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx, ref List<EntityId> results) =>
+        FindAll(entityTypeId, predicate, varIdx, ref results, out _);
+
+    // each T $v: (pred). See PickRandom for the varIdx contract.
+    public bool FindAll(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx, ref List<EntityId> results,
+        out string? sql)
+    {
+        results.Clear();
+        sql = null;
+        if (predicate == null && !entityTypeId.IsValid)
+            return false;
+
+        if (VerifyInMemoryQuery)
+        {
+            // FindAll consumes no RNG; just compare the result sets.
+            bool sqlOk = FindAllSql(entityTypeId, predicate, ref results, out sql);
+            var sqlSet = new HashSet<EntityId>(results);
+            // Isolate the in-memory pass's stack growth (see PickRandom dual-run note).
+            bool memOk;
+            using (var _ = _ctx.RunScope(false))
+                memOk = FindAllInMemory(entityTypeId, predicate, varIdx, ref results);
+            if (sqlOk != memOk || !sqlSet.SetEquals(results))
+                throw new InvalidOperationException(
+                    $"FindAll divergence on {Printer.Print(predicate!)}: sql={sqlSet.Count} rows, mem={results.Count} rows");
+            // Leave SQLite's result in `results` as authoritative.
+            results.Clear();
+            results.AddRange(sqlSet);
+            return sqlOk;
+        }
+
+        return UseInMemoryQuery
+            ? FindAllInMemory(entityTypeId, predicate, varIdx, ref results)
+            : FindAllSql(entityTypeId, predicate, ref results, out sql);
+    }
+
+    private bool FindAllSql(EntityTypeId entityTypeId, IValueSql? predicate, ref List<EntityId> results,
+        out string? sql)
+    {
+        results.Clear();
         string? where, joins;
         _ctx.SqlParameters.Clear();
-        (where, joins) = predicate.ToSql(_ctx);
+        (where, joins) = predicate!.ToSql(_ctx);
         if (string.IsNullOrEmpty(where))
             where = "entity.default__type = " + entityTypeId.Id;
         else
@@ -827,14 +976,109 @@ CREATE TABLE collection (
         sql = $@"SELECT entity.default__id FROM entity {(joins ?? "")} WHERE {where}";
 
         var cmd = GetOrPrepare(_commandsFindAll, sql);
-
-        // Console.WriteLine(sql);
-        // Console.WriteLine(cmd.CommandText);
         using var r = cmd.ExecuteReader();
         while (r.Read())
             results.Add(new EntityId((uint)r.GetInt32(0)));
         return true;
     }
+
+    private bool FindAllInMemory(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx,
+        ref List<EntityId> results)
+    {
+        results.Clear();
+        foreach (var candidate in Candidates(entityTypeId, predicate, varIdx))
+        {
+            if (predicate != null)
+            {
+                _ctx.SetArgument(varIdx, candidate);
+                if (!predicate.IsTrue(_ctx))
+                    continue;
+            }
+
+            results.Add(candidate);
+        }
+
+        return true;
+    }
+
+    // Candidate stream for an in-memory scan. When the predicate constrains an indexed bool property of the
+    // query variable to `true`, yields just that index bucket (skipping the accumulating false/dead rows);
+    // otherwise yields every entity of the type. Both are in ascending id (== rowid) order, and the caller
+    // re-checks the full predicate per candidate — so this only changes which rows are visited, never the
+    // result set or (for pick) the RNG draw sequence, which is consumed only on a full-predicate match.
+    private IEnumerable<EntityId> Candidates(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx)
+    {
+        var indexed = TryGetBoolIndexCandidates(predicate, varIdx);
+        if (indexed != null)
+        {
+            foreach (var raw in indexed)
+                yield return new EntityId(raw);
+            yield break;
+        }
+
+        foreach (var id in _perTypeEntities[(int)entityTypeId.Id])
+            yield return id;
+    }
+
+    // Returns the id-ordered bucket for the first `<queryVar>.<indexedBool>` (= true) constraint found in
+    // the predicate (an empty set if the prop is indexed but nothing is currently true), or null if the
+    // predicate offers no usable indexed constraint (→ full type scan).
+    private SortedSet<uint>? TryGetBoolIndexCandidates(IValueSql? predicate, int varIdx)
+    {
+        if (predicate != null && TryFindIndexedTrueProp(predicate, varIdx, out var prop))
+            return _boolIndex.TryGetValue(prop, out var s) ? s : EmptyUintSet;
+        return null;
+    }
+
+    // Walks conjunctions — both the dedicated And class and BinaryOperator.And, since either may appear —
+    // for the first true-constrained indexed bool. Only descends AND nodes (an OR/NOT branch can't
+    // guarantee the flag), so any bucket it returns is a superset of the full match set.
+    private bool TryFindIndexedTrueProp(IValue node, int varIdx, out PropertyId prop)
+    {
+        switch (node)
+        {
+            case And and:
+                foreach (var p in and.Predicates)
+                    if (TryFindIndexedTrueProp(p, varIdx, out prop)) return true;
+                prop = default;
+                return false;
+            case BinaryOperator { Op: BinaryOperator.Operator.And } andOp:
+                return TryFindIndexedTrueProp(andOp.Left, varIdx, out prop)
+                       || TryFindIndexedTrueProp(andOp.Right, varIdx, out prop);
+            default:
+                return TryMatchTrueBoolConjunct(node, varIdx, out prop);
+        }
+    }
+
+    private bool TryMatchTrueBoolConjunct(IValue conjunct, int varIdx, out PropertyId prop)
+    {
+        // Bare bool path used as a predicate (`alive`) means `alive = true`.
+        if (IsIndexedBoolPath(conjunct, varIdx, out prop))
+            return true;
+        if (conjunct is BinaryOperator { Op: BinaryOperator.Operator.Equals } bo)
+        {
+            if (IsIndexedBoolPath(bo.Left, varIdx, out prop) && IsTrueBoolLiteral(bo.Right))
+                return true;
+            if (IsIndexedBoolPath(bo.Right, varIdx, out prop) && IsTrueBoolLiteral(bo.Left))
+                return true;
+        }
+
+        prop = default;
+        return false;
+    }
+
+    private bool IsIndexedBoolPath(IValue v, int varIdx, out PropertyId prop)
+    {
+        prop = default;
+        if (v is not PropertyPath pp) return false;
+        if (pp.Mode != PropertyPath.PropertyPathMode.Variable || pp.VariableIndex != varIdx) return false;
+        if (pp.Segments is not { Count: 1 } segs || segs[0].Call != null) return false;
+        prop = segs[0].Property;
+        return _indexedBoolProps.Contains(prop);
+    }
+
+    private static bool IsTrueBoolLiteral(IValue v) =>
+        v is Literal lit && lit.Value.Type.BaseType == PropertyValue.ValueBaseType.Bool && lit.Value.BoolValue;
 
     public List<string> Tags = new List<string> { null! };
 
@@ -893,6 +1137,9 @@ CREATE TABLE collection (
     public void Mark(EntityId eId, int eventIndex)
     {
         _marked[(eId, eventIndex)] = _ctx.Year;
+
+        if (!MirrorToSqlite)
+            return;
 
         if (_markSqlCommand.Command == null)
         {
