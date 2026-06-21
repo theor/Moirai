@@ -43,6 +43,7 @@ entity Faction {
 }
 @display(Person, 'Citizens',birthplace = $self)
 @display(Person, 'Ruler', $other = $self.ruler)
+@display(Settlement, 'Settlements', country = $self)
 entity Country {
     prop war_with: Country
     prop health: CountryHealth
@@ -52,6 +53,15 @@ entity Country {
 }
 @display(Person, 'Believers',god = $self)
 entity God {
+}
+@display(Person, 'Founder', $other = $self.founder)
+entity Settlement {
+    prop country: Country
+    prop founder: Person
+    prop founded: number
+    prop kind: SettlementKind
+    prop status: SettlementStatus
+    prop prosperity: percentage
 }
 
 enum Job {
@@ -68,6 +78,10 @@ enum Age { Child, Young, Adult, Old }
 // Political rank. Most people are Commoner; a Country's reigning monarch holds King (see crown_monarch
 // and the succession trigger). King was previously a dead Job value with no mechanics.
 enum Title { Commoner, King }
+// Settlements: named places founded inside Countries that grow Village -> Town -> City and can be
+// reduced to ruins by war. They give the world a gazetteer of places, not just statistical Countries.
+enum SettlementKind { Village, Town, City }
+enum SettlementStatus { Thriving, Struggling, Ruined }
 enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
 enum ItemSource { Forged, Painted, Sculpted }
 enum Mastery { Novice, Seasoned, Master, Legendary }
@@ -148,6 +162,26 @@ event update_country_health {
     }
 }
 
+table SettlementName {
+    'Aldermoor', 'Highvale', 'Stonebridge', 'Greywater', 'Thornkeep', 'Westmarch',
+    'Duskhollow', 'Riverton', 'Blackmoor', 'Fairhaven', 'Ravensford', 'Oldcastle',
+    'Emberfall', 'Northwatch', 'Silverbrook', 'Wraithmoor'
+}
+// Found a named settlement in $realm, attributed to $founder. A parameterized event invoked via
+// call(found_settlement, founder, realm) from both crown_monarch (a new ruler's seat) and `settle`.
+@tag('geography')
+event found_settlement($founder: Person, $realm: Country) {
+    create Settlement $s: ('{roll(SettlementName)}') {
+        country := $realm
+        founder := $founder
+        founded := #Time.year
+        kind := SettlementKind.Village
+        status := SettlementStatus.Thriving
+        prosperity := 40%
+    }
+    record('{$founder.name} founds the village of {$s.name} in {$realm.name}')
+}
+
 // Raise a ruler over any country whose throne is empty (a newly founded realm, or one left vacant by
 // a heirless death). Crowning lends the new monarch standing, so their House becomes prominent.
 @frequency(1, PerXYear, 3)
@@ -159,6 +193,47 @@ event crown_monarch {
     set $p.title = Title.King
     set $p.prestige = $p.prestige + 30%
     record('{$p.name} of House {$p.family_name} is crowned ruler of {$realm.name}')
+    call(found_settlement, $p, $realm)
+}
+
+@frequency(1, PerXYear, 10)
+@tag('geography')
+event settle {
+    pick Person $founder: (alive and age > Age.Young)
+    var $realm: $founder.place
+    if $realm {
+        call(found_settlement, $founder, $realm)
+    }
+}
+
+// Thriving settlements climb Village -> Town -> City over the years.
+@frequency(1, PerXYear, 12)
+@tag('geography')
+event settlement_grows {
+    pick Settlement $s: (status = SettlementStatus.Thriving)
+    match $s.kind {
+        SettlementKind.Village => {
+            set $s.kind = SettlementKind.Town
+            set $s.prosperity = $s.prosperity + 10%
+            record('The village of {$s.name} grows into a town')
+        }
+        SettlementKind.Town => {
+            set $s.kind = SettlementKind.City
+            set $s.prosperity = $s.prosperity + 10%
+            record('The town of {$s.name} grows into a city')
+        }
+    }
+}
+
+// War reduces a settlement of a belligerent country to ruins — a lasting landmark of the conflict.
+@frequency(1, PerXYear, 15)
+@tag('geography', 'war')
+event settlement_sacked {
+    pick Country $c: (war_with != null)
+    pick Settlement $s: (country = $c and status != SettlementStatus.Ruined)
+    set $s.status = SettlementStatus.Ruined
+    set $s.prosperity = 0%
+    record('{$s.name} in {$c.name} is sacked and falls into ruin')
 }
 
 @tag('items')

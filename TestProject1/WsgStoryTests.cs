@@ -112,4 +112,30 @@ public class WsgStoryTests
 
         Assert.That(ruled, Is.GreaterThan(0), "at least one realm should have a reigning monarch");
     }
+
+    [Test]
+    public void SettlementsAreFoundedGrowAndFallToRuin()
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var founded = db.Records.Count(r => r.Text.Contains("founds the village of"));
+        var grewTown = db.Records.Count(r => r.Text.Contains("grows into a town"));
+        var grewCity = db.Records.Count(r => r.Text.Contains("grows into a city"));
+        var ruined = db.Records.Count(r => r.Text.Contains("falls into ruin"));
+
+        var settlementType = db.GetEntityType("Settlement");
+        int total = 0;
+        foreach (var e in db.Entities)
+            if (e.Type == settlementType.Id) total++;
+
+        Assert.That(founded, Is.GreaterThan(0), "settlements should be founded over a 400-year run");
+        Assert.That(grewTown, Is.GreaterThan(0), "some villages should grow into towns");
+        Assert.That(grewCity, Is.GreaterThan(0), "some towns should grow into cities");
+        Assert.That(ruined, Is.GreaterThan(0), "war should reduce some settlements to ruins");
+        Assert.That(total, Is.GreaterThan(0));
+    }
 }
