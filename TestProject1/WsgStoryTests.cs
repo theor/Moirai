@@ -138,4 +138,39 @@ public class WsgStoryTests
         Assert.That(ruined, Is.GreaterThan(0), "war should reduce some settlements to ruins");
         Assert.That(total, Is.GreaterThan(0));
     }
+
+    [Test]
+    public void WizardsAdvanceAndForgeArtifacts()
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var legendary = db.Records.Count(r => r.Text.Contains("attains legendary mastery"));
+        var masters = db.Records.Count(r => r.Text.Contains("becomes a master wizard"));
+        var forged = db.Records.Count(r => r.Text.Contains("forges the enchanted") || r.Text.Contains("forges the cursed"));
+        var catastrophes = db.Records.Count(r => r.Text.Contains("goes catastrophically wrong"));
+
+        Assert.That(masters, Is.GreaterThan(0), "wizards should climb to master rank");
+        Assert.That(legendary, Is.GreaterThan(0), "a wizard should reach the (previously unreachable) Legendary mastery");
+        Assert.That(forged, Is.GreaterThan(0), "master wizards should forge enchanted artifacts");
+
+        // Enchanted artifacts must be real Items flagged enchanted with a power set.
+        var itemType = db.GetEntityType("Item");
+        var enchantedProp = itemType.GetPropertyId("enchanted");
+        var powerProp = itemType.GetPropertyId("power");
+        int enchantedItems = 0;
+        foreach (var e in db.Entities)
+        {
+            if (e.Type != itemType.Id) continue;
+            if (!e.GetProperty(enchantedProp).BoolValue) continue;
+            enchantedItems++;
+            Assert.That(e.GetProperty(powerProp).IntValue, Is.GreaterThan(0),
+                "an enchanted artifact must carry an ArtifactPower");
+        }
+
+        Assert.That(enchantedItems, Is.GreaterThan(0), "enchanted artifacts should exist in the world");
+    }
 }

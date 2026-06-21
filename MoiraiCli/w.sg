@@ -29,6 +29,9 @@ entity Item {
     prop item_type: ItemSource
     prop owner: Person
     prop creation_date: number
+    prop enchanted: bool
+    prop power: ArtifactPower
+    prop curse: bool
 }
 entity ItemOwnership {
     prop item: Item
@@ -82,6 +85,9 @@ enum Title { Commoner, King }
 // reduced to ruins by war. They give the world a gazetteer of places, not just statistical Countries.
 enum SettlementKind { Village, Town, City }
 enum SettlementStatus { Thriving, Struggling, Ruined }
+// The arcane: a kind of enchantment carried by a magical artifact. Wizards who reach high mastery
+// forge named artifacts of one of these powers.
+enum ArtifactPower { Flame, Frost, Storm, Healing, Shadow, Ward }
 enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
 enum ItemSource { Forged, Painted, Sculpted }
 enum Mastery { Novice, Seasoned, Master, Legendary }
@@ -640,6 +646,69 @@ event item_forged {
     set $i.owner = $p
     record('{$p.name} crafts the {$i.name}')
 }
+
+table ArtifactName {
+    'Dawnbreaker', 'Nightfang', 'Stormcaller', 'Frostmourne', 'Sunforge', 'Shadowrend',
+    'Wyrmtongue', 'Lightbringer', 'Doomwhisper', 'Starfall', 'Emberheart', 'Soulward'
+}
+// Wizards (a job assigned at coming-of-age that otherwise did nothing) climb the arcane ranks,
+// finally reaching Legendary mastery — previously an unreachable enum value.
+@frequency(1, PerXYear, 5)
+@tag('magic')
+event wizard_studies {
+    pick Person $w: (alive and job = Job.Wizard and age > Age.Child and mastery < Mastery.Legendary)
+    match $w.mastery {
+        Mastery.Novice => {
+            set $w.mastery = Mastery.Seasoned
+            record('{$w.name} grows in arcane skill, now a seasoned wizard')
+        }
+        Mastery.Seasoned => {
+            set $w.mastery = Mastery.Master
+            set $w.prestige = $w.prestige + 10%
+            record('{$w.name} becomes a master wizard')
+        }
+        Mastery.Master => {
+            set $w.mastery = Mastery.Legendary
+            set $w.prestige = $w.prestige + 30%
+            record('{$w.name} attains legendary mastery of the arcane')
+        }
+    }
+}
+
+// A master (or legendary) wizard forges a named enchanted artifact. Provenance flows through the
+// existing Item / ItemOwnership system, so the artifact can later be inherited, lost, or recovered.
+@frequency(1, PerXYear, 14)
+@tag('magic', 'items')
+event artifact_forged {
+    pick Person $w: (alive and job = Job.Wizard and mastery >= Mastery.Master)
+    create Item $i: ('{roll(ArtifactName)}') {
+        maker := $w
+        owner := $w
+        item_type := ItemSource.Forged
+        creation_date := #Time.year
+        enchanted := true
+        power := random(ArtifactPower)
+        curse := random(100) < 20
+    }
+    if $i.curse {
+        record('{$w.name} forges the cursed {$i.name}, an artifact of {$i.power}')
+    } else {
+        record('{$w.name} forges the enchanted {$i.name}, an artifact of {$i.power}')
+    }
+}
+
+// Magic is perilous: a wizard's ritual can go catastrophically wrong and consume a nearby settlement.
+@frequency(1, PerXYear, 30)
+@tag('magic', 'geography')
+event arcane_catastrophe {
+    pick Person $w: (alive and job = Job.Wizard and mastery >= Mastery.Seasoned)
+    var $realm: $w.place
+    pick Settlement $s: (country = $realm and status != SettlementStatus.Ruined)
+    set $s.status = SettlementStatus.Ruined
+    set $s.prosperity = 0%
+    record('A ritual by {$w.name} goes catastrophically wrong; {$s.name} is consumed and left in ruins')
+}
+
 @frequency(1, PerXYear, 8)
 @tag('items')
 event item_painted {
