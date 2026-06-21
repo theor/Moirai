@@ -30,6 +30,8 @@
   const queryClient = new QueryClient()
   const activeTabParam = urlParam($page, 'tab');
   let activeTab = 0;
+  // Keep the selection/filter state (e/f/t/tab search params) when switching tabs.
+  $: search = $page.url.search;
 </script>
 
 <!-- App Shell -->
@@ -48,10 +50,10 @@
       </svelte:fragment>
       <svelte:fragment slot="default">
         <TabGroup class="w-100 inline-block">
-          <TabAnchor href="/records" selected={$page.url.pathname === '/records'}>Records</TabAnchor>
-          <TabAnchor href="/changesets" selected={$page.url.pathname === '/changesets'}>Changesets</TabAnchor>
-          <TabAnchor href="/query" selected={$page.url.pathname === '/query'}>Query</TabAnchor>
-          <TabAnchor href="/family" selected={$page.url.pathname === '/family'}>Family</TabAnchor>
+          <TabAnchor href="/records{search}" selected={$page.url.pathname === '/records'}>Records</TabAnchor>
+          <TabAnchor href="/changesets{search}" selected={$page.url.pathname === '/changesets'}>Changesets</TabAnchor>
+          <TabAnchor href="/query{search}" selected={$page.url.pathname === '/query'}>Query</TabAnchor>
+          <TabAnchor href="/family{search}" selected={$page.url.pathname === '/family'}>Family</TabAnchor>
           <!-- ... -->
         </TabGroup>
         <span class="divider-vertical mr-1" />
