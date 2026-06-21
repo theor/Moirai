@@ -7,14 +7,12 @@ public interface IValue
     PropertyValue Compute(ExecuteContext ctx);
 
     bool IsTrue(ExecuteContext ctx) => Compute(ctx).BoolValue;
-
-    // (string where, string? joins) ToSql(ExecuteContext ctx);
 }
 
+// Marker for an IValue usable as a pick/each query predicate. (Formerly also declared a ToSql member
+// for the SQLite backend; that backend is gone and predicates are now evaluated in-memory via IsTrue.)
 public interface IValueSql : IValue
 {
-    (string where, string? joins) ToSql(ExecuteContext ctx);
- //   void InlineSql(ExecuteContext ctx, ref string where, ref string? join);
 }
 
 public class Display : IValue
@@ -95,43 +93,6 @@ public class UserFunctionCall : IValueCall, IValueSql
         return Compute(ctx, default); 
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call && call.Value is IValueSql valueSql)
-        {
-            // Inline: replace each parameter reference in the body with its call argument, then compile
-            // the result in the CALLER's scope. This handles any arity (the old value-stack binding only
-            // worked when the single argument happened to be the query variable).
-            var map = new Dictionary<int, IValue>(Definition.Parameters.Length);
-            for (int i = 0; i < Definition.Parameters.Length; i++)
-                map[Definition.Parameters[i].ParamIndex] = Arguments[i];
-            var inlined = (IValueSql)InlineParams(valueSql, map);
-            return inlined.ToSql(ctx);
-        }
-
-        throw new NotImplementedException();
-    }
-
-    // Recursively replace parameter references (by variable index) with the corresponding argument.
-    // Handles the predicate/expression node types a SQL-compilable function body can contain.
-    private static IValue InlineParams(IValue node, Dictionary<int, IValue> map)
-    {
-        switch (node)
-        {
-            case PropertyPath pp when pp.Mode == PropertyPath.PropertyPathMode.Variable
-                                      && map.TryGetValue(pp.VariableIndex, out var arg):
-                return pp.RebaseOnto(arg);
-            case BinaryOperator b:
-                return new BinaryOperator(b.Op, InlineParams(b.Left, map), InlineParams(b.Right, map));
-            case And a:
-                return new And(a.Predicates.Select(p => InlineParams(p, map)).ToList());
-            case MathUnary m:
-                return new MathUnary(m.Function, InlineParams(m.Arg, map));
-            default:
-                return node;
-        }
-    }
-
     public IFunctionDescriptor? FunctionDescriptor
     {
         get => new UserFunctionDescriptor(Definition);
@@ -141,18 +102,6 @@ public class UserFunctionCall : IValueCall, IValueSql
     }
 
     public IEnumerable<IValue> GetArgs(StoryPrinter printer) => Arguments;
-
-   //public void InlineSql(ExecuteContext ctx, ref string where, ref string? join)
-   //{
-   //    if (Definition.Instructions.Length == 1 && Definition.Instructions[0] is CallInstruction call && call.Value is IValueSql valueSql)
-   //    {
-   //        valueSql.InlineSql(ctx, ref where, ref join);
-   //    }
-   //    else
-   //    {
-   //        throw new NotImplementedException();
-   //    }
-   //}
 }
 
 
@@ -207,8 +156,6 @@ public class IsOfType : IValueSql
         Profiler.HitOfType(typeId, result);
         return result;
     }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"default__type = " + ValueTypeId.Id, null);
 }
 
 

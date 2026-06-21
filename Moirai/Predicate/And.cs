@@ -24,22 +24,4 @@ public class And : IValueSql
         }
         return true;
     }
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        var wheres = "";
-        var joins = "";
-        foreach (var predicate in Predicates.Cast<IValueSql>())
-        {
-            var (w, j) = predicate.ToSql(ctx);
-            if (wheres != "")
-                wheres += " AND " + w;
-            else
-                wheres = w;
-            if (j != null)
-            {
-                joins += " " + j;
-            }
-        }
-        return (wheres, joins);
-    }
 }

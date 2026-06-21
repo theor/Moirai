@@ -20,34 +20,6 @@ public class ExecuteContext
         Rnd = new Pcg32(seed, 42);
     }
 
-    /// <summary>
-    /// Bound parameter values collected while compiling a single query's predicate to SQL.
-    /// <see cref="Database.PickRandom"/>/<see cref="Database.FindAll"/> clear this before calling
-    /// <c>ToSql</c>, then bind these values onto the (shape-keyed, cached) prepared statement.
-    /// Leaf SQL nodes append via <see cref="AddSqlParameter"/>.
-    /// </summary>
-    public readonly List<PropertyValue> SqlParameters = new();
-
-    // Interned "$p0".."$pN" placeholders so AddSqlParameter doesn't allocate a fresh string per
-    // parameter per query (and so they match the prepared command's parameter names exactly).
-    private static readonly string[] PlaceholderNames =
-        Enumerable.Range(0, 64).Select(i => "$p" + i).ToArray();
-
-    /// <summary>
-    /// Records <paramref name="v"/> as a bound parameter and returns its placeholder (e.g. <c>$p0</c>),
-    /// so two queries that differ only in runtime values share one cached/prepared statement.
-    /// Null values are returned inline as the literal <c>null</c> (not bound) so that the
-    /// equals/not-equals → IS [NOT] NULL rewrite keeps working.
-    /// </summary>
-    public string AddSqlParameter(PropertyValue v)
-    {
-        if (v.Type.BaseType == PropertyValue.ValueBaseType.None)
-            return "null";
-        SqlParameters.Add(v);
-        int i = SqlParameters.Count - 1;
-        return i < PlaceholderNames.Length ? PlaceholderNames[i] : "$p" + i;
-    }
-
     public EntityId GetSingletonId(EntityTypeId type)
     {
         // Fast path for `singleton`-declared types (O(1)); scan as a fallback for plain types.

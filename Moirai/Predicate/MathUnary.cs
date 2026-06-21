@@ -40,29 +40,6 @@ public struct MathUnary : IValueCall, IValueSql
         }
     }
 
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        if(!(Arg is IValueSql argSql))
-            throw new InvalidOperationException("MathUnary.ToSql: Arg is not SQL:" + Arg);
-        (string where, string? joins) valueTuple = argSql.ToSql(ctx);
-        switch (Function)
-        {
-            case UnaryFunction.Not:
-                return ("NOT " + valueTuple.where, valueTuple.joins);
-            case UnaryFunction.Floor:
-                break;
-            case UnaryFunction.Ceiling:
-                break;
-            case UnaryFunction.Round:
-                break;
-            case UnaryFunction.Clamp01:
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-        throw new NotImplementedException();
-    }
-
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
 
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)

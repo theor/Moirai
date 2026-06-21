@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using Moirai.Core;
+﻿using Moirai.Core;
 
 public struct Literal : IValueSql
 {
@@ -9,9 +8,4 @@ public struct Literal : IValueSql
         Value = value;
     }
     public PropertyValue Compute(ExecuteContext ctx) => Value;
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        return (ctx.AddSqlParameter(Value), null);
-    }
 }

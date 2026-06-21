@@ -58,11 +58,6 @@ public struct RandomEnum : IValueCall
         return def.GetRandomValue(ctx.Rnd);
     }
 
-    //public (string where, string? joins) ToSql(ExecuteContext ctx)
-    //{
-    //    return (Compute(ctx).ToSql(), null);
-    //}
-
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {

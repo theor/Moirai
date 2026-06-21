@@ -197,16 +197,9 @@ public class SinceLast(IValue Entity, int EventIndex) : IValueCall, IValueSql
             return int.MaxValue;
         if(ctx.GetLastMarked(e.Id, EventIndex, out var year))
             return ctx.Year - year;
-        // Never marked: match the SQL form's semantics, which is `year - COALESCE(last_year, 0)` = `year`
-        // (COALESCE yields 0 for the absent marked row). The previous int.MinValue diverged from SQL and
-        // would flip the sign of any `since_last(...) <op> n` comparison for unmarked entities.
+        // Never marked: treat it as "marked at year 0", i.e. `year - 0 = year`, so since_last is a large
+        // positive (a long time ago) rather than a sentinel that would flip comparison signs.
         return ctx.Year;
-    }
-
-    public (string where, string? joins) ToSql(ExecuteContext ctx)
-    {
-        return ($"({ctx.Year} - COALESCE(marked.last_year, 0))",
-        $"LEFT JOIN marked ON marked.eid = entity.default__id AND marked.marker = {EventIndex}");
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }

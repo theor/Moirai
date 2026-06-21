@@ -74,7 +74,7 @@ Reading the report:
 - **Events** are scheduled actions (one row per `event`); **exec** = invocations, **ok** = ran to completion (a `pick` that finds nothing aborts the event → counts against the hit rate).
 - **Triggers** are reactive rules (one row per `trigger`); **attempts** = times evaluated against a change, **ok** = predicate matched and effects ran. A low trigger **hit%** over many attempts is the prime optimization signal — e.g. `on_death` above is evaluated 1275× and matches 0×, all wasted work (triggers are currently re-checked for every change in a changeset).
 - **self ms** excludes nested measured scopes (an event's `call()` into other events, and the triggers fired after an event); **incl ms** includes them. For leaf rules the two are equal. Sort is by self time descending.
-- The **Coverage** line reconciles event + trigger self time against total wall time; the gap is per-year scheduling, the `Time.year` update, and SQL query overhead (`PickRandom`/`FindAll`).
+- The **Coverage** line reconciles event + trigger self time against total wall time; the gap is per-year scheduling, the `Time.year` update, and query overhead (`PickRandom`/`FindAll` scans).
 
 Mechanics (for changing the profiler): `Database.ProfilingEnabled` gates it; `ExecuteContext.PassYears` allocates a fresh `ExecutionProfiler` per run and prints `Report()`; recording happens in `Database.RunAction` (events) and `Database.RunTriggers` (triggers). See `Moirai/Core/ExecutionProfiler.cs`. Tests/tools can profile directly by setting `db.ProfilingEnabled = true` before `db.Ctx.PassYears(...)` and reading `db.ExecProfiler`. This is separate from the older `[Conditional("DEBUG")]` `Profiler` in `Entity.cs`, which counts per-property get/set hits.
 
@@ -84,10 +84,10 @@ The pipeline is: **`.sg` text → ANTLR parse → AstVisitor builds engine objec
 
 ### `Moirai/` — the simulation engine (core, no parsing)
 - **`Core/Database.cs`** is the world. It holds `Types`, `Enums`, `Actions` (scheduled events), `Triggers` (reactive), all `Entities`, and `History`. It is the central API: `RunAction`, `FindAll`/`PickRandom` (query), `AllocateEntity`, `SetProperty`, `Mark`/`GetLastMarked`.
-  - World state is held **both** in-memory (`Entity` list) **and** mirrored into an in-memory **SQLite** DB (`Data Source=:memory:`). Queries (`pick` / `each` predicates) are compiled to SQL — see `IValueSql.ToSql` — and run against SQLite; mutations write through to both. The schema is one wide `entity` table with `{TypeName}__{prop}` columns, rebuilt on `Init()`.
+  - World state lives **in-memory only** (the `Entity` list). Queries (`pick` / `each` predicates) are evaluated directly against the predicate tree's `IValue.IsTrue` — `PickRandom` (reservoir sampling) and `FindAll` scan per-type entity buckets (`_perTypeEntities`), narrowed by a lightweight bool index (`_boolIndex`) for the common `prop`/`prop = true` filter. (This replaced an in-memory SQLite mirror; `IValueSql` is now just a marker for predicates usable as query filters.)
 - **`Core/ExecuteContext.cs`** drives time (`PassYears`) and holds the runtime value stack (`SetArgument`/`Argument`, scoped via `RunScope`) and the RNG (`Pcg32`, seeded — simulation is deterministic per seed).
 - **`Effect/`** — imperative instructions (`IInstruction`) that events/triggers execute: `CreateEntity`, `SetProperty`, `AssignPick` (`pick`/`each`), `CallRule`, `Sequence`, etc.
-- **`Predicate/`** — the expression/filter tree (`IValue`, `IFilter`): `PropertyPath`, `BinaryOperator`, `Literal`, `MathUnary`, … These are what compile to SQL for queries.
+- **`Predicate/`** — the expression/filter tree (`IValue`, `IFilter`): `PropertyPath`, `BinaryOperator`, `Literal`, `MathUnary`, … These are evaluated in-memory via `Compute`/`IsTrue` for both queries and trigger predicates.
 - **`Changeset.cs` / `History`** — every `RunAction` opens a `Changeset` recording entity creates/sets. After an action's changeset closes, `Database.RunTriggers` replays it against all `Triggers` (matching `when` / `when_created` + predicate), which is how reactive rules (`inherit`, `born`, …) fire. History is the changeset log the UI browses.
 
 ### `Moirai.Parser/` — the DSL front end
