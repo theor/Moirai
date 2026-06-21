@@ -224,7 +224,9 @@ public class Record : IValueCall
 
     public PropertyValue Compute(ExecuteContext ctx)
     {
-        ctx.Database.AppendRecord(ctx.Database.Printer.Format(String, ctx.Database, true), ctx.Year);
+        var participants = new List<EntityId>();
+        var text = ctx.Database.Printer.Format(String, ctx.Database, true, participants);
+        ctx.Database.AppendRecord(text, ctx.Year, participants);
         return true;
     }
 

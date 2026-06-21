@@ -51,6 +51,7 @@
           <TabAnchor href="/records" selected={$page.url.pathname === '/records'}>Records</TabAnchor>
           <TabAnchor href="/changesets" selected={$page.url.pathname === '/changesets'}>Changesets</TabAnchor>
           <TabAnchor href="/query" selected={$page.url.pathname === '/query'}>Query</TabAnchor>
+          <TabAnchor href="/family" selected={$page.url.pathname === '/family'}>Family</TabAnchor>
           <!-- ... -->
         </TabGroup>
         <span class="divider-vertical mr-1" />

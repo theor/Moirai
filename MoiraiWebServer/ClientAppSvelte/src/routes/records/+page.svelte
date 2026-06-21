@@ -8,11 +8,12 @@
   import type { Record } from '$lib/types';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import PreChip from '../../components/PreChip.svelte';
-  import { filteredEntity, selectedEntity, urlParam } from '$lib/utils';
+  import { filteredEntity, filteredTag, selectedEntity, urlParam } from '$lib/utils';
   import { moiraiViewStore } from '$lib';
   import binarysearch from 'binary-search';
   let selected: number = -1;
   let filtered: number = -1;
+  let tagFilter: string = '';
 
   $: {
     let selParam = selectedEntity($page);
@@ -21,12 +22,24 @@
     let filterParam = filteredEntity($page);
     filtered = filterParam.getNumber();
 
+    tagFilter = filteredTag($page).get() ?? '';
+
     tableStore.update((store) => {
       return {
         ...store,
         selected: selected,
       };
     });
+  }
+
+  // Union of all tags seen across loaded records, for the chronicle filter bar.
+  $: allTags = Array.from(
+    new Set($moiraiStore.records.flatMap((r) => r.tags ?? [])),
+  ).sort();
+
+  function toggleTag(tag: string) {
+    const param = filteredTag($page);
+    param.set(tagFilter === tag ? '' : tag);
   }
 
   $: {
@@ -79,7 +92,9 @@
 
       data: $moiraiStore.records
         .filter((r) =>
-            (filtered < 0 || r.text.indexOf('#' + filtered + '>') !== -1) &&
+            (filtered < 0 ||
+              (r.participants?.includes(filtered) ?? r.text.indexOf('#' + filtered + '>') !== -1)) &&
+            (tagFilter === '' || (r.tags?.includes(tagFilter) ?? false)) &&
             $moiraiStore.clientData!.actions.find(a => a.id === r.actionId)?.hidden !== true
         )
         .map((r) => ({
@@ -109,6 +124,24 @@
 </script>
 
 <div>
+  {#if allTags.length > 0}
+    <div class="tag-bar">
+      {#each allTags as tag}
+        <button
+          type="button"
+          class="chip {tagFilter === tag ? 'variant-filled-primary' : 'variant-soft'}"
+          on:click={() => toggleTag(tag)}
+        >
+          {tag}
+        </button>
+      {/each}
+      {#if tagFilter !== ''}
+        <button type="button" class="chip variant-ghost" on:click={() => toggleTag(tagFilter)}>
+          clear
+        </button>
+      {/if}
+    </div>
+  {/if}
   <div class="table-container scroll-container bg-surface-200-700-token" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
       <table class="table table-fixed table-hover table-compact w-full" style="overflow:unset">
@@ -168,9 +201,18 @@
     background-color: rgb(var(--color-surface-500) / 0.05);
   }
   .scroll-container {
-    height: 88vh;
+    height: 84vh;
     width: 100%;
     overflow: auto;
+  }
+  .tag-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+  }
+  .tag-bar .chip {
+    cursor: pointer;
   }
 
   :global(td.actionId span) {

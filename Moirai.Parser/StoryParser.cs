@@ -154,7 +154,35 @@ public static class StoryParser
             // or a procedural function (run inline in the caller's changeset).
             var eventIndex = ctx.Visitor.Database.Actions.FindIndex(r => r.Name == eventName);
             if (eventIndex != -1)
+            {
+                // A parameterized event takes the trailing call() args as its arguments (the count
+                // form is only for zero-parameter events).
+                var pars = ctx.Visitor.Database.Actions[eventIndex].Parameters;
+                if (pars is { Count: > 0 })
+                {
+                    var args = new IValue[pars.Count];
+                    for (int i = 0; i < pars.Count; i++)
+                    {
+                        if (i + 1 >= ctx.ArgCount)
+                        {
+                            ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext,
+                                $"call({eventName}) is missing argument {pars[i].ParamName}: {ctx.Visitor.Database.Printer.Print(pars[i].ParamType)}");
+                            args[i] = new Literal(0);
+                            continue;
+                        }
+
+                        var av = ctx.ParseArgument(i + 1, out var at);
+                        if (at != pars[i].ParamType)
+                            ctx.Visitor.AddError(ErrorCode.MismatchedAssignmentTypes, ctx.GetArgumentToken(i + 1),
+                                $"Expected {ctx.Visitor.Database.Printer.Print(pars[i].ParamType)} got {ctx.Visitor.Database.Printer.Print(at)}");
+                        args[i] = av;
+                    }
+
+                    return (new CallRule(eventIndex, args), PropertyValue.ValueType.Null);
+                }
+
                 return (new CallRule(eventIndex, count), PropertyValue.ValueType.Null);
+            }
 
             var funcIndex = ctx.Visitor.Database.Functions
                 .FindIndex(f => f.Name == eventName && !f.IsInstanceMethod);
@@ -197,6 +225,25 @@ public static class StoryParser
             return (null!, PropertyValue.ValueType.Null);
         },
             ""),
+        new("roll", false, ctx =>
+        {
+            // roll(TableName) — sample a named weighted table. The arg is a bare table name (a
+            // TYPE_ID), looked up by text rather than parsed as a value (it isn't an enum/entity).
+            if (ctx.ArgCount != 1)
+            {
+                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, "'roll' takes one table name");
+                return (null!, PropertyValue.ValueType.Null);
+            }
+
+            var tableName = ctx.GetText(ctx.GetArgumentToken(0));
+            if (!ctx.Visitor.Database.GetTableDefinition(tableName, out var table))
+            {
+                ctx.Visitor.AddError(ErrorCode.UnknownTable, ctx.CallContext, tableName);
+                return (null!, PropertyValue.ValueType.Null);
+            }
+
+            return (new RollTable(table.Id, table.Name), table.ValueType);
+        }, "Samples a named weighted table: roll(TableName)"),
         new("add", false, ctx =>
         {
             ctx.ExpectArgcount(2);
@@ -288,6 +335,8 @@ public static class StoryParser
         ExpectedCollection,
         RedundantTypeFilter,
         FunctionInlinedToSql,
+        DuplicateDefinition,
+        UnknownTable,
     }
 
     /// <summary>How a <see cref="Error"/> should be surfaced. Defaults to <see cref="Error"/> (value 0)

@@ -32,6 +32,9 @@ public class Database
 
     public EnumDefinition FrequencyEnumDefinition => Enums[2];
 
+    // Named weighted tables (index 0 is a reserved sentinel so id 0 means "no table").
+    public readonly List<TableDefinition> Tables = new() { null! };
+
     public static readonly int BuiltinEnumCount = 3;
     public readonly List<EntityType> Types;
     public readonly int BuiltinTypes;
@@ -411,6 +414,21 @@ public class Database
         return false;
     }
 
+    public bool GetTableDefinition(string name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TableDefinition? table)
+    {
+        for (int i = 1; i < Tables.Count; i++)
+        {
+            if (Tables[i].Name == name)
+            {
+                table = Tables[i];
+                return true;
+            }
+        }
+
+        table = null;
+        return false;
+    }
+
     public bool GetPropertyType(PropertyId pid, out PropertyValue.ValueType valueType)
     {
         if (!pid.IsValid)
@@ -445,6 +463,7 @@ public class Database
         // Console.WriteLine($"[{action.Name}]");
         CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year);
         _currentActionId = eventTrigger.Id;
+        _currentAction = eventTrigger;
         // _ctx.Values.Clear();
 
         var prof = ExecProfiler;
@@ -830,22 +849,33 @@ CREATE TABLE collection (
         public readonly int ChangesetId;
         public readonly int ActionId;
         public readonly long Year;
+        // Entities referenced by this record (collected from the {$var} interpolation slots).
+        // Lets the UI build per-entity biographies/filters without text-scanning the rendered string.
+        public readonly EntityId[] Participants;
+        // Tags of the event/trigger that emitted this record (from @tag(...)), for chronicle grouping.
+        public readonly string[]? Tags;
 
-        public Record(string text, long year, int changesetId, int actionId)
+        public Record(string text, long year, int changesetId, int actionId, EntityId[] participants, string[]? tags)
         {
             Text = text;
             Year = year;
             ChangesetId = changesetId;
             ActionId = actionId;
+            Participants = participants;
+            Tags = tags;
         }
     }
 
     public List<Record> Records = new();
     private int _currentActionId;
+    // The event/trigger currently executing, captured so AppendRecord can stamp records with its tags.
+    private EventTrigger? _currentAction;
 
-    public void AppendRecord(string text, long year)
+    public void AppendRecord(string text, long year, IReadOnlyCollection<EntityId>? participants = null)
     {
-        Records.Add(new(text, year, CurrentChangeset.Id, _currentActionId));
+        Records.Add(new(text, year, CurrentChangeset.Id, _currentActionId,
+            participants?.ToArray() ?? Array.Empty<EntityId>(),
+            _currentAction?.Tags?.ToArray()));
         DebugHook?.OnRecord(text, year);
     }
 

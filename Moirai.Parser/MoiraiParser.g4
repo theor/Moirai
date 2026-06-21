@@ -6,9 +6,9 @@ options {
 
 }
 r: (def|LINE_BREAK)+ EOF;
-def: attribute* (event|trigger|enum_definition|type_definition|function_definition); 
+def: attribute* (event|trigger|enum_definition|type_definition|function_definition|table_definition);
 attribute: AT attr=ID (PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE)? LINE_BREAK;
-event: EVENT  ID scope;
+event: EVENT  ID (PAREN_OPEN (param (COMMA param)*)? PAREN_CLOSE)? scope;
 trigger: TRIGGER ID scope;
 when: WHEN type_id (AND expr)* SPACE* LINE_BREAK+;
 when_created: WHEN_CREATED type_id (AND expr)* SPACE* LINE_BREAK+;
@@ -47,6 +47,11 @@ type_definition: (ENTITY | SINGLETON) TYPE_ID SCOPE_OPEN LINE_BREAK* (prop_defin
 prop_definition: PROP property_id COLON type LINE_BREAK+ ;
 
 enum_definition: ENUM TYPE_ID SCOPE_OPEN LINE_BREAK* TYPE_ID (COMMA LINE_BREAK* TYPE_ID)* COMMA? LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
+
+// Reusable weighted random table: `table Name { 70 => value, 30 => value }` or, with implicit
+// equal weight, `table Name { value, value, value }`. Entries are picked via roll(Name).
+table_definition: TABLE TYPE_ID SCOPE_OPEN LINE_BREAK* table_entry (COMMA LINE_BREAK* table_entry)* COMMA? LINE_BREAK* SCOPE_CLOSE LINE_BREAK+ ;
+table_entry: (NUMBER ARROW)? value ;
 
 param: VAR_ID COLON type;
 function_definition: FUNCTION fun_id PAREN_OPEN (param (COMMA param)*)? PAREN_CLOSE (COLON type)? scope;

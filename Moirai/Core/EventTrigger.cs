@@ -11,6 +11,9 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
     public bool Skip = skip;
 
     public readonly List<IInstruction> Effects = new();
+    // Parameters for an event invoked as call(name, args...). Declared as the event scope's first
+    // value-stack slots (0..n-1), which call() binds before the body runs. Null = no parameters.
+    public List<FunctionDefinition.Parameter>? Parameters;
     public (WhenType, EntityTypeId, IValue?) When = default;
 
     public readonly IFilter? Filter = filter;

@@ -28,6 +28,7 @@ TRIGGER: 'trigger';
 PROP: 'prop';
 FUNCTION: 'function';
 ENUM: 'enum';
+TABLE: 'table';
 WHEN: 'when';
 WHEN_CREATED: 'when_created';
 SET: 'set';

@@ -5,6 +5,7 @@
 entity Person {
     prop age: Age
     prop first_name: string
+    prop family_name: string
     prop alive: bool
     prop birthdate: number
     prop prestige: percentage
@@ -274,13 +275,22 @@ trigger born {
     }
 }
 
+// House / family names. Founders (people born with no parents) start a new house drawn from here;
+// their descendants inherit it (see couple_has_child), so lineages read as "<given> <House>".
+table Surname {
+    'Ashford', 'Blackwood', 'Caelmoor', 'Dunmere', 'Eldridge', 'Fenwick',
+    'Grimsbane', 'Holloway', 'Ironvale', 'Karras', 'Lothian', 'Mournhal',
+    'Nightfell', 'Oakhart', 'Ravenscar', 'Stormwell', 'Thornwood', 'Vaelin'
+}
 @frequency(1, PerXYear, 2)
 event char_born {
     var $fname: '{random(Name)}'
-    create Person $p: ('{$fname} {random(Name)}')
+    var $house: '{roll(Surname)}'
+    create Person $p: ('{$fname} {$house}')
     pick Country $loc
     set $p.alive = true
     set $p.first_name = $fname
+    set $p.family_name = $house
     set $p.birthplace = $loc
     record('{$p.name} is born in {$loc.name}')
 }
@@ -481,9 +491,10 @@ event couple_has_child {
         mark($y)
 
         var $fname: '{random(Name)}'
-        create Person $c: ('{$fname} {$x.first_name}son')
+        create Person $c: ('{$fname} {$x.family_name}')
         set $c.alive = true
         set $c.first_name = $fname
+        set $c.family_name = $x.family_name
         set $c.birthplace = $x.place
         set $c.god = $x.god
         set $c.parent1 = $x

@@ -38,3 +38,4 @@ export function urlParam(page: Page<any>, name: string) {
 
 export const selectedEntity = (page: any) => urlParam(page, 'e');
 export const filteredEntity = (page: any) => urlParam(page, 'f');
+export const filteredTag = (page: any) => urlParam(page, 't');

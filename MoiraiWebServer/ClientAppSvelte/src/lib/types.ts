@@ -6,6 +6,8 @@ export interface Record {
     actionId: number;
     year: number;
     categories: number;
+    participants: number[];
+    tags: string[] | null;
 }
 
 export interface Message {

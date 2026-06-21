@@ -29,6 +29,19 @@ public class StoryPrinter
         {
             sb.AppendLine($"enum {en.Name} {{ {string.Join(", ", en.Values)} }}");
         }
+
+        foreach (var table in _database.Tables.Skip(1))
+        {
+            var parts = new List<string>();
+            int prev = 0;
+            foreach (var (cum, val) in table.Entries)
+            {
+                parts.Add($"{cum - prev} => {Print(val)}");
+                prev = cum;
+            }
+
+            sb.AppendLine($"table {table.Name} {{ {string.Join(", ", parts)} }}");
+        }
         foreach (FunctionDefinition fd in _database.Functions.Skip(1))
         {
             // if(!fd.IsInstanceMethod)
@@ -41,8 +54,11 @@ public class StoryPrinter
                 sb.AppendLine($"@tag({string.Join(", ", action.Tags)})");
             if (action.Filter != null)
                 sb.AppendLine(Print(action.Filter));
+            var paramList = action.Parameters is { Count: > 0 } ps
+                ? $"({string.Join(", ", ps.Select(p => $"{p.ParamName}: {Print(p.ParamType)}"))})"
+                : "";
             sb.AppendLine(
-                $"{(action.IsTrigger ? "trigger" : "event")} {action.Name} {{");
+                $"{(action.IsTrigger ? "trigger" : "event")} {action.Name}{paramList} {{");
             if (action.IsTrigger)
                 sb.AppendLine(
                     $"  when{(action.When.Item1 == EventTrigger.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");
@@ -522,7 +538,8 @@ public class StoryPrinter
         }
     }
 
-    public string Format(InterpolatedString formatAction, Database database, bool injectIdTags = false)
+    public string Format(InterpolatedString formatAction, Database database, bool injectIdTags = false,
+        ICollection<EntityId>? participants = null)
     {
         var propertyValues = formatAction.Arguments.Select(v =>
         {
@@ -531,7 +548,10 @@ public class StoryPrinter
             {
                 var entity = database.Ctx.Argument(path.VariableIndex);
                 if (entity.Type == PropertyValue.TypeRef)
+                {
+                    participants?.Add(entity.Id);
                     return $"<{entity.Id}>{print}</>";
+                }
             }
 
             return print;

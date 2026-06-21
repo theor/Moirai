@@ -100,6 +100,10 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             }
         }
 
+        // Tables can reference enums and entity types, so register them after both are declared
+        // but before functions/events (whose bodies may call roll(...)).
+        VisitDefinitionsOfType(x => x.table_definition());
+
         foreach (var (tid, attr) in deferredTypeAttributes)
         {
             var id = attr.ID();
@@ -255,6 +259,29 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
         return null;
     }
 
+    public override object? VisitTable_definition(MoiraiParser.Table_definitionContext context)
+    {
+        var name = context.TYPE_ID().GetText();
+        if (Database.GetTableDefinition(name, out _))
+            return AddError(StoryParser.ErrorCode.DuplicateDefinition, context, name);
+
+        var entries = context.table_entry();
+        var weighted = new (int, IValue)[entries.Length];
+        PropertyValue.ValueType valueType = default;
+        for (int i = 0; i < entries.Length; i++)
+        {
+            var entry = entries[i];
+            int weight = entry.NUMBER() != null ? int.Parse(entry.NUMBER().GetText()) : 1;
+            if (weight < 0) weight = 0;
+            var val = ParseValue(entry.value(), out var t);
+            if (i == 0) valueType = t;
+            weighted[i] = (weight, val);
+        }
+
+        Database.Tables.Add(new Moirai.Core.TableDefinition(Database.Tables.Count, name, weighted, valueType));
+        return null;
+    }
+
     public override object? VisitEvent(MoiraiParser.EventContext context)
     {
         string actionId = context.ID().GetText();
@@ -265,6 +292,24 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
 
 
         CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f, tags:tags);
+
+        // Event parameters occupy the scope's first value-stack slots (0..n-1); call(name, args...)
+        // writes them before the body runs (see CallRule).
+        var eventParams = context.param();
+        if (eventParams.Length > 0)
+        {
+            var ps = new List<FunctionDefinition.Parameter>(eventParams.Length);
+            foreach (var p in eventParams)
+            {
+                var paramName = p.VAR_ID().GetText();
+                var paramType = ParseType(StoryParser.GetTypeTerminal(p.type()));
+                DeclareVar(paramName, paramType, p.VAR_ID().Symbol, out var paramIndex);
+                ps.Add(new FunctionDefinition.Parameter(paramName, paramType, paramIndex));
+            }
+
+            CurrentEventTrigger.Parameters = ps;
+        }
+
         foreach (MoiraiParser.EffectContext effectContext in context.scope().effect())
         {
             // if (effectContext.comment() != null)
