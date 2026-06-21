@@ -42,9 +42,12 @@ entity ItemOwnership {
     prop end_year: number
 }
 @display(Person, 'Members',faction = $self)
+@display(Person, 'Founder', $other = $self.founder)
 entity Faction {
     prop founder: Person
-
+    prop kind: FactionKind
+    prop patron: God
+    prop home: Country
 }
 @display(Person, 'Citizens',birthplace = $self)
 @display(Person, 'Ruler', $other = $self.ruler)
@@ -99,6 +102,9 @@ enum SettlementStatus { Thriving, Struggling, Ruined }
 // The arcane: a kind of enchantment carried by a magical artifact. Wizards who reach high mastery
 // forge named artifacts of one of these powers.
 enum ArtifactPower { Flame, Frost, Storm, Healing, Shadow, Ward }
+// Factions take on a character from their founder's calling: mage circles, knightly orders, thieves
+// guilds, merchant leagues, or cults devoted to a god. Previously a Faction was just a name + founder.
+enum FactionKind { Cult, KnightlyOrder, MageCircle, ThievesGuild, MerchantLeague }
 enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
 enum ItemSource { Forged, Painted, Sculpted }
 enum Mastery { Novice, Seasoned, Master, Legendary }
@@ -832,19 +838,68 @@ event item_sold {
     set $i.owner = $p
     record('{$p.name} acquires the {$i.name} from {$prev.name}')
 }
+table FactionName {
+    'the Ashen Hand', 'the Iron Covenant', 'the Silver Circle', 'the Crimson Order',
+    'the Veiled Path', 'the Golden Compact', 'the Obsidian Lodge', 'the Dawn Conclave',
+    'the Black Chalice', 'the Verdant Pact', 'the Sundered Crown', 'the Hollow Choir'
+}
+// A faction takes its character from its founder's calling; cults adopt the founder's god as patron.
 @frequency(1, PerXYear, 20)
+@tag('factions')
 event create_faction {
     pick Person $p: (alive, faction = null, age > Age.Child)
-    create Faction $f: ('Faction of {random(Name)}') {
+    create Faction $f: ('{roll(FactionName)}') {
         founder := $p
+        home := $p.place
+    }
+    match $p.job {
+        Job.Wizard => {
+            set $f.kind = FactionKind.MageCircle
+            record('{$p.name} founds the mage circle {$f.name}')
+        }
+        Job.Soldier => {
+            set $f.kind = FactionKind.KnightlyOrder
+            record('{$p.name} founds the knightly order {$f.name}')
+        }
+        Job.Bandit => {
+            set $f.kind = FactionKind.ThievesGuild
+            record('{$p.name} founds the thieves guild {$f.name}')
+        }
+        Job.Merchant => {
+            set $f.kind = FactionKind.MerchantLeague
+            record('{$p.name} founds the merchant league {$f.name}')
+        }
+        _ => {
+            set $f.kind = FactionKind.Cult
+            set $f.patron = $p.god
+            record('{$p.name} founds the cult {$f.name}')
+        }
     }
     set $p.faction = $f
-    record('{$p.name} creates the {$f.name}')
 }
 @frequency(1, PerXYear, 2)
+@tag('factions')
 event char_joins_faction {
     pick Person $p: (alive, faction = null, age > Age.Child)
     pick Faction $f: ()
     set $p.faction = $f
-    record('{$p.name} joins the {$f.name}')
+    // Joining a cult draws the new member into devotion to its patron god.
+    if $f.kind = FactionKind.Cult and $f.patron != null {
+        set $p.god = $f.patron
+        record('{$p.name} joins the cult {$f.name}, devoted to {$f.patron.name}')
+    } else {
+        record('{$p.name} joins the {$f.name}')
+    }
+}
+// Knightly orders and thieves guilds are sworn enemies; a feud claims a life (and seeds a vendetta).
+@frequency(1, PerXYear, 18)
+@tag('factions')
+event faction_feud {
+    pick Faction $order: (kind = FactionKind.KnightlyOrder)
+    pick Faction $guild: (kind = FactionKind.ThievesGuild)
+    pick Person $knight: (alive and faction = $order)
+    pick Person $thief: (alive and faction = $guild)
+    set $thief.killer = $knight
+    set $thief.alive = false
+    record('{$knight.name} of {$order.name} strikes down {$thief.name} of {$guild.name}')
 }

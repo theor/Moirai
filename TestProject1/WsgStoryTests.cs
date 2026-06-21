@@ -201,4 +201,31 @@ public class WsgStoryTests
         int saintEntities = db.Entities.Count(e => e.Type == personType.Id && e.GetProperty(saintProp).BoolValue);
         Assert.That(saintEntities, Is.GreaterThan(0), "at least one canonized saint should exist");
     }
+
+    [Test]
+    public void FactionsTakeOnKindsAndFeud()
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var circles = db.Records.Count(r => r.Text.Contains("founds the mage circle"));
+        var orders = db.Records.Count(r => r.Text.Contains("founds the knightly order"));
+        var guilds = db.Records.Count(r => r.Text.Contains("founds the thieves guild"));
+        var cults = db.Records.Count(r => r.Text.Contains("founds the cult"));
+        var feuds = db.Records.Count(r => r.Text.Contains("strikes down") && r.Text.Contains(" of "));
+
+        // A faction's kind comes from its founder's calling, so several kinds should appear.
+        int kindsSeen = new[] { circles, orders, guilds, cults }.Count(c => c > 0);
+        Assert.That(kindsSeen, Is.GreaterThanOrEqualTo(3), "factions of several callings should be founded");
+        Assert.That(feuds, Is.GreaterThan(0), "knightly orders and thieves guilds should feud");
+
+        // Factions carry a non-default kind on the entity.
+        var factionType = db.GetEntityType("Faction");
+        var kindProp = factionType.GetPropertyId("kind");
+        int withKind = db.Entities.Count(e => e.Type == factionType.Id && e.GetProperty(kindProp).IntValue > 0);
+        Assert.That(withKind, Is.GreaterThan(0), "factions should record a FactionKind");
+    }
 }
