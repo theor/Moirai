@@ -173,4 +173,32 @@ public class WsgStoryTests
 
         Assert.That(enchantedItems, Is.GreaterThan(0), "enchanted artifacts should exist in the world");
     }
+
+    [Test]
+    public void FaithProducesMiraclesProphetsAndSaints()
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var miracles = db.Records.Count(r => r.Text.Contains("receives a miracle from"));
+        var temples = db.Records.Count(r => r.Text.Contains("raises a temple in"));
+        var saints = db.Records.Count(r => r.Text.Contains("is canonized as a saint"));
+
+        Assert.That(miracles, Is.GreaterThan(0), "devout believers in crisis should receive miracles");
+        Assert.That(temples, Is.GreaterThan(0), "prophets should raise temples");
+        Assert.That(saints, Is.GreaterThan(0), "deeply devout believers should be canonized on death");
+
+        // Temples exist as entities tied to a god; some person carries the saint flag.
+        var templeType = db.GetEntityType("Temple");
+        int templeEntities = db.Entities.Count(e => e.Type == templeType.Id);
+        Assert.That(templeEntities, Is.GreaterThan(0), "temple entities should exist");
+
+        var personType = db.GetEntityType("Person");
+        var saintProp = personType.GetPropertyId("is_saint");
+        int saintEntities = db.Entities.Count(e => e.Type == personType.Id && e.GetProperty(saintProp).BoolValue);
+        Assert.That(saintEntities, Is.GreaterThan(0), "at least one canonized saint should exist");
+    }
 }

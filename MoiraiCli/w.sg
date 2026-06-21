@@ -7,6 +7,8 @@ entity Person {
     prop first_name: string
     prop family_name: string
     prop title: Title
+    prop devotion: percentage
+    prop is_saint: bool
     prop alive: bool
     prop birthdate: number
     prop prestige: percentage
@@ -55,7 +57,16 @@ entity Country {
 
 }
 @display(Person, 'Believers',god = $self)
+@display(Temple, 'Temples', god = $self)
 entity God {
+    prop domain: GodTypes
+}
+@display(Person, 'High priest', $other = $self.founder)
+entity Temple {
+    prop god: God
+    prop founder: Person
+    prop country: Country
+    prop founded: number
 }
 @display(Person, 'Founder', $other = $self.founder)
 entity Settlement {
@@ -133,7 +144,10 @@ function create_country() {
 }
 
 function create_god() {
-    create God $g: '{random(Name)}, God of {random(GodTypes)}'
+    var $dom: random(GodTypes)
+    create God $g: ('{random(Name)}, God of {$dom}') {
+        domain := $dom
+    }
     record '{$g.name} appears'
 }
 @start
@@ -324,6 +338,19 @@ trigger succession {
     }
 }
 
+// A believer who died in deep devotion is canonized — remembered in the chronicle as a saint of
+// their god long after death.
+@tag('faith')
+trigger canonize_saint {
+    when Person and alive = false and $old.alive and devotion > 80% and god != null
+
+    // Only a rare few of the deeply devout are remembered as saints, so the title stays meaningful.
+    if random(100) < 8 {
+        set $new.is_saint = true
+        record('{$new.name} is canonized as a saint of {$new.god.name}')
+    }
+}
+
 trigger born {
     when_created Person
     // record('!!! BORN {$new.birthdate} {#Time.year}')
@@ -466,7 +493,58 @@ event char_joins_faith {
     pick Person $x: (alive, god = null)
     pick God $g
     set $x.god = $g
+    set $x.devotion = 30%
     record('{$x.name} takes the faith of {$g.name}')
+}
+
+// Believers deepen their faith over the years. Applies to every believer so devotion actually
+// accrues per-person (a single random pick would almost never revisit the same person).
+@frequency(1, PerXYear, 3)
+@tag('faith')
+event deepen_faith {
+    each Person $x: (alive and god != null and devotion < 100%) {
+        set $x.devotion = $x.devotion + 5%
+    }
+}
+
+// A devout believer in dire straits is delivered by their god — faith finally has a mechanical effect.
+@frequency(1, PerXYear, 8)
+@tag('faith')
+event divine_miracle {
+    pick Person $x: (alive and god != null and devotion > 50% and prosperity < 45%)
+    var $g: $x.god
+    set $x.prosperity = $x.prosperity + 40%
+    set $x.prestige = $x.prestige + 10%
+    record('{$x.name} receives a miracle from {$g.name} and is delivered from hardship')
+}
+
+// The most devout become prophets and raise temples to their god.
+@frequency(1, PerXYear, 20)
+@tag('faith')
+event prophet_rises {
+    pick Person $p: (alive and god != null and devotion > 80% and age > Age.Young)
+    var $g: $p.god
+    var $realm: $p.place
+    if $realm {
+        create Temple $t: ('Temple of {$g.name}') {
+            god := $g
+            founder := $p
+            country := $realm
+            founded := #Time.year
+        }
+        set $p.prestige = $p.prestige + 20%
+        record('{$p.name}, a prophet of {$g.name}, raises a temple in {$realm.name}')
+    }
+}
+
+// An angered god visits ruin on a prospering land.
+@frequency(1, PerXYear, 30)
+@tag('faith')
+event divine_wrath {
+    pick God $g
+    pick Country $c: (prosperity > 20%)
+    set $c.prosperity = $c.prosperity - 20%
+    record('{$g.name} visits wrath upon {$c.name}, and the land withers')
 }
 @frequency(1, PerXYear, 2)
 event wedding {
