@@ -411,6 +411,13 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
                     functionDefinitionContext.Accept(this);
                 }
             }
+            else if (c.table_definition() is {} tableDefinitionContext)
+            {
+                PushSemanticToken(tableDefinitionContext.TABLE().Symbol, SemanticTokenType.Keyword);
+                PushSemanticToken(tableDefinitionContext.TYPE_ID().Symbol, SemanticTokenType.Type);
+                foreach (var entry in tableDefinitionContext.table_entry())
+                    entry.value()?.Accept(this);
+            }
             else
             {
                 continue;

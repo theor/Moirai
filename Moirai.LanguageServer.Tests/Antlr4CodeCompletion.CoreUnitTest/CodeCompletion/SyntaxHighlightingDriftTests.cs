@@ -39,6 +39,11 @@ enum Mood {
     Sad
 }
 
+table Greeting {
+    70 => 'Hello',
+    'Hi'
+}
+
 singleton World {
     prop turn: number
 }
