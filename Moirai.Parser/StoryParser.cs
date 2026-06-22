@@ -465,11 +465,11 @@ public static class StoryParser
     {
         void DeclareType(FileRange range, EntityTypeId typeId, string? lineDefinition = null);
         void DeclareTypeProperty(FileRange range, PropertyId propertyDefinitionPropertyId, string? lineDefinition = null);
-        void LinkType(FileRange range, EntityTypeId entityType);
-        void LinkProperty(FileRange range, PropertyId propertyId);
+        void LinkType(FileRange range, EntityTypeId entityType, bool isDeclaration = false);
+        void LinkProperty(FileRange range, PropertyId propertyId, bool isDeclaration = false);
         void DeclareEnum(FileRange range, EnumDefinitionId enumId);
-        void LinkEnum(FileRange range, EnumDefinitionId enumId);
-        void LinkEnumMember(FileRange range, PropertyValue enumValue);
+        void LinkEnum(FileRange range, EnumDefinitionId enumId, bool isDeclaration = false);
+        void LinkEnumMember(FileRange range, PropertyValue enumValue, bool isDeclaration = false);
         void LinkVariable(FileRange varId, AstVisitor.VariableDeclaration decl);
         void DeclareVariable(FileRange range, AstVisitor.VariableDeclaration variableDeclaration,
             FileRange variableScope);

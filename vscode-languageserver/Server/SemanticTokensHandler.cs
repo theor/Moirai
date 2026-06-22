@@ -107,6 +107,20 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         public Range? FullDefinition { get; init; } = FullDefinition;
         public string? InlineDefinition { get; set; }
 
+        /// <summary>
+        /// Range of the name-token at the declaration site, when it has been linked into the tree
+        /// (types/properties/enums declare a whole-block <see cref="FullDefinition"/>, so this
+        /// pinpoints just the identifier). Used to honor <c>includeDeclaration:false</c> in find-references.
+        /// </summary>
+        public Range? DeclarationNameRange { get; set; }
+
+        /// <summary>
+        /// Identity of the symbol this definition refers to, used to group a declaration and all
+        /// its usages together for "find references". Two definitions with the same <see cref="Type"/>
+        /// and equal <see cref="SymbolKey"/> denote the same symbol.
+        /// </summary>
+        public virtual object? SymbolKey => null;
+
         public virtual void GetHoverText(List<MarkedString> markedStrings)
         {
         }
@@ -116,6 +130,8 @@ public class TokenVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisit
         : Definition(Type, Name, FullDefinition)
     {
         public T Data = t;
+
+        public override object? SymbolKey => Data;
     }
 
 

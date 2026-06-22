@@ -26,8 +26,11 @@ public class MyUsageHandler : ReferencesHandlerBase
 
     public override Task<LocationContainer?> Handle(ReferenceParams request, CancellationToken cancellationToken)
     {
-        return null;// _moiraiCache.GetLocations(request.Position)
-        // request.Context.IncludeDeclaration
+        var includeDeclaration = request.Context?.IncludeDeclaration ?? true;
+        var locations = _moiraiCache
+            .GetReferences(request.TextDocument, request.Position, includeDeclaration)
+            .ToArray();
+        return Task.FromResult<LocationContainer?>(new LocationContainer(locations));
     }
 }
 

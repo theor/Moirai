@@ -210,6 +210,156 @@ event start {
         Assert.That(result, Is.Null);
     }
 
+    // ---- MyUsageHandler (find references) ----
+
+    [Test]
+    public async Task UsageHandler_type_from_usage_returns_declaration_and_usages()
+    {
+        var (cache, uri, content) = await OpenAsync(Source);
+        var handler = new MyUsageHandler(new FakeLogger<MyUsageHandler>(), cache);
+
+        var pos = PositionInside(content, "Person", occurrence: 2); // prop partner: Person
+        var result = await handler.Handle(
+            new ReferenceParams
+            {
+                TextDocument = new TextDocumentIdentifier(uri),
+                Position = pos,
+                Context = new ReferenceContext { IncludeDeclaration = true },
+            }, default);
+
+        Assert.That(result, Is.Not.Null);
+        // `Person` is declared on line 0 (`entity Person`) and used on the `prop partner` and
+        // `create Person` lines.
+        var lines = result!.Select(l => l.Range.Start.Line).OrderBy(x => x).ToList();
+        Assert.That(lines, Is.EqualTo(new[] { 0, 2, 7 }));
+        Assert.That(result.All(l => l.Uri == (DocumentUri)uri));
+    }
+
+    [Test]
+    public async Task UsageHandler_type_from_declaration_returns_declaration_and_usages()
+    {
+        var (cache, uri, content) = await OpenAsync(Source);
+        var handler = new MyUsageHandler(new FakeLogger<MyUsageHandler>(), cache);
+
+        var pos = PositionInside(content, "Person", occurrence: 1); // the `entity Person` declaration
+        var result = await handler.Handle(
+            new ReferenceParams
+            {
+                TextDocument = new TextDocumentIdentifier(uri),
+                Position = pos,
+                Context = new ReferenceContext { IncludeDeclaration = true },
+            }, default);
+
+        Assert.That(result, Is.Not.Null);
+        var lines = result!.Select(l => l.Range.Start.Line).OrderBy(x => x).ToList();
+        Assert.That(lines, Is.EqualTo(new[] { 0, 2, 7 }));
+    }
+
+    [Test]
+    public async Task UsageHandler_type_excludes_declaration_when_not_requested()
+    {
+        var (cache, uri, content) = await OpenAsync(Source);
+        var handler = new MyUsageHandler(new FakeLogger<MyUsageHandler>(), cache);
+
+        var pos = PositionInside(content, "Person", occurrence: 1); // on the declaration name
+        var result = await handler.Handle(
+            new ReferenceParams
+            {
+                TextDocument = new TextDocumentIdentifier(uri),
+                Position = pos,
+                Context = new ReferenceContext { IncludeDeclaration = false },
+            }, default);
+
+        Assert.That(result, Is.Not.Null);
+        // Declaration on line 0 is dropped; only the two usages remain.
+        var lines = result!.Select(l => l.Range.Start.Line).OrderBy(x => x).ToList();
+        Assert.That(lines, Is.EqualTo(new[] { 2, 7 }));
+    }
+
+    [Test]
+    public async Task UsageHandler_variable_respects_include_declaration()
+    {
+        var (cache, uri, content) = await OpenAsync(Source);
+        var handler = new MyUsageHandler(new FakeLogger<MyUsageHandler>(), cache);
+
+        // `$p` is declared on the `create` line (7) and used on the `set` line (8).
+        var pos = PositionInside(content, "$p", occurrence: 2); // the usage in `set $p.age`
+
+        var withDecl = await handler.Handle(
+            new ReferenceParams
+            {
+                TextDocument = new TextDocumentIdentifier(uri),
+                Position = pos,
+                Context = new ReferenceContext { IncludeDeclaration = true },
+            }, default);
+        Assert.That(withDecl!.Select(l => l.Range.Start.Line).OrderBy(x => x), Is.EqualTo(new[] { 7, 8 }));
+
+        var withoutDecl = await handler.Handle(
+            new ReferenceParams
+            {
+                TextDocument = new TextDocumentIdentifier(uri),
+                Position = pos,
+                Context = new ReferenceContext { IncludeDeclaration = false },
+            }, default);
+        Assert.That(withoutDecl!.Select(l => l.Range.Start.Line), Is.EqualTo(new[] { 8 }));
+    }
+
+    [Test]
+    public async Task UsageHandler_returns_empty_on_blank_position()
+    {
+        var (cache, uri, _) = await OpenAsync(Source);
+        var handler = new MyUsageHandler(new FakeLogger<MyUsageHandler>(), cache);
+
+        var result = await handler.Handle(
+            new ReferenceParams
+            {
+                TextDocument = new TextDocumentIdentifier(uri),
+                Position = new Position(4, 0),
+                Context = new ReferenceContext { IncludeDeclaration = true },
+            }, default);
+
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result!, Is.Empty);
+    }
+
+    // ---- MoiraiCodeLensHandler (usage-count overlay) ----
+
+    [Test]
+    public async Task CodeLensHandler_reports_usage_counts_for_declarations()
+    {
+        var (cache, uri, _) = await OpenAsync(Source);
+        var handler = new MoiraiCodeLensHandler(cache);
+
+        var result = await handler.Handle(
+            new CodeLensParams { TextDocument = new TextDocumentIdentifier(uri) }, default);
+
+        Assert.That(result, Is.Not.Null);
+        // One lens per declaration: the `Person` type and the two props. Builtins and the `start`
+        // event are not tracked as linkable declarations, so they get no lens.
+        var byLine = result!.ToDictionary(l => l.Range.Start.Line, l => l.Command!.Title);
+        Assert.That(byLine, Has.Count.EqualTo(3));
+        Assert.That(byLine[0], Is.EqualTo("2 usages")); // entity Person -> `partner: Person`, `create Person`
+        Assert.That(byLine[1], Is.EqualTo("1 usage"));  // prop age -> `set $p.age`
+        Assert.That(byLine[2], Is.EqualTo("0 usages")); // prop partner -> unused
+    }
+
+    [Test]
+    public async Task CodeLensHandler_lens_invokes_show_references_command()
+    {
+        var (cache, uri, _) = await OpenAsync(Source);
+        var handler = new MoiraiCodeLensHandler(cache);
+
+        var result = await handler.Handle(
+            new CodeLensParams { TextDocument = new TextDocumentIdentifier(uri) }, default);
+
+        var personLens = result!.Single(l => l.Range.Start.Line == 0);
+        Assert.That(personLens.Command, Is.Not.Null);
+        Assert.That(personLens.Command!.Name, Is.EqualTo("moirai.showReferences"));
+        // Arguments are (uri, line, character) consumed by the client-side command.
+        Assert.That(personLens.Command.Arguments!.Count, Is.EqualTo(3));
+        Assert.That((int)personLens.Command.Arguments![1]!, Is.EqualTo(0));
+    }
+
     // ---- MyHoverHandler ----
 
     [Test]

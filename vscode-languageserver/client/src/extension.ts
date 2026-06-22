@@ -105,6 +105,35 @@ export function activate(context: ExtensionContext) {
     commands.registerCommand(restartCommand, restartHandler)
   );
 
+  // Backs the "N usages" CodeLens overlay: the server can't hand VS Code typed Uri/Position/Location
+  // objects through CodeLens command arguments, so it emits (uri, line, character) and we re-query
+  // the reference provider here and open the peek view.
+  context.subscriptions.push(
+    commands.registerCommand(
+      "moirai.showReferences",
+      async (uriStr: string, line: number, character: number) => {
+        const uri = vscode.Uri.parse(uriStr);
+        const position = new vscode.Position(line, character);
+        const locations =
+          (await commands.executeCommand<vscode.Location[]>(
+            "vscode.executeReferenceProvider",
+            uri,
+            position
+          )) ?? [];
+        if (locations.length === 0) {
+          void vscode.window.showInformationMessage("No usages found");
+          return;
+        }
+        await commands.executeCommand(
+          "editor.action.showReferences",
+          uri,
+          position,
+          locations
+        );
+      }
+    )
+  );
+
   registerDebugging(context);
 
   // Start the client. This will also launch the server

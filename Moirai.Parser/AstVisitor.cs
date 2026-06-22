@@ -70,6 +70,7 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             type.IsSingleton = typeDefinitionContext.SINGLETON() != null;
 
             Linker?.DeclareType(new FileRange(typeDefinitionContext), type.Id);
+            Linker?.LinkType(new FileRange(typeDefinitionContext.TYPE_ID()), type.Id, isDeclaration: true);
 
             typesContexts.Add((type, typeDefinitionContext));
             foreach (var attr in attributes)
@@ -92,6 +93,8 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
                     proptype, isCollection);
                 type.Properties.Add(propertyDefinition);
                 Linker?.DeclareTypeProperty(new FileRange(propDefinitionContext), propertyDefinition.PropertyId);
+                Linker?.LinkProperty(new FileRange(propDefinitionContext.property_id()), propertyDefinition.PropertyId,
+                    isDeclaration: true);
             }
 
             foreach (var functionDefinitionContext in typeDefinitionContext.function_definition())
@@ -256,6 +259,13 @@ public class AstVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
             context.TYPE_ID().Skip(1).Select(v => v.GetText()).ToList());
         Database.Enums.Add(en);
         Linker?.DeclareEnum(context, en.Index);
+        Linker?.LinkEnum(new FileRange(context.TYPE_ID(0)), en.Index, isDeclaration: true);
+        foreach (var memberNode in context.TYPE_ID().Skip(1))
+        {
+            if (en.GetValueFromName(memberNode.GetText(), out var memberValue))
+                Linker?.LinkEnumMember(new FileRange(memberNode), memberValue, isDeclaration: true);
+        }
+
         return null;
     }
 

@@ -146,6 +146,7 @@ internal class Program
                     .WithHandler<MyDeclarationHandler>()
                     .WithHandler<MyHoverHandler>()
                     .WithHandler<MyUsageHandler>()
+                    .WithHandler<MoiraiCodeLensHandler>()
                     .WithHandler<MoiraiCommandHandler>()
         ).ConfigureAwait(false);
 
@@ -292,6 +293,27 @@ public class MoiraiCache
         }
 
         return default;
+    }
+
+    public IEnumerable<Location> GetReferences(TextDocumentIdentifier requestTextDocument,
+        Position requestPosition, bool includeDeclaration)
+    {
+        if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
+        {
+            return doc.Linker.GetReferences(requestPosition, includeDeclaration)
+                .Select(range => new Location { Uri = requestTextDocument.Uri, Range = range });
+        }
+
+        return Enumerable.Empty<Location>();
+    }
+
+    public IEnumerable<(Range nameRange, int usageCount)> GetDeclarationUsages(
+        TextDocumentIdentifier requestTextDocument)
+    {
+        if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
+            return doc.Linker.GetDeclarationUsages();
+
+        return Enumerable.Empty<(Range, int)>();
     }
 
     public string? GetLine(DocumentUri uri, int line)
