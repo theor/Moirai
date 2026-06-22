@@ -7,6 +7,25 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
     public enum WhenType { Created, Changed, }
     public readonly int Id = id;
     public readonly string Name = name;
+
+    // Stable id of this rule's RNG stream (FNV-1a of the name), so every event/trigger draws from its
+    // own independent PCG stream — adding or reordering rules doesn't perturb others' randomness.
+    private ulong _rngStreamId;
+    public ulong RngStreamId
+    {
+        get
+        {
+            if (_rngStreamId == 0)
+            {
+                ulong h = 14695981039346656037UL;
+                foreach (char c in Name)
+                    h = (h ^ c) * 1099511628211UL;
+                _rngStreamId = h == 0 ? 1UL : h;
+            }
+
+            return _rngStreamId;
+        }
+    }
     public readonly bool IsTrigger = isEvent;
     public bool Skip = skip;
 

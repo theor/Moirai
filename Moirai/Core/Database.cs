@@ -132,7 +132,7 @@ public class Database
 
     public void SetSeed(ulong seed)
     {
-        _ctx.Rnd = new Pcg32(seed, seed);
+        _ctx.Reseed(seed);
     }
 
 
@@ -409,6 +409,9 @@ public class Database
         bool success = true;
 
         // NOT a using statement
+        // The event body draws from this event's own RNG stream (restored on exit), so its randomness
+        // is independent of every other rule. Triggers fired below get their own streams in RunTriggers.
+        using (_ctx.UseStream(eventTrigger.RngStreamId))
         using (var s = _ctx.RunScope(false))
         {
             if (selfVarIndex >= 0)
@@ -509,6 +512,9 @@ public class Database
                 EventAttemptCount++;
                 var scope = prof?.Begin() ?? default;
                 bool matched = false;
+                // Each trigger evaluates and runs on its own RNG stream (independent of the event that
+                // produced the changeset and of other triggers).
+                using (_ctx.UseStream(trigger.RngStreamId))
                 using (var s = _ctx.RunScope(false))
                 {
                     // Entity type + when-type already matched via the index.

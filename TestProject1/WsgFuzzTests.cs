@@ -174,4 +174,31 @@ public class WsgFuzzTests
             Is.EqualTo(b.Records.Select(r => r.Text)).AsCollection,
             "the same seed must reproduce the same chronicle");
     }
+
+    // The point of per-event RNG streams: adding a rule must not perturb the randomness of others.
+    [Test]
+    public void AddingAStateFreeEventDoesNotPerturbOthers()
+    {
+        List<string> Crownings(Database db) => db.Records
+            .Where(r => r.Text.Contains("is crowned ruler of"))
+            .Select(r => r.Year + " " + StoryPrinter.StripMarkup(r.Text))
+            .ToList();
+
+        var baseline = Crownings(Run(42));
+
+        // Same story + a trivial event that draws RNG (its frequency) but mutates no world state.
+        // With one shared stream this used to reshuffle every other rule's draws; with per-event
+        // streams the crowning chronicle must be byte-identical.
+        var modified = Story + "\n@frequency(1, PerXYear, 3)\nevent zzz_probe {\n    record('probe')\n}\n";
+        var db = StoryParser.Parse(modified, out var errs);
+        Assert.That(errs.Count(e => e.Severity == StoryParser.Severity.Error), Is.EqualTo(0), string.Join("\n", errs));
+        db.SetSeed(42);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(Years, true);
+        var after = Crownings(db);
+
+        Assert.That(after, Is.EqualTo(baseline).AsCollection,
+            "adding a state-free event must leave every other rule's outcomes unchanged");
+    }
 }

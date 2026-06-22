@@ -777,7 +777,8 @@ event create {
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
         Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
-        Assert.AreEqual(3, value.IntValue);
+        // Exact draw is deterministic per (seed, event stream); re-baselined after per-event RNG streams.
+        Assert.AreEqual(1, value.IntValue);
     }
 
     [Test]
@@ -836,13 +837,13 @@ event create_faction {
     set $p.name = '{random Name}'
     set $f.owner = $p
     record('{$p.name} creates the {$f.name} to counter the {$g.name}')
-    assert_eq('{$p.name} creates the {$f.name} to counter the {$g.name}', 'River creates the Faction of Cerelia to counter the Circle of Hecate')
+    assert_eq('{$p.name} creates the {$f.name} to counter the {$g.name}', 'Gawain creates the Faction of Corabel to counter the Circle of Zella')
 }";
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
         Console.WriteLine(db.Records.Last().Text);
-        Assert.That(db.Records.Last().Text, Is.EqualTo("<#3>River</> creates the <#1>Faction of Cerelia</> to counter the <#2>Circle of Hecate</>"));
+        Assert.That(db.Records.Last().Text, Is.EqualTo("<#3>Gawain</> creates the <#1>Faction of Corabel</> to counter the <#2>Circle of Zella</>"));
     }
 
     [Test]
@@ -866,7 +867,7 @@ entity Person {
 }
 event create_faction {
     create Person $p: ('{random Name}-{random Name} of {random Name}')
-    assert_eq($p.name, 'Cerelia-Hecate of River')
+    assert_eq($p.name, 'Corabel-Zella of Gawain')
 }";
         var db = Run(s, out var errors);
         db.History = new();

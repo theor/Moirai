@@ -7,7 +7,19 @@ public class ExecuteContext
     public long Year { get; internal set; }
 
     public readonly Database Database;
+
+    // The active RNG. It is swapped to the firing event/trigger's own stream while that rule runs (see
+    // UseStream / RunAction / RunTriggers), then restored — so each rule's randomness is independent.
     public Pcg32 Rnd;
+
+    // Per-rule RNG streams: PCG offers 2^63 independent streams selected by the `sequence` argument.
+    // Each event/trigger draws from a stream keyed by a stable hash of its name, so adding or
+    // reordering one rule no longer reshuffles the draws of any other (the cause of the "add a system,
+    // an unrelated test flips to zero" brittleness). Streams are cached so a rule's stream persists
+    // across all its firings within a run.
+    private ulong _baseSeed;
+    private readonly Dictionary<ulong, Pcg32> _streams = new();
+
     private List<PropertyValue> _values = new();
     private List<EntityId> _pool = new();
     public int ValueOffset { get; set; }
@@ -17,7 +29,40 @@ public class ExecuteContext
     public ExecuteContext(Database database, ulong seed)
     {
         Database = database;
+        _baseSeed = seed;
         Rnd = new Pcg32(seed, 42);
+    }
+
+    /// <summary>The cached RNG stream for <paramref name="streamId"/>, created lazily from the base seed.</summary>
+    public Pcg32 StreamFor(ulong streamId)
+    {
+        if (!_streams.TryGetValue(streamId, out var rng))
+            _streams[streamId] = rng = new Pcg32(_baseSeed, streamId);
+        return rng;
+    }
+
+    /// <summary>Switch <see cref="Rnd"/> to a rule's stream for the duration of a `using` block.</summary>
+    public RngScope UseStream(ulong streamId)
+    {
+        var prev = Rnd;
+        Rnd = StreamFor(streamId);
+        return new RngScope(this, prev);
+    }
+
+    public readonly struct RngScope : IDisposable
+    {
+        private readonly ExecuteContext _ctx;
+        private readonly Pcg32 _prev;
+        public RngScope(ExecuteContext ctx, Pcg32 prev) { _ctx = ctx; _prev = prev; }
+        public void Dispose() => _ctx.Rnd = _prev;
+    }
+
+    /// <summary>Reset all randomness to a fresh base seed (clears every per-rule stream).</summary>
+    public void Reseed(ulong seed)
+    {
+        _baseSeed = seed;
+        _streams.Clear();
+        Rnd = new Pcg32(seed, seed);
     }
 
     public EntityId GetSingletonId(EntityTypeId type)
@@ -172,10 +217,15 @@ public class ExecuteContext
                 if (action.Filter == null || action.Skip)
                     continue;
 
-                int count = (int)action.Filter.Compute(Database.Ctx, Year);
-                for (int j = 0; j < count; j++)
+                // Sample the frequency AND run the event on the event's own stream, so its scheduling
+                // draws are decoupled from other events too (RunAction re-selects the same stream).
+                using (UseStream(action.RngStreamId))
                 {
-                    Database.RunAction(action);
+                    int count = (int)action.Filter.Compute(Database.Ctx, Year);
+                    for (int j = 0; j < count; j++)
+                    {
+                        Database.RunAction(action);
+                    }
                 }
             }
         }
