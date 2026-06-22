@@ -18,6 +18,29 @@
     }
     $: details = selected > 0 ? $moiraiStore.conn?.getEntityDetails(selected) : undefined;
 
+    // A @display field (e.g. "Members", "Settlements") yields one details row per item, all sharing a
+    // label. Collapse long runs to ITEM_LIMIT with a "Show N more" toggle so the panel stays readable.
+    const ITEM_LIMIT = 5;
+    let expanded: Set<string> = new Set();
+    // Reset which groups are expanded whenever the selected entity changes.
+    $: selected, (expanded = new Set());
+
+    type DetailGroup = { label: string; values: string[] };
+    function groupByLabel(items: { label: string; value: string }[]): DetailGroup[] {
+        const out: DetailGroup[] = [];
+        for (const d of items) {
+            const last = out[out.length - 1];
+            if (last && last.label === d.label) last.values.push(d.value);
+            else out.push({ label: d.label, values: [d.value] });
+        }
+        return out;
+    }
+    function toggle(label: string) {
+        if (expanded.has(label)) expanded.delete(label);
+        else expanded.add(label);
+        expanded = expanded; // reassign to trigger Svelte reactivity
+    }
+
     // Changesets that touched the selected entity. Fetched on demand (not derived
     // from the store) so the per-second record stream doesn't trigger refetches;
     // we refresh on selection change and whenever the simulation year advances.
@@ -68,15 +91,31 @@
 {:then details}
     {#if details}
         <div class="overflow-auto px-4 py-1 sm:px-0 grid grid-cols-1 lg:grid-cols-3 gap-x-4 gap-y-1">
-            {#each details as detail, idx}
+            {#each groupByLabel(details) as g, gi (gi)}
+                {#each (expanded.has(g.label) ? g.values : g.values.slice(0, ITEM_LIMIT)) as value, i}
                     <div class="text-sm lg:justify-self-end font-semibold leading-6 text-gray-900 capitalize">
-                        {#if idx === 0 || details[idx - 1].label !== detail.label}
-                        {detail.label}
+                        {#if i === 0}
+                            {g.label}
                         {/if}
                     </div>
-                <div class="mt-1 col-span-2 text-sm leading-6 text-gray-700 sm:mt-0">
-                    <MoiraiText text={detail.value} {selected}/>
-                </div>
+                    <div class="mt-1 col-span-2 text-sm leading-6 text-gray-700 sm:mt-0">
+                        <MoiraiText text={value} {selected} />
+                    </div>
+                {/each}
+                {#if g.values.length > ITEM_LIMIT}
+                    <div />
+                    <div class="col-span-2">
+                        <button
+                            type="button"
+                            class="text-xs text-primary-500 hover:underline"
+                            on:click={() => toggle(g.label)}
+                        >
+                            {expanded.has(g.label)
+                                ? 'Show less'
+                                : `Show ${g.values.length - ITEM_LIMIT} more`}
+                        </button>
+                    </div>
+                {/if}
             {/each}
         </div>
     {/if}
