@@ -62,14 +62,16 @@ trigger on_death {
         Assert.That(spawn.Successes, Is.EqualTo(years));
         Assert.That(ageUp.Attempts, Is.EqualTo(years));
 
-        // Triggers: on_birth matches every spawned Person; on_death never matches.
+        // Triggers: on_birth matches every spawned Person.
         var onBirth = prof.Triggers.Single(t => t.Name == "on_birth");
-        var onDeath = prof.Triggers.Single(t => t.Name == "on_death");
         Assert.That(onBirth.Successes, Is.EqualTo(years));
         Assert.That(onBirth.HitRate, Is.EqualTo(1.0));
-        Assert.That(onDeath.Attempts, Is.GreaterThan(0));
-        Assert.That(onDeath.Successes, Is.Zero);
-        Assert.That(onDeath.HitRate, Is.Zero);
+
+        // on_death's predicate reads `alive`, which never changes in this story, so property-gated
+        // trigger dispatch never even attempts it (the wasted re-checks are eliminated) — it therefore
+        // doesn't appear in the profile at all.
+        Assert.That(prof.Triggers.Any(t => t.Name == "on_death"), Is.False,
+            "a Changed-trigger whose read properties never change should never be attempted");
 
         // Self time is well formed: never negative, never exceeds inclusive, and the sum
         // of all self time is accounted for within the total run wall time.

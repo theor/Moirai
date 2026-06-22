@@ -509,6 +509,29 @@ public class Database
 
             foreach (var trigger in triggers)
             {
+                // Property gating: a `when Changed` trigger only needs evaluation when a property its
+                // predicate actually reads changed on this entity. The alive-gated death triggers would
+                // otherwise be re-checked on every prosperity/devotion/age write. (when_created triggers
+                // fire on creation and are not gated.)
+                if (whenType == EventTrigger.WhenType.Changed)
+                {
+                    if (!trigger.GatingComputed)
+                    {
+                        trigger.GatingProps = ComputeGatingProps(trigger);
+                        trigger.GatingComputed = true;
+                    }
+
+                    var gp = trigger.GatingProps;
+                    if (gp != null)
+                    {
+                        bool relevant = false;
+                        for (int gi = 0; gi < gp.Length; gi++)
+                            if (changed.Prev.TryGetProperty(gp[gi], out _)) { relevant = true; break; }
+                        if (!relevant)
+                            continue;
+                    }
+                }
+
                 EventAttemptCount++;
                 var scope = prof?.Begin() ?? default;
                 bool matched = false;
@@ -549,6 +572,60 @@ public class Database
         }
 
         _ctx.PrevEntity = default;
+    }
+
+    // The set of the trigger entity-type's own properties read by a `when Changed` predicate. Returns
+    // null ("ungatable, always evaluate") when there is no predicate, the predicate reads none of the
+    // entity's own properties, or it contains a construct we don't statically analyse — so gating can
+    // only ever skip evaluations that could not have changed the predicate's value (never under-fire).
+    private static PropertyId[]? ComputeGatingProps(EventTrigger trigger)
+    {
+        var predicate = trigger.When.Item3;
+        if (predicate == null)
+            return null;
+
+        var acc = new HashSet<PropertyId>();
+        if (!CollectReadProps(predicate, trigger.When.Item2, acc) || acc.Count == 0)
+            return null;
+        return acc.ToArray();
+    }
+
+    // Walk a predicate collecting PropertyIds it reads on `entityType` (the candidate). Returns false if
+    // the predicate uses a node we can't fully analyse (function call, random, …) — caller treats that
+    // as "always evaluate". Over-collecting is safe (just less optimal); under-collecting is not, hence
+    // the conservative false on anything unrecognised.
+    private static bool CollectReadProps(IValue? value, EntityTypeId entityType, HashSet<PropertyId> acc)
+    {
+        switch (value)
+        {
+            case null:
+            case Literal:
+                return true;
+            case PropertyPath p:
+                if (p.Segments != null)
+                    foreach (var seg in p.Segments)
+                    {
+                        if (seg.Call != null)
+                            return false; // method call in the path — not statically analysable
+                        if (seg.Property.IsValid && seg.Property.TypeId == entityType)
+                            acc.Add(seg.Property);
+                    }
+
+                return true;
+            case BinaryOperator b:
+                return CollectReadProps(b.Left, entityType, acc) && CollectReadProps(b.Right, entityType, acc);
+            case And a:
+                foreach (var pr in a.Predicates)
+                    if (!CollectReadProps(pr, entityType, acc))
+                        return false;
+                return true;
+            case MathUnary m:
+                return CollectReadProps(m.Arg, entityType, acc);
+            case IsOfType io:
+                return CollectReadProps(io.Entity, entityType, acc);
+            default:
+                return false;
+        }
     }
 
     public string Serialize()

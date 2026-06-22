@@ -30,6 +30,14 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
     public bool Skip = skip;
 
     public readonly List<IInstruction> Effects = new();
+
+    // Property gating for `when Changed` triggers: the set of THIS entity-type's properties the
+    // predicate reads. A changed entity only needs this trigger re-evaluated when one of these actually
+    // changed (see Database.RunTriggers). null = "always evaluate" — either no predicate, or a predicate
+    // using constructs we don't statically analyse (function calls etc.), so we stay conservative.
+    // Computed lazily and cached.
+    public PropertyId[]? GatingProps;
+    public bool GatingComputed;
     // Parameters for an event invoked as call(name, args...). Declared as the event scope's first
     // value-stack slots (0..n-1), which call() binds before the body runs. Null = no parameters.
     public List<FunctionDefinition.Parameter>? Parameters;
