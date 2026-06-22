@@ -101,6 +101,12 @@ entity Legend {
     prop place: Country
     prop year: number
 }
+// A named age of history. Eras form a contiguous timeline (each begins where the last ended), so the
+// chronicle can be read in chapters. The open era (end_year = 0) is the present age.
+entity Era {
+    prop start_year: number
+    prop end_year: number
+}
 
 enum Job {
     Farmer, Fisher, Hunter,
@@ -187,6 +193,31 @@ event create_time {
     }
     call(create_country, 10)
     call(create_god, 10)
+}
+
+table AgeName {
+    'The Age of Ashes', 'The Long Peace', 'The Sundering', 'The Golden Age',
+    'The Age of Heroes', 'The Shadow Years', 'The Age of Kings', 'The Reckoning',
+    'The Wandering Years', 'The Age of Iron', 'The Age of Embers', 'The Silent Age'
+}
+// History opens in the Founding Age.
+@start
+event begin_history {
+    create Era $e: ('The Founding Age') {
+        start_year := 764
+    }
+}
+// Every so often an age turns: the open era is closed and a new named age begins, chaptering the
+// chronicle. EveryXYear makes this deterministic (exactly one turn per window).
+@frequency(1, EveryXYear, 90)
+@tag('era')
+event advance_age {
+    pick Era $cur: (end_year = 0)
+    set $cur.end_year = #Time.year
+    create Era $next: ('{roll(AgeName)}') {
+        start_year := #Time.year
+    }
+    record('The {$cur.name} ends; {$next.name} begins in the year {#Time.year}')
 }
 
 // Wire up the map once at start: give each realm a couple of bordering neighbors (links are mutual).
@@ -938,13 +969,11 @@ event char_joins_faction {
 @frequency(1, PerXYear, 18)
 @tag('factions')
 event faction_feud {
-    pick Faction $order: (kind = FactionKind.KnightlyOrder)
-    pick Faction $guild: (kind = FactionKind.ThievesGuild)
-    pick Person $knight: (alive and faction = $order)
-    pick Person $thief: (alive and faction = $guild)
+    pick Person $knight: (alive and job = Job.Soldier and faction != null)
+    pick Person $thief: (alive and job = Job.Bandit)
     set $thief.killer = $knight
     set $thief.alive = false
-    record('{$knight.name} of {$order.name} strikes down {$thief.name} of {$guild.name}')
+    record('{$knight.name} of {$knight.faction.name} strikes down the outlaw {$thief.name}')
 }
 
 table MonsterName {

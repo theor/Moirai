@@ -1,11 +1,17 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using Moirai.Core;
 
 public class StoryPrinter
 {
     private readonly Database _database;
+
+    // Records embed entity references as <#id>label</> markup; for a plain-text chronicle we keep the
+    // label and drop the tags.
+    private static readonly Regex EntityMarkup = new(@"<#\d+>([^<]*)</>", RegexOptions.Compiled);
+    public static string StripMarkup(string text) => EntityMarkup.Replace(text, "$1");
 
     public StoryPrinter(Database database)
     {
@@ -575,5 +581,64 @@ public class StoryPrinter
         {
             Console.WriteLine($"{record.Year,4} {record.Text}");
         }
+    }
+
+    /// <summary>
+    /// Render the record stream as a readable markdown chronicle, chaptered by the story's `Era`
+    /// entities (a contiguous timeline) when present, else by century. Entity-link markup is reduced
+    /// to plain names. This is the "hand me the lore document" export.
+    /// </summary>
+    public string ExportChronicle()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("# Chronicle");
+        sb.AppendLine();
+
+        var eras = new List<(string name, long start, long end)>();
+        var eraType = _database.Types.FirstOrDefault(t => t.Name == "Era");
+        if (eraType != null)
+        {
+            var startP = eraType.GetPropertyId("start_year");
+            var endP = eraType.GetPropertyId("end_year");
+            foreach (var e in _database.Entities)
+            {
+                if (e.Type != eraType.Id) continue;
+                var name = e.TryGetProperty(Database.PropName, out var n) ? (n.Value ?? "An Age") : "An Age";
+                long start = e.TryGetProperty(startP, out var s) ? s.IntValue : 0;
+                long end = e.TryGetProperty(endP, out var en) ? en.IntValue : 0;
+                eras.Add((name, start, end));
+            }
+            eras.Sort((a, b) => a.start.CompareTo(b.start));
+        }
+
+        if (eras.Count == 0)
+        {
+            // Fallback: chapter by century so the export is still readable for storiers without eras.
+            foreach (var g in _database.Records.GroupBy(r => r.Year / 100 * 100).OrderBy(g => g.Key))
+            {
+                sb.AppendLine($"## The {g.Key}s");
+                sb.AppendLine();
+                foreach (var r in g)
+                    sb.AppendLine($"- **{r.Year}** {StripMarkup(r.Text)}");
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
+        }
+
+        foreach (var era in eras)
+        {
+            long end = era.end == 0 ? long.MaxValue : era.end;
+            var span = era.end == 0 ? $"{era.start}–present" : $"{era.start}–{era.end}";
+            sb.AppendLine($"## {era.name} ({span})");
+            sb.AppendLine();
+            // [start, end) so contiguous eras never double-count a year.
+            foreach (var r in _database.Records)
+                if (r.Year >= era.start && r.Year < end)
+                    sb.AppendLine($"- **{r.Year}** {StripMarkup(r.Text)}");
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
     }
 }

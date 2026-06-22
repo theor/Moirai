@@ -309,4 +309,37 @@ public class WsgStoryTests
         var moves = db.Records.Count(r => r.Text.Contains("moves to"));
         Assert.That(moves, Is.GreaterThan(0), "people should still migrate to bordering realms");
     }
+
+    [Test]
+    public void ErasFormAContiguousTimelineAndExportToMarkdown()
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var eraType = db.GetEntityType("Era");
+        var startP = eraType.GetPropertyId("start_year");
+        var endP = eraType.GetPropertyId("end_year");
+        var eras = db.Entities
+            .Where(e => e.Type == eraType.Id)
+            .Select(e => (start: e.GetProperty(startP).IntValue, end: e.GetProperty(endP).IntValue))
+            .OrderBy(e => e.start)
+            .ToList();
+
+        Assert.That(eras.Count, Is.GreaterThan(1), "history should pass through several ages");
+        Assert.That(eras.Count(e => e.end == 0), Is.EqualTo(1), "exactly one age is open (the present)");
+        // Contiguous: each closed age ends exactly where the next begins.
+        for (int i = 0; i < eras.Count - 1; i++)
+            Assert.That(eras[i].end, Is.EqualTo(eras[i + 1].start), "ages must be contiguous");
+
+        // Markdown chronicle export.
+        var md = db.Printer.ExportChronicle();
+        Assert.That(md, Does.StartWith("# Chronicle"));
+        Assert.That(md, Does.Contain("## The Founding Age"));
+        Assert.That(md, Does.Contain("present"), "the open age is rendered as '–present'");
+        Assert.That(md, Does.Contain("- **"), "records are listed under their age");
+        Assert.That(md, Does.Not.Contain("<#"), "entity-link markup is stripped to plain names");
+    }
 }
