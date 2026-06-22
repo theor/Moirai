@@ -52,12 +52,15 @@ entity Faction {
 @display(Person, 'Citizens',birthplace = $self)
 @display(Person, 'Ruler', $other = $self.ruler)
 @display(Settlement, 'Settlements', country = $self)
+@display(Country, 'Borders', contains($self.neighbors, $other))
 entity Country {
     prop war_with: Country
     prop health: CountryHealth
     prop prosperity: percentage
     prop ruler: Person
-
+    // Adjacent realms (set once at start). Wars are declared between neighbors and migration moves a
+    // person to a bordering realm, so geography constrains conflict and movement.
+    prop neighbors: [Country]
 }
 @display(Person, 'Believers',god = $self)
 @display(Temple, 'Temples', god = $self)
@@ -184,6 +187,21 @@ event create_time {
     }
     call(create_country, 10)
     call(create_god, 10)
+}
+
+// Wire up the map once at start: give each realm a couple of bordering neighbors (links are mutual).
+@start
+event link_countries {
+    each Country $c {
+        if (pick Country $n: (id != $c and not(contains($c.neighbors, $n)))) {
+            add($c.neighbors, $n)
+            add($n.neighbors, $c)
+        }
+        if (pick Country $n: (id != $c and not(contains($c.neighbors, $n)))) {
+            add($c.neighbors, $n)
+            add($n.neighbors, $c)
+        }
+    }
 }
 
 @frequency(1, PerXYear, 15)
@@ -618,7 +636,9 @@ event bandits_attack_town {
 @tag('country')
 event char_migrates {
     pick Person $p: (alive, partner = null)
-    pick Country $c: (id != $p.place)
+    var $here: $p.place
+    // Move to a bordering realm rather than teleporting anywhere on the map.
+    pick Country $c: (id != $here and contains($here.neighbors, $c))
     set $p.place = $c
     record('{$p.name} moves to {$c.name}')
 }
@@ -626,7 +646,8 @@ event char_migrates {
 @tag('war')
 event country_war_start {
     pick Country $x: (war_with = null)
-    pick Country $y: (id != $x, war_with = null)
+    // War breaks out across a shared border, not between arbitrary distant realms.
+    pick Country $y: (id != $x, war_with = null, contains($x.neighbors, $y))
     set $x.war_with = $y
     set $y.war_with = $x
     record('{$x.name} and {$y.name} start a war')

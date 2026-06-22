@@ -125,17 +125,23 @@ public class WsgStoryTests
         var founded = db.Records.Count(r => r.Text.Contains("founds the village of"));
         var grewTown = db.Records.Count(r => r.Text.Contains("grows into a town"));
         var grewCity = db.Records.Count(r => r.Text.Contains("grows into a city"));
-        var ruined = db.Records.Count(r => r.Text.Contains("falls into ruin"));
 
+        // Settlements fall to ruin by several causes (war, monster raids, arcane catastrophe), so
+        // assert on the resulting world state rather than one specific record.
         var settlementType = db.GetEntityType("Settlement");
-        int total = 0;
+        var statusProp = settlementType.GetPropertyId("status");
+        int total = 0, ruins = 0;
         foreach (var e in db.Entities)
-            if (e.Type == settlementType.Id) total++;
+        {
+            if (e.Type != settlementType.Id) continue;
+            total++;
+            if (e.GetProperty(statusProp).IntValue == 3) ruins++; // SettlementStatus.Ruined
+        }
 
         Assert.That(founded, Is.GreaterThan(0), "settlements should be founded over a 400-year run");
         Assert.That(grewTown, Is.GreaterThan(0), "some villages should grow into towns");
         Assert.That(grewCity, Is.GreaterThan(0), "some towns should grow into cities");
-        Assert.That(ruined, Is.GreaterThan(0), "war should reduce some settlements to ruins");
+        Assert.That(ruins, Is.GreaterThan(0), "some settlements should be left in ruins");
         Assert.That(total, Is.GreaterThan(0));
     }
 
@@ -263,5 +269,44 @@ public class WsgStoryTests
         var slainProp = monsterType.GetPropertyId("slain_by");
         int slain = db.Entities.Count(e => e.Type == monsterType.Id && !e.GetProperty(slainProp).Id.IsNull);
         Assert.That(slain, Is.GreaterThan(0), "some monsters should have been slain by a hero");
+    }
+
+    [Test]
+    public void CountriesBorderNeighborsAndWarsAreAdjacent()
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var countryType = db.GetEntityType("Country");
+        var nb = countryType.GetPropertyId("neighbors");
+        var warProp = countryType.GetPropertyId("war_with");
+        var countries = db.Entities.Where(e => e.Type == countryType.Id).ToList();
+
+        // Every realm borders at least one other (adjacency wired at @start).
+        foreach (var c in countries)
+            Assert.That(db.CollectionCount(c.Id, nb), Is.GreaterThan(0),
+                "every country should border at least one neighbor");
+
+        // Borders are mutual.
+        foreach (var a in countries)
+            foreach (var b in countries)
+                Assert.That(db.CollectionContains(a.Id, nb, b.Id), Is.EqualTo(db.CollectionContains(b.Id, nb, a.Id)),
+                    "adjacency must be symmetric");
+
+        // Any war in progress is between bordering realms.
+        foreach (var c in countries)
+        {
+            var w = c.GetProperty(warProp);
+            if (w.Id.IsNull) continue;
+            Assert.That(db.CollectionContains(c.Id, nb, w.Id), Is.True,
+                "a war must be between neighboring countries");
+        }
+
+        // Migration still happens (now constrained to bordering realms).
+        var moves = db.Records.Count(r => r.Text.Contains("moves to"));
+        Assert.That(moves, Is.GreaterThan(0), "people should still migrate to bordering realms");
     }
 }
