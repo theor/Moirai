@@ -80,6 +80,24 @@ entity Settlement {
     prop status: SettlementStatus
     prop prosperity: percentage
 }
+@display(Legend, 'Legend', monster = $self)
+entity Monster {
+    prop kind: MonsterKind
+    prop lair: Country
+    prop power: number
+    prop slain_by: Person
+    prop hoard: Item
+    prop alive: bool
+}
+// A named deed remembered forever: which hero slew which monster, where, and in what year. Legends
+// cite the actual entities, so the chronicle can point back to the people and places involved.
+@display(Person, 'Hero of', $other = $self.hero)
+entity Legend {
+    prop hero: Person
+    prop monster: Monster
+    prop place: Country
+    prop year: number
+}
 
 enum Job {
     Farmer, Fisher, Hunter,
@@ -105,6 +123,9 @@ enum ArtifactPower { Flame, Frost, Storm, Healing, Shadow, Ward }
 // Factions take on a character from their founder's calling: mage circles, knightly orders, thieves
 // guilds, merchant leagues, or cults devoted to a god. Previously a Faction was just a name + founder.
 enum FactionKind { Cult, KnightlyOrder, MageCircle, ThievesGuild, MerchantLeague }
+// Monsters that emerge from the wild and the ruined places, raid settlements, hoard artifacts, and
+// fall to heroes — the stuff of legend.
+enum MonsterKind { Dragon, Wyrm, Lich, Demon, Giant }
 enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
 enum ItemSource { Forged, Painted, Sculpted }
 enum Mastery { Novice, Seasoned, Master, Legendary }
@@ -330,8 +351,9 @@ trigger buries_children {
 trigger succession {
     when Person and alive = false and $old.alive
 
-    // Acts only when the deceased was actually a reigning monarch (some realm names them ruler).
-    if (pick Country $realm: (ruler = $new)) {
+    // Release EVERY throne the deceased held (a monarch can hold more than one crown via inheritance),
+    // so no realm is ever left with a corpse on the throne.
+    each Country $realm: (ruler = $new) {
         if (pick Person $heir: (alive and is_child_of($heir, $new))) {
             set $realm.ruler = $heir
             set $heir.title = Title.King
@@ -902,4 +924,78 @@ event faction_feud {
     set $thief.killer = $knight
     set $thief.alive = false
     record('{$knight.name} of {$order.name} strikes down {$thief.name} of {$guild.name}')
+}
+
+table MonsterName {
+    'Malgrath', 'Vexthyr', 'Sorrowmaw', 'Galdroth', 'Nyxshade', 'Carriongale',
+    'Throxis', 'Ashmaw', 'Velkarid', 'Gorehollow', 'Dreadspire', 'Ulgathon'
+}
+// A monster emerges from the wild or a ruined place, lairing in some country, and sometimes seizes an
+// existing artifact into its hoard (removing it from circulation until a hero recovers it).
+@frequency(1, PerXYear, 15)
+@tag('legends')
+event monster_emerges {
+    pick Country $c
+    create Monster $m: ('{roll(MonsterName)}') {
+        kind := random(MonsterKind)
+        lair := $c
+        power := random(40, 90)
+        alive := true
+    }
+    record('{$m.name}, a {$m.kind}, awakens in {$c.name}')
+    if (pick Item $i: (enchanted and owner != null)) {
+        set $m.hoard = $i
+        set $i.owner = null
+        record('{$m.name} seizes the {$i.name} into its hoard')
+    }
+}
+
+// A living monster ravages its lair: razing a settlement, or devouring an inhabitant if none remain.
+@frequency(1, PerXYear, 10)
+@tag('legends')
+event monster_raids {
+    pick Monster $m: (alive)
+    var $c: $m.lair
+    if (pick Settlement $s: (country = $c and status != SettlementStatus.Ruined)) {
+        set $s.status = SettlementStatus.Ruined
+        set $s.prosperity = 0%
+        record('{$m.name} descends upon {$s.name} and razes it')
+    } else {
+        if (pick Person $v: (alive and place = $c)) {
+            set $v.alive = false
+            record('{$v.name} is devoured by {$m.name} in {$c.name}')
+        }
+    }
+}
+
+// A renowned warrior or wizard confronts a monster. Triumph makes a legend (and recovers its hoard);
+// failure costs the hero their life.
+@frequency(1, PerXYear, 12)
+@tag('legends')
+event hero_quest {
+    pick Monster $m: (alive)
+    pick Person $h: (alive and age > Age.Young and (job = Job.Soldier or job = Job.Wizard) and (prestige > 20% or mastery >= Mastery.Master))
+    random_weighted 100 {
+        60 => {
+            set $m.alive = false
+            set $m.slain_by = $h
+            set $h.prestige = $h.prestige + 40%
+            if $m.hoard {
+                var $art: $m.hoard
+                set $art.owner = $h
+                record('{$h.name} recovers the {$art.name} from the hoard of {$m.name}')
+            }
+            create Legend $l: ('The Slaying of {$m.name}') {
+                hero := $h
+                monster := $m
+                place := $m.lair
+                year := #Time.year
+            }
+            record('{$h.name} slays {$m.name} in {$m.lair.name} — a legend is born')
+        }
+        _ => {
+            set $h.alive = false
+            record('{$h.name} falls confronting {$m.name} in {$m.lair.name}')
+        }
+    }
 }

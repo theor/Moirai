@@ -228,4 +228,40 @@ public class WsgStoryTests
         int withKind = db.Entities.Count(e => e.Type == factionType.Id && e.GetProperty(kindProp).IntValue > 0);
         Assert.That(withKind, Is.GreaterThan(0), "factions should record a FactionKind");
     }
+
+    [Test]
+    public void MonstersEmergeAndHeroesMakeLegends()
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var awakenings = db.Records.Count(r => r.Text.Contains("awakens in"));
+        var legendsBorn = db.Records.Count(r => r.Text.Contains("a legend is born"));
+
+        Assert.That(awakenings, Is.GreaterThan(0), "monsters should emerge over a 400-year run");
+        Assert.That(legendsBorn, Is.GreaterThan(0), "heroes should slay monsters and make legends");
+
+        // Each Legend entity must cite a real hero and monster (it's a saga reference, not flavor text).
+        var legendType = db.GetEntityType("Legend");
+        var heroProp = legendType.GetPropertyId("hero");
+        var monsterProp = legendType.GetPropertyId("monster");
+        int legends = 0;
+        foreach (var e in db.Entities)
+        {
+            if (e.Type != legendType.Id) continue;
+            legends++;
+            Assert.That(e.GetProperty(heroProp).Id.IsNull, Is.False, "a legend must name its hero");
+            Assert.That(e.GetProperty(monsterProp).Id.IsNull, Is.False, "a legend must name its monster");
+        }
+        Assert.That(legends, Is.GreaterThan(0), "legend entities should exist");
+
+        // A slain monster records its slayer.
+        var monsterType = db.GetEntityType("Monster");
+        var slainProp = monsterType.GetPropertyId("slain_by");
+        int slain = db.Entities.Count(e => e.Type == monsterType.Id && !e.GetProperty(slainProp).Id.IsNull);
+        Assert.That(slain, Is.GreaterThan(0), "some monsters should have been slain by a hero");
+    }
 }
