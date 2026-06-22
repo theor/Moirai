@@ -453,9 +453,17 @@ public class MoiraiDocument
                     continue;
 
                 var gating = db.GetTriggerGatingProps(trig);
-                var title = gating is { Length: > 0 }
-                    ? "reads: " + string.Join(", ", gating.Select(db.GetPropertyName).OrderBy(n => n, System.StringComparer.Ordinal))
-                    : "reads: any change";
+                string title;
+                if (gating is { Length: > 0 })
+                    title = "reads: " + string.Join(", ",
+                        gating.Select(db.GetPropertyName).OrderBy(n => n, System.StringComparer.Ordinal));
+                else if (trig.When.Item3 == null)
+                    title = "reacts to every change"; // no predicate — fires on any change of its type
+                else
+                    // Has a predicate, but it uses constructs we can't read through (a function call,
+                    // etc.), so it can't be gated and is evaluated on every change. Flag it so the author
+                    // can simplify/guard it if the trigger is hot.
+                    title = "reacts to every change (predicate not gated)";
                 TriggerReadPropLenses.Add((new FileRange(idNode).ToLspRange(), title));
             }
         }

@@ -427,6 +427,10 @@ event start {
 entity Person {
     prop alive: bool
     prop prosperity: percentage
+    prop age: number
+}
+function adult($p: Person): bool {
+    $p.age > 1
 }
 trigger on_death {
     when Person and alive = false and $old.alive
@@ -440,14 +444,20 @@ trigger any_change {
     when Person
     record('changed')
 }
+trigger complex {
+    when Person and adult($new)
+    record('complex')
+}
 ");
         Assert.That(doc.Errors, Is.Empty, () => string.Join("\n", doc.Errors.Select(e => e.Message)));
 
         var titles = doc.TriggerReadPropLenses.Select(l => l.title).ToList();
-        // on_death reads only `alive`; poor_death reads both (sorted); a bare `when Person` reacts to any change.
+        // on_death reads only `alive`; poor_death reads both (sorted); a bare `when Person` reacts to
+        // any change; a predicate using a function call can't be gated and is flagged as such.
         Assert.That(titles, Does.Contain("reads: alive"));
         Assert.That(titles, Does.Contain("reads: alive, prosperity"));
-        Assert.That(titles, Does.Contain("reads: any change"));
-        Assert.That(doc.TriggerReadPropLenses.Count, Is.EqualTo(3));
+        Assert.That(titles, Does.Contain("reacts to every change"));
+        Assert.That(titles, Does.Contain("reacts to every change (predicate not gated)"));
+        Assert.That(doc.TriggerReadPropLenses.Count, Is.EqualTo(4));
     }
 }
