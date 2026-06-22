@@ -448,16 +448,21 @@ trigger complex {
     when Person and adult($new)
     record('complex')
 }
+trigger spawned {
+    when_created Person
+    record('born')
+}
 ");
         Assert.That(doc.Errors, Is.Empty, () => string.Join("\n", doc.Errors.Select(e => e.Message)));
 
         var titles = doc.TriggerReadPropLenses.Select(l => l.title).ToList();
         // on_death reads only `alive`; poor_death reads both (sorted); a bare `when Person` reacts to
-        // any change; a predicate using a function call can't be gated and is flagged as such.
+        // any change; a function-call predicate can't be gated; a when_created trigger reacts to creation.
         Assert.That(titles, Does.Contain("reads: alive"));
         Assert.That(titles, Does.Contain("reads: alive, prosperity"));
         Assert.That(titles, Does.Contain("reacts to every change"));
         Assert.That(titles, Does.Contain("reacts to every change (predicate not gated)"));
-        Assert.That(doc.TriggerReadPropLenses.Count, Is.EqualTo(4));
+        Assert.That(titles, Does.Contain("reacts to new Person"));
+        Assert.That(doc.TriggerReadPropLenses.Count, Is.EqualTo(5));
     }
 }
