@@ -417,4 +417,37 @@ event start {
 
         Assert.That(result, Is.Null);
     }
+
+    // ---- Trigger read-prop CodeLens (property-gated dispatch surfaced in the editor) ----
+
+    [Test]
+    public void TriggerReadPropLenses_describe_gated_properties()
+    {
+        var doc = Process(@"
+entity Person {
+    prop alive: bool
+    prop prosperity: percentage
+}
+trigger on_death {
+    when Person and alive = false and $old.alive
+    record('died')
+}
+trigger poor_death {
+    when Person and alive = false and prosperity < 10%
+    record('poor')
+}
+trigger any_change {
+    when Person
+    record('changed')
+}
+");
+        Assert.That(doc.Errors, Is.Empty, () => string.Join("\n", doc.Errors.Select(e => e.Message)));
+
+        var titles = doc.TriggerReadPropLenses.Select(l => l.title).ToList();
+        // on_death reads only `alive`; poor_death reads both (sorted); a bare `when Person` reacts to any change.
+        Assert.That(titles, Does.Contain("reads: alive"));
+        Assert.That(titles, Does.Contain("reads: alive, prosperity"));
+        Assert.That(titles, Does.Contain("reads: any change"));
+        Assert.That(doc.TriggerReadPropLenses.Count, Is.EqualTo(3));
+    }
 }

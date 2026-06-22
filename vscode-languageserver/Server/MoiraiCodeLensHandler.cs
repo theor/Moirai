@@ -21,7 +21,7 @@ public class MoiraiCodeLensHandler : CodeLensHandlerBase
     public override Task<CodeLensContainer?> Handle(CodeLensParams request, CancellationToken cancellationToken)
     {
         var uri = request.TextDocument.Uri;
-        var lenses = _moiraiCache.GetDeclarationUsages(request.TextDocument)
+        var usageLenses = _moiraiCache.GetDeclarationUsages(request.TextDocument)
             .Select(d => new CodeLens
             {
                 Range = d.nameRange,
@@ -32,8 +32,18 @@ public class MoiraiCodeLensHandler : CodeLensHandlerBase
                     Name = "moirai.showReferences",
                     Arguments = new JArray(uri.ToString(), d.nameRange.Start.Line, d.nameRange.Start.Character),
                 },
-            })
-            .ToArray();
+            });
+
+        // Informational lens over each Changed-trigger showing the properties whose changes it reacts
+        // to (the engine's property-gated dispatch set). Empty command name => rendered as plain text.
+        var triggerLenses = _moiraiCache.GetTriggerReadPropLenses(request.TextDocument)
+            .Select(t => new CodeLens
+            {
+                Range = t.range,
+                Command = new Command { Title = t.title, Name = "" },
+            });
+
+        var lenses = usageLenses.Concat(triggerLenses).ToArray();
 
         return Task.FromResult<CodeLensContainer?>(new CodeLensContainer(lenses));
     }

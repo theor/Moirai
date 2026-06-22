@@ -574,6 +574,22 @@ public class Database
         _ctx.PrevEntity = default;
     }
 
+    /// <summary>
+    /// The properties of a trigger's own entity type that its predicate reads, driving property-gated
+    /// dispatch (see <see cref="RunTriggers"/>); null means "reacts to any change" (no predicate, or one
+    /// we don't statically analyse). Computed lazily and cached. Exposed for tooling (the LSP CodeLens).
+    /// </summary>
+    public PropertyId[]? GetTriggerGatingProps(EventTrigger trigger)
+    {
+        if (!trigger.GatingComputed)
+        {
+            trigger.GatingProps = ComputeGatingProps(trigger);
+            trigger.GatingComputed = true;
+        }
+
+        return trigger.GatingProps;
+    }
+
     // The set of the trigger entity-type's own properties read by a `when Changed` predicate. Returns
     // null ("ungatable, always evaluate") when there is no predicate, the predicate reads none of the
     // entity's own properties, or it contains a construct we don't statically analyse — so gating can

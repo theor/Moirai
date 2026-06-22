@@ -316,6 +316,15 @@ public class MoiraiCache
         return Enumerable.Empty<(Range, int)>();
     }
 
+    public IEnumerable<(Range range, string title)> GetTriggerReadPropLenses(
+        TextDocumentIdentifier requestTextDocument)
+    {
+        if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
+            return doc.TriggerReadPropLenses;
+
+        return Enumerable.Empty<(Range, string)>();
+    }
+
     public string? GetLine(DocumentUri uri, int line)
     {
         if (_cache.TryGetValue(uri, out var doc))
@@ -380,6 +389,10 @@ public class MoiraiDocument
 
     public List<(Range range, SemanticTokenType type, string[] modifiers)> SemanticTokens { get; set; } = new();
     public List<StoryParser.Error> Errors = new();
+    // Per-trigger CodeLens text showing the properties whose changes the trigger reacts to (drives the
+    // engine's property-gated dispatch). Computed during Process, where both the parse tree and the
+    // built Database are in scope. Range = the trigger's name token.
+    public readonly List<(Range range, string title)> TriggerReadPropLenses = new();
     // private IntervalTree<Position, TokenVisitor.Definition> _locations = new();
     public SymbolInformationOrDocumentSymbolContainer Symbols = new();
 
@@ -425,6 +438,26 @@ public class MoiraiDocument
             Errors.AddRange(astVisitor.Errors);
             Errors.AddRange(astVisitor.InfoMarkers);   // Information-severity annotations (e.g. SQL-inlined calls)
             Symbols = symbols;
+
+            // A "reads: <props>" CodeLens over each `when Changed` trigger, surfacing the read-property
+            // set the engine uses for property-gated dispatch. Matched by name from the parse tree's
+            // trigger nodes (which carry source positions) to the built Database's EventTriggers.
+            TriggerReadPropLenses.Clear();
+            foreach (var def in r.def())
+            {
+                var idNode = def.trigger()?.ID();
+                if (idNode == null)
+                    continue;
+                var trig = db.Triggers.FirstOrDefault(t => t.Name == idNode.GetText());
+                if (trig == null || trig.When.Item1 != EventTrigger.WhenType.Changed)
+                    continue;
+
+                var gating = db.GetTriggerGatingProps(trig);
+                var title = gating is { Length: > 0 }
+                    ? "reads: " + string.Join(", ", gating.Select(db.GetPropertyName).OrderBy(n => n, System.StringComparer.Ordinal))
+                    : "reads: any change";
+                TriggerReadPropLenses.Add((new FileRange(idNode).ToLspRange(), title));
+            }
         }
         catch (Exception e)
         {
