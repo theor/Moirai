@@ -1,7 +1,7 @@
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Xunit;
+using NUnit.Framework;
 
 namespace Moirai.SourceGenerators.Tests;
 
@@ -35,7 +35,7 @@ partial class Vector3
 }
 ";
 
-    [Fact]
+    [Test]
     public void GenerateReportMethod()
     {
         // Create an instance of the source generator.
@@ -59,8 +59,10 @@ partial class Vector3
         // All generated files can be found in 'RunResults.GeneratedTrees'.
         var generatedFileSyntax = runResult.GeneratedTrees.Single(t => t.FilePath.EndsWith("Vector3.g.cs"));
 
-        // Complex generators should be tested using text comparison.
-        Assert.Equal(ExpectedGeneratedClassText, generatedFileSyntax.GetText().ToString(),
-            ignoreLineEndingDifferences: true);
+        // Complex generators should be tested using text comparison. NUnit has no built-in
+        // ignore-line-endings option, so normalise both sides before comparing.
+        Assert.That(
+            generatedFileSyntax.GetText().ToString().Replace("\r\n", "\n"),
+            Is.EqualTo(ExpectedGeneratedClassText.Replace("\r\n", "\n")));
     }
 }
