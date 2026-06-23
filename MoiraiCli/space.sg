@@ -4,7 +4,7 @@ entity Object {
     prop kind: Kind
     prop distance_to_sun: number
 }
-@display Object ('Objects', system = $self)
+@display (Object,'Objects', system = $self)
 entity System {
 
 }
@@ -85,7 +85,7 @@ event create_solar_system {
 //     }
 // }
 
-@1 per 2 years
+@frequency(1, PerXYear, 2)
 event born {
     create Person $p: ('{random(Name)}')
     pick Object $o: (kind = Kind.Planet or kind = Kind.Satelite)
