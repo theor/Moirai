@@ -80,7 +80,7 @@ Mechanics (for changing the profiler): `Database.ProfilingEnabled` gates it; `Ex
 
 ## Architecture
 
-The pipeline is: **`.sg` text → ANTLR parse → AstVisitor builds engine objects → `Database` simulates → SignalR streams results to the Svelte client.**
+The pipeline is: **`.sg` text → tokenize/parse → AstVisitor builds engine objects → `Database` simulates → SignalR streams results to the Svelte client.**
 
 ### `Moirai/` — the simulation engine (core, no parsing)
 - **`Core/Database.cs`** is the world. It holds `Types`, `Enums`, `Actions` (scheduled events), `Triggers` (reactive), all `Entities`, and `History`. It is the central API: `RunAction`, `FindAll`/`PickRandom` (query), `AllocateEntity`, `SetProperty`, `Mark`/`GetLastMarked`.
@@ -91,9 +91,10 @@ The pipeline is: **`.sg` text → ANTLR parse → AstVisitor builds engine objec
 - **`Changeset.cs` / `History`** — every `RunAction` opens a `Changeset` recording entity creates/sets. After an action's changeset closes, `Database.RunTriggers` replays it against all `Triggers` (matching `when` / `when_created` + predicate), which is how reactive rules (`inherit`, `born`, …) fire. History is the changeset log the UI browses.
 
 ### `Moirai.Parser/` — the DSL front end
-- Grammar: **`moirai_lexer.g4`** + **`MoiraiParser.g4`**. ANTLR generates code into `Moirai.Parser/gen/` at build time via `Antlr4BuildTasks` — **these generated files are gitignored; do not edit them, change the `.g4` and rebuild.**
-- **`StoryParser.cs`** is the entry point: `Parse(text)` → `Database`, `ParseExpr(...)` for one-off query expressions. It also defines `Functions` — the table of built-in DSL functions (`create`, `each`, `pick`, `random`, `record`, `call`, `mark`, `not`, `floor`, …) and the `ErrorCode` enum.
-- **`AstVisitor.cs`** walks the ANTLR tree and constructs the `Effect`/`Predicate` objects on the `Database`.
+- Hand-rolled, no code generation, no ANTLR/JVM dependency. `MoiraiTokenizer.cs` is a stateful char-by-char scanner (mode stack for string interpolation) producing a Superpower `TokenList<MoiraiTokenKind>`; `Ast/MoiraiGrammar*.cs` are hand-written Superpower `TokenListParser` combinators (one file per grammar area: atoms/paths, expressions, statements, type/enum/table definitions, call/value dispatch) building the AST types in `Ast/AstNodes.cs` directly as their parse result — one node type per construct actually consumed downstream, not a blanket 1:1 grammar mirror.
+- **`StoryParser.cs`** is the entry point: `Parse(text)` → `Database` (tokenizes, chunks the token stream at top-level def boundaries so one broken def doesn't blank out the whole file, parses each chunk independently), `ParseExpr(...)` for one-off query expressions. It also defines `Functions` — the table of built-in DSL functions (`create`, `each`, `pick`, `random`, `record`, `call`, `mark`, `not`, `floor`, …) and the `ErrorCode` enum.
+- **`AstVisitor.cs`** walks the AST and constructs the `Effect`/`Predicate` objects on the `Database`.
+- **`Moirai.Parser.Antlr/`** is a frozen, ANTLR-based snapshot of this project taken before the migration above (grammar in `moirai_lexer.g4`/`MoiraiParser.g4`, generated via `Antlr4BuildTasks`) — referenced only by `vscode-languageserver/Server` (its semantic-tokens/formatting visitors and the ATN-based code-completion engine still need a real ANTLR parse tree; migrating those is a separate, not-yet-started effort). **Never edit `Moirai.Parser.Antlr` to add DSL features** — new syntax lands in `Moirai.Parser`'s grammar first, and the LSP is expected to lag until its own migration.
 
 ### `MoiraiWebServer/` — host + viewer
 - **`Program.cs`**: ASP.NET Core. Parses CLI options (`CommandLineParser`), watches the input `.sg` file (debounced) and triggers reload, configures SignalR JSON (custom converters for `EntityId`/`PropertyId`/`EntityTypeId`/`ValueType`), and in Development spawns the Svelte dev server and proxies `/` to `http://localhost:3000`.
@@ -101,9 +102,9 @@ The pipeline is: **`.sg` text → ANTLR parse → AstVisitor builds engine objec
 - **`ClientAppSvelte/`**: SvelteKit SPA. `src/lib/connection.ts` wraps the SignalR hub and exposes the `moiraiStore` Svelte store the whole UI subscribes to; `src/routes/` are the pages (main, `changesets`, `query`, `records`); `src/components/` the widgets.
 
 ### Other projects
-- **`vscode-languageserver/`** — C# LSP server (`Server/`, OmniSharp `LanguageServer`, with ANTLR-based code completion under `Server/CodeCompletion/`) + a TypeScript VS Code client. Reuses `Moirai.Parser`.
-- **`Moirai.SourceGenerators/`** — Roslyn source generators referenced as an analyzer by `Moirai.Parser`.
-- **`TestProject1/`** — main NUnit suite for the engine/DSL (`EventTests`, `FilterTests`, `MatchTests`, `ParsingTests`, …). The `.sg` files in `MoiraiCli/` (`w.sg`, `test.sg`, `space.sg`) are sample stories used for manual runs.
+- **`vscode-languageserver/`** — C# LSP server (`Server/`, OmniSharp `LanguageServer`, with ANTLR-based code completion under `Server/CodeCompletion/`) + a TypeScript VS Code client. References the frozen `Moirai.Parser.Antlr`, not `Moirai.Parser` (see above).
+- **`Moirai.SourceGenerators/`** — Roslyn source generators; no longer referenced by `Moirai.Parser` (only by `Moirai.Parser.Antlr`, for the ANTLR token-constant-to-enum stub).
+- **`TestProject1/`** — main NUnit suite for the engine/DSL (`EventTests`, `FilterTests`, `MatchTests`, `ParsingTests`, …), plus the parser-migration test suites (`TokenizerDifferentialTests`, `GrammarStructuralTests`, `GrammarRuleTests`, `ParserDifferentialTests`, `ChunkedErrorRecoveryTests`) that diff `Moirai.Parser` against `Moirai.Parser.Antlr` via `extern alias` (both share the `Moirai.Parser` namespace). The `.sg` files in `MoiraiCli/` (`w.sg`, `test.sg`, `space.sg`) are sample stories used for manual runs.
 - **`Moirai.LanguageServer.Tests/`** — NUnit tests for the code-completion core.
 
 ## The `.sg` DSL (quick reference)

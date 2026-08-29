@@ -1,7 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.Linq;
-using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
+﻿using System.Linq;
 using Moirai.Parser;
 
 namespace TestProject1;
@@ -32,34 +29,62 @@ public class ParsingTests : TestsBase
         db.Ctx.PassYears(100, true);
         db.Commit();
     }
+    // Originally ParseSpaceAwareFile/ParseSpaceAware, which hand-rolled ANTLR directly (CodePointCharStream
+    // + moirai_lexer + MoiraiParser) and walked every terminal node with a TestVisitor that printed
+    // LINE_BREAK specially and dumped each token's leading/trailing COMMENTS-channel hidden tokens via
+    // GetHiddenTokensToLeft/Right -- a pure print, no assertions. Retargeted (Phase 5 of the migration,
+    // see .claude/plans/stateful-dancing-stroustrup.md) at MoiraiTokenizer's trivia model, which answers
+    // the same question (are LINE_BREAK/COMMENT visible, and can a token's neighboring comment be found)
+    // directly and assertably instead of by eye.
     [Test]
     [TestCaseSource(nameof(GetFilePaths))]
-    public void ParseSpaceAwareFile(string rpath)
+    public void TokenizesWithLineBreaksAndCommentsVisible(string rpath)
     {
         var path = Path.GetFullPath(rpath);
-        Console.WriteLine(path);
-        if(!File.Exists(path))
+        if (!File.Exists(path))
             Assert.Inconclusive();
         var content = File.ReadAllText(path);
-        var fromString = new CodePointCharStream(content /*.TrimStart('\r', '\n', ' ')*/);
-        var lexer = new moirai_lexer(fromString);
-        var tokens = /*mergeChannels ? new BufferedTokenStream(lexer) :*/ new CommonTokenStream(lexer);
-        var parser = new MoiraiParser(tokens);
-        var r = parser.r();
-        r.Accept(new TestVisitor(){Parser = parser, Lexer = lexer, Stream = fromString});
+        var result = MoiraiTokenizer.Tokenize(content);
+        Assert.That(result.Errors, Is.Empty, string.Join("\n", result.Errors.Select(e => e.Message)));
+
+        var full = result.FullTokens.ToArray();
+        // LINE_BREAK and COMMENT are real, visible tokens in the full stream (not silently discarded
+        // the way SPACE is), matching how the ANTLR grammar routed COMMENT to its own COMMENTS channel
+        // rather than HIDDEN.
+        Assert.That(full.Select(t => t.Kind), Does.Contain(MoiraiTokenKind.LineBreak));
+        Assert.That(full.Select(t => t.Kind), Does.Contain(MoiraiTokenKind.Comment));
+
+        // Every parse-token maps back to its real position in the full stream, so comment/whitespace
+        // association (what the old test's GetHiddenTokensToLeft/Right dump was inspecting) can always
+        // be recovered without re-tokenizing.
+        var parse = result.ParseTokens.ToArray();
+        for (int i = 0; i < parse.Length; i++)
+            Assert.That(full[result.ParseIndexToFullIndex[i]].Kind, Is.EqualTo(parse[i].Kind));
     }
+
     [Test]
-    [TestCase(@"event asd {}
-// @1 per 1 year
-")]
-    public void ParseSpaceAware(string content)
+    public void CommentsAssociateWithNeighboringTokens()
     {
-        var fromString = new CodePointCharStream(content /*.TrimStart('\r', '\n', ' ')*/);
-        var lexer = new moirai_lexer(fromString);
-        var tokens = /*mergeChannels ? new BufferedTokenStream(lexer) :*/ new CommonTokenStream(lexer);
-        var parser = new MoiraiParser(tokens);
-        var r = parser.r();
-        r.Accept(new TestVisitor(){Parser = parser, Lexer = lexer, Stream = fromString});
+        const string content = @"event asd {}
+// @1 per 1 year
+";
+        var result = MoiraiTokenizer.Tokenize(content);
+        Assert.That(result.Errors, Is.Empty);
+
+        var kinds = result.FullTokens.Select(t => t.Kind).ToArray();
+        Assert.That(kinds, Is.EqualTo(new[]
+        {
+            MoiraiTokenKind.Event, MoiraiTokenKind.Space, MoiraiTokenKind.Id, MoiraiTokenKind.Space,
+            MoiraiTokenKind.ScopeOpen, MoiraiTokenKind.ScopeClose,
+            MoiraiTokenKind.LineBreak, MoiraiTokenKind.Comment, MoiraiTokenKind.LineBreak,
+        }));
+
+        var commentIndex = Array.IndexOf(kinds, MoiraiTokenKind.Comment);
+        var comment = result.FullTokens.ToArray()[commentIndex];
+        Assert.That(comment.ToStringValue(), Is.EqualTo("// @1 per 1 year"));
+        // The comment sits between the two line breaks -- trailing the '}' line, leading the next.
+        Assert.That(kinds[commentIndex - 1], Is.EqualTo(MoiraiTokenKind.LineBreak));
+        Assert.That(kinds[commentIndex + 1], Is.EqualTo(MoiraiTokenKind.LineBreak));
     }
 
     private const string PersonEntity = @"
@@ -130,26 +155,4 @@ event e {
         Assert.That(errors.Count(e => e.Code == StoryParser.ErrorCode.RedundantTypeFilter), Is.EqualTo(0),
             string.Join("\n", errors));
     }
-
-    class TestVisitor : MoiraiParserBaseVisitor<object?>, StoryParser.IVisitor
-    {
-        public List<StoryParser.Error> Errors { get; } = new();
-        public MoiraiParser Parser { get; set; }
-        public (int offsetLine, int offsetColumn) Offset { get; set; }
-        public moirai_lexer Lexer { get; set; }
-        public CodePointCharStream Stream { get; set; }
-
-        public override object? VisitTerminal(ITerminalNode node)
-        {
-            Console.WriteLine($"T: '{(node.Symbol.Type == moirai_lexer.LINE_BREAK ? "LINE_BREAK" : node.GetText())}'");
-            var hidden = ((CommonTokenStream)Parser.TokenStream).GetHiddenTokensToLeft(node.Symbol.TokenIndex, moirai_lexer.COMMENTS) ?? ReadOnlyCollection<IToken>.Empty;
-            Console.WriteLine("  L: " + string.Join("|",hidden.Select(t => $"'{t.Text}'")));
-            hidden = ((CommonTokenStream)Parser.TokenStream).GetHiddenTokensToRight(node.Symbol.TokenIndex,
-                moirai_lexer.COMMENTS) ?? ReadOnlyCollection<IToken>.Empty;
-            Console.WriteLine("  R: " + string.Join("|",hidden.Select(t => $"'{t.Text}'")));
-
-            return base.VisitTerminal(node);
-        }
-    }
-
 }
