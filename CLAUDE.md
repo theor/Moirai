@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Moirai is a procedural narrative / world-simulation engine driven by its own domain-specific language (`.sg` / `.moi` files). A story file declares entity types, enums, scheduled `event`s and reactive `trigger`s; the engine simulates year-by-year and emits a stream of narrative `record`s plus a queryable world state. The web server hosts an interactive viewer; a VS Code extension provides language support.
 
-The solution targets **.NET 8** (`global.json` pins SDK 8.0 with `rollForward: latestMajor`). The frontend is **SvelteKit + Skeleton UI + Tailwind**, talking to the server over **SignalR**.
+The solution targets **.NET 10** (`global.json` pins SDK 10.0 with `rollForward: latestMajor`). The frontend is **SvelteKit + Skeleton UI + Tailwind**, talking to the server over **SignalR**.
 
 ## Commands
 
