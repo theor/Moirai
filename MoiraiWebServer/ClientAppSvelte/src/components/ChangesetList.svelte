@@ -5,48 +5,58 @@
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { moiraiStore, type EntityChangeDisplay } from '$lib/connection';
   import PreChip from './PreChip.svelte';
+  import { untrack } from 'svelte';
 
-  let virtualListEl: HTMLDivElement;
+  let virtualListEl: HTMLDivElement | undefined = $state();
 
-  let virtualItemEls: HTMLDivElement[] = [];
-
-  const query = createInfiniteQuery({
+  // svelte-query v6 takes an accessor rather than a plain options object, and
+  // returns a reactive object rather than a store (so `query`, not `$query`).
+  const query = createInfiniteQuery(() => ({
     queryKey: ['changesets'],
     queryFn: ({ pageParam }: { pageParam: number }) => fetchServerPage(40, pageParam),
     initialPageParam: 0,
     getNextPageParam: (_lastGroup, groups) => {
       return (_lastGroup.rows?.length ?? 0) > 0 ? groups.length : undefined;
     },
-  });
+  }));
 
-  $: allRows = ($query.data && $query.data.pages.flatMap((page) => page.rows)) || [];
+  const allRows = $derived(query.data?.pages.flatMap((page) => page.rows) ?? []);
 
-  $: virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+  const virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
     count: 0,
-    getScrollElement: () => virtualListEl,
+    getScrollElement: () => virtualListEl ?? null,
     estimateSize: () => 44,
     overscan: 5,
   });
 
-  $: items = $virtualizer.getVirtualItems();
-  $: {
-    if (virtualItemEls.length) virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
-  }
-  $: {
-    $virtualizer.setOptions({
-      count: $query.hasNextPage ? allRows.length + 1 : allRows.length,
-    });
+  const items = $derived($virtualizer.getVirtualItems());
 
-    const [lastItem] = [...$virtualizer.getVirtualItems()].reverse();
-    if (
-      lastItem &&
-      lastItem.index > allRows.length - 1 &&
-      $query.hasNextPage &&
-      !$query.isFetchingNextPage
-    ) {
-      $query.fetchNextPage();
-    }
+  // Rows have variable height, so each one is measured. measureElement sets up a
+  // ResizeObserver itself, so an action (one call per element) is enough. Doing
+  // this in an $effect over a $state array instead self-triggers via bind:this.
+  function measure(node: HTMLDivElement) {
+    $virtualizer.measureElement(node);
   }
+
+  // Keep the virtualizer's count in step with the loaded data. setOptions is
+  // untracked: this effect must not subscribe to the store it writes to, or it
+  // re-runs itself forever (effect_update_depth_exceeded).
+  $effect(() => {
+    if (!virtualListEl) return;
+    const count = query.hasNextPage ? allRows.length + 1 : allRows.length;
+    untrack(() => $virtualizer.setOptions({ count }));
+  });
+
+  // Load the next page once the trailing placeholder scrolls into view. This one
+  // does track `items`, which is how scrolling drives it, but it only writes to
+  // the query, never to the virtualizer.
+  $effect(() => {
+    const [lastItem] = [...items].reverse();
+    if (!lastItem) return;
+    if (lastItem.index > allRows.length - 1 && query.hasNextPage && !query.isFetchingNextPage) {
+      query.fetchNextPage();
+    }
+  });
 
   async function fetchServerPage(
     limit: number,
@@ -57,11 +67,11 @@
   }
 </script>
 
-{#if $query.isLoading}
+{#if query.isLoading}
   Loading...
-{:else if $query.isError}
-  <span>Error: {$query.error.message}</span>
-{:else if $query.isSuccess}
+{:else if query.isError}
+  <span>Error: {query.error.message}</span>
+{:else if query.isSuccess}
   <div class="scroll-container bg-surface-200-800" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
       <div
@@ -69,16 +79,16 @@
           ? items[0].start
           : 0}px);"
       >
-        {#each items as row, idx (row.index)}
+        {#each items as row (row.index)}
           <div
-            bind:this={virtualItemEls[idx]}
+            use:measure
             data-index={row.index}
             class:list-item-even={row.index % 2 === 0}
             class:list-item-odd={row.index % 2 === 1}
           >
           
             {#if row.index > allRows.length - 1}
-              {#if $query.hasNextPage}
+              {#if query.hasNextPage}
                 <span> Loading more... </span>
               {:else}
                 <span> Nothing more to load </span>
@@ -109,7 +119,7 @@
   </div>
 
 {/if}
-{#if $query.isFetching && !$query.isFetchingNextPage}
+{#if query.isFetching && !query.isFetchingNextPage}
   <p>Background updating...</p>
 {/if}
 

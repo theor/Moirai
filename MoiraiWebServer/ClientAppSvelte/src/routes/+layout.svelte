@@ -6,6 +6,8 @@
   import { moiraiViewStore } from '$lib';
   import { shortcut } from '$lib/shortcut';
   import { page } from '$app/stores';
+  import { resolve } from '$app/paths';
+  import type { Pathname } from '$app/types';
   import type { HTMLAnchorAttributes } from 'svelte/elements';
 
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
@@ -36,7 +38,7 @@
   // Keep the selection/filter state (e/f/t search params) when switching tabs.
   const search = $derived($page.url.search);
 
-  const NAV_TABS = [
+  const NAV_TABS: { href: Pathname; label: string }[] = [
     { href: '/records', label: 'Records' },
     { href: '/changesets', label: 'Changesets' },
     { href: '/query', label: 'Query' },
@@ -65,7 +67,7 @@
                 <Tabs.Trigger value={tab.href}>
                   {#snippet element(attributes)}
                     <!-- Trigger types its attrs for <button>; we render an <a> for real navigation. -->
-                    <a {...attributes as unknown as HTMLAnchorAttributes} href="{tab.href}{search}"
+                    <a {...attributes as unknown as HTMLAnchorAttributes} href="{resolve(tab.href)}{search}"
                       >{tab.label}</a
                     >
                   {/snippet}
