@@ -29,7 +29,9 @@
     {/if}
     <button
       type="button"
-      class="fperson chip {nodeId === focus ? 'preset-filled-primary-500' : 'preset-tonal-secondary'}"
+      class="fperson chip {nodeId === focus
+        ? 'preset-filled-primary-500'
+        : 'preset-tonal-secondary'}"
       on:click={() => select(nodeId)}
       title={`#${nodeId} — click to re-root`}
     >

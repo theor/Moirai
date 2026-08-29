@@ -125,7 +125,7 @@
 <div>
   {#if allTags.length > 0}
     <div class="tag-bar">
-      {#each allTags as tag}
+      {#each allTags as tag (tag)}
         <button
           type="button"
           class="chip {tagFilter === tag ? 'preset-filled-primary-500' : 'preset-tonal'}"
@@ -145,9 +145,9 @@
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
       <table class="table table-fixed w-full" style="overflow:unset">
         <thead>
-          {#each table.getHeaderGroups() as headerGroup}
+          {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
             <tr>
-              {#each headerGroup.headers as header, idx}
+              {#each headerGroup.headers as header, idx (header.id)}
                 <th
                   style={idx !== headerGroup.headers.length - 1
                     ? `width: ${header.getSize()}px`
@@ -213,9 +213,9 @@
   }
 
   :global(td.actionId span) {
-      @apply inline-block;
-      @apply text-ellipsis;
-      @apply overflow-hidden;
-      @apply w-full;
+    @apply inline-block;
+    @apply text-ellipsis;
+    @apply overflow-hidden;
+    @apply w-full;
   }
 </style>

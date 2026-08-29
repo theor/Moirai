@@ -3,7 +3,7 @@ import {
   HubConnection,
   HubConnectionState,
   type IStreamResult,
-  type IStreamSubscriber
+  type IStreamSubscriber,
 } from '@microsoft/signalr';
 import {
   type ClientData,
@@ -11,7 +11,6 @@ import {
   type Message,
   MessageType,
   type Record,
-  type Changeset
 } from './types';
 import { get, writable } from 'svelte/store';
 export interface Result {
@@ -39,16 +38,16 @@ export class SignalRConnection {
   }
 
   static async make(): Promise<[SignalRConnection, ClientData, boolean]> {
-    let connection = new signalR.HubConnectionBuilder()
+    const connection = new signalR.HubConnectionBuilder()
       .withUrl('/hub')
       .configureLogging(signalR.LogLevel.Warning)
       .build();
     await connection.start();
-    let clientData = await connection.invoke('GetClientData');
+    const clientData = await connection.invoke('GetClientData');
     return [
       new SignalRConnection(connection),
       clientData,
-      connection.state === HubConnectionState.Connected
+      connection.state === HubConnectionState.Connected,
     ];
   }
 
@@ -115,7 +114,7 @@ const writableStore = writable<State>(
     passYearsProgress: undefined,
     connected: false,
     records: [],
-    changesets: []
+    changesets: [],
   },
   (set, update) => {
     SignalRConnection.make().then(([x, clientData, c]) => {
@@ -151,7 +150,7 @@ const writableStore = writable<State>(
               buffer.push(value.record!);
               break;
             case MessageType.Year:
-              if(value.year !== get(writableStore).year) {
+              if (value.year !== get(writableStore).year) {
                 update((x) => ({ ...x, year: value.year }));
               }
               if (_targetYear !== 0) {
@@ -162,15 +161,15 @@ const writableStore = writable<State>(
               console.error('UNKNOWN MESSAGE TYPE', value.type);
           }
         },
-        error(err: any) {
+        error(err: unknown) {
           console.error(err);
         },
-        complete() {}
+        complete() {},
       });
 
       update((s) => ({ ...s, conn: x, connected: c, clientData }));
     });
-  }
+  },
 );
 
 export const moiraiStore = {
@@ -184,19 +183,19 @@ export const moiraiStore = {
       next(value: number) {
         writableStore.update((x) => ({ ...x, passYearsProgress: value }));
       },
-      error(err: any) {
+      error(err: unknown) {
         console.error(err);
         writableStore.update((x) => ({ ...x, passYearsProgress: undefined }));
       },
       complete() {
         writableStore.update((x) => ({ ...x, passYearsProgress: undefined }));
-      }
+      },
     };
     writableStore.update((x) => ({ ...x, passYearsProgress: 0 }));
     return get(writableStore).conn!.passYears(amount).subscribe(subscriber);
   },
   clearEvent: () => writableStore.update((x) => ({ ...x, keyboardEvent: undefined })),
-  handleKeyPress: (e: any): void => {
+  handleKeyPress: (e: KeyboardEvent): void => {
     writableStore.update((x) => ({ ...x, keyboardEvent: e }));
   },
   toggleActionFiltering: (id: number, active: boolean, switchAll: boolean) => {
@@ -206,17 +205,17 @@ export const moiraiStore = {
         ...x,
         clientData: {
           ...clientData,
-          actions: clientData.actions.map((a: any) =>
-            a.id === id ? { ...a, hidden: !active } : { ...a, hidden: active }
-          )
-        }
+          actions: clientData.actions.map((a) =>
+            a.id === id ? { ...a, hidden: !active } : { ...a, hidden: active },
+          ),
+        },
       }));
       return;
     }
     clientData.actions[id - 1].hidden = !clientData.actions[id - 1].hidden;
     writableStore.update((x) => ({ ...x, clientData: { ...clientData } }));
   },
-  getChangesets:(start:number, count: number) => {
+  getChangesets: (start: number, count: number) => {
     return get(writableStore).conn!.getChangesets(start, count);
   },
 };

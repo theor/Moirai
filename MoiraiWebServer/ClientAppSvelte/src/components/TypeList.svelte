@@ -14,7 +14,7 @@
       items: typeNames,
       itemToValue: (t) => t,
       itemToString: (t) => t,
-    })
+    }),
   );
 </script>
 

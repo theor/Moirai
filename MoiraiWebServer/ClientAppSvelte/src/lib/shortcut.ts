@@ -1,4 +1,3 @@
-import type { KeyboardEventHandler } from 'svelte/elements';
 interface ShortcutParams {
   alt?: boolean;
   shift?: boolean;
@@ -7,7 +6,7 @@ interface ShortcutParams {
   callback: () => void;
 }
 export const shortcut = (node: HTMLElement, params: ShortcutParams) => {
-  let handler: KeyboardEventHandler<any>; // { (this: Window, ev: KeyboardEvent): any; (e: any): void; (this: Window, ev: KeyboardEvent): any; };
+  let handler: (e: KeyboardEvent) => void;
   const removeHandler = () => window.removeEventListener('keydown', handler),
     setHandler = () => {
       removeHandler();

@@ -1,6 +1,7 @@
 <script lang="ts">
-    export let text: any;
+  export let text: string | number;
 </script>
+
 <code class="code">
-    {text}
+  {text}
 </code>

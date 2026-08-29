@@ -7,15 +7,14 @@
 
   const maxDepth = 5;
 
-  let selected = -1;
   $: selected = selectedEntity($page).getNumber();
 
   // Refetch when the selection or the simulation year changes (new people may have been born).
   let tree: Promise<FamilyTreeNode[]> | undefined;
-  $: selected,
-    $moiraiStore.year,
-    (tree =
-      selected > 0 ? $moiraiStore.conn?.getFamilyTree(selected, maxDepth) : undefined);
+  $: tree = familyTreeFor(selected, $moiraiStore.year);
+  function familyTreeFor(sel: number, _year: number) {
+    return sel > 0 ? $moiraiStore.conn?.getFamilyTree(sel, maxDepth) : undefined;
+  }
 
   function buildMap(list: FamilyTreeNode[]): Map<number, FamilyTreeNode> {
     return new Map(list.map((n) => [n.id, n]));
@@ -34,8 +33,8 @@
 <div class="ftree-page">
   {#if selected <= 0}
     <p class="opacity-60 p-4">
-      No entity selected. Select a Person (click an entity chip in the Records page or the
-      Details panel) to view their family tree.
+      No entity selected. Select a Person (click an entity chip in the Records page or the Details
+      panel) to view their family tree.
     </p>
   {:else}
     {#await tree}

@@ -67,8 +67,9 @@
                 <Tabs.Trigger value={tab.href}>
                   {#snippet element(attributes)}
                     <!-- Trigger types its attrs for <button>; we render an <a> for real navigation. -->
-                    <a {...attributes as unknown as HTMLAnchorAttributes} href="{resolve(tab.href)}{search}"
-                      >{tab.label}</a
+                    <a
+                      {...attributes as unknown as HTMLAnchorAttributes}
+                      href="{resolve(tab.href)}{search}">{tab.label}</a
                     >
                   {/snippet}
                 </Tabs.Trigger>

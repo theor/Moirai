@@ -62,7 +62,9 @@
     limit: number,
     offset: number = 0,
   ): Promise<{ rows: EntityChangeDisplay[]; nextOffset: number }> {
-    const changesets = await $moiraiStore.conn?.getChangesets(offset * limit, limit)!;
+    const conn = $moiraiStore.conn;
+    if (!conn) return { rows: [], nextOffset: offset };
+    const changesets = await conn.getChangesets(offset * limit, limit);
     return { rows: changesets, nextOffset: offset + 1 };
   }
 </script>
@@ -86,7 +88,6 @@
             class:list-item-even={row.index % 2 === 0}
             class:list-item-odd={row.index % 2 === 1}
           >
-          
             {#if row.index > allRows.length - 1}
               {#if query.hasNextPage}
                 <span> Loading more... </span>
@@ -103,7 +104,7 @@
                 {item.actionName}
               </div>
               <div class="flex">
-                {#each item.changes as change}
+                {#each item.changes as change, ci (ci)}
                   <span class=" px-2 m-1 flex-row">
                     <kbd class="kbd">{change.label}</kbd>
                     <MoiraiText text={change.value} selected={-1} />
@@ -117,7 +118,6 @@
       </div>
     </div>
   </div>
-
 {/if}
 {#if query.isFetching && !query.isFetchingNextPage}
   <p>Background updating...</p>
