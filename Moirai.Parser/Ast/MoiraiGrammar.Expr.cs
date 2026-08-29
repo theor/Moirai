@@ -65,7 +65,20 @@ public static partial class MoiraiGrammar
     }
 
     // expr: if | match | value | (PAREN_OPEN expr PAREN_CLOSE) — the atom/prefix position.
-    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprAtom(TokenList<MoiraiTokenKind> input)
+    //
+    // allowTrailingScope controls whether a call/raw_call bottomed out here may attach a trailing
+    // `scope?` (the `{ ... }` body create/each/pick/schedule use, e.g. `each Person $p: (pred) { ... }`).
+    // A `call`'s trailing scope is syntactically optional everywhere per the grammar, which makes it
+    // genuinely ambiguous whenever a call sits inside a larger construct that *also* expects a `{`
+    // next — most concretely `if COND { ... }`: if COND's own trailing call were allowed to swallow
+    // that same `{`, `if`'s own mandatory `then` scope would have nothing left to parse. ANTLR's
+    // ALL(*) resolves this with full-context lookahead; this hand-written descent doesn't have that,
+    // so instead only the single outermost expression directly under EffectRule's top-level `expr`
+    // branch (the one real place a scope-attached call is ever written) is allowed to claim one —
+    // every recursive `Expr`/`Value` call elsewhere (if/match conditions, binary operands, set/init/var
+    // right-hand sides, call arguments, parenthesized groups, ...) defaults to false.
+    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprAtom(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope)
     {
         var lead = PeekKind(input);
         if (lead == MoiraiTokenKind.If)
@@ -100,7 +113,7 @@ public static partial class MoiraiGrammar
                 new ExprNode(null, null, null, inner.Value, null, null, null, span), input, close.Remainder);
         }
 
-        var v = Value(input);
+        var v = Value(input, allowTrailingScope);
         return v.HasValue
             ? TokenListParserResult.Value(new ExprNode(null, null, v.Value, null, null, null, null, v.Value.Span),
                 input, v.Remainder)
@@ -108,27 +121,35 @@ public static partial class MoiraiGrammar
     }
 
     // Precedence, tightest to loosest: * / % ; + - ; = != >= <= > < ; ?? ; and ; or.
-    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprMulDivMod(TokenList<MoiraiTokenKind> input) =>
-        LeftAssoc(input, ExprAtom, MoiraiTokenKind.Mul, MoiraiTokenKind.Div, MoiraiTokenKind.Mod);
+    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprMulDivMod(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope) =>
+        LeftAssoc(input, i => ExprAtom(i, allowTrailingScope), MoiraiTokenKind.Mul, MoiraiTokenKind.Div,
+            MoiraiTokenKind.Mod);
 
-    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprAddSub(TokenList<MoiraiTokenKind> input) =>
-        LeftAssoc(input, ExprMulDivMod, MoiraiTokenKind.Add, MoiraiTokenKind.Sub);
+    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprAddSub(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope) =>
+        LeftAssoc(input, i => ExprMulDivMod(i, allowTrailingScope), MoiraiTokenKind.Add, MoiraiTokenKind.Sub);
 
-    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprCompare(TokenList<MoiraiTokenKind> input) =>
-        LeftAssoc(input, ExprAddSub, MoiraiTokenKind.Eq, MoiraiTokenKind.Neq, MoiraiTokenKind.Ge,
-            MoiraiTokenKind.Le, MoiraiTokenKind.Gt, MoiraiTokenKind.Lt);
+    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprCompare(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope) =>
+        LeftAssoc(input, i => ExprAddSub(i, allowTrailingScope), MoiraiTokenKind.Eq, MoiraiTokenKind.Neq,
+            MoiraiTokenKind.Ge, MoiraiTokenKind.Le, MoiraiTokenKind.Gt, MoiraiTokenKind.Lt);
 
-    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprCoalesce(TokenList<MoiraiTokenKind> input) =>
-        LeftAssoc(input, ExprCompare, MoiraiTokenKind.Qq);
+    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprCoalesce(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope) =>
+        LeftAssoc(input, i => ExprCompare(i, allowTrailingScope), MoiraiTokenKind.Qq);
 
-    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprAnd(TokenList<MoiraiTokenKind> input) =>
-        LeftAssoc(input, ExprCoalesce, MoiraiTokenKind.And);
+    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprAnd(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope) =>
+        LeftAssoc(input, i => ExprCoalesce(i, allowTrailingScope), MoiraiTokenKind.And);
 
-    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprOr(TokenList<MoiraiTokenKind> input) =>
-        LeftAssoc(input, ExprAnd, MoiraiTokenKind.Or);
+    static TokenListParserResult<MoiraiTokenKind, ExprNode> ExprOr(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope) =>
+        LeftAssoc(input, i => ExprAnd(i, allowTrailingScope), MoiraiTokenKind.Or);
 
-    static TokenListParserResult<MoiraiTokenKind, ExprNode> Expr(TokenList<MoiraiTokenKind> input) =>
-        ExprOr(input);
+    static TokenListParserResult<MoiraiTokenKind, ExprNode> Expr(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope = false) =>
+        ExprOr(input, allowTrailingScope);
 
     // if: IF cond=expr then=scope (ELSE LINE_BREAK* else=scope)? ;
     static TokenListParserResult<MoiraiTokenKind, IfNode> IfRule(TokenList<MoiraiTokenKind> input)

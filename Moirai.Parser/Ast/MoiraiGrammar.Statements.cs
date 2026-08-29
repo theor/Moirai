@@ -46,7 +46,9 @@ public static partial class MoiraiGrammar
                 : TokenListParserResult.CastEmpty<MoiraiTokenKind, InitNode, EffectNode>(r);
         }
 
-        var expr = Expr(input);
+        // Top-level statement position: the one place a call may legitimately attach a trailing
+        // `{ ... }` scope (create/each/pick/schedule). See ExprAtom's allowTrailingScope doc comment.
+        var expr = Expr(input, allowTrailingScope: true);
         return expr.HasValue
             ? TokenListParserResult.Value(new EffectNode(expr.Value, null, null, null, expr.Value.Span), input,
                 expr.Remainder)

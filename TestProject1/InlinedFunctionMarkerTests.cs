@@ -1,4 +1,5 @@
 using Moirai.Parser;
+using Moirai.Parser.Ast;
 
 namespace TestProject1;
 
@@ -37,9 +38,11 @@ event run {
     private static (List<StoryParser.Error> errors, List<StoryParser.Error> markers) Parse(string s)
     {
         var db = new Database();
-        var visitor = new AstVisitor(db, null!);
-        StoryParser.SetupParser(s, out var parser, visitor);
-        parser.r().Accept(visitor);
+        var visitor = new AstVisitor(db);
+        var tokenized = MoiraiTokenizer.Tokenize(s);
+        var parsed = MoiraiGrammar.TryParseR(tokenized.ParseTokens);
+        Assert.That(parsed.HasValue, Is.True, () => parsed.ToString());
+        visitor.VisitR(parsed.Value);
         return (visitor.Errors, visitor.InfoMarkers);
     }
 

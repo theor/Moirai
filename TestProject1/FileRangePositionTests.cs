@@ -1,13 +1,15 @@
 using Moirai.Parser;
+using Moirai.Parser.Ast;
 
 namespace TestProject1;
 
-/// Pins FileRange's line/column convention (ANTLR is 1-based line / 0-based column; FileRange
-/// subtracts 1 from the line so FilePosition ends up 0-based on both axes) against known source
-/// coordinates. This is the migration seam for the ANTLR->Superpower port (see
-/// C:\Users\theor\.claude\plans\stateful-dancing-stroustrup.md, Phase 0 step 5) — the new
-/// Superpower-based FileRange constructor must reproduce these exact numbers, or every LSP/engine
-/// position silently shifts by one.
+/// Pins FileRange's line/column convention against known source coordinates -- the migration seam
+/// for the ANTLR->Superpower port (see C:\Users\theor\.claude\plans\stateful-dancing-stroustrup.md).
+/// Originally written in Phase 0 against the ANTLR-based FileRange constructor; retargeted here in
+/// Phase 3 at the new TextSpan-based one (Superpower positions are 1-based on both line and column,
+/// unlike ANTLR's 1-based-line/0-based-column, so both axes get a "-1" now). Unlike the old
+/// ANTLR-based FileRange (whose End was the *start* of the rule's last consumed token -- a quirk the
+/// original version of this file documented and pinned), End here is the true end of the span.
 public class FileRangePositionTests : TestsBase
 {
     const string Source =
@@ -15,25 +17,30 @@ public class FileRangePositionTests : TestsBase
         "    prop x: number\n" +
         "}\n";
 
+    static RNode Parse()
+    {
+        var tokenized = MoiraiTokenizer.Tokenize(Source);
+        Assert.That(tokenized.Errors, Is.Empty);
+        var result = MoiraiGrammar.TryParseR(tokenized.ParseTokens);
+        Assert.That(result.HasValue, Is.True, () => result.ToString());
+        return result.Value;
+    }
+
     [Test]
     public void TypeDefinitionRange_PinnedToKnownCoordinates()
     {
-        StoryParser.SetupParser(Source, out var parser, new PinningVisitor());
-        var r = parser.r();
-        var typeDef = r.def(0).type_definition();
+        var typeDef = Parse().Defs[0].TypeDefinition;
         Assert.IsNotNull(typeDef);
 
-        var range = new FileRange(typeDef);
+        var range = new FileRange(typeDef!.Span);
 
-        // "entity A {" starts at line 1, column 0 (1-based/0-based ANTLR convention) ->
-        // FileRange's 0-based line is 1 - 1 = 0.
+        // "entity A {" starts at line 1, column 1 (Superpower's 1-based/1-based convention) ->
+        // FileRange's 0-based line/column is 1 - 1 = 0.
         Assert.AreEqual(0, range.Start.Line);
         Assert.AreEqual(0, range.Start.Column);
 
-        // The grammar rule is `type_definition: ... SCOPE_CLOSE LINE_BREAK+;` — its Stop token is
-        // the trailing LINE_BREAK *after* '}', not '}' itself, so the range extends one token past
-        // where it visually looks like it ends. Line 3 col 0 is '}'; the '\n' right after it is at
-        // line 3 col 1 -> 0-based (2, 1). Pin this exact (surprising but current) behavior.
+        // TypeDefinitionNode's span ends at the closing '}' itself (line 3, 0-based column 0) --
+        // End is one character past that, i.e. (2, 1).
         Assert.AreEqual(2, range.End.Line);
         Assert.AreEqual(1, range.End.Column);
     }
@@ -41,44 +48,31 @@ public class FileRangePositionTests : TestsBase
     [Test]
     public void PropDefinitionRange_PinnedToKnownCoordinates()
     {
-        StoryParser.SetupParser(Source, out var parser, new PinningVisitor());
-        var r = parser.r();
-        var typeDef = r.def(0).type_definition();
-        var propDef = typeDef.prop_definition(0);
+        var typeDef = Parse().Defs[0].TypeDefinition!;
+        var propDef = typeDef.PropDefinitions[0];
 
-        var range = new FileRange(propDef);
+        var range = new FileRange(propDef.Span);
 
         // "    prop x: number" is on line 2 (1-based) -> 0-based line 1, starting at column 4.
         Assert.AreEqual(1, range.Start.Line);
         Assert.AreEqual(4, range.Start.Column);
 
-        // Same trailing-LINE_BREAK-in-the-rule effect as above: `prop_definition: ... type
-        // LINE_BREAK+ ;` — Stop is the '\n' after "number", not the "number" token. "    prop x:
-        // number" is 18 chars (0-based columns 0..17), so the '\n' sits at column 18.
+        // PropDefinitionNode's span ends at the type ("number"), not the trailing line break --
+        // "    prop x: number" is 18 chars (0-based columns 0..17), so End.Column is 18.
         Assert.AreEqual(1, range.End.Line);
         Assert.AreEqual(18, range.End.Column);
     }
 
     [Test]
-    public void TerminalNodeRange_PinnedToKnownCoordinates()
+    public void IdentRange_PinnedToKnownCoordinates()
     {
-        StoryParser.SetupParser(Source, out var parser, new PinningVisitor());
-        var r = parser.r();
-        var typeDef = r.def(0).type_definition();
-        var typeIdTerminal = typeDef.TYPE_ID();
+        var typeDef = Parse().Defs[0].TypeDefinition!;
 
-        // A single ITerminalNode ("A") is a zero-width-name token at line 1, column 7.
-        var range = new FileRange(typeIdTerminal);
+        // The type name ("A") is a single-character token at line 1, column 7.
+        var range = new FileRange(typeDef.TypeName!.Value.Span);
         Assert.AreEqual(0, range.Start.Line);
         Assert.AreEqual(7, range.Start.Column);
         Assert.AreEqual(0, range.End.Line);
         Assert.AreEqual(8, range.End.Column);
-    }
-
-    class PinningVisitor : StoryParser.IVisitor
-    {
-        public List<StoryParser.Error> Errors { get; } = new();
-        public MoiraiParser Parser { get; set; } = null!;
-        public (int offsetLine, int offsetColumn) Offset { get; set; }
     }
 }

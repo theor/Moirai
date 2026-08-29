@@ -1,43 +1,36 @@
-﻿using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
+using Moirai.Parser.Ast;
+using Superpower.Model;
 
 namespace Moirai.Parser;
 
-public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallContext, FunctionDefinition? Definition, PropertyPath? SelfPath = null)
+public record FunctionParseContext(AstVisitor Visitor, CallOrRawCall CallContext, FunctionDefinition? Definition, PropertyPath? SelfPath = null)
 {
     public int ParseVariable(out EntityTypeId entityTypeId, out PropertyValue.ValueType type)
     {
         EntityType varType = ParseEntityType();
 
-        int varIndex;
-        if (CallContext is MoiraiParser.CallContext c)
-        {
-            Visitor.DeclareVar(c.VAR_ID().GetText(), varType.RefType, c.VAR_ID().Symbol, out varIndex);
-        }
-        else
-        {
-            var rawCallContext = (MoiraiParser.Raw_callContext) CallContext;
-            Visitor.DeclareVar(rawCallContext.VAR_ID().GetText(), varType.RefType, rawCallContext.VAR_ID().Symbol,
-                out varIndex);
-        }
+        var varId = (CallContext.Call?.VarId ?? CallContext.RawCall?.VarId)!.Value;
+        Visitor.DeclareVar(varId.Text, varType.RefType, varId.Span, out var varIndex);
 
         entityTypeId = varType.Id;
         type = varType.RefType;
         return varIndex;
     }
 
-    public ParserRuleContext GetArgumentToken(int index)
+    /// Uniform view of "the argument at `index`" regardless of call shape: for `call`, its `index`th
+    /// parenthesized `expr`; for `raw_call`, its single bare `value` (wrapped as an `ExprNode` so
+    /// callers don't need to care which shape they're looking at — mirrors how `expr: value` already
+    /// wraps a bare value in the grammar). Null when out of range, matching the old ANTLR-generated
+    /// indexed accessors' behavior.
+    public ExprNode? GetArgumentToken(int index)
     {
-        if (CallContext is MoiraiParser.CallContext c)
-        {
-            return c.expr(index);
-        }
-        else if (CallContext is MoiraiParser.Raw_callContext r)
-        {
-            return r.value();
-        }
+        if (CallContext.Call is { } c)
+            return index >= 0 && index < c.Args.Length ? c.Args[index] : null;
 
-        return CallContext;
+        var r = CallContext.RawCall!;
+        if (index != 0 || r.Value == null)
+            return null;
+        return new ExprNode(null, null, r.Value, null, null, null, null, r.Value.Span);
     }
 
     public IValue ParseArgument(int index, out PropertyValue.ValueType type)
@@ -45,35 +38,30 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
         bool hasInstanceParam = Definition.HasValue && Definition.Value.IsInstanceMethod && SelfPath.HasValue;
         if (index == 0 && hasInstanceParam)
         {
-            type =  (SelfPath.GetValueOrDefault().Segments?.Count ?? 0) != 0
+            type = (SelfPath.GetValueOrDefault().Segments?.Count ?? 0) != 0
                 ? PropertyValue.TypeTypedRef(SelfPath.Value.Segments[^1].TypeId)
                 : SelfPath.Value.TypeId;
             return SelfPath.Value;
         }
-        if (CallContext is MoiraiParser.CallContext c)
-        {
-            return Visitor.ParseExpr(c.expr(index - (hasInstanceParam ? 1 : 0)), out type)!;
-        }
-        else if (CallContext is MoiraiParser.Raw_callContext r)
-        {
-            if (index != 0)
-            {
-                Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext,
-                    "Expected more arguments, convert to () syntax");
-                type = default;
-                return default!;
-            }
 
-            return Visitor.ParseValue(r.value(), out type);
+        if (CallContext.Call != null)
+        {
+            var arg = GetArgumentToken(index - (hasInstanceParam ? 1 : 0));
+            return Visitor.ParseExpr(arg, out type)!;
         }
 
-        type = default;
-        return default!;
+        if (index != 0)
+        {
+            Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext.Span,
+                "Expected more arguments, convert to () syntax");
+            type = default;
+            return default!;
+        }
+
+        return Visitor.ParseValue(CallContext.RawCall!.Value!, out type);
     }
-    public IValue ParseArgument(int index)
-    {
-        return ParseArgument(index, out _);
-    }
+
+    public IValue ParseArgument(int index) => ParseArgument(index, out _);
 
     /// <summary>
     /// Parses argument <paramref name="index"/> as a path whose final segment is a collection property
@@ -93,47 +81,36 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
             return true;
         }
 
-        Visitor.AddError(StoryParser.ErrorCode.ExpectedCollection, GetArgumentToken(index),
+        Visitor.AddError(StoryParser.ErrorCode.ExpectedCollection, GetArgumentToken(index)?.Span ?? CallContext.Span,
             "expected a collection property path (e.g. $e.items)");
         return false;
     }
 
-    public int ArgCount => CallContext is MoiraiParser.CallContext c
-        ? c.expr().Length
-        : (CallContext is MoiraiParser.Raw_callContext r && r.value() != null ? 1 : 0);
+    public int ArgCount => CallContext.Call is { } c
+        ? c.Args.Length
+        : (CallContext.RawCall != null && CallContext.RawCall.Value != null ? 1 : 0);
 
     public EntityType ParseEntityType()
     {
-        ITerminalNode t;
-        if (CallContext is MoiraiParser.CallContext c)
-            t = StoryParser.GetTypeTerminal(c.type());
-        else
-            t = StoryParser.GetTypeTerminal(((MoiraiParser.Raw_callContext) CallContext).type());
-        EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(t))?.Id ?? EntityTypeId.Null;
-            
-        Visitor.Linker?.LinkType(new FileRange(t.Symbol), type);
+        var typeName = (CallContext.Call?.DeclType ?? CallContext.RawCall?.DeclType)!.Name;
+        EntityTypeId type = Visitor.Database.GetEntityType(Visitor.ParseType(typeName))?.Id ?? EntityTypeId.Null;
+
+        Visitor.Linker?.LinkType(new FileRange(typeName.Span), type);
         if (type == EntityTypeId.Null)
-        {
-            Visitor.AddError(StoryParser.ErrorCode.UnknownEntityType, GetArgumentToken(0), $"'{type}'");
-        }
+            Visitor.AddError(StoryParser.ErrorCode.UnknownEntityType, GetArgumentToken(0)?.Span ?? typeName.Span,
+                $"'{type}'");
 
-        return this.Visitor.Database.Types[(int) type.Id];
+        return Visitor.Database.Types[(int) type.Id];
     }
 
-    public string GetText(RuleContext expr) => Visitor.Parser.TokenStream.GetText(expr);
+    public string GetText(TextSpan span) => span.ToStringValue();
 
-    public MoiraiParser.ScopeContext GetScopeContext()
-    {
-        MoiraiParser.ScopeContext scopeContext = CallContext is MoiraiParser.CallContext c
-            ? c.scope()
-            : ((MoiraiParser.Raw_callContext)CallContext).scope();
-        return scopeContext;
-    }
+    public ScopeNode? GetScopeContext() => CallContext.Call?.Scope ?? CallContext.RawCall?.Scope;
 
     public void ExpectArgcount(int i, bool isMaxCount = false)
     {
         if (isMaxCount ? ArgCount > i : ArgCount != i)
-            Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext,
+            Visitor.AddError(StoryParser.ErrorCode.MissingArgument, CallContext.Span,
                 $"Expected {i} arguments{(isMaxCount ? " max" : "")}, got {ArgCount}");
     }
 
@@ -153,9 +130,10 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
 
         if (v is IValueSql sql)
             return sql;
-        Visitor.AddError(StoryParser.ErrorCode.ExpectedSql, CallContext, "Expected SQL expression");
+        Visitor.AddError(StoryParser.ErrorCode.ExpectedSql, CallContext.Span, "Expected SQL expression");
         return null!;
     }
+
     public IValue ParsePredicate(EntityTypeId entityTypeId)
     {
         if (ArgCount == 1)
@@ -164,6 +142,7 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
             WarnIfRedundantTypeFilter(only, 0, entityTypeId);
             return only;
         }
+
         IValue[] preds = new IValue[ArgCount];
         for (int i = 0; i < ArgCount; i++)
         {
@@ -187,7 +166,8 @@ public record FunctionParseContext(AstVisitor Visitor, ParserRuleContext CallCon
             && pred is IsOfType { } iot
             && iot.ValueTypeId == entityTypeId)
         {
-            Visitor.AddWarning(StoryParser.ErrorCode.RedundantTypeFilter, GetArgumentToken(index),
+            Visitor.AddWarning(StoryParser.ErrorCode.RedundantTypeFilter,
+                GetArgumentToken(index)?.Span ?? CallContext.Span,
                 $"redundant 'type = {Visitor.Database.GetEntityTypeName(entityTypeId)}' filter; " +
                 "the iteration is already constrained to this type by its declaration");
         }

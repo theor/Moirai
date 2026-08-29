@@ -71,6 +71,13 @@ public static partial class MoiraiGrammar
             : TokenListParserResult.CastEmpty<MoiraiTokenKind, ScopeNode, ScopeNode?>(s);
     }
 
+    /// Only actually looks for a trailing `{ ... }` scope when `allow` is true (see ExprAtom's doc
+    /// comment on `allowTrailingScope` for why) — otherwise a following `{` is left untouched for
+    /// whatever the enclosing construct needs it for.
+    static TokenListParserResult<MoiraiTokenKind, ScopeNode?> MaybeScope(TokenList<MoiraiTokenKind> input,
+        bool allow) =>
+        allow ? ScopeOptional(input) : TokenListParserResult.Value((ScopeNode?) null, input, input);
+
     /// Tries "type VAR_ID" starting at `input` (the shared prefix of call's and raw_call's typed
     /// declaration form, e.g. `pick Person $p: (...)` / `create Person $p`). Returns false — with
     /// `input` untouched — if it doesn't match, so the caller can fall back to other alternatives;
@@ -103,7 +110,8 @@ public static partial class MoiraiGrammar
 
     // call : fun_id (type VAR_ID COLON)? PAREN_OPEN (expr (COMMA expr)*)? PAREN_CLOSE scope? ;
     static TokenListParserResult<MoiraiTokenKind, CallNode> CallTail(TokenList<MoiraiTokenKind> original,
-        Ident funId, TypeNode? declType, Ident? declVarId, TokenList<MoiraiTokenKind> atParen)
+        Ident funId, TypeNode? declType, Ident? declVarId, TokenList<MoiraiTokenKind> atParen,
+        bool allowTrailingScope)
     {
         var open = atParen.ConsumeToken(); // guaranteed ParenOpen by the caller's peek
         var args = new List<ExprNode>();
@@ -130,7 +138,7 @@ public static partial class MoiraiGrammar
         if (!close.HasValue || close.Value.Kind != MoiraiTokenKind.ParenClose)
             return TokenListParserResult.Empty<MoiraiTokenKind, CallNode>(remainder, "')'");
 
-        var scopeResult = ScopeOptional(close.Remainder);
+        var scopeResult = MaybeScope(close.Remainder, allowTrailingScope);
         if (!scopeResult.HasValue)
             return TokenListParserResult.CastEmpty<MoiraiTokenKind, ScopeNode?, CallNode>(scopeResult);
 
@@ -147,7 +155,8 @@ public static partial class MoiraiGrammar
     /// (just the identifier, or the start of a property chain) once every call/raw_call shape has
     /// been ruled out — matching how ANTLR's own grammar only accepts `path` here once neither
     /// call form applies. See MoiraiGrammar's type doc for why this can't be plain Or/Try chaining.
-    static TokenListParserResult<MoiraiTokenKind, ValueNode> IdLeadingValue(TokenList<MoiraiTokenKind> input)
+    static TokenListParserResult<MoiraiTokenKind, ValueNode> IdLeadingValue(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope)
     {
         var funIdResult = FunId(input);
         if (!funIdResult.HasValue)
@@ -160,7 +169,7 @@ public static partial class MoiraiGrammar
         if (!hasDecl && PeekKind(afterFunId) == MoiraiTokenKind.ParenOpen)
         {
             // call, no type/var decl: fun_id PAREN_OPEN ...
-            var call = CallTail(input, funId, null, null, afterFunId);
+            var call = CallTail(input, funId, null, null, afterFunId, allowTrailingScope);
             return call.HasValue
                 ? TokenListParserResult.Value(VCall(call.Value), input, call.Remainder)
                 : TokenListParserResult.CastEmpty<MoiraiTokenKind, CallNode, ValueNode>(call);
@@ -176,7 +185,7 @@ public static partial class MoiraiGrammar
                 PeekKindAt(afterDecl, 1) == MoiraiTokenKind.ParenOpen)
             {
                 var colon = afterDecl.ConsumeToken();
-                var call = CallTail(input, funId, declType, declVarId, colon.Remainder);
+                var call = CallTail(input, funId, declType, declVarId, colon.Remainder, allowTrailingScope);
                 return call.HasValue
                     ? TokenListParserResult.Value(VCall(call.Value), input, call.Remainder)
                     : TokenListParserResult.CastEmpty<MoiraiTokenKind, CallNode, ValueNode>(call);
@@ -195,7 +204,7 @@ public static partial class MoiraiGrammar
                 afterColon = v.Remainder;
             }
 
-            var scopeResult = ScopeOptional(afterColon);
+            var scopeResult = MaybeScope(afterColon, allowTrailingScope);
             if (!scopeResult.HasValue)
                 return TokenListParserResult.CastEmpty<MoiraiTokenKind, ScopeNode?, ValueNode>(scopeResult);
 
@@ -209,7 +218,7 @@ public static partial class MoiraiGrammar
         var bareValue = Value(afterFunId);
         if (bareValue.HasValue)
         {
-            var scopeResult = ScopeOptional(bareValue.Remainder);
+            var scopeResult = MaybeScope(bareValue.Remainder, allowTrailingScope);
             if (!scopeResult.HasValue)
                 return TokenListParserResult.CastEmpty<MoiraiTokenKind, ScopeNode?, ValueNode>(scopeResult);
 
@@ -229,7 +238,8 @@ public static partial class MoiraiGrammar
     }
 
     // value: raw_call | call | string | enum_value | type_id | path | bool | number | NULL ;
-    static TokenListParserResult<MoiraiTokenKind, ValueNode> Value(TokenList<MoiraiTokenKind> input)
+    static TokenListParserResult<MoiraiTokenKind, ValueNode> Value(TokenList<MoiraiTokenKind> input,
+        bool allowTrailingScope = false)
     {
         var lead = PeekKind(input);
         switch (lead)
@@ -272,7 +282,7 @@ public static partial class MoiraiGrammar
                     : TokenListParserResult.CastEmpty<MoiraiTokenKind, PathNode, ValueNode>(p);
             }
             case MoiraiTokenKind.Id:
-                return IdLeadingValue(input);
+                return IdLeadingValue(input, allowTrailingScope);
             case MoiraiTokenKind.TypeId:
             {
                 if (PeekKindAt(input, 1) == MoiraiTokenKind.Dot)
@@ -308,13 +318,15 @@ public static partial class MoiraiGrammar
         {
             if (PeekKind(afterFunId) != MoiraiTokenKind.ParenOpen)
                 return TokenListParserResult.Empty<MoiraiTokenKind, CallNode>(afterFunId, "'('");
-            return CallTail(input, funIdResult.Value, null, null, afterFunId);
+            // Reached only via dot_property (e.g. `$e.foo()`), where a trailing scope never applies.
+            return CallTail(input, funIdResult.Value, null, null, afterFunId, allowTrailingScope: false);
         }
 
         // type VAR_ID COLON PAREN_OPEN ... — call's typed-decl form requires the colon.
         if (PeekKind(afterDecl) != MoiraiTokenKind.Colon || PeekKindAt(afterDecl, 1) != MoiraiTokenKind.ParenOpen)
             return TokenListParserResult.Empty<MoiraiTokenKind, CallNode>(afterDecl, "':' followed by '('");
         var colonTok = afterDecl.ConsumeToken();
-        return CallTail(input, funIdResult.Value, declType, declVarId, colonTok.Remainder);
+        return CallTail(input, funIdResult.Value, declType, declVarId, colonTok.Remainder,
+            allowTrailingScope: false);
     }
 }
