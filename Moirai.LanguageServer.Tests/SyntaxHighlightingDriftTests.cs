@@ -1,22 +1,22 @@
-using Antlr4.Runtime;
 using Microsoft.Extensions.Logging.Testing;
 using Moirai.Parser;
 using NUnit.Framework;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion;
+namespace Moirai.LanguageServer.Tests;
 
-// Guards the LSP semantic-highlighter (TokenVisitor) against grammar drift.
+// Guards the LSP semantic-highlighter against grammar drift.
 //
-// TokenVisitor derives from MoiraiParserBaseVisitor, so when the grammar gains a new keyword the
-// base visitor silently walks past it: parsing keeps working, but the keyword is never highlighted
-// and nothing fails. These tests make that failure loud:
+// These tests were written when highlighting was an ANTLR parse-tree visitor, where a newly added
+// keyword was silently walked past: parsing kept working, the keyword was never coloured, and
+// nothing failed. The current highlighter colours keywords straight from the token kind, which
+// makes that particular gap structurally impossible -- but the tests are kept, retargeted at
+// MoiraiTokenizer, because they now guard the same property one level up:
 //
-//   1. Completeness  - every keyword token defined in the lexer must appear in Corpus below.
-//                      Add a keyword to moirai_lexer.g4 and this fails until you give it an example.
+//   1. Completeness  - every reserved word the tokenizer knows must appear in Corpus below.
+//                      Add a keyword to MoiraiTokenizer and this fails until you give it an example.
 //   2. Coverage      - every keyword occurrence in Corpus must be emitted as a semantic token.
-//                      The example exists but TokenVisitor doesn't highlight it -> this fails.
 //
 // So a new language feature can't ship a green build without either highlighting its keyword or
 // consciously exempting it (see ExemptKeywords).
@@ -84,50 +84,31 @@ trigger grows {
 }
 ";
 
-    // Keyword literals deliberately NOT highlighted as keywords by TokenVisitor. Documented here so the
+    // Keyword literals deliberately NOT highlighted as keywords. Documented here so the
     // exemption is a conscious choice rather than a silent gap. (Currently empty: every keyword is highlighted.)
     private static readonly HashSet<string> ExemptKeywords = new();
 
     private static readonly DocumentUri Uri = new("file", null, "/highlight-corpus.sg", null, null);
 
-    // Token types whose literal name is a bare word (e.g. 'event', 'when_created') — the language keywords.
-    private static List<(int type, string text)> KeywordTokenTypes()
-    {
-        var lexer = new moirai_lexer(new AntlrInputStream(""));
-        var vocab = lexer.Vocabulary;
-        var result = new List<(int, string)>();
-        for (int t = 1; t <= lexer.Atn.maxTokenType; t++)
-        {
-            var literal = vocab.GetLiteralName(t);
-            if (literal is null || literal.Length < 3)
-                continue;
-            var word = literal.Trim('\'');
-            if (IsBareWord(word) && !ExemptKeywords.Contains(word))
-                result.Add((t, word));
-        }
+    // The language's reserved words, straight from the tokenizer's own table.
+    private static List<string> Keywords() =>
+        MoiraiTokenizer.ReservedWords.Keys.Where(w => !ExemptKeywords.Contains(w)).ToList();
 
-        return result;
-    }
+    private static HashSet<MoiraiTokenKind> KeywordKinds() =>
+        MoiraiTokenizer.ReservedWords
+            .Where(kv => !ExemptKeywords.Contains(kv.Key))
+            .Select(kv => kv.Value)
+            .ToHashSet();
 
-    private static bool IsBareWord(string s)
-    {
-        if (s.Length == 0 || !(char.IsLetter(s[0]) || s[0] == '_'))
-            return false;
-        foreach (var ch in s)
-            if (!(char.IsLetterOrDigit(ch) || ch == '_'))
-                return false;
-        return true;
-    }
-
-    // All occurrences (0-based line, 0-based column) of keyword tokens in source.
+    // All occurrences (0-based line, 0-based column) of keyword tokens in source. Superpower
+    // positions are 1-based on both axes; LSP is 0-based on both.
     private static List<(string word, int line, int col)> KeywordOccurrences(string source)
     {
-        var keywordTypes = KeywordTokenTypes().ToDictionary(k => k.type, k => k.text);
-        var lexer = new moirai_lexer(new AntlrInputStream(source));
+        var kinds = KeywordKinds();
         var occurrences = new List<(string, int, int)>();
-        foreach (var tok in lexer.GetAllTokens())
-            if (keywordTypes.TryGetValue(tok.Type, out var word))
-                occurrences.Add((word, tok.Line - 1, tok.Column));
+        foreach (var tok in MoiraiTokenizer.Tokenize(source).FullTokens)
+            if (kinds.Contains(tok.Kind))
+                occurrences.Add((tok.ToStringValue(), tok.Position.Line - 1, tok.Position.Column - 1));
         return occurrences;
     }
 
@@ -144,7 +125,7 @@ trigger grows {
     {
         var doc = Process(Corpus);
         Assert.That(doc.Errors, Is.Empty,
-            () => "Corpus must parse cleanly or the visitor skips subtrees:\n" +
+            () => "Corpus must parse cleanly or whole definitions drop out of the AST:\n" +
                   string.Join("\n", doc.Errors.Select(e => $"  {e.Code}: {e.Message}")));
     }
 
@@ -152,14 +133,14 @@ trigger grows {
     public void Corpus_exercises_every_grammar_keyword()
     {
         var present = KeywordOccurrences(Corpus).Select(o => o.word).ToHashSet();
-        var missing = KeywordTokenTypes().Select(k => k.text).Where(w => !present.Contains(w)).ToList();
+        var missing = Keywords().Where(w => !present.Contains(w)).ToList();
         Assert.That(missing, Is.Empty,
-            () => "These grammar keywords have no example in Corpus — add one (and highlight them in " +
-                  "TokenVisitor), or add to ExemptKeywords: " + string.Join(", ", missing));
+            () => "These grammar keywords have no example in Corpus — add one (and make sure they are " +
+                  "highlighted), or add to ExemptKeywords: " + string.Join(", ", missing));
     }
 
     // `:=` is punctuation (not a bare-word keyword), so the keyword drift tests don't cover it.
-    // This pins that the object-initializer operator and its property are highlighted by TokenVisitor.
+    // This pins that the object-initializer operator and its property are highlighted.
     [Test]
     public void Init_colon_equals_is_highlighted()
     {
@@ -167,13 +148,13 @@ trigger grows {
         var doc = Process(src);
         Assert.That(doc.Errors, Is.Empty, () => string.Join("\n", doc.Errors.Select(e => e.Message)));
 
-        var lexer = new moirai_lexer(new AntlrInputStream(src));
-        var colonEq = lexer.GetAllTokens().Single(t => t.Type == moirai_lexer.COLON_EQ);
+        var colonEq = MoiraiTokenizer.Tokenize(src).FullTokens
+            .Single(t => t.Kind == MoiraiTokenKind.ColonEq);
         var highlighted = doc.SemanticTokens
             .Select(t => (t.range.Start.Line, t.range.Start.Character))
             .ToHashSet();
 
-        Assert.That(highlighted, Does.Contain((colonEq.Line - 1, colonEq.Column)),
+        Assert.That(highlighted, Does.Contain((colonEq.Position.Line - 1, colonEq.Position.Column - 1)),
             "the := initializer operator must be emitted as a semantic token");
     }
 
@@ -190,7 +171,7 @@ trigger grows {
             .ToList();
 
         Assert.That(gaps, Is.Empty,
-            () => "TokenVisitor emits no semantic token for these keyword occurrences (highlighting is " +
+            () => "No semantic token is emitted for these keyword occurrences (highlighting is " +
                   "out of sync with the grammar):\n" +
                   string.Join("\n", gaps.Select(g => $"  '{g.word}' at {g.line}:{g.col}")));
     }

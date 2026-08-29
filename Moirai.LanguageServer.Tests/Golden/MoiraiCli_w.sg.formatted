@@ -1,0 +1,1051 @@
+@display(Item, 'Items made',maker = $self)
+@display(Person, 'Children', parent1 = $self or parent2 = $self)
+@display(Person, 'Parents', $other = $self.parent1 or $other = $self.parent2)
+@display(Item, 'Items owned',owner = $self)
+entity Person {
+    prop age: Age
+    prop first_name: string
+    prop family_name: string
+    prop title: Title
+    prop devotion: percentage
+    prop is_saint: bool
+    prop alive: bool
+    prop birthdate: number
+    prop prestige: percentage
+    prop mastery: Mastery
+    prop deathdate: number
+    prop partner: Person
+    prop god: God
+    prop faction: Faction
+    prop birthplace: Country
+    prop place: Country
+    prop job: Job
+    prop parent1: Person
+    prop parent2: Person
+    prop killer: Person
+    prop prosperity: percentage
+}
+@display(ItemOwnership, 'Owners', item = $self, '{$other.owner.name} from {$other.start_year} to {$other.end_year}')
+entity Item {
+    prop maker: Person
+    prop item_type: ItemSource
+    prop owner: Person
+    prop creation_date: number
+    prop enchanted: bool
+    prop power: ArtifactPower
+    prop curse: bool
+}
+entity ItemOwnership {
+    prop item: Item
+    prop owner: Person
+    prop start_year: number
+    prop end_year: number
+}
+@display(Person, 'Members',faction = $self)
+@display(Person, 'Founder', $other = $self.founder)
+entity Faction {
+    prop founder: Person
+    prop kind: FactionKind
+    prop patron: God
+    prop home: Country
+}
+@display(Person, 'Citizens',birthplace = $self)
+@display(Person, 'Ruler', $other = $self.ruler)
+@display(Settlement, 'Settlements', country = $self)
+@display(Country, 'Borders', contains($self.neighbors, $other))
+entity Country {
+    prop war_with: Country
+    prop health: CountryHealth
+    prop prosperity: percentage
+    prop ruler: Person
+    // Adjacent realms (set once at start). Wars are declared between neighbors and migration moves a
+    // person to a bordering realm, so geography constrains conflict and movement.
+    prop neighbors: [Country]
+}
+@display(Person, 'Believers',god = $self)
+@display(Temple, 'Temples', god = $self)
+entity God {
+    prop domain: GodTypes
+}
+@display(Person, 'High priest', $other = $self.founder)
+entity Temple {
+    prop god: God
+    prop founder: Person
+    prop country: Country
+    prop founded: number
+}
+@display(Person, 'Founder', $other = $self.founder)
+entity Settlement {
+    prop country: Country
+    prop founder: Person
+    prop founded: number
+    prop kind: SettlementKind
+    prop status: SettlementStatus
+    prop prosperity: percentage
+}
+@display(Legend, 'Legend', monster = $self)
+entity Monster {
+    prop kind: MonsterKind
+    prop lair: Country
+    prop power: number
+    prop slain_by: Person
+    prop hoard: Item
+    prop alive: bool
+}
+// A named deed remembered forever: which hero slew which monster, where, and in what year. Legends
+// cite the actual entities, so the chronicle can point back to the people and places involved.
+@display(Person, 'Hero of', $other = $self.hero)
+entity Legend {
+    prop hero: Person
+    prop monster: Monster
+    prop place: Country
+    prop year: number
+}
+// A named age of history. Eras form a contiguous timeline (each begins where the last ended), so the
+// chronicle can be read in chapters. The open era (end_year = 0) is the present age.
+entity Era {
+    prop start_year: number
+    prop end_year: number
+}
+
+enum Job {
+    Farmer, Fisher, Hunter,
+    Painter, Sculptor, Bard,
+    Merchant, Smith,
+    Wizard,
+    Soldier,
+    Bandit,
+    Monk,
+    Prince, King,
+}
+enum Age { Child, Young, Adult, Old }
+// Political rank. Most people are Commoner; a Country's reigning monarch holds King (see crown_monarch
+// and the succession trigger). King was previously a dead Job value with no mechanics.
+enum Title { Commoner, King }
+// Settlements: named places founded inside Countries that grow Village -> Town -> City and can be
+// reduced to ruins by war. They give the world a gazetteer of places, not just statistical Countries.
+enum SettlementKind { Village, Town, City }
+enum SettlementStatus { Thriving, Struggling, Ruined }
+// The arcane: a kind of enchantment carried by a magical artifact. Wizards who reach high mastery
+// forge named artifacts of one of these powers.
+enum ArtifactPower { Flame, Frost, Storm, Healing, Shadow, Ward }
+// Factions take on a character from their founder's calling: mage circles, knightly orders, thieves
+// guilds, merchant leagues, or cults devoted to a god. Previously a Faction was just a name + founder.
+enum FactionKind { Cult, KnightlyOrder, MageCircle, ThievesGuild, MerchantLeague }
+// Monsters that emerge from the wild and the ruined places, raid settlements, hoard artifacts, and
+// fall to heroes — the stuff of legend.
+enum MonsterKind { Dragon, Wyrm, Lich, Demon, Giant }
+enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
+enum ItemSource { Forged, Painted, Sculpted }
+enum Mastery { Novice, Seasoned, Master, Legendary }
+enum CountryHealth { Disarray, Recession, Neutral, Emerging, Prosperous }
+
+
+
+
+enum CountryName {
+    The_Land_of,
+    The_Kingdom_of,
+    The_Coast_of,
+    The_Province_of
+}
+enum GodTypes {
+    Thunder,
+    Fertility,
+    The_Hunt,
+    The_Sea,
+    Wisdom,
+    Murder,
+    Blood,
+    War,
+    Death,
+}
+
+// Helper functions that DRY the parent relationships while keeping scalar parent1/parent2 fields.
+// Inlined into pick/each predicates (multi-parameter function -> SQL).
+function is_child_of($ch: Person, $parent: Person): bool {
+    $ch.parent1 = $parent or $ch.parent2 = $parent
+}
+function has_parent($p: Person): bool {
+    $p.parent1 != null or $p.parent2 != null
+}
+
+// Procedural subroutines (invoked via call(...), not scheduled) — `function`, not `event`.
+function create_country() {
+    create Country $c: '{random(CountryName)} {random(Name)}' {
+        prosperity := 50%
+        health := CountryHealth.Neutral
+    }
+    record('{$c.name} is created')
+}
+
+function create_god() {
+    var $dom: random(GodTypes)
+    create God $g: ('{random(Name)}, God of {$dom}') {
+        domain := $dom
+    }
+    record '{$g.name} appears'
+}
+@start
+event create_time {
+    create Time $t: 'time' {
+        year := 764
+    }
+    call(create_country, 10)
+    call(create_god, 10)
+}
+
+table AgeName {
+    'The Age of Ashes', 'The Long Peace', 'The Sundering', 'The Golden Age',
+    'The Age of Heroes', 'The Shadow Years', 'The Age of Kings', 'The Reckoning',
+    'The Wandering Years', 'The Age of Iron', 'The Age of Embers', 'The Silent Age'
+}
+// History opens in the Founding Age.
+@start
+event begin_history {
+    create Era $e: ('The Founding Age') {
+        start_year := 764
+    }
+}
+// Every so often an age turns: the open era is closed and a new named age begins, chaptering the
+// chronicle. EveryXYear makes this deterministic (exactly one turn per window).
+@frequency(1, EveryXYear, 90)
+@tag('era')
+event advance_age {
+    pick Era $cur: (end_year = 0)
+    set $cur.end_year = #Time.year
+    create Era $next: ('{roll(AgeName)}') {
+        start_year := #Time.year
+    }
+    record('The {$cur.name} ends; {$next.name} begins in the year {#Time.year}')
+}
+
+// Wire up the map once at start: give each realm a couple of bordering neighbors (links are mutual).
+@start
+event link_countries {
+    each Country $c {
+        if (pick Country $n: (id != $c and not(contains($c.neighbors, $n)))) {
+            add($c.neighbors, $n)
+            add($n.neighbors, $c)
+        }
+        if (pick Country $n: (id != $c and not(contains($c.neighbors, $n)))) {
+            add($c.neighbors, $n)
+            add($n.neighbors, $c)
+        }
+    }
+}
+
+@frequency(1, PerXYear, 15)
+@tag('country_events')
+event update_country_health {
+    each Country $c {
+        var $prev: $c.health
+        set $c.health = ($c.prosperity / 10 + 1) / 2
+        var $diff: $prev != $c.health
+        match $diff, $c.health  {
+
+            false, CountryHealth.Disarray => random_weighted 100 {
+                3 => {
+                    record('The governement of {$c.name} disappears in a coup')
+                    set $c.health = CountryHealth.Neutral
+                    set $c.prosperity = 50%
+                }
+            }
+            // true, CountryHealth.Disarray => record('{$c.name} enters an era or disarray')
+            true, CountryHealth.Prosperous => record('{$c.name} enters an era of prosperity')
+            //  _ => {}
+        }
+    }
+}
+
+table SettlementName {
+    'Aldermoor', 'Highvale', 'Stonebridge', 'Greywater', 'Thornkeep', 'Westmarch',
+    'Duskhollow', 'Riverton', 'Blackmoor', 'Fairhaven', 'Ravensford', 'Oldcastle',
+    'Emberfall', 'Northwatch', 'Silverbrook', 'Wraithmoor'
+}
+// Found a named settlement in $realm, attributed to $founder. A parameterized event invoked via
+// call(found_settlement, founder, realm) from both crown_monarch (a new ruler's seat) and `settle`.
+@tag('geography')
+event found_settlement ($founder: Person, $realm: Country) {
+    create Settlement $s: ('{roll(SettlementName)}') {
+        country := $realm
+        founder := $founder
+        founded := #Time.year
+        kind := SettlementKind.Village
+        status := SettlementStatus.Thriving
+        prosperity := 40%
+    }
+    record('{$founder.name} founds the village of {$s.name} in {$realm.name}')
+}
+
+// Raise a ruler over any country whose throne is empty (a newly founded realm, or one left vacant by
+// a heirless death). Crowning lends the new monarch standing, so their House becomes prominent.
+@frequency(1, PerXYear, 3)
+@tag('politics')
+event crown_monarch {
+    pick Country $realm: (ruler = null)
+    pick Person $p: (alive and age > Age.Young and place = $realm and title = Title.Commoner)
+    set $realm.ruler = $p
+    set $p.title = Title.King
+    set $p.prestige = $p.prestige + 30%
+    record('{$p.name} of House {$p.family_name} is crowned ruler of {$realm.name}')
+    call(found_settlement, $p, $realm)
+}
+
+@frequency(1, PerXYear, 10)
+@tag('geography')
+event settle {
+    pick Person $founder: (alive and age > Age.Young)
+    var $realm: $founder.place
+    if $realm {
+        call(found_settlement, $founder, $realm)
+    }
+}
+
+// Thriving settlements climb Village -> Town -> City over the years.
+@frequency(1, PerXYear, 12)
+@tag('geography')
+event settlement_grows {
+    pick Settlement $s: (status = SettlementStatus.Thriving)
+    match $s.kind {
+        SettlementKind.Village => {
+            set $s.kind = SettlementKind.Town
+            set $s.prosperity = $s.prosperity + 10%
+            record('The village of {$s.name} grows into a town')
+        }
+        SettlementKind.Town => {
+            set $s.kind = SettlementKind.City
+            set $s.prosperity = $s.prosperity + 10%
+            record('The town of {$s.name} grows into a city')
+        }
+    }
+}
+
+// War reduces a settlement of a belligerent country to ruins — a lasting landmark of the conflict.
+@frequency(1, PerXYear, 15)
+@tag('geography', 'war')
+event settlement_sacked {
+    pick Country $c: (war_with != null)
+    pick Settlement $s: (country = $c and status != SettlementStatus.Ruined)
+    set $s.status = SettlementStatus.Ruined
+    set $s.prosperity = 0%
+    record('{$s.name} in {$c.name} is sacked and falls into ruin')
+}
+
+@tag('items')
+trigger item_created {
+    when_created Item
+    create ItemOwnership $on
+    set $on.owner = $new.owner
+    set $on.item = $new
+    set $on.start_year = #Time.year
+}
+@tag('items')
+trigger item_change_owner {
+    when Item and owner != $old.owner
+
+    // Close the currently-open ownership record BEFORE opening the new one. Otherwise the pick below
+    // matches the just-created (end_year = 0) record too and, picking at random, may close that one
+    // instead of the previous owner's — leaving the real record open forever and writing a bogus
+    // same-year record. (if-pick so a missing open record doesn't abort the trigger.)
+    if (pick ItemOwnership $o: (item = $old and end_year = 0)) {
+        set $o.end_year = #Time.year
+    }
+
+    create ItemOwnership $on
+    set $on.owner = $new.owner
+    set $on.item = $new
+    set $on.start_year = #Time.year
+}
+
+@tag('items')
+trigger inherit {
+    when Person and alive = false and $old.alive
+    // record('{$new.name} died')
+    set $new.deathdate = #Time.year
+    each Person $child: (is_child_of($child, $new) and alive) {
+        record('{$child.name} lose their parent, {$new.name}')
+        if $new.killer {
+            var $k: $new.killer
+            record '{$child.name} starts a vendetta with {$k.name}'
+        }
+    }
+    each Item $i: (owner = $new){
+        if(pick Person $child: (alive and is_child_of($child, $new))) {
+        // pick $child:( type=Person, id = $l.child, alive)
+            set $i.owner = $child
+            record('{$child.name} inherits the {$i.name} from {$new.name}')
+        } else {
+            record('The {$i.name} is lost after the death of {$new.name}')
+            set $i.owner = null
+
+        }
+    }
+}
+
+@tag('death')
+trigger buries_children {
+    when Person and alive = false and $old.alive
+
+    each Person $parent: (is_child_of($new, $parent) and alive) {
+        set $parent.prosperity = $parent.prosperity - 20%
+        record('{$parent.name} bury their child, {$new.name}')
+    }
+}
+
+// When a reigning monarch dies, the crown passes to a living child of their house; with no living
+// child the throne is left vacant and crown_monarch later raises a new ruler. Fires alongside
+// `inherit` (both react to a Person's death).
+@tag('politics')
+trigger succession {
+    when Person and alive = false and $old.alive
+
+    // Release EVERY throne the deceased held (a monarch can hold more than one crown via inheritance),
+    // so no realm is ever left with a corpse on the throne.
+    each Country $realm: (ruler = $new) {
+        if (pick Person $heir: (alive and is_child_of($heir, $new))) {
+            set $realm.ruler = $heir
+            set $heir.title = Title.King
+            set $heir.prestige = $heir.prestige + 20%
+            record('{$heir.name} of House {$heir.family_name} succeeds {$new.name} as ruler of {$realm.name}')
+        } else {
+            set $realm.ruler = null
+            record('The throne of {$realm.name} is left vacant after the death of {$new.name}')
+        }
+    }
+}
+
+// A believer who died in deep devotion is canonized — remembered in the chronicle as a saint of
+// their god long after death.
+@tag('faith')
+trigger canonize_saint {
+    when Person and alive = false and $old.alive and devotion > 80% and god != null
+
+    // Only a rare few of the deeply devout are remembered as saints, so the title stays meaningful.
+    if random(100) < 8 {
+        set $new.is_saint = true
+        record('{$new.name} is canonized as a saint of {$new.god.name}')
+    }
+}
+
+trigger born {
+    when_created Person
+    // record('!!! BORN {$new.birthdate} {#Time.year}')
+    // assert_eq $new.birthdate, null
+    set $new.alive = true
+    set $new.prosperity = 50%
+    set $new.age = Age.Child
+    set $new.title = Title.Commoner
+    set $new.birthdate = #Time.year
+    set $new.place = $new.birthplace
+
+    // A person's age transitions are known the instant they're born, so schedule each one to fire at its
+    // exact future year instead of re-scanning the whole population every year. This replaces the old
+    // children_grow / youngs_grow / adults_grow events (each was an `each Person` poll). $self is the
+    // person; `if $self.alive` skips anyone who died before the transition came due.
+    schedule($new, $new.birthdate + 20) {
+        if $self.alive {
+            set $self.age = Age.Young
+            random_weighted 100 {
+                5 => set $self.job = Job.Smith
+                10 => set $self.job = Job.Merchant
+                10 => set $self.job = Job.Monk
+                25 => set $self.job = Job.Soldier
+                10 => set $self.job = Job.Bandit
+
+                5 => set $self.job = Job.Painter
+                5 => set $self.job = Job.Sculptor
+
+                5 => set $self.job = Job.Bard
+                5 => set $self.job = Job.Wizard
+
+                10 => set $self.job = Job.Hunter
+                10 => set $self.job = Job.Fisher
+                _ => set $self.job = Job.Farmer
+            }
+            set $self.mastery = Mastery.Novice
+            record('{$self.name} becomes a {$self.job}')
+        }
+    }
+    schedule($new, $new.birthdate + 40) {
+        if $self.alive {
+            set $self.age = Age.Adult
+        }
+    }
+    schedule($new, $new.birthdate + 60) {
+        if $self.alive {
+            set $self.age = Age.Old
+            if random(100) < 10 {
+                set $self.alive = false
+                random_weighted 50 {
+                    40 => record('{$self.name} dies of sickness at {#Time.year - $self.birthdate} in {#Time.year}')
+                    _ => record('{$self.name} dies in an accident at {#Time.year - $self.birthdate} in {#Time.year}')
+                }
+            } else {
+                record('{$self.name} grew old')
+                // Draw the natural death year ONCE and schedule it, instead of re-rolling every year past
+                // 80 (this replaces the olds_dies poll). #Time.year here is birthdate+60, so the death age
+                // is 80..94. `if $self.alive` skips anyone who died of other causes (war, murder, ...) first.
+                schedule($self, #Time.year + 20 + random(0, 15)) {
+                    if $self.alive {
+                        set $self.alive = false
+                        random_weighted 100 {
+                            40 => record('{$self.name} dies of old age at {#Time.year - $self.birthdate} in {#Time.year}')
+                            40 => record('{$self.name} dies of sickness at {#Time.year - $self.birthdate} in {#Time.year}')
+                            _ => record('{$self.name} dies in an accident at {#Time.year - $self.birthdate} in {#Time.year}')
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// House / family names. Founders (people born with no parents) start a new house drawn from here;
+// their descendants inherit it (see couple_has_child), so lineages read as "<given> <House>".
+table Surname {
+    'Ashford', 'Blackwood', 'Caelmoor', 'Dunmere', 'Eldridge', 'Fenwick',
+    'Grimsbane', 'Holloway', 'Ironvale', 'Karras', 'Lothian', 'Mournhal',
+    'Nightfell', 'Oakhart', 'Ravenscar', 'Stormwell', 'Thornwood', 'Vaelin'
+}
+@frequency(1, PerXYear, 2)
+event char_born {
+    var $fname: '{random(Name)}'
+    var $house: '{roll(Surname)}'
+    create Person $p: ('{$fname} {$house}')
+    pick Country $loc
+    set $p.alive = true
+    set $p.first_name = $fname
+    set $p.family_name = $house
+    set $p.birthplace = $loc
+    record('{$p.name} is born in {$loc.name}')
+}
+
+
+// All aging is now scheduled per-person at birth (see the `born` trigger above): the Child→Young→Adult→Old
+// transitions, and natural death — drawn once when a person turns Old, instead of the old children_grow /
+// youngs_grow / adults_grow / olds_dies events that re-scanned the whole population every year.
+
+// event _parent_dies {
+//     each $l:( type = Link ){
+//         pick $p:( id = $l.parent, alive = true)
+//         pick $c:( id = $l.child)
+//         set $p.alive = false
+//         record('{$p.name}, parent of {$c.name}, dies')
+
+//     }
+// }
+@frequency(1, PerXYear, 5)
+@tag('items')
+event char_prestige_update {
+    each Person $p: (alive, prestige > 0){
+        match $p.job {
+            Job.Painter => {
+                if $p.prestige > 50% and $p.mastery < Mastery.Master {
+                    record('{$p.name} is now a master painter')
+                    set $p.mastery = Mastery.Master
+                    set $p.prosperity = $p.prosperity + 20%
+                }
+            }
+            Job.Smith => {
+                if $p.prestige > 50% and $p.mastery < Mastery.Master {
+                    record('{$p.name} is now a master smith')
+                    set $p.mastery = Mastery.Master
+                    set $p.prosperity = $p.prosperity + 20%
+                }
+            }
+        }
+    }
+    each Person $p: (prosperity < 10%) {
+        random_weighted 100 {
+            10 => {
+                record('{$p.name} commit suicide')
+                set $p.alive = false
+            }
+        }
+    }
+}
+@frequency(1, PerXYear, 1)
+event char_joins_faith {
+    pick Person $x: (alive, god = null)
+    pick God $g
+    set $x.god = $g
+    set $x.devotion = 30%
+    record('{$x.name} takes the faith of {$g.name}')
+}
+
+// Believers deepen their faith over the years. Applies to every believer so devotion actually
+// accrues per-person (a single random pick would almost never revisit the same person).
+@frequency(1, PerXYear, 3)
+@tag('faith')
+event deepen_faith {
+    each Person $x: (alive and god != null and devotion < 100%) {
+        set $x.devotion = $x.devotion + 5%
+    }
+}
+
+// A devout believer in dire straits is delivered by their god — faith finally has a mechanical effect.
+@frequency(1, PerXYear, 8)
+@tag('faith')
+event divine_miracle {
+    pick Person $x: (alive and god != null and devotion > 50% and prosperity < 45%)
+    var $g: $x.god
+    set $x.prosperity = $x.prosperity + 40%
+    set $x.prestige = $x.prestige + 10%
+    record('{$x.name} receives a miracle from {$g.name} and is delivered from hardship')
+}
+
+// The most devout become prophets and raise temples to their god.
+@frequency(1, PerXYear, 20)
+@tag('faith')
+event prophet_rises {
+    pick Person $p: (alive and god != null and devotion > 80% and age > Age.Young)
+    var $g: $p.god
+    var $realm: $p.place
+    if $realm {
+        create Temple $t: ('Temple of {$g.name}') {
+            god := $g
+            founder := $p
+            country := $realm
+            founded := #Time.year
+        }
+        set $p.prestige = $p.prestige + 20%
+        record('{$p.name}, a prophet of {$g.name}, raises a temple in {$realm.name}')
+    }
+}
+
+// An angered god visits ruin on a prospering land.
+@frequency(1, PerXYear, 30)
+@tag('faith')
+event divine_wrath {
+    pick God $g
+    pick Country $c: (prosperity > 20%)
+    set $c.prosperity = $c.prosperity - 20%
+    record('{$g.name} visits wrath upon {$c.name}, and the land withers')
+}
+@frequency(1, PerXYear, 2)
+event wedding {
+    pick Person $x: (alive = true and partner = null and age > Age.Child and age < Age.Old)
+    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place and not(is_child_of($y, $x)) and not(is_child_of($x, $y)))
+    set $x.partner = $y
+    set $y.partner = $x
+    set $x.prosperity = $x.prosperity + 20%
+    set $y.prosperity = $y.prosperity + 20%
+
+    // create $i: ( Item, "Wedding ring of {$x.name}")    // set $i.owner = $x
+    // create $j: ( Item, "Wedding ring of {$y.name}")    // set $j.owner = $y
+    record('{$x.name} and {$y.name} get married')
+}
+@frequency(1, PerXYear, 15)
+event divorce {
+    pick Person $x: (alive = true, partner != null)
+    pick Person $y: (alive = true, partner = $x, id != $x)
+    set $x.partner = null
+    set $y.partner = null
+    record('{$x.name} and {$y.name} separate')
+}
+@frequency(1, PerXYear, 15)
+event murder {
+    pick Person $x: (alive = true, age > Age.Child, prosperity < 20%)
+    pick Person $y: (alive = true, id != $x, place = $x.place)
+    set $y.alive = false
+    set $y.killer = $x
+    record('{$x.name} murders {$y} {$y.name}')
+}
+@frequency(1, PerXYear, 15)
+event bandits_attack_town {
+    pick Person $x: (alive = true, job = Job.Bandit)
+    pick Country $c: ($x.place = $c)
+    pick Person $y: (alive = true, id != $x, place = $c)
+    set $y.alive = false
+    set $y.killer = $x
+    set $x.prosperity = $x.prosperity + 30%
+    record '{$x.name} bandits pillage a town of {$c.name}' 
+    record '{$y.name} die in the pillage of {$c.name}'
+}
+@frequency(1, PerXYear, 4)
+@tag('country')
+event char_migrates {
+    pick Person $p: (alive, partner = null)
+    var $here: $p.place
+    // Move to a bordering realm rather than teleporting anywhere on the map.
+    pick Country $c: (id != $here and contains($here.neighbors, $c))
+    set $p.place = $c
+    record('{$p.name} moves to {$c.name}')
+}
+@frequency(1, PerXYear, 25)
+@tag('war')
+event country_war_start {
+    pick Country $x: (war_with = null)
+    // War breaks out across a shared border, not between arbitrary distant realms.
+    pick Country $y: (id != $x, war_with = null, contains($x.neighbors, $y))
+    set $x.war_with = $y
+    set $y.war_with = $x
+    record('{$x.name} and {$y.name} start a war')
+    set $x.prosperity = $x.prosperity - 10%
+    set $y.prosperity = $y.prosperity - 10%
+}
+@frequency(5, PerXYear, 1)
+@tag('war', 'country')
+event soldier_war_distinction {
+    each Country $c: (war_with != null){
+        pick Person $s: (alive, job = Job.Soldier, place = $c)
+        var $o: $c.war_with
+        random_weighted 100 {
+            10 => {
+                set $s.prestige = $s.prestige + 10%
+                record('{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}')
+            }
+            10 => {
+                set $s.alive = false
+
+                record('{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}')
+            }
+        }
+
+    }
+}
+
+// @1 per 1 year
+// event soldier_war_distinction war country {
+//     each $c:( type = Country, war_with != null ){
+//         pick $s:( type = Person, alive, job = Job.Soldier, place = $c)
+//         var $o: $c.war_with
+//         record('{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}')
+
+//     }
+// }
+// @1 per 1 year
+// event soldier_war_death war {
+//     each $c:( type = Country, war_with != null ){
+//         pick $s:( type = Person, alive, job = Job.Soldier, place = $c)
+//         var $o: $c.war_with
+//         add_tag $s, #death
+//         record('{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}')
+//         add_tag $c, #prosperity_decrease
+
+//     }
+            // }
+@frequency(1, PerXYear, 10)
+@tag('war', 'country')
+event country_war_peace {
+    pick Country $x: (war_with != null)
+    var $y: $x.war_with
+    set $x.war_with = null
+    set $y.war_with = null
+    record('{$x.name} and {$y.name} sign a peace treaty, ending the war')
+    set $x.prosperity = $x.prosperity + 10%
+    set $y.prosperity = $y.prosperity + 10%
+}
+@frequency(1, PerXYear, 10)
+@tag('war', 'country')
+event country_war_win {
+    pick Country $x: (war_with != null)
+    var $y: $x.war_with
+    set $x.war_with = null
+    set $y.war_with = null
+    record('{$x.name} wins the war against {$y.name}')
+
+    set $x.prosperity = $x.prosperity + 30%
+    set $y.prosperity = $y.prosperity - 10%
+}
+@frequency(1, PerXYear, 20)
+@tag('country')
+event country_natural_disaster {
+    pick Country $c
+    var $d: random_weighted 100 {
+        20 => 'A flood'
+        20 => 'A volcano'
+        20 => 'A famine'
+        _ => 'An earthquake'
+    }
+    set $c.prosperity = $c.prosperity - 30%
+    record('{$d} hits {$c.name}')
+}
+@frequency(2, PerXYear, 1)
+event couple_has_child {
+    pick Person $x: (alive = true, age < Age.Old, partner != null, since_last($x) > 4)
+    var $y: $x.partner
+    if $y.alive {
+        mark($x)
+        mark($y)
+
+        var $fname: '{random(Name)}'
+        create Person $c: ('{$fname} {$x.family_name}')
+        set $c.alive = true
+        set $c.first_name = $fname
+        set $c.family_name = $x.family_name
+        set $c.birthplace = $x.place
+        set $c.god = $x.god
+        set $c.parent1 = $x
+        set $c.parent2 = $y
+
+        record('{$x.name} and {$y.name} have a child, {$c.name}')
+    }
+}
+@frequency(1, PerXYear, 10)
+event parent_child_quarrel {
+    pick Person $x: (alive = true and age > Age.Child and has_parent($x))
+    pick Person $p: (alive and is_child_of($x, $p))
+    
+    set $p.prosperity = $p.prosperity - 10%
+    set $x.prosperity = $p.prosperity - 10%
+    record('{$x.name} and {$p.name} got into a quarrel')
+}
+@frequency(1, PerXYear, 8)
+@tag('items')
+event item_forged {
+    pick Person $p: (alive = true, job = Job.Smith, age > Age.Child)
+    set $p.prestige = $p.prestige + 10%
+    create Item $i: ('{random(ItemType)} of {random(Name)}')
+    set $i.item_type = ItemSource.Forged
+    set $i.maker = $p
+    set $i.creation_date = #Time.year
+    set $i.owner = $p
+    record('{$p.name} crafts the {$i.name}')
+}
+
+table ArtifactName {
+    'Dawnbreaker', 'Nightfang', 'Stormcaller', 'Frostmourne', 'Sunforge', 'Shadowrend',
+    'Wyrmtongue', 'Lightbringer', 'Doomwhisper', 'Starfall', 'Emberheart', 'Soulward'
+}
+// Wizards (a job assigned at coming-of-age that otherwise did nothing) climb the arcane ranks,
+// finally reaching Legendary mastery — previously an unreachable enum value.
+@frequency(1, PerXYear, 5)
+@tag('magic')
+event wizard_studies {
+    pick Person $w: (alive and job = Job.Wizard and age > Age.Child and mastery < Mastery.Legendary)
+    match $w.mastery {
+        Mastery.Novice => {
+            set $w.mastery = Mastery.Seasoned
+            record('{$w.name} grows in arcane skill, now a seasoned wizard')
+        }
+        Mastery.Seasoned => {
+            set $w.mastery = Mastery.Master
+            set $w.prestige = $w.prestige + 10%
+            record('{$w.name} becomes a master wizard')
+        }
+        Mastery.Master => {
+            set $w.mastery = Mastery.Legendary
+            set $w.prestige = $w.prestige + 30%
+            record('{$w.name} attains legendary mastery of the arcane')
+        }
+    }
+}
+
+// A master (or legendary) wizard forges a named enchanted artifact. Provenance flows through the
+// existing Item / ItemOwnership system, so the artifact can later be inherited, lost, or recovered.
+@frequency(1, PerXYear, 14)
+@tag('magic', 'items')
+event artifact_forged {
+    pick Person $w: (alive and job = Job.Wizard and mastery >= Mastery.Master)
+    create Item $i: ('{roll(ArtifactName)}') {
+        maker := $w
+        owner := $w
+        item_type := ItemSource.Forged
+        creation_date := #Time.year
+        enchanted := true
+        power := random(ArtifactPower)
+        curse := random(100) < 20
+    }
+    if $i.curse {
+        record('{$w.name} forges the cursed {$i.name}, an artifact of {$i.power}')
+    } else {
+        record('{$w.name} forges the enchanted {$i.name}, an artifact of {$i.power}')
+    }
+}
+
+// Magic is perilous: a wizard's ritual can go catastrophically wrong and consume a nearby settlement.
+@frequency(1, PerXYear, 30)
+@tag('magic', 'geography')
+event arcane_catastrophe {
+    pick Person $w: (alive and job = Job.Wizard and mastery >= Mastery.Seasoned)
+    var $realm: $w.place
+    pick Settlement $s: (country = $realm and status != SettlementStatus.Ruined)
+    set $s.status = SettlementStatus.Ruined
+    set $s.prosperity = 0%
+    record('A ritual by {$w.name} goes catastrophically wrong; {$s.name} is consumed and left in ruins')
+}
+
+@frequency(1, PerXYear, 8)
+@tag('items')
+event item_painted {
+    pick Person $p: (alive = true, job = Job.Painter, age > Age.Child)
+    set $p.prestige = $p.prestige + 10%
+    pick Person $t: (alive = true, id != $p)
+    create Item $i: ('Portrait of {$t.name}')
+    set $i.maker = $p
+    set $i.item_type = ItemSource.Painted
+    set $i.creation_date = #Time.year
+    if (random 10 > 5){
+        set $i.owner = $p
+        record('{$p.name} depicts {$t.name} in the {$i.name}')
+    } else {    
+        set $i.owner = $t
+        record('{$t.name} have their {link($i, 'portrait')} painted by {$p.name}')
+    }
+}
+@frequency(1, PerXYear, 8)
+@tag('items')
+event item_lost {
+    pick Item $i: (owner != null)
+    pick Person $p: (id = $i.owner, alive)
+    var $prev: $i.owner
+    set $i.owner = null
+    record('{$prev.name} lost the {$i.name}')
+}
+@frequency(1, PerXYear, 20)
+@tag('items')
+event item_found {
+    pick Person $p: (alive = true)
+    pick Item $i: (owner = null)
+    set $i.owner = $p
+    record('{$p.name} finds the {$i.name}')
+}
+@frequency(1, PerXYear, 10)
+@tag('items')
+event item_sold {
+    pick Item $i: (owner != null)
+    pick Person $s: (id = $i.owner, alive)
+    pick Person $p: (alive, id != $s)
+    var $prev: $i.owner
+    set $i.owner = $p
+    record('{$p.name} acquires the {$i.name} from {$prev.name}')
+}
+table FactionName {
+    'the Ashen Hand', 'the Iron Covenant', 'the Silver Circle', 'the Crimson Order',
+    'the Veiled Path', 'the Golden Compact', 'the Obsidian Lodge', 'the Dawn Conclave',
+    'the Black Chalice', 'the Verdant Pact', 'the Sundered Crown', 'the Hollow Choir'
+}
+// A faction takes its character from its founder's calling; cults adopt the founder's god as patron.
+@frequency(1, PerXYear, 20)
+@tag('factions')
+event create_faction {
+    pick Person $p: (alive, faction = null, age > Age.Child)
+    create Faction $f: ('{roll(FactionName)}') {
+        founder := $p
+        home := $p.place
+    }
+    match $p.job {
+        Job.Wizard => {
+            set $f.kind = FactionKind.MageCircle
+            record('{$p.name} founds the mage circle {$f.name}')
+        }
+        Job.Soldier => {
+            set $f.kind = FactionKind.KnightlyOrder
+            record('{$p.name} founds the knightly order {$f.name}')
+        }
+        Job.Bandit => {
+            set $f.kind = FactionKind.ThievesGuild
+            record('{$p.name} founds the thieves guild {$f.name}')
+        }
+        Job.Merchant => {
+            set $f.kind = FactionKind.MerchantLeague
+            record('{$p.name} founds the merchant league {$f.name}')
+        }
+        _ => {
+            set $f.kind = FactionKind.Cult
+            set $f.patron = $p.god
+            record('{$p.name} founds the cult {$f.name}')
+        }
+    }
+    set $p.faction = $f
+}
+@frequency(1, PerXYear, 2)
+@tag('factions')
+event char_joins_faction {
+    pick Person $p: (alive, faction = null, age > Age.Child)
+    pick Faction $f: ()
+    set $p.faction = $f
+    // Joining a cult draws the new member into devotion to its patron god.
+    if $f.kind = FactionKind.Cult and $f.patron != null {
+        set $p.god = $f.patron
+        record('{$p.name} joins the cult {$f.name}, devoted to {$f.patron.name}')
+    } else {
+        record('{$p.name} joins the {$f.name}')
+    }
+}
+// Knightly orders and thieves guilds are sworn enemies; a feud claims a life (and seeds a vendetta).
+@frequency(1, PerXYear, 18)
+@tag('factions')
+event faction_feud {
+    pick Person $knight: (alive and job = Job.Soldier and faction != null)
+    pick Person $thief: (alive and job = Job.Bandit)
+    set $thief.killer = $knight
+    set $thief.alive = false
+    record('{$knight.name} of {$knight.faction.name} strikes down the outlaw {$thief.name}')
+}
+
+table MonsterName {
+    'Malgrath', 'Vexthyr', 'Sorrowmaw', 'Galdroth', 'Nyxshade', 'Carriongale',
+    'Throxis', 'Ashmaw', 'Velkarid', 'Gorehollow', 'Dreadspire', 'Ulgathon'
+}
+// A monster emerges from the wild or a ruined place, lairing in some country, and sometimes seizes an
+// existing artifact into its hoard (removing it from circulation until a hero recovers it).
+@frequency(1, PerXYear, 15)
+@tag('legends')
+event monster_emerges {
+    pick Country $c
+    create Monster $m: ('{roll(MonsterName)}') {
+        kind := random(MonsterKind)
+        lair := $c
+        power := random(40, 90)
+        alive := true
+    }
+    record('{$m.name}, a {$m.kind}, awakens in {$c.name}')
+    if (pick Item $i: (enchanted and owner != null)) {
+        set $m.hoard = $i
+        set $i.owner = null
+        record('{$m.name} seizes the {$i.name} into its hoard')
+    }
+}
+
+// A living monster ravages its lair: razing a settlement, or devouring an inhabitant if none remain.
+@frequency(1, PerXYear, 10)
+@tag('legends')
+event monster_raids {
+    pick Monster $m: (alive)
+    var $c: $m.lair
+    if (pick Settlement $s: (country = $c and status != SettlementStatus.Ruined)) {
+        set $s.status = SettlementStatus.Ruined
+        set $s.prosperity = 0%
+        record('{$m.name} descends upon {$s.name} and razes it')
+    } else {
+        if (pick Person $v: (alive and place = $c)) {
+            set $v.alive = false
+            record('{$v.name} is devoured by {$m.name} in {$c.name}')
+        }
+    }
+}
+
+// A renowned warrior or wizard confronts a monster. Triumph makes a legend (and recovers its hoard);
+// failure costs the hero their life.
+@frequency(1, PerXYear, 12)
+@tag('legends')
+event hero_quest {
+    pick Monster $m: (alive)
+    pick Person $h: (alive and age > Age.Young and (job = Job.Soldier or job = Job.Wizard) and (prestige > 20% or mastery >= Mastery.Master))
+    random_weighted 100 {
+        60 => {
+            set $m.alive = false
+            set $m.slain_by = $h
+            set $h.prestige = $h.prestige + 40%
+            if $m.hoard {
+                var $art: $m.hoard
+                set $art.owner = $h
+                record('{$h.name} recovers the {$art.name} from the hoard of {$m.name}')
+            }
+            create Legend $l: ('The Slaying of {$m.name}') {
+                hero := $h
+                monster := $m
+                place := $m.lair
+                year := #Time.year
+            }
+            record('{$h.name} slays {$m.name} in {$m.lair.name} — a legend is born')
+        }
+        _ => {
+            set $h.alive = false
+            record('{$h.name} falls confronting {$m.name} in {$m.lair.name}')
+        }
+    }
+}

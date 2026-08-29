@@ -1,16 +1,14 @@
-﻿using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
-using Antlr4CodeCompletion.Core.CodeCompletion;
 using Microsoft.Extensions.Logging;
-using Moirai.Parser;
 using OmniSharp.Extensions.LanguageServer.Protocol.Client.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
+/// Thin transport layer: the work is in MoiraiCompletion, which reads the token stream around the
+/// caret rather than the parse tree (see the reasoning there -- the definition you are typing in is
+/// the one that does not parse).
 public class MoiraiCompletionHandler : CompletionHandlerBase
 {
     private readonly ILogger _logger;
-
     private readonly MoiraiCache _moiraiCache;
 
     public MoiraiCompletionHandler(ILogger<MoiraiCompletionHandler> logger, MoiraiCache moiraiCache)
@@ -29,40 +27,14 @@ public class MoiraiCompletionHandler : CompletionHandlerBase
         };
     }
 
-    public override async Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken)
+    public override Task<CompletionList> Handle(CompletionParams request, CancellationToken cancellationToken)
     {
-        // var line = _moiraiCache.GetLine(request.TextDocument.Uri, request.Position.Line);
-        // if (line == null)
-        // return Task.FromResult(new CompletionList());
-        MoiraiCodeCompletion.SetupMoiraiCompletion(_moiraiCache.GetContent(request.TextDocument.Uri), out var lexer,
-            out var parser, out var core);
-        parser.r();
-        int pos = MoiraiCodeCompletion.FindTokenIndex(parser, request.Position);
-        if (pos == -1)
-            return new CompletionList();
-        IToken? t = parser.TokenStream.Get(pos);
-        if (t == null)
-            return new CompletionList();
-        // foreach (var t1 in lexer.GetAllTokens())
-        // {
-        //     if (TokenVisitor.GetRange(t1).Contains(request.Position))
-        //     {
-        //         t = t1;
-        //         
-        //         break;
-        //     }
-        // }
+        if (!_moiraiCache.GetDocument(request.TextDocument.Uri, out var document) || document == null)
+            return Task.FromResult(new CompletionList());
 
-        int tokenIndex = t.TokenIndex;
-        _logger.LogCritical($"Token index: {tokenIndex} token {t.Text}");
-        var candidates = core.CollectCandidates(tokenIndex, null);
-        if(!_moiraiCache.GetDocument(request.TextDocument.Uri, out var document))
-            return new CompletionList();
-        return new CompletionList(await MoiraiCodeCompletion.Complete(_logger, parser,candidates, document!, request.Position, tokenIndex));
+        return Task.FromResult(new CompletionList(MoiraiCompletion.Complete(document, request.Position)));
     }
 
-    public override Task<CompletionItem> Handle(CompletionItem request, CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException("CompletionItem");
-    }
+    public override Task<CompletionItem> Handle(CompletionItem request, CancellationToken cancellationToken) =>
+        Task.FromResult(request);
 }

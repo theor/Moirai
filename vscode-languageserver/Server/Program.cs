@@ -282,7 +282,7 @@ public class MoiraiCache
             }
     }
 
-    public TokenVisitor.Definition? GetDefinition(TextDocumentIdentifier requestTextDocument,
+    public MoiraiSymbol.Definition? GetDefinition(TextDocumentIdentifier requestTextDocument,
         Position requestPosition)
     {
         if (_cache.TryGetValue(requestTextDocument.Uri, out var doc))
@@ -393,8 +393,13 @@ public class MoiraiDocument
     // engine's property-gated dispatch). Computed during Process, where both the parse tree and the
     // built Database are in scope. Range = the trigger's name token.
     public readonly List<(Range range, string title)> TriggerReadPropLenses = new();
-    // private IntervalTree<Position, TokenVisitor.Definition> _locations = new();
+    // private IntervalTree<Position, MoiraiSymbol.Definition> _locations = new();
     public SymbolInformationOrDocumentSymbolContainer Symbols = new();
+
+    /// The world built by the last parse. Completion reads types, enums, tables and functions off
+    /// it; it is kept per-document rather than taken from the mutable static Database.Instance,
+    /// which belongs to whichever document was processed most recently.
+    public Database? Database;
 
     public MoiraiDocument(DocumentUri documentUri, TextDocumentItem notificationTextDocument)
     {
@@ -416,39 +421,30 @@ public class MoiraiDocument
     {
         try
         {
-            var db = new Database();
-            var astVisitor = new AstVisitor(db, null!)
-            {
-                Linker = (Linker = new SourceLinker()),
-            };
-            StoryParser.SetupParser(Content, out var parser, astVisitor);
-
-            var r = parser.r();
-            r.Accept(astVisitor);
+            // The linker is built from inside the parse: SourceLinker's constructor seeds itself
+            // with the builtin types and functions off Database.Instance, which only exists once
+            // the parse has created the Database.
+            var parse = StoryParser.ParseForTooling(Content, _ => Linker = new SourceLinker());
+            Database = parse.Database;
 
             SemanticTokens.Clear();
             List<SymbolInformationOrDocumentSymbol> symbols = new();
-            var visitor = new TokenVisitor(logger, DocumentUri, 
-                // _locations,
-                SemanticTokens,
-                symbols);
-            visitor.Parser = parser;
-            r.Accept(visitor);
-            Errors = visitor.Errors;
-            Errors.AddRange(astVisitor.Errors);
-            Errors.AddRange(astVisitor.InfoMarkers);   // Information-severity annotations (e.g. SQL-inlined calls)
+            MoiraiSemanticTokens.Build(parse, Linker, DocumentUri, SemanticTokens, symbols);
             Symbols = symbols;
 
+            Errors = new List<StoryParser.Error>(parse.Errors);
+            Errors.AddRange(parse.Visitor.InfoMarkers); // Information-severity annotations (e.g. SQL-inlined calls)
+
             // A "reads: <props>" CodeLens over each `when Changed` trigger, surfacing the read-property
-            // set the engine uses for property-gated dispatch. Matched by name from the parse tree's
-            // trigger nodes (which carry source positions) to the built Database's EventTriggers.
+            // set the engine uses for property-gated dispatch. Matched by name from the parsed
+            // trigger definitions (which carry source spans) to the built Database's EventTriggers.
             TriggerReadPropLenses.Clear();
-            foreach (var def in r.def())
+            var db = parse.Database;
+            foreach (var def in parse.Defs)
             {
-                var idNode = def.trigger()?.ID();
-                if (idNode == null)
+                if (def.Trigger is not { } triggerNode)
                     continue;
-                var trig = db.Triggers.FirstOrDefault(t => t.Name == idNode.GetText());
+                var trig = db.Triggers.FirstOrDefault(t => t.Name == triggerNode.Name.Text);
                 if (trig == null)
                     continue;
 
@@ -473,7 +469,7 @@ public class MoiraiDocument
                         title = "reacts to every change (predicate not gated)";
                 }
 
-                TriggerReadPropLenses.Add((new FileRange(idNode).ToLspRange(), title));
+                TriggerReadPropLenses.Add((new FileRange(triggerNode.Name.Span).ToLspRange(), title));
             }
         }
         catch (Exception e)
@@ -486,7 +482,7 @@ public class MoiraiDocument
 
     public SourceLinker Linker { get; set; }
 
-    // public IEnumerable<TokenVisitor.Definition> Definitions(Position position, TokenVisitor.DefinitionType? definitionType = null)
+    // public IEnumerable<MoiraiSymbol.Definition> Definitions(Position position, MoiraiSymbol.DefinitionType? definitionType = null)
     // {
     //     return _locations.Query(position).Where(d => definitionType == null || d.Type == definitionType);
     // }

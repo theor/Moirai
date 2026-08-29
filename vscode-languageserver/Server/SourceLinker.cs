@@ -1,5 +1,4 @@
 ﻿using System.Text;
-using Antlr4.Runtime.Tree;
 using IntervalTree;
 using Moirai.Parser;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -7,11 +6,11 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 public class SourceLinker : StoryParser.ILinker
 {
-    public readonly Dictionary<EntityTypeId, TokenVisitor.TypeDefinition> TypeDefinitions = new();
-    private Dictionary<PropertyId, TokenVisitor.PropertyDefinition> _propertyDefinitions = new();
-    private Dictionary<EnumDefinitionId, TokenVisitor.EnumDefinition> _enumDefinitions = new();
-    private IntervalTree<Position, TokenVisitor.Definition> _tree = new();
-    private Dictionary<string, TokenVisitor.FunctionDefinition> _funDefinitions = new();
+    public readonly Dictionary<EntityTypeId, MoiraiSymbol.TypeDefinition> TypeDefinitions = new();
+    private Dictionary<PropertyId, MoiraiSymbol.PropertyDefinition> _propertyDefinitions = new();
+    private Dictionary<EnumDefinitionId, MoiraiSymbol.EnumDefinition> _enumDefinitions = new();
+    private IntervalTree<Position, MoiraiSymbol.Definition> _tree = new();
+    private Dictionary<string, MoiraiSymbol.FunctionDefinition> _funDefinitions = new();
 
     public SourceLinker()
     {
@@ -35,16 +34,30 @@ public class SourceLinker : StoryParser.ILinker
         }
     }
 
-    public IEnumerable<TokenVisitor.Definition> GetDefinitions(Position pos, TokenVisitor.DefinitionType type = TokenVisitor.DefinitionType.Unknown)
+    public IEnumerable<MoiraiSymbol.Definition> GetDefinitions(Position pos, MoiraiSymbol.DefinitionType type = MoiraiSymbol.DefinitionType.Unknown)
     {
-        if(type == TokenVisitor.DefinitionType.Unknown)
+        if(type == MoiraiSymbol.DefinitionType.Unknown)
             return _tree.Query(pos);
         return _tree.Query(pos).Where(d => d.Type == type);
     }
 
-    public TokenVisitor.Definition? GetDefinitionAt(Position requestPosition)
+    /// Every linked occurrence -- declaration and usage alike -- paired with the symbol it denotes.
+    /// The semantic highlighter classifies identifiers from this rather than walking the tree a
+    /// second time: the linker was populated during lowering and already knows what each name means.
+    /// Variable *scope* entries are excluded; they span a whole block rather than an identifier.
+    public IEnumerable<(Range range, MoiraiSymbol.Definition def)> Occurrences()
     {
-        return _tree.Query(requestPosition).FirstOrDefault(x => x.Type != TokenVisitor.DefinitionType.VariableScope);
+        foreach (var entry in _tree)
+        {
+            if (entry.Value.Type == MoiraiSymbol.DefinitionType.VariableScope)
+                continue;
+            yield return (new Range(entry.From, entry.To), entry.Value);
+        }
+    }
+
+    public MoiraiSymbol.Definition? GetDefinitionAt(Position requestPosition)
+    {
+        return _tree.Query(requestPosition).FirstOrDefault(x => x.Type != MoiraiSymbol.DefinitionType.VariableScope);
     }
 
     /// <summary>
@@ -84,9 +97,9 @@ public class SourceLinker : StoryParser.ILinker
 
     // Symbol kinds that get an inline "N usages" CodeLens above their declaration. Enum members and
     // variables are excluded: members share a line (lenses would collide) and locals are too noisy.
-    private const TokenVisitor.DefinitionType LensKinds =
-        TokenVisitor.DefinitionType.Type | TokenVisitor.DefinitionType.TypeProperty |
-        TokenVisitor.DefinitionType.Enum | TokenVisitor.DefinitionType.Function;
+    private const MoiraiSymbol.DefinitionType LensKinds =
+        MoiraiSymbol.DefinitionType.Type | MoiraiSymbol.DefinitionType.TypeProperty |
+        MoiraiSymbol.DefinitionType.Enum | MoiraiSymbol.DefinitionType.Function;
 
     /// <summary>
     /// One entry per declaration that should carry a usage-count CodeLens: the declaration's
@@ -95,7 +108,7 @@ public class SourceLinker : StoryParser.ILinker
     public IEnumerable<(Range nameRange, int usageCount)> GetDeclarationUsages()
     {
         // Group every linked occurrence by the symbol it denotes, remembering the shared definition.
-        var groups = new Dictionary<(TokenVisitor.DefinitionType, object), (TokenVisitor.Definition def, HashSet<Range> ranges)>();
+        var groups = new Dictionary<(MoiraiSymbol.DefinitionType, object), (MoiraiSymbol.Definition def, HashSet<Range> ranges)>();
         foreach (var entry in _tree)
         {
             var def = entry.Value;
@@ -118,7 +131,7 @@ public class SourceLinker : StoryParser.ILinker
     public void DeclareType(FileRange? range, EntityTypeId typeId, string? inlineDefinition = null)
     {
         var r = range?.ToLspRange();
-        var typeDefinition = new TokenVisitor.TypeDefinition(typeId, r) { InlineDefinition = inlineDefinition};
+        var typeDefinition = new MoiraiSymbol.TypeDefinition(typeId, r) { InlineDefinition = inlineDefinition};
         TypeDefinitions.Add(typeId, typeDefinition);
     }
 
@@ -136,7 +149,7 @@ public class SourceLinker : StoryParser.ILinker
     public void DeclareTypeProperty(FileRange? range, PropertyId propertyId, string? inlineDefinition = null)
     {
         var r = range?.ToLspRange();
-        var typeDefinition = new TokenVisitor.PropertyDefinition(propertyId, r) { InlineDefinition = inlineDefinition};
+        var typeDefinition = new MoiraiSymbol.PropertyDefinition(propertyId, r) { InlineDefinition = inlineDefinition};
         _propertyDefinitions.Add(propertyId, typeDefinition);
     }
 
@@ -152,7 +165,7 @@ public class SourceLinker : StoryParser.ILinker
     public void DeclareEnum(FileRange range, EnumDefinitionId enumId)
     {
         var r = range.ToLspRange();
-        var enumDefinition = new TokenVisitor.EnumDefinition(enumId, r);
+        var enumDefinition = new MoiraiSymbol.EnumDefinition(enumId, r);
         _enumDefinitions.Add(enumId, enumDefinition);
     }
 
@@ -180,21 +193,21 @@ public class SourceLinker : StoryParser.ILinker
         AstVisitor.VariableDeclaration variableDeclaration, FileRange variableScope)
     {
         var r = range.ToLspRange();
-        _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
+        _tree.Add(r.Start, r.End, new MoiraiSymbol.VariableDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
         var scope = variableScope.ToLspRange();
-        _tree.Add(scope.Start, scope.End, new TokenVisitor.VariableScopeDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
+        _tree.Add(scope.Start, scope.End, new MoiraiSymbol.VariableScopeDefinition(variableDeclaration, variableDeclaration.DeclarationRange));
     }
 
     public void LinkVariable(FileRange range, AstVisitor.VariableDeclaration decl)
     {
         var r = range.ToLspRange();
-        _tree.Add(r.Start, r.End, new TokenVisitor.VariableDefinition(decl, decl.DeclarationRange));
+        _tree.Add(r.Start, r.End, new MoiraiSymbol.VariableDefinition(decl, decl.DeclarationRange));
     }
 
     public void DeclareFunction(FileRange fileRange, IFunctionDescriptor descriptor, string? inlineDef = null)
     {
         var r = fileRange.ToLspRange();
-        var functionDefinition = new TokenVisitor.FunctionDefinition(descriptor, r){InlineDefinition = inlineDef};
+        var functionDefinition = new MoiraiSymbol.FunctionDefinition(descriptor, r){InlineDefinition = inlineDef};
         _funDefinitions.Add(descriptor.FuncName, functionDefinition);
         if (!r.IsEmpty())
         {

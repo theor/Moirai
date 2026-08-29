@@ -4,7 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
-namespace Antlr4CodeCompletion.CoreUnitTest.CodeCompletion;
+namespace Moirai.LanguageServer.Tests;
 
 // Coverage for the LSP request handlers and the MoiraiCache/MoiraiDocument logic they sit on top
 // of. These exercise the real parse -> AstVisitor -> TokenVisitor/SourceLinker pipeline without
