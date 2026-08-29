@@ -92,4 +92,40 @@ event fine {
         Assert.That(errors, Is.Not.Empty);
         Assert.That(db.Actions.Select(a => a.Name), Does.Contain("fine"));
     }
+
+    [Test]
+    public void TruncatedDefAtEndOfFile_ReportsErrorAtTheTruncation_NotLineOne()
+    {
+        // Superpower reports Position.Empty once it runs out of input, which used to be rendered as
+        // line 1 column 1 -- so a half-typed def at the bottom of a file squiggled the top of it.
+        // The language server hits this on literally every keystroke, so the fallback (end of the
+        // last consumed token) is what makes as-you-type diagnostics point anywhere useful.
+        const string s = @"entity Person {
+    prop age: number
+}
+
+event half_typed {
+    set $p.";
+        StoryParser.Parse(s, out var errors);
+
+        var syntax = errors.Where(e => e.Code == StoryParser.ErrorCode.Parser).ToList();
+        Assert.That(syntax, Is.Not.Empty, "expected a syntax error for the truncated def");
+        Assert.That(syntax[0].Line, Is.GreaterThan(1),
+            () => $"syntax error should point at the truncation, not the top of the file: {syntax[0].Line}:{syntax[0].Col} {syntax[0].Message}");
+    }
+
+    [Test]
+    public void WellFormedDefsBeforeATruncatedOne_StillRegister()
+    {
+        // The companion guarantee: pointing the error in the right place must not cost us the
+        // recovery that chunking exists for.
+        const string s = @"entity Person {
+    prop age: number
+}
+
+event half_typed {
+    set $p.";
+        var db = StoryParser.Parse(s, out _);
+        Assert.That(db.Types.Select(t => t.Name), Does.Contain("Person"));
+    }
 }

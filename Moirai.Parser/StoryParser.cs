@@ -408,7 +408,8 @@ public static class StoryParser
         IValue? result = null;
         var parsed = MoiraiGrammar.TryParseExpr(tokenized.ParseTokens);
         if (!parsed.HasValue)
-            visitor.Errors.Add(MakeParseError(parsed.ErrorPosition, s, parsed.ErrorMessage, offsetLine, offsetColumn));
+            visitor.Errors.Add(MakeParseError(parsed.ErrorPosition, s, parsed.ErrorMessage,
+                parsed.Expectations, EndOf(tokenized.ParseTokens.ToArray()), offsetLine, offsetColumn));
         else
             result = visitor.ParseExpr(parsed.Value);
 
@@ -417,10 +418,31 @@ public static class StoryParser
         return result;
     }
 
-    public static Database Parse(string s, out List<Error> errors)
+    /// Everything a tool needs from one parse: the full token list (trivia included), the AST of
+    /// every definition that survived chunked error recovery, the built Database, the AstVisitor
+    /// (for InfoMarkers), and the errors. <see cref="Parse"/> is this with all but the Database and
+    /// the errors discarded.
+    public sealed record ToolingParse(
+        MoiraiTokenizerResult Tokens,
+        DefNode[] Defs,
+        Database Database,
+        AstVisitor Visitor,
+        List<Error> Errors);
+
+    /// Parse entry point for tooling -- the language server, which needs source positions and the
+    /// tree, not just the built world. Replaces the ANTLR snapshot's SetupParser/IVisitor pair:
+    /// there the caller drove the parser and accepted visitors over the tree itself; here the
+    /// pipeline stays owned by the parser and hands back its intermediate products.
+    ///
+    /// The linker arrives as a factory rather than an instance because building one may require the
+    /// Database to already exist -- the LSP's SourceLinker seeds itself with the builtin types and
+    /// functions, reading them off Database.Instance, which is only set once the Database is
+    /// constructed. Taking a factory makes that ordering the API's problem instead of every
+    /// caller's.
+    public static ToolingParse ParseForTooling(string s, Func<Database, ILinker>? createLinker = null)
     {
         var db = new Database();
-        var visitor = new AstVisitor(db);
+        var visitor = new AstVisitor(db) { Linker = createLinker?.Invoke(db) };
         var tokenized = MoiraiTokenizer.Tokenize(s);
         foreach (var e in tokenized.Errors)
             visitor.Errors.Add(new Error(ErrorCode.Lexer, e.Position.Line, e.Position.Column - 1, e.Message));
@@ -436,7 +458,8 @@ public static class StoryParser
             var parsed = MoiraiGrammar.TryParseR(chunkTokens);
             if (!parsed.HasValue)
             {
-                visitor.Errors.Add(MakeParseError(parsed.ErrorPosition, s, parsed.ErrorMessage, 0, 0));
+                visitor.Errors.Add(MakeParseError(parsed.ErrorPosition, s, parsed.ErrorMessage,
+                    parsed.Expectations, EndOf(chunk), 0, 0));
                 continue;
             }
 
@@ -444,7 +467,7 @@ public static class StoryParser
             {
                 var next = parsed.Remainder.ConsumeToken();
                 visitor.Errors.Add(MakeParseError(next.Value.Position, s,
-                    "unexpected content after the last definition", 0, 0));
+                    "unexpected content after the last definition", null, EndOf(chunk), 0, 0));
                 continue;
             }
 
@@ -454,8 +477,14 @@ public static class StoryParser
         if (allDefs.Count > 0)
             visitor.VisitR(new RNode(allDefs.ToArray(), allDefs[0].Span)); // RNode.Span is unused downstream
 
-        errors = visitor.Errors;
-        return db;
+        return new ToolingParse(tokenized, allDefs.ToArray(), db, visitor, visitor.Errors);
+    }
+
+    public static Database Parse(string s, out List<Error> errors)
+    {
+        var parsed = ParseForTooling(s);
+        errors = parsed.Errors;
+        return parsed.Database;
     }
 
     static readonly MoiraiTokenKind[] TopLevelDefStartKinds =
@@ -500,13 +529,36 @@ public static class StoryParser
         return chunks;
     }
 
-    static Error MakeParseError(Position pos, string source, string? message, int offsetLine, int offsetColumn)
+    static Error MakeParseError(Position pos, string source, string? message, string[]? expectations,
+        Position fallback, int offsetLine, int offsetColumn)
     {
+        // Superpower reports Position.Empty when the parse ran out of input, which used to degrade
+        // to line 1 column 1 -- putting the squiggle at the top of the file while you are typing at
+        // the bottom. Fall back to the end of the last token we did consume.
+        if (!pos.HasValue)
+            pos = fallback;
+
         // Error.Line/Col is 1-based line / 0-based column (see the TextSpan Error constructor's
         // comment) -- Superpower's Position is 1-based on both axes, so only Column gets a "-1".
         int line = (pos.HasValue ? pos.Line : 1) + offsetLine;
         int col = (pos.HasValue ? pos.Column : 1) - 1 + offsetColumn;
-        return new Error(ErrorCode.Parser, line, col, message ?? "syntax error near " + Near(source, pos));
+        var text = message ?? "syntax error near " + Near(source, pos);
+        if (expectations is { Length: > 0 })
+            text += " (expected " + string.Join(", ", expectations.Distinct()) + ")";
+        return new Error(ErrorCode.Parser, line, col, text);
+    }
+
+    /// One position past the last token of a chunk -- where a "ran out of input" syntax error
+    /// belongs.
+    static Position EndOf(Token<MoiraiTokenKind>[] chunk)
+    {
+        if (chunk.Length == 0)
+            return Position.Empty;
+        var span = chunk[^1].Span;
+        var pos = span.Position;
+        foreach (var c in span.ToStringValue())
+            pos = pos.Advance(c);
+        return pos;
     }
 
     static string Near(string source, Position pos)

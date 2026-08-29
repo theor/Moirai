@@ -33,6 +33,11 @@ public static class MoiraiTokenizer
 {
     enum LexMode { Default, InString }
 
+    /// The language's reserved words, exposed because it is the authoritative answer to "what is a
+    /// keyword" -- the LSP's syntax-highlighting drift test asserts every entry here gets
+    /// highlighted, so adding a keyword below and forgetting to colour it fails the build.
+    public static IReadOnlyDictionary<string, MoiraiTokenKind> ReservedWords => Keywords;
+
     static readonly Dictionary<string, MoiraiTokenKind> Keywords = new()
     {
         ["null"] = MoiraiTokenKind.Null,
