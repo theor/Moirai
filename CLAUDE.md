@@ -29,6 +29,10 @@ dotnet run --project MoiraiWebServer -- MoiraiCli/w.sg
 # Same, but profile every simulation run (see "Profiling" below)
 dotnet run --project MoiraiWebServer -- --profile MoiraiCli/w.sg
 
+# Start from a specific RNG seed (default 42). The simulation is deterministic per seed, so
+# seed + story file is the whole identity of a run. Also settable live from the app bar Seed box.
+dotnet run --project MoiraiWebServer -- --seed 1234 MoiraiCli/w.sg
+
 # Production publish — this also runs `yarn install` && `yarn build` in ClientAppSvelte
 dotnet publish -c Release MoiraiWebServer/MoiraiWebServer.csproj
 ```
@@ -97,7 +101,7 @@ The pipeline is: **`.sg` text → tokenize/parse → AstVisitor builds engine ob
 
 ### `MoiraiWebServer/` — host + viewer
 - **`Program.cs`**: ASP.NET Core. Parses CLI options (`CommandLineParser`), watches the input `.sg` file (debounced) and triggers reload, configures SignalR JSON (custom converters for `EntityId`/`PropertyId`/`EntityTypeId`/`ValueType`), and in Development spawns the Svelte dev server and proxies `/` to `http://localhost:3000`.
-- **`Hubs/ChatHub.cs`** is the entire client API surface. Methods: `Reset`, `PassYears` (streamed progress), `Query`, `RunAction`, `GetChangesets(start,count)`, `GetFamilyTree`, `GetEntityDetails`, `GetClientData`, `Save`, and `Stream` (pushes record/year/reset messages). **State is `static` (`_db`) shared across all connections and guarded by a single `SemaphoreSlim Mutex`** — this is a single-world, single-tenant server.
+- **`Hubs/ChatHub.cs`** is the entire client API surface. Methods: `Reset`, `Reseed(seed)`, `PassYears` (streamed progress), `Query`, `RunAction`, `GetChangesets(start,count)`, `GetFamilyTree`, `GetEntityDetails`, `GetClientData`, `Save`, and `Stream` (pushes record/year/reset messages). **State is `static` (`_db`) shared across all connections and guarded by a single `SemaphoreSlim Mutex`** — this is a single-world, single-tenant server. The base RNG seed is hub state (`_seed`, seeded from `--seed`): `ResetLocked` applies it with `db.SetSeed` **before** `db.Init()` so `@start` events draw from it too, and it ships to the client in `ClientData.Seed`.
 - **`ClientAppSvelte/`**: SvelteKit SPA. `src/lib/connection.ts` wraps the SignalR hub and exposes the `moiraiStore` Svelte store the whole UI subscribes to; `src/routes/` are the pages (main, `changesets`, `query`, `records`); `src/components/` the widgets.
 
 ### Other projects

@@ -67,6 +67,10 @@ export class SignalRConnection {
     return this.connection.invoke<number>('Reset');
   }
 
+  async reseed(seed: number) {
+    return this.connection.invoke<number>('Reseed', seed);
+  }
+
   query(q: string): Promise<QueryResult> {
     return this.connection.invoke<QueryResult>('Query', q);
   }
@@ -177,6 +181,18 @@ export const moiraiStore = {
   reset: async () => {
     const newYear = await get(writableStore).conn!.reset();
     writableStore.update((x) => ({ ...x, year: newYear, records: [] }));
+  },
+  // Rebuild the world from a different seed. The engine is deterministic per seed, so this is the
+  // one knob that produces a genuinely different world from the same story file.
+  reseed: async (seed: number) => {
+    const state = get(writableStore);
+    const newYear = await state.conn!.reseed(seed);
+    writableStore.update((x) => ({
+      ...x,
+      year: newYear,
+      records: [],
+      clientData: x.clientData ? { ...x.clientData, seed } : x.clientData,
+    }));
   },
   passYears: (amount: number) => {
     const subscriber: IStreamSubscriber<number> = {

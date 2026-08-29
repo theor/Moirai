@@ -35,6 +35,28 @@
 
   const queryClient = new QueryClient();
 
+  // Seed box. The world is deterministic per seed, so re-seeding is the only way to get a different
+  // world out of the same story file. Kept in sync with the server's seed, which arrives in ClientData.
+  let seedValue: number | undefined = $state(undefined);
+  const serverSeed = $derived($moiraiStore.clientData?.seed);
+  $effect(() => {
+    if (serverSeed !== undefined && seedValue === undefined) seedValue = serverSeed;
+  });
+  const seedDirty = $derived(
+    seedValue !== undefined && serverSeed !== undefined && seedValue !== serverSeed,
+  );
+
+  function applySeed() {
+    if (seedValue === undefined || !Number.isFinite(seedValue) || seedValue < 0) return;
+    moiraiStore.reseed(Math.floor(seedValue));
+  }
+
+  function rollSeed() {
+    // Kept well inside Number.MAX_SAFE_INTEGER: the seed round-trips through JSON as a number.
+    seedValue = Math.floor(Math.random() * 1_000_000);
+    applySeed();
+  }
+
   // Keep the selection/filter state (e/f/t search params) when switching tabs.
   const search = $derived($page.url.search);
 
@@ -103,6 +125,39 @@
             type="button"
             class="btn preset-filled-surface-500"
             onclick={() => moiraiStore.reset()}>Reset</button
+          >
+          <form
+            class="field-group grid-cols-[auto_auto_auto] inline-grid align-middle"
+            onsubmit={(e) => {
+              e.preventDefault();
+              applySeed();
+            }}
+          >
+            <span
+              class="label preset-tonal"
+              title="Base RNG seed — the world is deterministic per seed">Seed</span
+            >
+            <input
+              type="number"
+              min="0"
+              step="1"
+              name="seed"
+              aria-label="RNG seed"
+              bind:value={seedValue}
+              class="input w-28"
+            />
+            <button
+              type="submit"
+              class="btn {seedDirty ? 'preset-filled-primary-500' : 'preset-filled-surface-500'}"
+              disabled={!seedDirty}
+              title="Rebuild the world from this seed">Apply</button
+            >
+          </form>
+          <button
+            type="button"
+            class="btn preset-filled-surface-500"
+            onclick={rollSeed}
+            title="Pick a random seed and rebuild the world">Roll</button
           >
           <div class="field-group grid-cols-[auto_1fr] w-44 inline-grid align-middle">
             <input

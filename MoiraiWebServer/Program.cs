@@ -21,6 +21,10 @@ internal class Program
             HelpText = "If > 0, start a Debug Adapter Protocol server on this loopback TCP port for step-through debugging from VS Code.")]
         public int DebugPort { get; set; }
 
+        [Option('s', "seed", Required = false, Default = 42UL,
+            HelpText = "Base RNG seed. The simulation is deterministic per seed, so the same seed and the same story file always produce the same world.")]
+        public ulong Seed { get; set; }
+
         [Value(0, MetaName = "inputfile", HelpText = "The Moirai file to load")]
         public string InputFile { get; set; } = "";
     }

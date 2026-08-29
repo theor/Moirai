@@ -36,6 +36,8 @@ export interface TypeData {
 export interface ClientData {
   actions: ActionData[];
   types: TypeData[];
+  /** Base RNG seed the current world was built from. */
+  seed: number;
 }
 
 export interface Changeset {

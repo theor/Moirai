@@ -17,6 +17,12 @@ public class ChatHub : Hub
     private static bool _reset;
     private static bool _resetRequested;
 
+    // Base RNG seed of the current world. The simulation is deterministic per seed, so this plus the
+    // story file is the whole identity of a run — hence it is settable from the UI (Reseed) and shipped
+    // to the client in ClientData. Defaults to the --seed command line option.
+    private static ulong _seed;
+    private static bool _seedInitialised;
+
     // A DAP client attached in "attach" mode: installed as the engine's debug hook so that
     // runs triggered from the web UI (PassYears/RunAction) hit its breakpoints. Survives reloads.
     private static Moirai.Core.DebugSession? _attachedSession;
@@ -54,12 +60,41 @@ public class ChatHub : Hub
         return _db!.Ctx.Year;
     }
 
+    /// <summary>The seed the current world was built with.</summary>
+    public ulong GetSeed() => _seed;
+
+    /// <summary>Rebuild the world from a different seed. Returns the year of the fresh world (0).</summary>
+    public long Reseed(ulong seed)
+    {
+        Mutex.Wait();
+        try
+        {
+            _seed = seed;
+            _seedInitialised = true;
+            ResetLocked();
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+
+        return _db!.Ctx.Year;
+    }
+
     // Rebuild the world from the input file. Caller must hold Mutex.
     private static void ResetLocked()
     {
+        if (!_seedInitialised)
+        {
+            _seed = Program.OptionsInstance.Seed;
+            _seedInitialised = true;
+        }
+
         _db = StoryParser.Parse(File.ReadAllText(Program.OptionsInstance.InputFile), out List<StoryParser.Error> _);
         _db.History = new();
         _db.ProfilingEnabled = Program.OptionsInstance.Profile;
+        // Before Init(): @start events run inside Init and must draw from the requested seed.
+        _db.SetSeed(_seed);
         _db.Init();
         _db.DebugHook = _attachedSession;   // keep an attached debugger hooked across reloads
         _reset = true;
@@ -198,6 +233,7 @@ public class ChatHub : Hub
 
         public ActionData[] Actions;
         public TypeData[] Types;
+        public ulong Seed;
     }
 
     public async Task<ClientData> GetClientData()
@@ -209,6 +245,7 @@ public class ChatHub : Hub
             {
                 Actions = _db!.Actions.Select(a => new ClientData.ActionData(a.Id, a.Name)).ToArray(),
                 Types = _db.Types.Skip(1).Select(a => new ClientData.TypeData((int)a.Id.Id, a.Name)).OrderBy(x => x.Name).ToArray(),
+                Seed = _seed,
             };
         }
         finally
