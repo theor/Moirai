@@ -9,10 +9,6 @@
     <ItemGroup>
         <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.0"/>
         <PackageReference Include="Antlr4BuildTasks" Version="12.2.0" PrivateAssets="all"/>
-        <!-- Temporary: both engines coexist during the ANTLR->Superpower migration (Moirai.Parser.Antlr
-             is the frozen ANTLR snapshot the LSP now references). Antlr4* refs above are removed once
-             the migration's Phase 5 lands. -->
-        <PackageReference Include="Superpower" Version="3.1.0"/>
     </ItemGroup>
     <ItemGroup>
         <Antlr4 Include="moirai_lexer.g4">
