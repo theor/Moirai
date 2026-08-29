@@ -1,0 +1,919 @@
+entity Person {
+    prop age: Age
+    prop first_name: string
+    prop family_name: string
+    prop title: Title
+    prop devotion: percentage
+    prop is_saint: bool
+    prop alive: bool
+    prop birthdate: number
+    prop prestige: percentage
+    prop mastery: Mastery
+    prop deathdate: number
+    prop partner: Person
+    prop god: God
+    prop faction: Faction
+    prop birthplace: Country
+    prop place: Country
+    prop job: Job
+    prop parent1: Person
+    prop parent2: Person
+    prop killer: Person
+    prop prosperity: percentage
+}
+entity Item {
+    prop maker: Person
+    prop item_type: ItemSource
+    prop owner: Person
+    prop creation_date: number
+    prop enchanted: bool
+    prop power: ArtifactPower
+    prop curse: bool
+}
+entity ItemOwnership {
+    prop item: Item
+    prop owner: Person
+    prop start_year: number
+    prop end_year: number
+}
+entity Faction {
+    prop founder: Person
+    prop kind: FactionKind
+    prop patron: God
+    prop home: Country
+}
+entity Country {
+    prop war_with: Country
+    prop health: CountryHealth
+    prop prosperity: percentage
+    prop ruler: Person
+    prop neighbors: [Country]
+}
+entity God {
+    prop domain: GodTypes
+}
+entity Temple {
+    prop god: God
+    prop founder: Person
+    prop country: Country
+    prop founded: number
+}
+entity Settlement {
+    prop country: Country
+    prop founder: Person
+    prop founded: number
+    prop kind: SettlementKind
+    prop status: SettlementStatus
+    prop prosperity: percentage
+}
+entity Monster {
+    prop kind: MonsterKind
+    prop lair: Country
+    prop power: number
+    prop slain_by: Person
+    prop hoard: Item
+    prop alive: bool
+}
+entity Legend {
+    prop hero: Person
+    prop monster: Monster
+    prop place: Country
+    prop year: number
+}
+entity Era {
+    prop start_year: number
+    prop end_year: number
+}
+enum Job { Farmer, Fisher, Hunter, Painter, Sculptor, Bard, Merchant, Smith, Wizard, Soldier, Bandit, Monk, Prince, King }
+enum Age { Child, Young, Adult, Old }
+enum Title { Commoner, King }
+enum SettlementKind { Village, Town, City }
+enum SettlementStatus { Thriving, Struggling, Ruined }
+enum ArtifactPower { Flame, Frost, Storm, Healing, Shadow, Ward }
+enum FactionKind { Cult, KnightlyOrder, MageCircle, ThievesGuild, MerchantLeague }
+enum MonsterKind { Dragon, Wyrm, Lich, Demon, Giant }
+enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant }
+enum ItemSource { Forged, Painted, Sculpted }
+enum Mastery { Novice, Seasoned, Master, Legendary }
+enum CountryHealth { Disarray, Recession, Neutral, Emerging, Prosperous }
+enum CountryName { The_Land_of, The_Kingdom_of, The_Coast_of, The_Province_of }
+enum GodTypes { Thunder, Fertility, The_Hunt, The_Sea, Wisdom, Murder, Blood, War, Death }
+table AgeName { 1 => 'The Age of Ashes', 1 => 'The Long Peace', 1 => 'The Sundering', 1 => 'The Golden Age', 1 => 'The Age of Heroes', 1 => 'The Shadow Years', 1 => 'The Age of Kings', 1 => 'The Reckoning', 1 => 'The Wandering Years', 1 => 'The Age of Iron', 1 => 'The Age of Embers', 1 => 'The Silent Age' }
+table SettlementName { 1 => 'Aldermoor', 1 => 'Highvale', 1 => 'Stonebridge', 1 => 'Greywater', 1 => 'Thornkeep', 1 => 'Westmarch', 1 => 'Duskhollow', 1 => 'Riverton', 1 => 'Blackmoor', 1 => 'Fairhaven', 1 => 'Ravensford', 1 => 'Oldcastle', 1 => 'Emberfall', 1 => 'Northwatch', 1 => 'Silverbrook', 1 => 'Wraithmoor' }
+table Surname { 1 => 'Ashford', 1 => 'Blackwood', 1 => 'Caelmoor', 1 => 'Dunmere', 1 => 'Eldridge', 1 => 'Fenwick', 1 => 'Grimsbane', 1 => 'Holloway', 1 => 'Ironvale', 1 => 'Karras', 1 => 'Lothian', 1 => 'Mournhal', 1 => 'Nightfell', 1 => 'Oakhart', 1 => 'Ravenscar', 1 => 'Stormwell', 1 => 'Thornwood', 1 => 'Vaelin' }
+table ArtifactName { 1 => 'Dawnbreaker', 1 => 'Nightfang', 1 => 'Stormcaller', 1 => 'Frostmourne', 1 => 'Sunforge', 1 => 'Shadowrend', 1 => 'Wyrmtongue', 1 => 'Lightbringer', 1 => 'Doomwhisper', 1 => 'Starfall', 1 => 'Emberheart', 1 => 'Soulward' }
+table FactionName { 1 => 'the Ashen Hand', 1 => 'the Iron Covenant', 1 => 'the Silver Circle', 1 => 'the Crimson Order', 1 => 'the Veiled Path', 1 => 'the Golden Compact', 1 => 'the Obsidian Lodge', 1 => 'the Dawn Conclave', 1 => 'the Black Chalice', 1 => 'the Verdant Pact', 1 => 'the Sundered Crown', 1 => 'the Hollow Choir' }
+table MonsterName { 1 => 'Malgrath', 1 => 'Vexthyr', 1 => 'Sorrowmaw', 1 => 'Galdroth', 1 => 'Nyxshade', 1 => 'Carriongale', 1 => 'Throxis', 1 => 'Ashmaw', 1 => 'Velkarid', 1 => 'Gorehollow', 1 => 'Dreadspire', 1 => 'Ulgathon' }
+function is_child_of($ch: Person, $parent: Person): bool {
+    (($0.parent1 = $1) or ($0.parent2 = $1))
+}
+
+function has_parent($p: Person): bool {
+    (($0.parent1 != null) or ($0.parent2 != null))
+}
+
+function create_country() {
+    create Country $0: ('{random (CountryName)} {random (Name)}') {
+        prosperity := 50%
+        health := CountryHealth.Neutral
+    }
+    record ('{$0.name} is created')
+}
+
+function create_god() {
+    var $0: random (GodTypes)
+    create God $1: ('{random (Name)}, God of {$0}') {
+        domain := $0
+    }
+    record ('{$1.name} appears')
+}
+
+@start
+event create_time {
+    create Time $0: ('time') {
+        year := 764
+    }
+    call (create_country, 10)
+    call (create_god, 10)
+}
+@start
+event begin_history {
+    create Era $0: ('The Founding Age') {
+        start_year := 764
+    }
+}
+@tag('era')
+@frequency(1, Frequency.EveryXYear, 90)
+event advance_age {
+    pick Era $0: (($0.end_year = 0))
+    set $0.end_year = #Time.year
+    create Era $1: ('{roll(AgeName)}') {
+        start_year := #Time.year
+    }
+    record ('The {$0.name} ends; {$1.name} begins in the year {#Time.year}')
+}
+@start
+event link_countries {
+    each Country $0: () {
+        if pick Country $1: ((($1.id != $0) and not (contains ($0.neighbors, $1)))) {
+            add ($0.neighbors, $1)
+            add ($1.neighbors, $0)
+        }
+
+        if pick Country $2: ((($2.id != $0) and not (contains ($0.neighbors, $2)))) {
+            add ($0.neighbors, $2)
+            add ($2.neighbors, $0)
+        }
+
+     }
+
+}
+@tag('country_events')
+@frequency(1, Frequency.PerXYear, 15)
+event update_country_health {
+    each Country $0: () {
+        var $1: $0.health
+        set $0.health = ((($0.prosperity / 10) + 1) / 2)
+        var $2: ($1 != $0.health)
+        match $2,     $0.health {
+            false,     CountryHealth.Disarray => {
+                random_weighted 100 {
+                    3 => {
+                        record ('The governement of {$0.name} disappears in a coup')
+                        set $0.health = CountryHealth.Neutral
+                        set $0.prosperity = 50%
+                    }
+                }
+
+            }
+            true,     CountryHealth.Prosperous => {
+                record ('{$0.name} enters an era of prosperity')
+            }
+        }
+
+     }
+
+}
+@tag('geography')
+event found_settlement($founder: Person, $realm: Country) {
+    create Settlement $2: ('{roll(SettlementName)}') {
+        country := $1
+        founder := $0
+        founded := #Time.year
+        kind := SettlementKind.Village
+        status := SettlementStatus.Thriving
+        prosperity := 40%
+    }
+    record ('{$0.name} founds the village of {$2.name} in {$1.name}')
+}
+@tag('politics')
+@frequency(1, Frequency.PerXYear, 3)
+event crown_monarch {
+    pick Country $0: (($0.ruler = null))
+    pick Person $1: (((($1.alive and ($1.age > Age.Young)) and ($1.place = $0)) and ($1.title = Title.Commoner)))
+    set $0.ruler = $1
+    set $1.title = Title.King
+    set $1.prestige = ($1.prestige + 30%)
+    record ('{$1.name} of House {$1.family_name} is crowned ruler of {$0.name}')
+    call (found_settlement, $1, $0)
+}
+@tag('geography')
+@frequency(1, Frequency.PerXYear, 10)
+event settle {
+    pick Person $0: (($0.alive and ($0.age > Age.Young)))
+    var $1: $0.place
+    if $1 {
+        call (found_settlement, $0, $1)
+    }
+
+}
+@tag('geography')
+@frequency(1, Frequency.PerXYear, 12)
+event settlement_grows {
+    pick Settlement $0: (($0.status = SettlementStatus.Thriving))
+    match $0.kind {
+        SettlementKind.Village => {
+            set $0.kind = SettlementKind.Town
+            set $0.prosperity = ($0.prosperity + 10%)
+            record ('The village of {$0.name} grows into a town')
+        }
+        SettlementKind.Town => {
+            set $0.kind = SettlementKind.City
+            set $0.prosperity = ($0.prosperity + 10%)
+            record ('The town of {$0.name} grows into a city')
+        }
+    }
+
+}
+@tag('geography', 'war')
+@frequency(1, Frequency.PerXYear, 15)
+event settlement_sacked {
+    pick Country $0: (($0.war_with != null))
+    pick Settlement $1: ((($1.country = $0) and ($1.status != SettlementStatus.Ruined)))
+    set $1.status = SettlementStatus.Ruined
+    set $1.prosperity = 0%
+    record ('{$1.name} in {$0.name} is sacked and falls into ruin')
+}
+@frequency(1, Frequency.PerXYear, 2)
+event char_born {
+    var $0: '{random (Name)}'
+    var $1: '{roll(Surname)}'
+    create Person $2: ('{$0} {$1}')
+    pick Country $3: ()
+    set $2.alive = true
+    set $2.first_name = $0
+    set $2.family_name = $1
+    set $2.birthplace = $3
+    record ('{$2.name} is born in {$3.name}')
+}
+@tag('items')
+@frequency(1, Frequency.PerXYear, 5)
+event char_prestige_update {
+    each Person $0: ($0.alive,     ($0.prestige > 0)) {
+        match $0.job {
+            Job.Painter => {
+                if (($0.prestige > 50%) and ($0.mastery < Mastery.Master)) {
+                    record ('{$0.name} is now a master painter')
+                    set $0.mastery = Mastery.Master
+                    set $0.prosperity = ($0.prosperity + 20%)
+                }
+
+            }
+            Job.Smith => {
+                if (($0.prestige > 50%) and ($0.mastery < Mastery.Master)) {
+                    record ('{$0.name} is now a master smith')
+                    set $0.mastery = Mastery.Master
+                    set $0.prosperity = ($0.prosperity + 20%)
+                }
+
+            }
+        }
+
+     }
+
+    each Person $0: (($0.prosperity < 10%)) {
+        random_weighted 100 {
+            10 => {
+                record ('{$0.name} commit suicide')
+                set $0.alive = false
+            }
+        }
+
+     }
+
+}
+@frequency(1, Frequency.PerXYear, 1)
+event char_joins_faith {
+    pick Person $0: ($0.alive,     ($0.god = null))
+    pick God $1: ()
+    set $0.god = $1
+    set $0.devotion = 30%
+    record ('{$0.name} takes the faith of {$1.name}')
+}
+@tag('faith')
+@frequency(1, Frequency.PerXYear, 3)
+event deepen_faith {
+    each Person $0: ((($0.alive and ($0.god != null)) and ($0.devotion < 100%))) {
+        set $0.devotion = ($0.devotion + 5%)
+     }
+
+}
+@tag('faith')
+@frequency(1, Frequency.PerXYear, 8)
+event divine_miracle {
+    pick Person $0: (((($0.alive and ($0.god != null)) and ($0.devotion > 50%)) and ($0.prosperity < 45%)))
+    var $1: $0.god
+    set $0.prosperity = ($0.prosperity + 40%)
+    set $0.prestige = ($0.prestige + 10%)
+    record ('{$0.name} receives a miracle from {$1.name} and is delivered from hardship')
+}
+@tag('faith')
+@frequency(1, Frequency.PerXYear, 20)
+event prophet_rises {
+    pick Person $0: (((($0.alive and ($0.god != null)) and ($0.devotion > 80%)) and ($0.age > Age.Young)))
+    var $1: $0.god
+    var $2: $0.place
+    if $2 {
+        create Temple $3: ('Temple of {$1.name}') {
+            god := $1
+            founder := $0
+            country := $2
+            founded := #Time.year
+        }
+        set $0.prestige = ($0.prestige + 20%)
+        record ('{$0.name}, a prophet of {$1.name}, raises a temple in {$2.name}')
+    }
+
+}
+@tag('faith')
+@frequency(1, Frequency.PerXYear, 30)
+event divine_wrath {
+    pick God $0: ()
+    pick Country $1: (($1.prosperity > 20%))
+    set $1.prosperity = ($1.prosperity - 20%)
+    record ('{$0.name} visits wrath upon {$1.name}, and the land withers')
+}
+@frequency(1, Frequency.PerXYear, 2)
+event wedding {
+    pick Person $0: ((((($0.alive = true) and ($0.partner = null)) and ($0.age > Age.Child)) and ($0.age < Age.Old)))
+    pick Person $1: ((((((((($1.alive = true) and ($1.partner = null)) and ($1.age > Age.Child)) and ($1.age < Age.Old)) and ($1.id != $0)) and ($1.place = $0.place)) and not (is_child_of($1,     $0))) and not (is_child_of($0,     $1))))
+    set $0.partner = $1
+    set $1.partner = $0
+    set $0.prosperity = ($0.prosperity + 20%)
+    set $1.prosperity = ($1.prosperity + 20%)
+    record ('{$0.name} and {$1.name} get married')
+}
+@frequency(1, Frequency.PerXYear, 15)
+event divorce {
+    pick Person $0: (($0.alive = true),     ($0.partner != null))
+    pick Person $1: (($1.alive = true),     ($1.partner = $0),         ($1.id != $0))
+    set $0.partner = null
+    set $1.partner = null
+    record ('{$0.name} and {$1.name} separate')
+}
+@frequency(1, Frequency.PerXYear, 15)
+event murder {
+    pick Person $0: (($0.alive = true),     ($0.age > Age.Child),         ($0.prosperity < 20%))
+    pick Person $1: (($1.alive = true),     ($1.id != $0),         ($1.place = $0.place))
+    set $1.alive = false
+    set $1.killer = $0
+    record ('{$0.name} murders {$1} {$1.name}')
+}
+@frequency(1, Frequency.PerXYear, 15)
+event bandits_attack_town {
+    pick Person $0: (($0.alive = true),     ($0.job = Job.Bandit))
+    pick Country $1: (($0.place = $1))
+    pick Person $2: (($2.alive = true),     ($2.id != $0),         ($2.place = $1))
+    set $2.alive = false
+    set $2.killer = $0
+    set $0.prosperity = ($0.prosperity + 30%)
+    record ('{$0.name} bandits pillage a town of {$1.name}')
+    record ('{$2.name} die in the pillage of {$1.name}')
+}
+@tag('country')
+@frequency(1, Frequency.PerXYear, 4)
+event char_migrates {
+    pick Person $0: ($0.alive,     ($0.partner = null))
+    var $1: $0.place
+    pick Country $2: ((($2.id != $1) and contains ($1.neighbors, $2)))
+    set $0.place = $2
+    record ('{$0.name} moves to {$2.name}')
+}
+@tag('war')
+@frequency(1, Frequency.PerXYear, 25)
+event country_war_start {
+    pick Country $0: (($0.war_with = null))
+    pick Country $1: (($1.id != $0),     ($1.war_with = null),         contains ($0.neighbors, $1))
+    set $0.war_with = $1
+    set $1.war_with = $0
+    record ('{$0.name} and {$1.name} start a war')
+    set $0.prosperity = ($0.prosperity - 10%)
+    set $1.prosperity = ($1.prosperity - 10%)
+}
+@tag('war', 'country')
+@frequency(5, Frequency.PerXYear, 1)
+event soldier_war_distinction {
+    each Country $0: (($0.war_with != null)) {
+        pick Person $1: ($1.alive,     ($1.job = Job.Soldier),         ($1.place = $0))
+        var $2: $0.war_with
+        random_weighted 100 {
+            10 => {
+                set $1.prestige = ($1.prestige + 10%)
+                record ('{$1.name}, a soldier from {$0.name}, shines during the war with {$2.name}')
+            }
+            10 => {
+                set $1.alive = false
+                record ('{$1.name}, a soldier from {$0.name}, dies during the war with {$2.name}')
+            }
+        }
+
+     }
+
+}
+@tag('war', 'country')
+@frequency(1, Frequency.PerXYear, 10)
+event country_war_peace {
+    pick Country $0: (($0.war_with != null))
+    var $1: $0.war_with
+    set $0.war_with = null
+    set $1.war_with = null
+    record ('{$0.name} and {$1.name} sign a peace treaty, ending the war')
+    set $0.prosperity = ($0.prosperity + 10%)
+    set $1.prosperity = ($1.prosperity + 10%)
+}
+@tag('war', 'country')
+@frequency(1, Frequency.PerXYear, 10)
+event country_war_win {
+    pick Country $0: (($0.war_with != null))
+    var $1: $0.war_with
+    set $0.war_with = null
+    set $1.war_with = null
+    record ('{$0.name} wins the war against {$1.name}')
+    set $0.prosperity = ($0.prosperity + 30%)
+    set $1.prosperity = ($1.prosperity - 10%)
+}
+@tag('country')
+@frequency(1, Frequency.PerXYear, 20)
+event country_natural_disaster {
+    pick Country $0: ()
+    var $1: random_weighted 100 {
+    20 => {
+'A flood'
+    }
+    20 => {
+'A volcano'
+    }
+    20 => {
+'A famine'
+    }
+    _ => {
+'An earthquake'
+    }
+}
+
+    set $0.prosperity = ($0.prosperity - 30%)
+    record ('{$1} hits {$0.name}')
+}
+@frequency(2, Frequency.PerXYear, 1)
+event couple_has_child {
+    pick Person $0: (($0.alive = true),     ($0.age < Age.Old),         ($0.partner != null),             (since_last ($0) > 4))
+    var $1: $0.partner
+    if $1.alive {
+        mark ($0)
+        mark ($1)
+        var $2: '{random (Name)}'
+        create Person $3: ('{$2} {$0.family_name}')
+        set $3.alive = true
+        set $3.first_name = $2
+        set $3.family_name = $0.family_name
+        set $3.birthplace = $0.place
+        set $3.god = $0.god
+        set $3.parent1 = $0
+        set $3.parent2 = $1
+        record ('{$0.name} and {$1.name} have a child, {$3.name}')
+    }
+
+}
+@frequency(1, Frequency.PerXYear, 10)
+event parent_child_quarrel {
+    pick Person $0: (((($0.alive = true) and ($0.age > Age.Child)) and has_parent($0)))
+    pick Person $1: (($1.alive and is_child_of($0,     $1)))
+    set $1.prosperity = ($1.prosperity - 10%)
+    set $0.prosperity = ($1.prosperity - 10%)
+    record ('{$0.name} and {$1.name} got into a quarrel')
+}
+@tag('items')
+@frequency(1, Frequency.PerXYear, 8)
+event item_forged {
+    pick Person $0: (($0.alive = true),     ($0.job = Job.Smith),         ($0.age > Age.Child))
+    set $0.prestige = ($0.prestige + 10%)
+    create Item $1: ('{random (ItemType)} of {random (Name)}')
+    set $1.item_type = ItemSource.Forged
+    set $1.maker = $0
+    set $1.creation_date = #Time.year
+    set $1.owner = $0
+    record ('{$0.name} crafts the {$1.name}')
+}
+@tag('magic')
+@frequency(1, Frequency.PerXYear, 5)
+event wizard_studies {
+    pick Person $0: (((($0.alive and ($0.job = Job.Wizard)) and ($0.age > Age.Child)) and ($0.mastery < Mastery.Legendary)))
+    match $0.mastery {
+        Mastery.Novice => {
+            set $0.mastery = Mastery.Seasoned
+            record ('{$0.name} grows in arcane skill, now a seasoned wizard')
+        }
+        Mastery.Seasoned => {
+            set $0.mastery = Mastery.Master
+            set $0.prestige = ($0.prestige + 10%)
+            record ('{$0.name} becomes a master wizard')
+        }
+        Mastery.Master => {
+            set $0.mastery = Mastery.Legendary
+            set $0.prestige = ($0.prestige + 30%)
+            record ('{$0.name} attains legendary mastery of the arcane')
+        }
+    }
+
+}
+@tag('magic', 'items')
+@frequency(1, Frequency.PerXYear, 14)
+event artifact_forged {
+    pick Person $0: ((($0.alive and ($0.job = Job.Wizard)) and ($0.mastery >= Mastery.Master)))
+    create Item $1: ('{roll(ArtifactName)}') {
+        maker := $0
+        owner := $0
+        item_type := ItemSource.Forged
+        creation_date := #Time.year
+        enchanted := true
+        power := random (ArtifactPower)
+        curse := (random (0, 100) < 20)
+    }
+    if $1.curse {
+        record ('{$0.name} forges the cursed {$1.name}, an artifact of {$1.power}')
+    } else {
+        record ('{$0.name} forges the enchanted {$1.name}, an artifact of {$1.power}')
+    }
+
+}
+@tag('magic', 'geography')
+@frequency(1, Frequency.PerXYear, 30)
+event arcane_catastrophe {
+    pick Person $0: ((($0.alive and ($0.job = Job.Wizard)) and ($0.mastery >= Mastery.Seasoned)))
+    var $1: $0.place
+    pick Settlement $2: ((($2.country = $1) and ($2.status != SettlementStatus.Ruined)))
+    set $2.status = SettlementStatus.Ruined
+    set $2.prosperity = 0%
+    record ('A ritual by {$0.name} goes catastrophically wrong; {$2.name} is consumed and left in ruins')
+}
+@tag('items')
+@frequency(1, Frequency.PerXYear, 8)
+event item_painted {
+    pick Person $0: (($0.alive = true),     ($0.job = Job.Painter),         ($0.age > Age.Child))
+    set $0.prestige = ($0.prestige + 10%)
+    pick Person $1: (($1.alive = true),     ($1.id != $0))
+    create Item $2: ('Portrait of {$1.name}')
+    set $2.maker = $0
+    set $2.item_type = ItemSource.Painted
+    set $2.creation_date = #Time.year
+    if (random (0, 10) > 5) {
+        set $2.owner = $0
+        record ('{$0.name} depicts {$1.name} in the {$2.name}')
+    } else {
+        set $2.owner = $1
+        record ('{$1.name} have their {link ($2, 'portrait')} painted by {$0.name}')
+    }
+
+}
+@tag('items')
+@frequency(1, Frequency.PerXYear, 8)
+event item_lost {
+    pick Item $0: (($0.owner != null))
+    pick Person $1: (($1.id = $0.owner),     $1.alive)
+    var $2: $0.owner
+    set $0.owner = null
+    record ('{$2.name} lost the {$0.name}')
+}
+@tag('items')
+@frequency(1, Frequency.PerXYear, 20)
+event item_found {
+    pick Person $0: (($0.alive = true))
+    pick Item $1: (($1.owner = null))
+    set $1.owner = $0
+    record ('{$0.name} finds the {$1.name}')
+}
+@tag('items')
+@frequency(1, Frequency.PerXYear, 10)
+event item_sold {
+    pick Item $0: (($0.owner != null))
+    pick Person $1: (($1.id = $0.owner),     $1.alive)
+    pick Person $2: ($2.alive,     ($2.id != $1))
+    var $3: $0.owner
+    set $0.owner = $2
+    record ('{$2.name} acquires the {$0.name} from {$3.name}')
+}
+@tag('factions')
+@frequency(1, Frequency.PerXYear, 20)
+event create_faction {
+    pick Person $0: ($0.alive,     ($0.faction = null),         ($0.age > Age.Child))
+    create Faction $1: ('{roll(FactionName)}') {
+        founder := $0
+        home := $0.place
+    }
+    match $0.job {
+        Job.Wizard => {
+            set $1.kind = FactionKind.MageCircle
+            record ('{$0.name} founds the mage circle {$1.name}')
+        }
+        Job.Soldier => {
+            set $1.kind = FactionKind.KnightlyOrder
+            record ('{$0.name} founds the knightly order {$1.name}')
+        }
+        Job.Bandit => {
+            set $1.kind = FactionKind.ThievesGuild
+            record ('{$0.name} founds the thieves guild {$1.name}')
+        }
+        Job.Merchant => {
+            set $1.kind = FactionKind.MerchantLeague
+            record ('{$0.name} founds the merchant league {$1.name}')
+        }
+        _ => {
+            set $1.kind = FactionKind.Cult
+            set $1.patron = $0.god
+            record ('{$0.name} founds the cult {$1.name}')
+        }
+    }
+
+    set $0.faction = $1
+}
+@tag('factions')
+@frequency(1, Frequency.PerXYear, 2)
+event char_joins_faction {
+    pick Person $0: ($0.alive,     ($0.faction = null),         ($0.age > Age.Child))
+    pick Faction $1: ()
+    set $0.faction = $1
+    if (($1.kind = FactionKind.Cult) and ($1.patron != null)) {
+        set $0.god = $1.patron
+        record ('{$0.name} joins the cult {$1.name}, devoted to {$1.patron.name}')
+    } else {
+        record ('{$0.name} joins the {$1.name}')
+    }
+
+}
+@tag('factions')
+@frequency(1, Frequency.PerXYear, 18)
+event faction_feud {
+    pick Person $0: ((($0.alive and ($0.job = Job.Soldier)) and ($0.faction != null)))
+    pick Person $1: (($1.alive and ($1.job = Job.Bandit)))
+    set $1.killer = $0
+    set $1.alive = false
+    record ('{$0.name} of {$0.faction.name} strikes down the outlaw {$1.name}')
+}
+@tag('legends')
+@frequency(1, Frequency.PerXYear, 15)
+event monster_emerges {
+    pick Country $0: ()
+    create Monster $1: ('{roll(MonsterName)}') {
+        kind := random (MonsterKind)
+        lair := $0
+        power := random (40, 90)
+        alive := true
+    }
+    record ('{$1.name}, a {$1.kind}, awakens in {$0.name}')
+    if pick Item $2: (($2.enchanted and ($2.owner != null))) {
+        set $1.hoard = $2
+        set $2.owner = null
+        record ('{$1.name} seizes the {$2.name} into its hoard')
+    }
+
+}
+@tag('legends')
+@frequency(1, Frequency.PerXYear, 10)
+event monster_raids {
+    pick Monster $0: ($0.alive)
+    var $1: $0.lair
+    if pick Settlement $2: ((($2.country = $1) and ($2.status != SettlementStatus.Ruined))) {
+        set $2.status = SettlementStatus.Ruined
+        set $2.prosperity = 0%
+        record ('{$0.name} descends upon {$2.name} and razes it')
+    } else {
+        if pick Person $3: (($3.alive and ($3.place = $1))) {
+            set $3.alive = false
+            record ('{$3.name} is devoured by {$0.name} in {$1.name}')
+        }
+
+    }
+
+}
+@tag('legends')
+@frequency(1, Frequency.PerXYear, 12)
+event hero_quest {
+    pick Monster $0: ($0.alive)
+    pick Person $1: (((($1.alive and ($1.age > Age.Young)) and (($1.job = Job.Soldier) or ($1.job = Job.Wizard))) and (($1.prestige > 20%) or ($1.mastery >= Mastery.Master))))
+    random_weighted 100 {
+        60 => {
+            set $0.alive = false
+            set $0.slain_by = $1
+            set $1.prestige = ($1.prestige + 40%)
+            if $0.hoard {
+                var $2: $0.hoard
+                set $2.owner = $1
+                record ('{$1.name} recovers the {$2.name} from the hoard of {$0.name}')
+            }
+
+            create Legend $2: ('The Slaying of {$0.name}') {
+                hero := $1
+                monster := $0
+                place := $0.lair
+                year := #Time.year
+            }
+            record ('{$1.name} slays {$0.name} in {$0.lair.name} — a legend is born')
+        }
+        _ => {
+            set $1.alive = false
+            record ('{$1.name} falls confronting {$0.name} in {$0.lair.name}')
+        }
+    }
+
+}
+@tag('items')
+trigger item_created {
+  when_created Item
+    create ItemOwnership $1
+    set $1.owner = $0.owner
+    set $1.item = $0
+    set $1.start_year = #Time.year
+}
+@tag('items')
+trigger item_change_owner {
+  when Item and ($1.owner != $0.owner)
+    if pick ItemOwnership $2: ((($2.item = $0) and ($2.end_year = 0))) {
+        set $2.end_year = #Time.year
+    }
+
+    create ItemOwnership $3
+    set $3.owner = $1.owner
+    set $3.item = $1
+    set $3.start_year = #Time.year
+}
+@tag('items')
+trigger inherit {
+  when Person and (($1.alive = false) and $0.alive)
+    set $1.deathdate = #Time.year
+    each Person $2: ((is_child_of($2,     $1) and $2.alive)) {
+        record ('{$2.name} lose their parent, {$1.name}')
+        if $1.killer {
+            var $3: $1.killer
+            record ('{$2.name} starts a vendetta with {$3.name}')
+        }
+
+     }
+
+    each Item $2: (($2.owner = $1)) {
+        if pick Person $3: (($3.alive and is_child_of($3,     $1))) {
+            set $2.owner = $3
+            record ('{$3.name} inherits the {$2.name} from {$1.name}')
+        } else {
+            record ('The {$2.name} is lost after the death of {$1.name}')
+            set $2.owner = null
+        }
+
+     }
+
+}
+@tag('death')
+trigger buries_children {
+  when Person and (($1.alive = false) and $0.alive)
+    each Person $2: ((is_child_of($1,     $2) and $2.alive)) {
+        set $2.prosperity = ($2.prosperity - 20%)
+        record ('{$2.name} bury their child, {$1.name}')
+     }
+
+}
+@tag('politics')
+trigger succession {
+  when Person and (($1.alive = false) and $0.alive)
+    each Country $2: (($2.ruler = $1)) {
+        if pick Person $3: (($3.alive and is_child_of($3,     $1))) {
+            set $2.ruler = $3
+            set $3.title = Title.King
+            set $3.prestige = ($3.prestige + 20%)
+            record ('{$3.name} of House {$3.family_name} succeeds {$1.name} as ruler of {$2.name}')
+        } else {
+            set $2.ruler = null
+            record ('The throne of {$2.name} is left vacant after the death of {$1.name}')
+        }
+
+     }
+
+}
+@tag('faith')
+trigger canonize_saint {
+  when Person and (((($1.alive = false) and $0.alive) and ($1.devotion > 80%)) and ($1.god != null))
+    if (random (0, 100) < 8) {
+        set $1.is_saint = true
+        record ('{$1.name} is canonized as a saint of {$1.god.name}')
+    }
+
+}
+trigger born {
+  when_created Person
+    set $0.alive = true
+    set $0.prosperity = 50%
+    set $0.age = Age.Child
+    set $0.title = Title.Commoner
+    set $0.birthdate = #Time.year
+    set $0.place = $0.birthplace
+    schedule ($0, ($0.birthdate + 20)) {
+        if $1.alive {
+            set $1.age = Age.Young
+            random_weighted 100 {
+                5 => {
+                    set $1.job = Job.Smith
+                }
+                10 => {
+                    set $1.job = Job.Merchant
+                }
+                10 => {
+                    set $1.job = Job.Monk
+                }
+                25 => {
+                    set $1.job = Job.Soldier
+                }
+                10 => {
+                    set $1.job = Job.Bandit
+                }
+                5 => {
+                    set $1.job = Job.Painter
+                }
+                5 => {
+                    set $1.job = Job.Sculptor
+                }
+                5 => {
+                    set $1.job = Job.Bard
+                }
+                5 => {
+                    set $1.job = Job.Wizard
+                }
+                10 => {
+                    set $1.job = Job.Hunter
+                }
+                10 => {
+                    set $1.job = Job.Fisher
+                }
+                _ => {
+                    set $1.job = Job.Farmer
+                }
+            }
+
+            set $1.mastery = Mastery.Novice
+            record ('{$1.name} becomes a {$1.job}')
+        }
+
+     }
+    schedule ($0, ($0.birthdate + 40)) {
+        if $1.alive {
+            set $1.age = Age.Adult
+        }
+
+     }
+    schedule ($0, ($0.birthdate + 60)) {
+        if $1.alive {
+            set $1.age = Age.Old
+            if (random (0, 100) < 10) {
+                set $1.alive = false
+                random_weighted 50 {
+                    40 => {
+                        record ('{$1.name} dies of sickness at {(#Time.year - $1.birthdate)} in {#Time.year}')
+                    }
+                    _ => {
+                        record ('{$1.name} dies in an accident at {(#Time.year - $1.birthdate)} in {#Time.year}')
+                    }
+                }
+
+            } else {
+                record ('{$1.name} grew old')
+                schedule ($1, ((#Time.year + 20) + random (0, 15))) {
+                    if $2.alive {
+                        set $2.alive = false
+                        random_weighted 100 {
+                            40 => {
+                                record ('{$2.name} dies of old age at {(#Time.year - $2.birthdate)} in {#Time.year}')
+                            }
+                            40 => {
+                                record ('{$2.name} dies of sickness at {(#Time.year - $2.birthdate)} in {#Time.year}')
+                            }
+                            _ => {
+                                record ('{$2.name} dies in an accident at {(#Time.year - $2.birthdate)} in {#Time.year}')
+                            }
+                        }
+
+                    }
+
+                 }
+            }
+
+        }
+
+     }
+}

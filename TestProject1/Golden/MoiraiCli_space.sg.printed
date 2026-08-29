@@ -1,0 +1,69 @@
+entity Object {
+    prop system: System
+    prop dead: bool
+    prop kind: Kind
+    prop distance_to_sun: number
+}
+entity System {
+}
+entity Person {
+    prop birthplace: Object
+    prop location: Object
+}
+enum Kind { Asteroid, Star, Planet, Satelite }
+@start
+event create_time {
+    create Time $0: ('time')
+    set $0.year = 0
+}
+@start
+event create_solar_system {
+    create System $0: ('Solar System')
+    create Object $1: ('Sun')
+    set $1.kind = Kind.Star
+    set $1.system = $0
+    create Object $2: ('Mercury')
+    set $2.kind = Kind.Planet
+    set $2.distance_to_sun = 57
+    set $2.system = $0
+    create Object $3: ('Venus')
+    set $3.kind = Kind.Planet
+    set $3.distance_to_sun = 108
+    set $3.system = $0
+    create Object $4: ('Earth')
+    set $4.kind = Kind.Planet
+    set $4.distance_to_sun = 149
+    set $4.system = $0
+    create Object $5: ('Mars')
+    set $5.kind = Kind.Planet
+    set $5.distance_to_sun = 227
+    set $5.system = $0
+    create Object $6: ('Jupiter')
+    set $6.kind = Kind.Planet
+    set $6.distance_to_sun = 778
+    set $6.system = $0
+    create Object $7: ('Saturn')
+    set $7.kind = Kind.Planet
+    set $7.distance_to_sun = 1433
+    set $7.system = $0
+    create Object $8: ('Uranus')
+    set $8.kind = Kind.Planet
+    set $8.distance_to_sun = 2872
+    set $8.system = $0
+    create Object $9: ('Neptune')
+    set $9.kind = Kind.Planet
+    set $9.distance_to_sun = 4495
+    set $9.system = $0
+    create Object $10: ('Moon')
+    set $10.kind = Kind.Satelite
+    set $10.system = $0
+    record ('{$0.name} created')
+}
+@frequency(1, Frequency.PerXYear, 2)
+event born {
+    create Person $0: ('{random (Name)}')
+    pick Object $1: ((($1.kind = Kind.Planet) or ($1.kind = Kind.Satelite)))
+    set $0.birthplace = $1
+    set $0.location = $1
+    record ('{$0.name} was born on {$1.name}')
+}
