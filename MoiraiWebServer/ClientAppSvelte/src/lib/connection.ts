@@ -12,6 +12,8 @@ import {
   MessageType,
   type Record,
   type RuleCoverageReport,
+  type TimeSeries,
+  type WorldOverview,
 } from './types';
 import { get, writable } from 'svelte/store';
 export interface Result {
@@ -86,6 +88,14 @@ export class SignalRConnection {
 
   streamRecords(): IStreamResult<Message> {
     return this.connection.stream<Message>('Stream');
+  }
+
+  getWorldOverview(): Promise<WorldOverview> {
+    return this.connection.invoke<WorldOverview>('GetWorldOverview');
+  }
+
+  getPropertySeries(typeId: number, propertyName: string): Promise<TimeSeries> {
+    return this.connection.invoke<TimeSeries>('GetPropertySeries', typeId, propertyName);
   }
 
   getRuleCoverage(): Promise<RuleCoverageReport> {

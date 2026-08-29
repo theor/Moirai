@@ -254,6 +254,72 @@ public class ChatHub : Hub
         }
     }
 
+    /// <summary>A (type, property) pair the dashboard can plot: bools as a count of true, numbers as a mean.</summary>
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    public record ChartableProperty(int TypeId, string TypeName, string PropertyName, string Kind);
+
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    public record WorldOverview(
+        long Year,
+        int Entities,
+        int Records,
+        int Changesets,
+        TimeSeries[] Series,
+        ChartableProperty[] Properties);
+
+    /// <summary>
+    /// Headline counts plus the always-meaningful series: narrative volume, world activity, and one
+    /// cumulative entity count per type. All of it is replayed from <see cref="History"/> by
+    /// <see cref="WorldSeries"/>, so the simulation pays nothing for it.
+    /// </summary>
+    public WorldOverview GetWorldOverview()
+    {
+        Mutex.Wait();
+        try
+        {
+            if (_db?.History == null)
+                return new WorldOverview(0, 0, 0, 0, Array.Empty<TimeSeries>(), Array.Empty<ChartableProperty>());
+
+            var series = new List<TimeSeries>
+            {
+                WorldSeries.RecordsPerYear(_db),
+                WorldSeries.ChangesPerYear(_db),
+            };
+            foreach (var type in WorldSeries.StoryTypes(_db))
+                if (WorldSeries.EntitiesOfType(_db, type) is { } s)
+                    series.Add(s);
+
+            var properties = WorldSeries.Chartable(_db)
+                .Select(c => new ChartableProperty((int)c.Type.Id.Id, c.Type.Name, c.Property.Name,
+                    c.IsBool ? "bool" : "number"))
+                .ToArray();
+
+            return new WorldOverview(Math.Max(0, _db.Ctx.Year), _db.Entities.Count(), _db.Records.Count,
+                _db.History.Changesets.Count, series.ToArray(), properties);
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
+    /// <summary>One property's history, replayed from the changeset log. See <see cref="WorldSeries.PropertyOverTime"/>.</summary>
+    public TimeSeries GetPropertySeries(int typeId, string propertyName)
+    {
+        Mutex.Wait();
+        try
+        {
+            if (_db?.History == null)
+                return TimeSeries.Empty;
+            return WorldSeries.PropertyOverTime(_db, _db.GetEntityType(new EntityTypeId((uint)typeId)),
+                propertyName);
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
     /// <summary>
     /// One row of the rule-coverage report: how often an event or trigger has fired over the whole life
     /// of the current world. <c>Attempts</c>/<c>Successes</c> are the engine's always-on counters

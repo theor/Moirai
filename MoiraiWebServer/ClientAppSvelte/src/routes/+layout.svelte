@@ -65,6 +65,7 @@
     { href: '/changesets', label: 'Changesets' },
     { href: '/query', label: 'Query' },
     { href: '/family', label: 'Family' },
+    { href: '/world', label: 'World' },
     { href: '/rules', label: 'Rules' },
   ];
 </script>

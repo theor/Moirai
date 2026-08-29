@@ -38,6 +38,13 @@ public class Database
     public readonly List<EntityType> Types;
     public readonly int BuiltinTypes;
 
+    /// <summary>
+    /// The year the world begins, read off the <c>Time</c> singleton at the end of <see cref="Init"/>.
+    /// Stories rarely start at zero (w.sg starts at 764), so anything plotting or bucketing history has
+    /// to know where the timeline actually starts rather than padding it from zero.
+    /// </summary>
+    public long StartYear { get; private set; }
+
     public readonly List<EventTrigger> Actions;
     public readonly List<EventTrigger> Triggers;
 
@@ -689,6 +696,7 @@ public class Database
         if (_ctx.GetSingleton(timeType.Id, out var timeEntity) &&
             timeEntity.TryGetProperty(timeType.GetPropertyId("year"), out var year))
             _ctx.Year = year.IntValue;
+        StartYear = _ctx.Year;
     }
 
     // Formerly backed up the in-memory SQLite DB to hello.db for inspection; world state now lives only in

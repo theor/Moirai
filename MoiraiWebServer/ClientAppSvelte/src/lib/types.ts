@@ -79,3 +79,27 @@ export interface RuleCoverageReport {
   year: number;
   rules: RuleCoverage[];
 }
+
+/** A labelled series of samples over simulated years, replayed from the changeset log. */
+export interface TimeSeries {
+  label: string;
+  years: number[];
+  values: number[];
+}
+
+/** A (type, property) pair the dashboard can plot: bools as a count of true, numbers as a mean. */
+export interface ChartableProperty {
+  typeId: number;
+  typeName: string;
+  propertyName: string;
+  kind: 'bool' | 'number';
+}
+
+export interface WorldOverview {
+  year: number;
+  entities: number;
+  records: number;
+  changesets: number;
+  series: TimeSeries[];
+  properties: ChartableProperty[];
+}
