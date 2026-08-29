@@ -29,6 +29,13 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
     public readonly bool IsTrigger = isEvent;
     public bool Skip = skip;
 
+    // Cumulative firing counters for the whole life of this world (events: invocations and completions;
+    // triggers: evaluations and predicate matches). Unlike ExecutionProfiler these are not reset per
+    // PassYears run and cost two increments with no timestamp, so they are always on: a rule that never
+    // fires is a bug in the story, and finding that out should not require running with --profile.
+    public long Attempts;
+    public long Successes;
+
     public readonly List<IInstruction> Effects = new();
 
     // Property gating for `when Changed` triggers: the set of THIS entity-type's properties the

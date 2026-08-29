@@ -254,6 +254,71 @@ public class ChatHub : Hub
         }
     }
 
+    /// <summary>
+    /// One row of the rule-coverage report: how often an event or trigger has fired over the whole life
+    /// of the current world. <c>Attempts</c>/<c>Successes</c> are the engine's always-on counters
+    /// (<see cref="EventTrigger.Attempts"/>), not the per-run profiler's.
+    /// </summary>
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    public record RuleCoverage(
+        int Id,
+        string Name,
+        string Kind,
+        string Schedule,
+        long Attempts,
+        long Successes,
+        string[] Tags);
+
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    public record RuleCoverageReport(long Year, RuleCoverage[] Rules);
+
+    /// <summary>
+    /// Firing counts for every event and trigger in the story. A rule with zero attempts has never run:
+    /// for a scheduled event that means its frequency never came due, for a trigger that nothing it
+    /// watches ever changed (or property gating always excluded it). A rule with attempts but no
+    /// successes always aborted — an event whose <c>pick</c> finds nothing, or a trigger whose predicate
+    /// never matched. Both are silent story bugs the records feed cannot show you.
+    /// </summary>
+    public RuleCoverageReport GetRuleCoverage()
+    {
+        Mutex.Wait();
+        try
+        {
+            if (_db == null)
+                return new RuleCoverageReport(0, Array.Empty<RuleCoverage>());
+
+            var rules = _db.Actions
+                .Select(a => new RuleCoverage(a.Id, a.Name, "event", DescribeSchedule(a), a.Attempts,
+                    a.Successes, a.Tags?.ToArray() ?? Array.Empty<string>()))
+                .Concat(_db.Triggers
+                    .Select(t => new RuleCoverage(t.Id, t.Name, "trigger", DescribeWhen(t), t.Attempts,
+                        t.Successes, t.Tags?.ToArray() ?? Array.Empty<string>())))
+                .ToArray();
+            return new RuleCoverageReport(_db.Ctx.Year, rules);
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
+    private static string DescribeSchedule(EventTrigger e) => e.Filter switch
+    {
+        null => "call only",
+        FilterAtStart => "@start",
+        FilterExactlyXEveryYYears f => $"{f.Count}\u00d7 every {f.Years}y",
+        FilterProbabilityXPerYears f => $"~{f.Event.ExpectedOccurences}\u00d7 per {f.Event.ExpectedInterval}y",
+        _ => e.Filter.GetType().Name,
+    };
+
+    private static string DescribeWhen(EventTrigger t)
+    {
+        var (whenType, typeId, predicate) = t.When;
+        var typeName = _db!.GetEntityType(typeId).Name;
+        var keyword = whenType == EventTrigger.WhenType.Created ? "when_created" : "when";
+        return predicate == null ? $"{keyword} {typeName}" : $"{keyword} {typeName} and \u2026";
+    }
+
     [UsedImplicitly]
     public record EntityPropertyDisplay(string Label, string Value);
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]

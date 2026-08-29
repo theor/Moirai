@@ -11,6 +11,7 @@ import {
   type Message,
   MessageType,
   type Record,
+  type RuleCoverageReport,
 } from './types';
 import { get, writable } from 'svelte/store';
 export interface Result {
@@ -85,6 +86,10 @@ export class SignalRConnection {
 
   streamRecords(): IStreamResult<Message> {
     return this.connection.stream<Message>('Stream');
+  }
+
+  getRuleCoverage(): Promise<RuleCoverageReport> {
+    return this.connection.invoke<RuleCoverageReport>('GetRuleCoverage');
   }
 
   getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]> {

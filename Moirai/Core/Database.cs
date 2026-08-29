@@ -446,6 +446,9 @@ public class Database
 
         // Record the event's own effect time (excludes the triggers fired below).
         prof?.RecordEvent(eventTrigger, scope, success);
+        eventTrigger.Attempts++;
+        if (success)
+            eventTrigger.Successes++;
 
         if (!success)
             return false;
@@ -533,6 +536,7 @@ public class Database
                 }
 
                 EventAttemptCount++;
+                trigger.Attempts++;
                 var scope = prof?.Begin() ?? default;
                 bool matched = false;
                 // Each trigger evaluates and runs on its own RNG stream (independent of the event that
@@ -552,6 +556,7 @@ public class Database
                     {
                         matched = true;
                         EventAttemptSuccess++;
+                        trigger.Successes++;
                         CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year);
                         DebugHook?.OnEnterFrame(DebugFrameKind.Trigger, trigger.Name, trigger.DebugScopeRoot, _ctx.ValueOffset);
                         foreach (var e in trigger.Effects)

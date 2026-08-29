@@ -62,3 +62,20 @@ export interface Changed {
   prev: Entity;
   new: Entity;
 }
+
+/** One row of the rule-coverage report: how often a rule has fired over the life of the world. */
+export interface RuleCoverage {
+  id: number;
+  name: string;
+  kind: 'event' | 'trigger';
+  /** For an event its schedule ("@start", "call only", "~1x per 15y"); for a trigger its `when` clause. */
+  schedule: string;
+  attempts: number;
+  successes: number;
+  tags: string[];
+}
+
+export interface RuleCoverageReport {
+  year: number;
+  rules: RuleCoverage[];
+}
