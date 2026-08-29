@@ -6,14 +6,13 @@
     import MoiraiText from "../../components/MoiraiText.svelte";
     import {selectedEntity} from "$lib/utils";
     import {page} from '$app/stores';
-    import {Accordion, AccordionItem} from '@skeletonlabs/skeleton';
+    import {Accordion} from '@skeletonlabs/skeleton-svelte';
+    import ChevronDown from 'virtual:icons/mdi/chevron-down';
 
     let query: string = 'pick Person $p';
     let results: Promise<QueryResult> = new Promise(() => [] as QueryResult[]);
     let selected = selectedEntity($page);
 
-    let astOpen = false;
-    let sqlOpen = false;
 
     class Debouncer {
         private timeout: NodeJS.Timeout | undefined;
@@ -51,46 +50,53 @@
 
 <!--<div class="h-full w-full space-y-4  mb-4 ">-->
 
-    <form class="input-group input-group-divider grid-cols-[auto_1fr_auto]" on:submit|preventDefault={runQuery}>
-        <div class="input-group-shim">
+    <form class="field-group grid-cols-[auto_1fr_auto]" on:submit|preventDefault={runQuery}>
+        <label class="label" for="query">
             <Search/>
-        </div>
-        <input bind:value={query} on:input={() => debouncer.debounce()} type="search"
+        </label>
+        <input id="query" class="input" bind:value={query} on:input={() => debouncer.debounce()} type="search"
                name="query" aria-label="Query" placeholder="Search..."/>
-        <button type="submit" class="variant-filled-primary">Submit</button>
+        <button type="submit" class="btn preset-filled-primary-500">Submit</button>
     </form>
     {#await results}
     {:then results}
         <div class="card p-4">
-            <Accordion>
-                <AccordionItem bind:open={astOpen}>
-                    <svelte:fragment slot="lead">
+            <!-- Open state is internal: v2 bound astOpen/sqlOpen but never read them. -->
+            <Accordion multiple>
+                <Accordion.Item value="ast">
+                    <Accordion.ItemTrigger class="flex items-center gap-2">
                         <PineTree/>
-                    </svelte:fragment>
-                    <svelte:fragment slot="summary">AST</svelte:fragment>
-                    <svelte:fragment slot="content">
+                        <span class="flex-auto">AST</span>
+                        <Accordion.ItemIndicator class="transition-transform data-[state=open]:rotate-180">
+                            <ChevronDown/>
+                        </Accordion.ItemIndicator>
+                    </Accordion.ItemTrigger>
+                    <Accordion.ItemContent>
                         <pre class="pre">{JSON.stringify(JSON.parse(results.query), null, 2)}</pre>
-                    </svelte:fragment>
-                </AccordionItem>
-                <AccordionItem bind:open={sqlOpen}>
-                    <svelte:fragment slot="lead">
+                    </Accordion.ItemContent>
+                </Accordion.Item>
+                <Accordion.Item value="sql">
+                    <Accordion.ItemTrigger class="flex items-center gap-2">
                         <DatabaseSearch/>
-                    </svelte:fragment>
-                    <svelte:fragment slot="summary">SQL</svelte:fragment>
-                    <svelte:fragment slot="content">
+                        <span class="flex-auto">SQL</span>
+                        <Accordion.ItemIndicator class="transition-transform data-[state=open]:rotate-180">
+                            <ChevronDown/>
+                        </Accordion.ItemIndicator>
+                    </Accordion.ItemTrigger>
+                    <Accordion.ItemContent>
                         <pre class="pre">{results.sql}</pre>
-                    </svelte:fragment>
-                </AccordionItem>
+                    </Accordion.ItemContent>
+                </Accordion.Item>
             </Accordion>
         </div>
 
         {#if results.errors && results.errors.length > 0}
             {#each results.errors as error}
-                <aside class="alert variant-filled-error my-2"><div class="alert-message">{error}</div></aside>
+                <aside class="card preset-filled-error-500 p-4 my-2"><div>{error}</div></aside>
             {/each}
         {:else}
 <!--            <div class="w-full inline-block overflow-auto">-->
-            <div class="table-container overflow-auto">
+            <div class="table-wrap overflow-auto">
             <table class="table table-fixed overflow-auto" style="display: block">
                 <tbody>
                 {#each results.results as result}

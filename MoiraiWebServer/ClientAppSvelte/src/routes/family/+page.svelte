@@ -59,7 +59,7 @@
               {#each kids as kid (kid.id)}
                 <button
                   type="button"
-                  class="chip variant-soft-secondary"
+                  class="chip preset-tonal-secondary"
                   on:click={() => select(kid.id)}
                   title={`#${kid.id} — click to re-root`}
                 >

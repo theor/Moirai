@@ -4,7 +4,7 @@
     import {moiraiStore, type EntityChangeDisplay} from '$lib/connection';
     import MoiraiText from './MoiraiText.svelte';
     import PreChip from './PreChip.svelte';
-    import {SlideToggle} from '@skeletonlabs/skeleton';
+    import {Switch} from '@skeletonlabs/skeleton-svelte';
     import {onMount} from 'svelte';
     import {get} from 'svelte/store';
 
@@ -61,8 +61,8 @@
         });
     });
 
-    function toggleFilter() {
-        filter = !filter;
+    function setFilter(checked: boolean) {
+        filter = checked;
         let filterParam = filteredEntity($page);
         filterParam.setNumber(filter ? selected : -1);
     }
@@ -73,15 +73,19 @@
         <h3 class="h3 grow">
             Entity #{selected}
         </h3>
-        <SlideToggle
-                checked={filter}
-                on:click={toggleFilter}
+        <Switch
+                class="switch-sm mt-1"
                 name="filter"
-                size="sm"
-                label="Filter"
+                checked={filter}
+                onCheckedChange={(e) => setFilter(e.checked)}
                 title="Filter the records feed to this entity"
-                class="mt-1">Filter
-        </SlideToggle>
+        >
+            <Switch.HiddenInput />
+            <Switch.Control>
+                <Switch.Thumb />
+            </Switch.Control>
+            <Switch.Label>Filter</Switch.Label>
+        </Switch>
     {:else}
         No entity selected
     {/if}
@@ -103,7 +107,7 @@
                     </div>
                 {/each}
                 {#if g.values.length > ITEM_LIMIT}
-                    <div />
+                    <div></div>
                     <div class="col-span-2">
                         <button
                             type="button"

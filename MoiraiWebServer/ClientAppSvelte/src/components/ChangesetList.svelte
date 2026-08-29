@@ -62,7 +62,7 @@
 {:else if $query.isError}
   <span>Error: {$query.error.message}</span>
 {:else if $query.isSuccess}
-  <div class="scroll-container bg-surface-200-700-token" bind:this={virtualListEl}>
+  <div class="scroll-container bg-surface-200-800" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
       <div
         style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({items[0]
@@ -98,7 +98,7 @@
                     <kbd class="kbd">{change.label}</kbd>
                     <MoiraiText text={change.value} selected={-1} />
                   </span>
-                  <span class="divider-vertical" />
+                  <span class="vr"></span>
                 {/each}
               </div>
             {/if}
@@ -115,7 +115,7 @@
 
 <style>
   .list-item-odd {
-    background-color: rgb(var(--color-surface-500) / 0.05);
+    background-color: color-mix(in oklab, var(--color-surface-500) 5%, transparent);
   }
   .scroll-container {
     height: 80vh;

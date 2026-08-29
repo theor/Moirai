@@ -29,7 +29,7 @@
     {/if}
     <button
       type="button"
-      class="fperson chip {nodeId === focus ? 'variant-filled-primary' : 'variant-soft-secondary'}"
+      class="fperson chip {nodeId === focus ? 'preset-filled-primary-500' : 'preset-tonal-secondary'}"
       on:click={() => select(nodeId)}
       title={`#${nodeId} — click to re-root`}
     >
@@ -62,7 +62,7 @@
     left: 50%;
     width: 1px;
     height: 0.75rem;
-    background: rgb(var(--color-surface-500) / 0.6);
+    background: color-mix(in oklab, var(--color-surface-500) 60%, transparent);
   }
   .fperson {
     cursor: pointer;

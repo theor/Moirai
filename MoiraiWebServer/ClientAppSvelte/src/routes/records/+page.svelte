@@ -1,125 +1,124 @@
 <script lang="ts">
   import { moiraiStore } from '$lib/connection';
-  import { derived, writable } from 'svelte/store';
-  import { createSvelteTable, flexRender, getCoreRowModel } from '@tanstack/svelte-table';
-  import type { ColumnDef, TableOptions } from '@tanstack/svelte-table';
+  import {
+    createTable,
+    FlexRender,
+    renderComponent,
+    tableFeatures,
+    columnSizingFeature,
+    columnVisibilityFeature,
+  } from '@tanstack/svelte-table';
+  import type { ColumnDef } from '@tanstack/svelte-table';
   import MoiraiText from '../../components/MoiraiText.svelte';
   import { page } from '$app/stores';
   import type { Record } from '$lib/types';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import PreChip from '../../components/PreChip.svelte';
-  import { filteredEntity, filteredTag, selectedEntity, urlParam } from '$lib/utils';
+  import { filteredEntity, filteredTag, selectedEntity } from '$lib/utils';
   import { moiraiViewStore } from '$lib';
   import binarysearch from 'binary-search';
-  let selected: number = -1;
-  let filtered: number = -1;
-  let tagFilter: string = '';
 
-  $: {
-    let selParam = selectedEntity($page);
-    selected = selParam.getNumber(); // Number($page.url.searchParams.get('e')) ?? -1;
-
-    let filterParam = filteredEntity($page);
-    filtered = filterParam.getNumber();
-
-    tagFilter = filteredTag($page).get() ?? '';
-
-    tableStore.update((store) => {
-      return {
-        ...store,
-        selected: selected,
-      };
-    });
-  }
+  const selected = $derived(selectedEntity($page).getNumber());
+  const filtered = $derived(filteredEntity($page).getNumber());
+  const tagFilter = $derived(filteredTag($page).get() ?? '');
 
   // Union of all tags seen across loaded records, for the chronicle filter bar.
-  $: allTags = Array.from(
-    new Set($moiraiStore.records.flatMap((r) => r.tags ?? [])),
-  ).sort();
+  const allTags = $derived(
+    Array.from(new Set($moiraiStore.records.flatMap((r) => r.tags ?? []))).sort(),
+  );
 
   function toggleTag(tag: string) {
     const param = filteredTag($page);
     param.set(tagFilter === tag ? '' : tag);
   }
 
-  $: {
+  // v9 requires features to be registered explicitly; we only need sizing
+  // (header.getSize) and visibility (row.getVisibleCells).
+  const features = tableFeatures({ columnSizingFeature, columnVisibilityFeature });
+
+  const columns: ColumnDef<typeof features, Record>[] = [
+    {
+      header: 'Year',
+      accessorKey: 'year',
+      size: 70,
+      cell: (info) => renderComponent(PreChip, { text: info.cell.getValue() as string }),
+    },
+    {
+      header: 'Event',
+      minSize: 75,
+      id: 'actionId',
+      accessorKey: 'actionId',
+      cell: (info) => {
+        const actionId = info.cell.getValue<number>();
+        const action = $moiraiStore.clientData!.actions.find((a) => a.id === actionId);
+        return renderComponent(MoiraiText, { text: action?.name ?? '', selected });
+      },
+    },
+    {
+      header: 'Text',
+      accessorKey: 'text',
+      cell: (info) =>
+        renderComponent(MoiraiText, { text: info.cell.getValue() as string, selected }),
+    },
+  ];
+
+  const rowData = $derived(
+    $moiraiStore.records
+      .filter(
+        (r) =>
+          (filtered < 0 ||
+            (r.participants?.includes(filtered) ?? r.text.indexOf('#' + filtered + '>') !== -1)) &&
+          (tagFilter === '' || (r.tags?.includes(tagFilter) ?? false)) &&
+          $moiraiStore.clientData!.actions.find((a) => a.id === r.actionId)?.hidden !== true,
+      )
+      .map((r) => ({
+        ...r,
+        selected,
+      })),
+  );
+
+  let virtualListEl: HTMLDivElement | undefined = $state();
+
+  const table = createTable({
+    features,
+    columns,
+    get data() {
+      return rowData;
+    },
+  });
+
+  const rows = $derived(table.getRowModel().rows);
+
+  let offset = 0;
+
+  const virtualizer = $derived.by(() => {
+    // Read virtualListEl here (not just inside getScrollElement) so the
+    // virtualizer is rebuilt once bind:this has attached the scroll container.
+    const scrollEl = virtualListEl ?? null;
+    return createVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+      count: rows.length,
+      onChange: (range) => {
+        offset = range.scrollOffset ?? 0;
+      },
+      getScrollElement: () => scrollEl,
+      initialOffset: offset,
+
+      estimateSize: () => 44,
+      overscan: 20,
+    });
+  });
+
+  $effect(() => {
     if ($moiraiViewStore.gotoYear) {
       const index = binarysearch(
         $moiraiStore.records,
         { year: $moiraiViewStore.gotoYear },
         (a, b) => a.year - b.year,
       );
-      const offset = $virtualizer.getOffsetForIndex(index);
-      if (offset) $virtualizer.scrollToOffset(offset[0]);
+      const scrollOffset = $virtualizer.getOffsetForIndex(index);
+      if (scrollOffset) $virtualizer.scrollToOffset(scrollOffset[0]);
       $moiraiViewStore.gotoYear = undefined;
     }
-  }
-
-  const columns: ColumnDef<Record>[] = [
-    {
-      header: 'Year',
-      accessorKey: 'year',
-      size: 70,
-      cell: (info) => {
-        return flexRender(PreChip, { text: info.cell.getValue() });
-      },
-    },
-      {
-          header: 'Event',
-          minSize: 75,
-          id: 'actionId',
-          accessorKey: 'actionId',
-          cell: (info) => {
-              const actionId = info.cell.getValue<number>();
-              const action = $moiraiStore.clientData!.actions.find((a) => a.id === actionId);
-              return flexRender(MoiraiText, { text: action?.name ?? '', selected: selected });
-          },
-      },
-    {
-      header: 'Text',
-      accessorKey: 'text',
-      cell: (info) => {
-        return flexRender(MoiraiText, { text: info.cell.getValue(), selected: selected });
-      },
-    },
-  ];
-  const tableStore = writable({ selected: selected });
-
-  const options = derived([moiraiStore, tableStore], ([$moiraiStore]) => {
-    return {
-      getCoreRowModel: getCoreRowModel(),
-      columns,
-
-      data: $moiraiStore.records
-        .filter((r) =>
-            (filtered < 0 ||
-              (r.participants?.includes(filtered) ?? r.text.indexOf('#' + filtered + '>') !== -1)) &&
-            (tagFilter === '' || (r.tags?.includes(tagFilter) ?? false)) &&
-            $moiraiStore.clientData!.actions.find(a => a.id === r.actionId)?.hidden !== true
-        )
-        .map((r) => ({
-          ...r,
-          selected: selected, // Number(sel.get())
-        })),
-    };
-  });
-
-  let virtualListEl: HTMLDivElement;
-  const table = createSvelteTable(options);
-  $: rows = $table.getRowModel().rows;
-
-  let offset = 0;
-
-  $: virtualizer = createVirtualizer<HTMLDivElement, HTMLTableRowElement>({
-    count: rows.length,
-    onChange: (range) => {
-      offset = range.scrollOffset ?? 0;
-    },
-    getScrollElement: () => virtualListEl,
-    initialOffset: offset,
-
-    estimateSize: () => 44,
-    overscan: 20,
   });
 </script>
 
@@ -129,24 +128,24 @@
       {#each allTags as tag}
         <button
           type="button"
-          class="chip {tagFilter === tag ? 'variant-filled-primary' : 'variant-soft'}"
-          on:click={() => toggleTag(tag)}
+          class="chip {tagFilter === tag ? 'preset-filled-primary-500' : 'preset-tonal'}"
+          onclick={() => toggleTag(tag)}
         >
           {tag}
         </button>
       {/each}
       {#if tagFilter !== ''}
-        <button type="button" class="chip variant-ghost" on:click={() => toggleTag(tagFilter)}>
+        <button type="button" class="chip preset-tonal" onclick={() => toggleTag(tagFilter)}>
           clear
         </button>
       {/if}
     </div>
   {/if}
-  <div class="table-container scroll-container bg-surface-200-700-token" bind:this={virtualListEl}>
+  <div class="table-wrap scroll-container bg-surface-200-800" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
-      <table class="table table-fixed table-hover table-compact w-full" style="overflow:unset">
+      <table class="table table-fixed w-full" style="overflow:unset">
         <thead>
-          {#each $table.getHeaderGroups() as headerGroup}
+          {#each table.getHeaderGroups() as headerGroup}
             <tr>
               {#each headerGroup.headers as header, idx}
                 <th
@@ -155,9 +154,7 @@
                     : ''}
                 >
                   {#if !header.isPlaceholder}
-                    <svelte:component
-                      this={flexRender(header.column.columnDef.header, header.getContext())}
-                    />
+                    <FlexRender {header} />
                   {/if}
                 </th>
               {/each}
@@ -173,10 +170,7 @@
             >
               {#each rows[row.index].getVisibleCells() as cell (cell.id)}
                 <td class={cell.column.id}>
-                  <svelte:component
-                    this={flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    data-index={row.index}
-                  />
+                  <FlexRender {cell} />
                 </td>
               {/each}
             </tr>
@@ -188,6 +182,9 @@
 </div>
 
 <style>
+  /* Tailwind 4 needs the theme in scope for @apply inside component styles. */
+  @reference "../../app.css";
+
   .table tbody tr {
     border-bottom-width: 0px;
   }
@@ -195,10 +192,10 @@
     background-color: transparent;
   }
   .table tbody tr {
-    background-color: rgb(var(--color-surface-100));
+    background-color: var(--color-surface-100);
   }
   .table tbody tr.odd {
-    background-color: rgb(var(--color-surface-500) / 0.05);
+    background-color: color-mix(in oklab, var(--color-surface-500) 5%, transparent);
   }
   .scroll-container {
     height: 84vh;
@@ -217,7 +214,7 @@
 
   :global(td.actionId span) {
       @apply inline-block;
-      @apply overflow-ellipsis;
+      @apply text-ellipsis;
       @apply overflow-hidden;
       @apply w-full;
   }

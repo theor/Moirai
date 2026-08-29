@@ -1,0 +1,51 @@
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton-svelte';
+@import '@skeletonlabs/skeleton/themes/legacy';
+
+/* Skeleton's own classes live in node_modules, which Tailwind 4 does not scan by default. */
+@source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
+
+/* Tailwind 4 keys `dark:` off prefers-color-scheme; the old config used darkMode: 'class'. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@font-face {
+  font-family: 'Roboto';
+  src: url('/fonts/Roboto-Regular.ttf');
+}
+
+@font-face {
+  font-family: 'Pattaya';
+  src: url('/fonts/Pattaya-Regular.ttf');
+}
+
+@theme {
+  --font-serif: 'Pattaya', serif;
+}
+
+[data-theme='legacy'] {
+  --typo-base--font-family: 'Roboto', sans-serif;
+  --typo-heading--font-family: 'Roboto', sans-serif;
+}
+
+html,
+body {
+  @apply h-full overflow-hidden;
+  height: 100vh;
+}
+
+/*
+ * Skeleton v2's <SlideToggle size="sm"> has no v5 equivalent — Switch is sized by
+ * classes. Scale the control and re-derive the thumb travel from the new width.
+ */
+.switch-sm [data-part='control'] {
+  height: 1rem;
+  width: 1.75rem;
+}
+.switch-sm [data-part='thumb'][data-state='checked'] {
+  transform: translateX(0.75rem);
+}

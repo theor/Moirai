@@ -22,8 +22,8 @@
 <button
   type="button"
   class="badge mr-1 [&>*]:pointer-events-none"
-  class:variant-filled-secondary={active}
-  class:variant-ghost-secondary={!active}
+  class:preset-filled-secondary-500={active}
+  class:preset-tonal-secondary={!active}
   title={`Click to select #${id} · Shift+click to filter`}
   on:click={onClick}
 >
