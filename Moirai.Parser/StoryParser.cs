@@ -425,25 +425,79 @@ public static class StoryParser
         foreach (var e in tokenized.Errors)
             visitor.Errors.Add(new Error(ErrorCode.Lexer, e.Position.Line, e.Position.Column - 1, e.Message));
 
-        var parsed = MoiraiGrammar.TryParseR(tokenized.ParseTokens);
-        if (!parsed.HasValue)
+        // Chunked at top-level def boundaries (Phase 4 of the migration plan): a syntax error in one
+        // def must not blank out every definition in the file, and the LSP needs one diagnostic per
+        // broken def, not just the first. Well-formed input always chunks to exactly one piece
+        // covering the whole file, so this is a no-op for anything that already parses cleanly.
+        var allDefs = new List<DefNode>();
+        foreach (var chunk in ChunkTokens(tokenized.ParseTokens.ToArray()))
         {
-            visitor.Errors.Add(MakeParseError(parsed.ErrorPosition, s, parsed.ErrorMessage, 0, 0));
-        }
-        else
-        {
+            var chunkTokens = new TokenList<MoiraiTokenKind>(chunk);
+            var parsed = MoiraiGrammar.TryParseR(chunkTokens);
+            if (!parsed.HasValue)
+            {
+                visitor.Errors.Add(MakeParseError(parsed.ErrorPosition, s, parsed.ErrorMessage, 0, 0));
+                continue;
+            }
+
             if (!parsed.Remainder.IsAtEnd)
             {
                 var next = parsed.Remainder.ConsumeToken();
                 visitor.Errors.Add(MakeParseError(next.Value.Position, s,
                     "unexpected content after the last definition", 0, 0));
+                continue;
             }
 
-            visitor.VisitR(parsed.Value);
+            allDefs.AddRange(parsed.Value.Defs);
         }
+
+        if (allDefs.Count > 0)
+            visitor.VisitR(new RNode(allDefs.ToArray(), allDefs[0].Span)); // RNode.Span is unused downstream
 
         errors = visitor.Errors;
         return db;
+    }
+
+    static readonly MoiraiTokenKind[] TopLevelDefStartKinds =
+    {
+        MoiraiTokenKind.At, MoiraiTokenKind.Event, MoiraiTokenKind.Entity, MoiraiTokenKind.Singleton,
+        MoiraiTokenKind.Trigger, MoiraiTokenKind.Enum, MoiraiTokenKind.Table, MoiraiTokenKind.Function,
+    };
+
+    /// Splits the (already trivia-filtered) parse token stream into independent chunks at top-level
+    /// def boundaries. Deliberately column-based (a top-level keyword or `@` starting at column 1 —
+    /// real .sg sources never indent top-level constructs) rather than brace-depth-based: a *broken*
+    /// def is exactly the case chunking exists to isolate, and a missing `}` would leave a
+    /// depth-tracking counter permanently elevated, silently swallowing every def for the rest of the
+    /// file after the first mistake. `sawDefKeyword` keeps a run of `@attr` lines before a def from
+    /// being sliced apart from the def they annotate (only a *complete* prior def — one that reached
+    /// its own keyword, not just another attribute — licenses the next cut). Each chunk is parsed
+    /// independently in <see cref="Parse"/> so one broken def doesn't take the rest of the file down
+    /// with it.
+    static List<Token<MoiraiTokenKind>[]> ChunkTokens(Token<MoiraiTokenKind>[] tokens)
+    {
+        var chunks = new List<Token<MoiraiTokenKind>[]>();
+        int start = 0;
+        bool sawDefKeyword = false;
+        for (int i = 0; i < tokens.Length; i++)
+        {
+            bool atColumn1TopLevel = tokens[i].Span.Position.Column == 1 &&
+                Array.IndexOf(TopLevelDefStartKinds, tokens[i].Kind) >= 0;
+
+            if (i > start && atColumn1TopLevel && sawDefKeyword)
+            {
+                chunks.Add(tokens[start..i]);
+                start = i;
+                sawDefKeyword = false;
+            }
+
+            if (atColumn1TopLevel && tokens[i].Kind != MoiraiTokenKind.At)
+                sawDefKeyword = true;
+        }
+
+        if (start < tokens.Length)
+            chunks.Add(tokens[start..]);
+        return chunks;
     }
 
     static Error MakeParseError(Position pos, string source, string? message, int offsetLine, int offsetColumn)
