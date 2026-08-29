@@ -112,9 +112,7 @@
               {#each result.properties as prop, pi (pi)}
                 <!--                    <td>{JSON.stringify(result)}</td>-->
                 <td>
-                  <div
-                    class="text-sm lg:justify-self-end font-semibold leading-6 text-gray-900 capitalize"
-                  >
+                  <div class="text-sm lg:justify-self-end font-semibold leading-6 capitalize">
                     {prop.label}
                   </div>
                   <MoiraiText text={prop.value} selected={selected.getNumber()} />

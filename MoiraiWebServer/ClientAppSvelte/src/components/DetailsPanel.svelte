@@ -105,12 +105,12 @@
     <div class="overflow-auto px-4 py-1 sm:px-0 grid grid-cols-1 lg:grid-cols-3 gap-x-4 gap-y-1">
       {#each groupByLabel(details) as g, gi (gi)}
         {#each expanded.has(g.label) ? g.values : g.values.slice(0, ITEM_LIMIT) as value, i (i)}
-          <div class="text-sm lg:justify-self-end font-semibold leading-6 text-gray-900 capitalize">
+          <div class="text-sm lg:justify-self-end font-semibold leading-6 capitalize">
             {#if i === 0}
               {g.label}
             {/if}
           </div>
-          <div class="mt-1 col-span-2 text-sm leading-6 text-gray-700 sm:mt-0">
+          <div class="mt-1 col-span-2 text-sm leading-6 opacity-80 sm:mt-0">
             <MoiraiText text={value} {selected} />
           </div>
         {/each}

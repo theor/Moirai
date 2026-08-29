@@ -5,7 +5,7 @@
 
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton-svelte';
-@import '@skeletonlabs/skeleton/themes/legacy';
+@import '@skeletonlabs/skeleton/themes/rosepine';
 
 /* Skeleton's own classes live in node_modules, which Tailwind 4 does not scan by default. */
 @source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
@@ -27,7 +27,12 @@
   --font-serif: 'Pattaya', serif;
 }
 
-[data-theme='legacy'] {
+/*
+ * The theme ships system-ui for both; the app has always used Roboto for body and headings, with
+ * Pattaya reserved for the wordmark (--font-serif above). Overriding by :root rather than by theme
+ * selector so a future theme swap does not silently drop the typeface with it.
+ */
+:root {
   --typo-base--font-family: 'Roboto', sans-serif;
   --typo-heading--font-family: 'Roboto', sans-serif;
 }
