@@ -50,3 +50,20 @@ export function urlParam(page: Page, name: string) {
 export const selectedEntity = (page: Page) => urlParam(page, 'e');
 export const filteredEntity = (page: Page) => urlParam(page, 'f');
 export const filteredTag = (page: Page) => urlParam(page, 't');
+
+/**
+ * A @display field (e.g. "Members", "Settlements") yields one details row per item, all sharing a
+ * label. Collapsing the run to one group per label is what lets a panel show "Children: 4" instead of
+ * four rows that each repeat the word.
+ */
+export type DetailGroup = { label: string; values: string[] };
+
+export function groupByLabel(items: { label: string; value: string }[]): DetailGroup[] {
+  const out: DetailGroup[] = [];
+  for (const d of items) {
+    const last = out[out.length - 1];
+    if (last && last.label === d.label) last.values.push(d.value);
+    else out.push({ label: d.label, values: [d.value] });
+  }
+  return out;
+}

@@ -254,6 +254,101 @@ public class ChatHub : Hub
         }
     }
 
+    /// <summary>
+    /// One moment in an entity's life: either a record it appears in (the narrative) or a changeset that
+    /// touched it (the ledger). <c>ChangesetId</c> orders the two against each other — a record carries
+    /// the id of the changeset that produced it, so sorting by it interleaves narrative and ledger in
+    /// causal order rather than lumping all of one year's records before all of its changes.
+    /// </summary>
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    public record BiographyEntry(
+        long Year,
+        int ChangesetId,
+        string Kind,
+        string Text,
+        string ActionName,
+        IList<EntityPropertyDisplay> Changes,
+        string[] Tags);
+
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
+    public record Biography(
+        uint Id,
+        string Name,
+        string TypeName,
+        bool HasFamily,
+        IList<EntityPropertyDisplay> Details,
+        BiographyEntry[] Timeline);
+
+    /// <summary>
+    /// Everything the world knows about one entity, on one page: its current state, and its whole life
+    /// as a single ordered timeline. The three sources — records, changesets and the family tree — were
+    /// each reachable before, on three different pages that did not know about each other.
+    /// </summary>
+    public Biography GetBiography(uint eid)
+    {
+        Mutex.Wait();
+        try
+        {
+            if (_db == null || !_db.TryGetEntity(new EntityId(eid), out var entity))
+                return new Biography(eid, "", "", false, Array.Empty<EntityPropertyDisplay>(),
+                    Array.Empty<BiographyEntry>());
+
+            var type = _db.GetEntityType(entity.Type);
+            var name = entity.TryGetProperty(Database.PropName, out var n) ? n.Value ?? "" : entity.Id.ToString();
+
+            var entries = new List<BiographyEntry>();
+
+            // Setup effects run inside Init() before Time exists, so their changesets and records carry
+            // year 0 while the world actually begins at StartYear (764 in w.sg). Clamping puts them at
+            // the start of the life instead of an orphan "year 0" heading centuries before it.
+            long Begins(long year) => Math.Max(year, _db.StartYear);
+
+            foreach (var r in _db.Records)
+                if (MentionsEntity(r, eid))
+                    entries.Add(new BiographyEntry(Begins(r.Year), r.ChangesetId, "record", r.Text,
+                        ActionName(r.ActionId), Array.Empty<EntityPropertyDisplay>(),
+                        r.Tags ?? Array.Empty<string>()));
+
+            if (_db.History != null)
+                foreach (var cs in _db.History.Changesets)
+                foreach (var change in cs.Changes)
+                    if (change.New.Id.Id == eid)
+                        entries.Add(new BiographyEntry(Begins(cs.Year), cs.Id, "change", "", cs.ActionName,
+                            GetChangeDetails(change), Array.Empty<string>()));
+
+            // A stable sort, not List.Sort: an event and the triggers it fires share a changeset id (see
+            // RunTriggers), so ties are common, and an unstable order would reshuffle a life every time
+            // the page refreshed.
+            var ordered = entries
+                .OrderBy(e => e.Year)
+                .ThenBy(e => e.ChangesetId)
+                .ToArray();
+
+            return new Biography(eid, name, type.Name, HasParents(type), EntityPropertyDisplays(eid),
+                ordered);
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
+    // Participants are collected from the record's {$var} interpolation slots. Records emitted before a
+    // rule bound any variable have none, so fall back to the entity marker the printer writes into the
+    // text — the same fallback the records feed uses for its per-entity filter.
+    private static bool MentionsEntity(Database.Record r, uint eid) =>
+        r.Participants is { Length: > 0 }
+            ? r.Participants.Any(p => p.Id == eid)
+            : r.Text.Contains($"<#{eid}>", StringComparison.Ordinal);
+
+    private static bool HasParents(EntityType type) =>
+        type.GetPropertyId("parent1").IsValid && type.GetPropertyId("parent2").IsValid;
+
+    private static string ActionName(int actionId) =>
+        _db!.Actions.FirstOrDefault(a => a.Id == actionId)?.Name
+        ?? _db.Triggers.FirstOrDefault(t => t.Id == actionId)?.Name
+        ?? "";
+
     /// <summary>A (type, property) pair the dashboard can plot: bools as a count of true, numbers as a mean.</summary>
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     public record ChartableProperty(int TypeId, string TypeName, string PropertyName, string Kind);
@@ -542,8 +637,17 @@ public class ChatHub : Hub
             return new List<FamilyTreeNode>();
         try
         {
-            var prop1 = _db!.GetPropertyId("Person", "parent1");
-            var prop2 = _db.GetPropertyId("Person", "parent2");
+            // The tree is built against the root entity's own type, not a hardcoded Person: any type
+            // declaring parent1/parent2 gets a genealogy, and one that doesn't gets an empty list
+            // instead of a tree of garbage read through the wrong type's property ids.
+            if (!_db!.TryGetEntity(new EntityId(eid), out var root))
+                return new List<FamilyTreeNode>();
+            var rootType = _db.GetEntityType(root.Type);
+            var prop1 = rootType.GetPropertyId("parent1");
+            var prop2 = rootType.GetPropertyId("parent2");
+            if (!prop1.IsValid || !prop2.IsValid)
+                return new List<FamilyTreeNode>();
+
             Queue<(EntityId id, int depth)> queue = new();
             queue.Enqueue((new(eid), 0));
             while (queue.TryDequeue(out var item))
@@ -562,11 +666,10 @@ public class ChatHub : Hub
                 nodes.Add(node);
             }
 
-            var personType = _db.GetEntityType("Person");
-            _db.FindAll(personType.Id, 
+            _db.FindAll(rootType.Id,
                 new BinaryOperator(BinaryOperator.Operator.Or,
-                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, personType.RefType, prop1), new Literal(new EntityId(eid))),
-                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, personType.RefType,prop2), new Literal(new EntityId(eid)))
+                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, rootType.RefType, prop1), new Literal(new EntityId(eid))),
+                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(-1, rootType.RefType, prop2), new Literal(new EntityId(eid)))
                     ), -1, ref results);
             foreach (var id in results)
             {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { filteredEntity, selectedEntity } from '$lib/utils';
+  import { filteredEntity, groupByLabel, selectedEntity } from '$lib/utils';
   import { page } from '$app/stores';
   import { moiraiStore, type EntityChangeDisplay } from '$lib/connection';
   import MoiraiText from './MoiraiText.svelte';
@@ -34,16 +34,6 @@
     return new Set<string>();
   }
 
-  type DetailGroup = { label: string; values: string[] };
-  function groupByLabel(items: { label: string; value: string }[]): DetailGroup[] {
-    const out: DetailGroup[] = [];
-    for (const d of items) {
-      const last = out[out.length - 1];
-      if (last && last.label === d.label) last.values.push(d.value);
-      else out.push({ label: d.label, values: [d.value] });
-    }
-    return out;
-  }
   function toggle(label: string) {
     if (expanded.has(label)) expanded.delete(label);
     else expanded.add(label);

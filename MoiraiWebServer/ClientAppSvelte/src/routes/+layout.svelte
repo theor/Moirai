@@ -62,6 +62,7 @@
 
   const NAV_TABS: { href: Pathname; label: string }[] = [
     { href: '/records', label: 'Records' },
+    { href: '/life', label: 'Life' },
     { href: '/changesets', label: 'Changesets' },
     { href: '/query', label: 'Query' },
     { href: '/family', label: 'Family' },

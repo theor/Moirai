@@ -103,3 +103,25 @@ export interface WorldOverview {
   series: TimeSeries[];
   properties: ChartableProperty[];
 }
+
+/** One moment in an entity's life: a record it appears in, or a changeset that touched it. */
+export interface BiographyEntry {
+  year: number;
+  /** The changeset that produced this entry — orders records and changes against each other. */
+  changesetId: number;
+  kind: 'record' | 'change';
+  text: string;
+  actionName: string;
+  changes: EntityPropertyDisplay[];
+  tags: string[];
+}
+
+export interface Biography {
+  id: number;
+  name: string;
+  typeName: string;
+  /** The entity's type declares parent1/parent2, so a family tree can be drawn for it. */
+  hasFamily: boolean;
+  details: EntityPropertyDisplay[];
+  timeline: BiographyEntry[];
+}

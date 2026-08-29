@@ -6,6 +6,7 @@ import {
   type IStreamSubscriber,
 } from '@microsoft/signalr';
 import {
+  type Biography,
   type ClientData,
   type EntityPropertyDisplay,
   type Message,
@@ -88,6 +89,10 @@ export class SignalRConnection {
 
   streamRecords(): IStreamResult<Message> {
     return this.connection.stream<Message>('Stream');
+  }
+
+  getBiography(entityId: number): Promise<Biography> {
+    return this.connection.invoke<Biography>('GetBiography', entityId);
   }
 
   getWorldOverview(): Promise<WorldOverview> {
