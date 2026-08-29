@@ -19,6 +19,11 @@
     <ItemGroup>
       <ProjectReference Include="..\Moirai.Parser\Moirai.Parser.csproj" />
       <ProjectReference Include="..\Moirai.DebugAdapter\Moirai.DebugAdapter.csproj" />
+      <!-- Aliased (not a plain reference) because Moirai.Parser.Antlr shares the Moirai.Parser
+           namespace/type names with the project above — this is the frozen ANTLR snapshot from
+           the ANTLR->Superpower migration's Phase 0, referenced only by the differential tokenizer
+           tests (extern alias MoiraiAntlr) to compare the new tokenizer against the ANTLR lexer. -->
+      <ProjectReference Include="..\Moirai.Parser.Antlr\Moirai.Parser.Antlr.csproj" Aliases="MoiraiAntlr" />
     </ItemGroup>
 
 </Project>
