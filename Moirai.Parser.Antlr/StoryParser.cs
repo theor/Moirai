@@ -1,6 +1,6 @@
-using System.Diagnostics.CodeAnalysis;
-using Moirai.Parser.Ast;
-using Superpower.Model;
+﻿using System.Diagnostics.CodeAnalysis;
+using Antlr4.Runtime;
+using Antlr4.Runtime.Tree;
 
 namespace Moirai.Parser;
 
@@ -24,7 +24,7 @@ public static class StoryParser
             IInstruction[]? init = null;
             if (scopeContext != null)
             {
-                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext.Span);
+                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext);
                 init = ctx.Visitor.ParseRawScope(scopeContext, out _);
             }
 
@@ -34,7 +34,7 @@ public static class StoryParser
             ctx =>
             {
                 var scopeContext = ctx.GetScopeContext();
-                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext?.Span);
+                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext);
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
                 return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
                         CallType.Each, ctx.Visitor.ParseRawScope(scopeContext, out _)),
@@ -61,7 +61,7 @@ public static class StoryParser
             var scopeContext = ctx.GetScopeContext();
             if (scopeContext == null)
             {
-                ctx.Visitor.AddError(ErrorCode.MissingEachScope, ctx.CallContext.Span,
+                ctx.Visitor.AddError(ErrorCode.MissingEachScope, ctx.CallContext,
                     "schedule requires a { } body");
                 return (null!, PropertyValue.ValueType.Null);
             }
@@ -69,10 +69,10 @@ public static class StoryParser
             int selfVarIndex;
             IInstruction[] body;
             Moirai.Core.DebugScope? debugScope;
-            using (var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext.Span))
+            using (var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext))
             {
                 // $self takes the static type of the target entity expression, so `$self.prop` resolves.
-                ctx.Visitor.DeclareVar("$self", entityType, ctx.GetArgumentToken(0)!.Span, out selfVarIndex);
+                ctx.Visitor.DeclareVar("$self", entityType, ctx.GetArgumentToken(0).Start, out selfVarIndex);
                 body = ctx.Visitor.ParseRawScope(scopeContext, out _);
                 // Capture the body's scope (with $self) so the debugger can show locals when stopped here.
                 debugScope = ctx.Visitor.CaptureCurrentDebugScope();
@@ -82,7 +82,7 @@ public static class StoryParser
             // to Actions/Triggers, so it never auto-fires). The high id base keeps schedule sites from
             // colliding with real event ids in the profiler's per-id stats table.
             var site = new EventTrigger(1_000_000 + ctx.Visitor.Database.ScheduleSiteCount,
-                $"schedule@{ctx.CallContext.Span.Position.Line}", false, null)
+                $"schedule@{ctx.CallContext.Start.Line}", false, null)
             {
                 DebugScopeRoot = debugScope,
             };
@@ -92,13 +92,13 @@ public static class StoryParser
             return (new ScheduleEffect(entity, year, siteIndex, body), PropertyValue.ValueType.Null);
         }),
         new("assert", false, ctx =>
-            (new AssertInstr(ctx.ParseArgument(0), ctx.GetText(ctx.GetArgumentToken(0)!.Span)),
+            (new AssertInstr(ctx.ParseArgument(0), ctx.GetText(ctx.GetArgumentToken(0))),
                 PropertyValue.ValueType.Null)),
         new("assert_eq", false, ctx =>
             (new AssertInstr(
                     ctx.ParseArgument(0),
                     ctx.ParseArgument(1),
-                    $"{ctx.GetText(ctx.GetArgumentToken(0)!.Span)} = {ctx.GetText(ctx.GetArgumentToken(1)!.Span)}"),
+                    $"{ctx.GetText(ctx.GetArgumentToken(0))} = {ctx.GetText(ctx.GetArgumentToken(1))}"),
                 PropertyValue.ValueType.Null)),
         new("mark", false, ctx =>
         {
@@ -127,12 +127,14 @@ public static class StoryParser
         new("call", false, ctx =>
         {
             var arg = ctx.GetArgumentToken(0);
-            string? eventName = arg?.Value?.Path != null
-                ? arg.Value.Path.Span.ToStringValue()
-                : arg?.Value?.StringLit?.GetString();
+            string? eventName = arg is MoiraiParser.ExprContext e
+                ? e.value()?.path()?.GetText() ?? e.value()?.@string()?.GetString()
+                : (arg is MoiraiParser.ValueContext v)
+                    ? v.path()?.GetText() ?? v.@string()?.GetText()
+                    : null;
             if (eventName == null)
             {
-                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span, "event name");
+                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, "event name");
                 return (null!, PropertyValue.ValueType.Null);
             }
 
@@ -163,7 +165,7 @@ public static class StoryParser
                     {
                         if (i + 1 >= ctx.ArgCount)
                         {
-                            ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span,
+                            ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext,
                                 $"call({eventName}) is missing argument {pars[i].ParamName}: {ctx.Visitor.Database.Printer.Print(pars[i].ParamType)}");
                             args[i] = new Literal(0);
                             continue;
@@ -171,8 +173,7 @@ public static class StoryParser
 
                         var av = ctx.ParseArgument(i + 1, out var at);
                         if (at != pars[i].ParamType)
-                            ctx.Visitor.AddError(ErrorCode.MismatchedAssignmentTypes,
-                                ctx.GetArgumentToken(i + 1)?.Span ?? ctx.CallContext.Span,
+                            ctx.Visitor.AddError(ErrorCode.MismatchedAssignmentTypes, ctx.GetArgumentToken(i + 1),
                                 $"Expected {ctx.Visitor.Database.Printer.Print(pars[i].ParamType)} got {ctx.Visitor.Database.Printer.Print(at)}");
                         args[i] = av;
                     }
@@ -189,7 +190,7 @@ public static class StoryParser
                 return (new CallFunction(ctx.Visitor.Database.Functions[funcIndex], count),
                     PropertyValue.ValueType.Null);
 
-            ctx.Visitor.AddError(ErrorCode.UnknownRule, arg?.Span ?? ctx.CallContext.Span, eventName);
+            ctx.Visitor.AddError(ErrorCode.UnknownRule, arg, eventName);
             return (null!, PropertyValue.ValueType.Null);
         }),
 
@@ -198,7 +199,7 @@ public static class StoryParser
             var argCount = ctx.ArgCount;
             if (argCount == 0)
             {
-                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span,
+                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext,
                     "'random' needs at least one argument");
                 return (null!, PropertyValue.ValueType.Null);
             }
@@ -220,7 +221,7 @@ public static class StoryParser
                 return (new RandomRange(min, max), PropertyValue.TypeNumber);
             }
 
-            ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span, ctx.GetText(ctx.CallContext.Span));
+            ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, ctx.GetText(ctx.CallContext));
             return (null!, PropertyValue.ValueType.Null);
         },
             ""),
@@ -230,14 +231,14 @@ public static class StoryParser
             // TYPE_ID), looked up by text rather than parsed as a value (it isn't an enum/entity).
             if (ctx.ArgCount != 1)
             {
-                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span, "'roll' takes one table name");
+                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext, "'roll' takes one table name");
                 return (null!, PropertyValue.ValueType.Null);
             }
 
-            var tableName = ctx.GetText(ctx.GetArgumentToken(0)!.Span);
+            var tableName = ctx.GetText(ctx.GetArgumentToken(0));
             if (!ctx.Visitor.Database.GetTableDefinition(tableName, out var table))
             {
-                ctx.Visitor.AddError(ErrorCode.UnknownTable, ctx.CallContext.Span, tableName);
+                ctx.Visitor.AddError(ErrorCode.UnknownTable, ctx.CallContext, tableName);
                 return (null!, PropertyValue.ValueType.Null);
             }
 
@@ -294,6 +295,7 @@ public static class StoryParser
     public interface IVisitor
     {
         List<Error> Errors { get; }
+        MoiraiParser Parser { get; set; }
         (int offsetLine, int offsetColumn) Offset { get; set; }
     }
 
@@ -366,155 +368,97 @@ public static class StoryParser
             ColEnd = col + 1;
         }
 
-        public Error(ErrorCode code, TextSpan loc, string message, (int, int) offset,
-            Severity severity = Severity.Error)
+        public Error(ErrorCode code, ITerminalNode loc, string message, (int, int) offset)
         {
-            // Deliberately NOT routed through FileRange here: FileRange's convention is 0-based on
-            // both axes (for the LSP/engine), but Error.Line/Col has always been 1-based line /
-            // 0-based column -- the ANTLR IToken convention the original AddError/AddWarning calls
-            // read straight off `loc.Start.Line`/`loc.Start.Column` with no adjustment. Superpower's
-            // Position is 1-based on both axes, so only Column needs a "-1" here to match.
             Code = code;
-            Severity = severity;
-            var end = EndPosition(loc);
-            Line = loc.Position.Line + offset.Item1;
-            Col = loc.Position.Column - 1 + offset.Item2;
+            Severity = Severity.Error;
+            Line = loc.Symbol.Line + offset.Item1;
+            Col = loc.Symbol.Column + offset.Item2;
             Message = message;
-            LineEnd = end.Line + offset.Item1;
-            ColEnd = end.Column - 1 + offset.Item2;
+            LineEnd = loc.Symbol.Line;
+            ColEnd = loc.Symbol.Column + loc.Symbol.Text.Length;
         }
 
-        static Position EndPosition(TextSpan span)
+        public Error(ErrorCode code, ParserRuleContext loc, string message, (int, int) offset,
+            Severity severity = Severity.Error)
         {
-            var pos = span.Position;
-            foreach (var c in span.ToStringValue())
-                pos = pos.Advance(c);
-            return pos;
+            Code = code;
+            Severity = severity;
+            Line = loc.Start.Line + offset.Item1;
+            Col = loc.Start.Column + offset.Item2;
+            Message = message;
+            LineEnd = loc.Stop.Line + offset.Item1;
+            ColEnd = loc.Stop.Column + offset.Item2;
         }
 
         public override string ToString() => $"M{(int) Code}: {Severity} {Code} {Line}:{Col}: {Message}";
+    }
+
+    class Listener : IAntlrErrorListener<int>, IAntlrErrorListener<IToken>
+    {
+        private readonly List<Error> _errors;
+        private readonly (int offsetLine, int offsetColumn) _offset;
+
+        public Listener(List<Error> errors, (int offsetLine, int offsetColumn)? offset)
+        {
+            _errors = errors;
+            _offset = offset ?? (0, 0);
+        }
+
+        public void SyntaxError(TextWriter output, IRecognizer recognizer, int offendingSymbol, int line,
+            int charPositionInLine,
+            string msg,
+            RecognitionException e)
+        {
+            _errors.Add(new Error(ErrorCode.Lexer, line + _offset.offsetLine, charPositionInLine + _offset.offsetColumn,
+                "Lexer:" + msg));
+        }
+
+        public void SyntaxError(TextWriter output, IRecognizer recognizer, IToken offendingSymbol, int line,
+            int charPositionInLine,
+            string msg,
+            RecognitionException e)
+        {
+            _errors.Add(new Error(ErrorCode.Parser, line + _offset.offsetLine,
+                charPositionInLine + _offset.offsetColumn, "Parser:" + msg));
+        }
     }
 
     public static IValue? ParseExpr(AstVisitor visitor, string s, int offsetLine, int offsetColumn,
         out List<Error> errors)
     {
         var prevOffset = visitor.Offset;
-        visitor.Offset = (offsetLine, offsetColumn);
-        var tokenized = MoiraiTokenizer.Tokenize(s);
-        foreach (var e in tokenized.Errors)
-            visitor.Errors.Add(new Error(ErrorCode.Lexer, e.Position.Line + offsetLine,
-                e.Position.Column - 1 + offsetColumn, e.Message));
-
-        IValue? result = null;
-        var parsed = MoiraiGrammar.TryParseExpr(tokenized.ParseTokens);
-        if (!parsed.HasValue)
-            visitor.Errors.Add(MakeParseError(parsed.ErrorPosition, s, parsed.ErrorMessage, offsetLine, offsetColumn));
-        else
-            result = visitor.ParseExpr(parsed.Value);
-
+        SetupParser(s, out var parser, visitor, (offsetLine, offsetColumn));
+        var r = parser.expr();
+        var propertyPath = visitor.ParseExpr(r);
         errors = visitor.Errors;
         visitor.Offset = prevOffset;
-        return result;
+        return propertyPath;
     }
 
     public static Database Parse(string s, out List<Error> errors)
     {
         var db = new Database();
-        var visitor = new AstVisitor(db);
-        var tokenized = MoiraiTokenizer.Tokenize(s);
-        foreach (var e in tokenized.Errors)
-            visitor.Errors.Add(new Error(ErrorCode.Lexer, e.Position.Line, e.Position.Column - 1, e.Message));
-
-        // Chunked at top-level def boundaries (Phase 4 of the migration plan): a syntax error in one
-        // def must not blank out every definition in the file, and the LSP needs one diagnostic per
-        // broken def, not just the first. Well-formed input always chunks to exactly one piece
-        // covering the whole file, so this is a no-op for anything that already parses cleanly.
-        var allDefs = new List<DefNode>();
-        foreach (var chunk in ChunkTokens(tokenized.ParseTokens.ToArray()))
-        {
-            var chunkTokens = new TokenList<MoiraiTokenKind>(chunk);
-            var parsed = MoiraiGrammar.TryParseR(chunkTokens);
-            if (!parsed.HasValue)
-            {
-                visitor.Errors.Add(MakeParseError(parsed.ErrorPosition, s, parsed.ErrorMessage, 0, 0));
-                continue;
-            }
-
-            if (!parsed.Remainder.IsAtEnd)
-            {
-                var next = parsed.Remainder.ConsumeToken();
-                visitor.Errors.Add(MakeParseError(next.Value.Position, s,
-                    "unexpected content after the last definition", 0, 0));
-                continue;
-            }
-
-            allDefs.AddRange(parsed.Value.Defs);
-        }
-
-        if (allDefs.Count > 0)
-            visitor.VisitR(new RNode(allDefs.ToArray(), allDefs[0].Span)); // RNode.Span is unused downstream
-
+        var visitor = new AstVisitor(db, null!);
+        SetupParser(s, out var parser, visitor);
+        var r = parser.r();
+        r.Accept(visitor);
         errors = visitor.Errors;
         return db;
     }
 
-    static readonly MoiraiTokenKind[] TopLevelDefStartKinds =
+    public static void SetupParser(string s, out MoiraiParser parser, IVisitor visitor,
+        (int offsetLine, int offsetColumn)? offset = null, bool mergeChannels = false)
     {
-        MoiraiTokenKind.At, MoiraiTokenKind.Event, MoiraiTokenKind.Entity, MoiraiTokenKind.Singleton,
-        MoiraiTokenKind.Trigger, MoiraiTokenKind.Enum, MoiraiTokenKind.Table, MoiraiTokenKind.Function,
-    };
-
-    /// Splits the (already trivia-filtered) parse token stream into independent chunks at top-level
-    /// def boundaries. Deliberately column-based (a top-level keyword or `@` starting at column 1 —
-    /// real .sg sources never indent top-level constructs) rather than brace-depth-based: a *broken*
-    /// def is exactly the case chunking exists to isolate, and a missing `}` would leave a
-    /// depth-tracking counter permanently elevated, silently swallowing every def for the rest of the
-    /// file after the first mistake. `sawDefKeyword` keeps a run of `@attr` lines before a def from
-    /// being sliced apart from the def they annotate (only a *complete* prior def — one that reached
-    /// its own keyword, not just another attribute — licenses the next cut). Each chunk is parsed
-    /// independently in <see cref="Parse"/> so one broken def doesn't take the rest of the file down
-    /// with it.
-    static List<Token<MoiraiTokenKind>[]> ChunkTokens(Token<MoiraiTokenKind>[] tokens)
-    {
-        var chunks = new List<Token<MoiraiTokenKind>[]>();
-        int start = 0;
-        bool sawDefKeyword = false;
-        for (int i = 0; i < tokens.Length; i++)
-        {
-            bool atColumn1TopLevel = tokens[i].Span.Position.Column == 1 &&
-                Array.IndexOf(TopLevelDefStartKinds, tokens[i].Kind) >= 0;
-
-            if (i > start && atColumn1TopLevel && sawDefKeyword)
-            {
-                chunks.Add(tokens[start..i]);
-                start = i;
-                sawDefKeyword = false;
-            }
-
-            if (atColumn1TopLevel && tokens[i].Kind != MoiraiTokenKind.At)
-                sawDefKeyword = true;
-        }
-
-        if (start < tokens.Length)
-            chunks.Add(tokens[start..]);
-        return chunks;
-    }
-
-    static Error MakeParseError(Position pos, string source, string? message, int offsetLine, int offsetColumn)
-    {
-        // Error.Line/Col is 1-based line / 0-based column (see the TextSpan Error constructor's
-        // comment) -- Superpower's Position is 1-based on both axes, so only Column gets a "-1".
-        int line = (pos.HasValue ? pos.Line : 1) + offsetLine;
-        int col = (pos.HasValue ? pos.Column : 1) - 1 + offsetColumn;
-        return new Error(ErrorCode.Parser, line, col, message ?? "syntax error near " + Near(source, pos));
-    }
-
-    static string Near(string source, Position pos)
-    {
-        if (!pos.HasValue) return "(end of input)";
-        int start = Math.Max(0, pos.Absolute - 20);
-        int len = Math.Min(40, source.Length - start);
-        return source.Substring(start, len).Replace("\n", "\\n");
+        var fromString = new CodePointCharStream(s /*.TrimStart('\r', '\n', ' ')*/);
+        var lexer = new moirai_lexer(fromString);
+        var tokens = /*mergeChannels ? new BufferedTokenStream(lexer) :*/ new CommonTokenStream(lexer);
+        parser = new MoiraiParser(tokens);
+        visitor.Parser = parser;
+        visitor.Offset = offset ?? (0, 0);
+        var listener = new Listener(visitor.Errors, offset);
+        lexer.AddErrorListener(listener);
+        parser.AddErrorListener(listener);
     }
 
     public interface ILinker
@@ -533,55 +477,59 @@ public static class StoryParser
         void LinkFunction(FileRange range, IFunctionDescriptor descriptor);
     }
 
-    internal struct PathParser(AstVisitor astVisitor, PathNode context)
+    public static ITerminalNode GetTypeTerminal(MoiraiParser.TypeContext type)
+    {
+        return type.TYPE_ID() ?? type.ID();
+    }
+
+    internal struct PathParser(AstVisitor astVisitor, MoiraiParser.PathContext context)
     {
         internal void Rec(ref PropertyPath path, int idIndex,
             EntityType owningType, out PropertyValue.ValueType type)
         {
-            var dotPropertyNode = idIndex < context.DotProperties.Length ? context.DotProperties[idIndex] : null;
-            var propId = dotPropertyNode?.Property;
+            var dotPropertyContext = context.dot_property(idIndex);
+            var propId = dotPropertyContext?.property_id();
 
             type = default;
             if (propId != null)
             {
-                ParseProperty(ref path, propId.Value, owningType, out type);
+                ParseProperty(ref path, propId, owningType, out type);
             }
-            else if (dotPropertyNode?.Call != null)
+            else
             {
                 // if we rewrite the calls to desugar the instance methods:
                 // a.b.f() -> f(a.b)
                 // a.f().b -> f(a).b
                 // a.f().g() -> g(f(a))
-
-                var funcName = dotPropertyNode.Call.FunId.Text;
-                if (owningType.GetFunctionDefinition(funcName, out var fd))
+                    
+                var funcName = dotPropertyContext.call().fun_id().GetText();
+                if(owningType.GetFunctionDefinition(funcName, out var fd))
                 {
-                    var ctx = new FunctionParseContext(astVisitor, dotPropertyNode.Call, fd, path);
+                    var ctx = new FunctionParseContext(astVisitor, dotPropertyContext.call(), fd, path);
                     var call = astVisitor.ParseUserFunctionCall(astVisitor, ctx, out type);
                     path = new PropertyPath(-1, PropertyValue.ValueType.Null);
                     path.AddCall(call);
-                    astVisitor.Linker?.LinkFunction(new FileRange(dotPropertyNode.Call.FunId.Span),
-                        new UserFunctionDescriptor(fd));
+                    astVisitor.Linker?.LinkFunction(dotPropertyContext.call().fun_id(),new UserFunctionDescriptor(fd));
                 }
             }
 
-            if (idIndex + 1 < context.DotProperties.Length)
+            if (context.dot_property() != null && context.dot_property(idIndex + 1) != null)
                 Rec(ref path, idIndex + 1, astVisitor.Database.GetEntityType(type)!, out type);
         }
 
-        public void ParseProperty(ref PropertyPath path, Ident rootProp, EntityType owningType, out PropertyValue.ValueType type)
+        public void ParseProperty(ref PropertyPath path, MoiraiParser.Property_idContext rootProp, EntityType owningType, out PropertyValue.ValueType type)
         {
-            string propertyName = rootProp.Text;
+            string propertyName = rootProp.GetText();
             var propertyId = owningType.GetPropertyId(propertyName);
             if (!propertyId.IsValid)
             {
                 type = default;
-                astVisitor.AddError(ErrorCode.UnknownProperty, rootProp.Span, propertyName);
+                astVisitor.AddError(ErrorCode.UnknownProperty, rootProp, propertyName);
                 return;
             }
 
             type = owningType.GetPropertyType(propertyName);
-            astVisitor.Linker?.LinkProperty(new FileRange(rootProp.Span), propertyId);
+            astVisitor.Linker?.LinkProperty(rootProp, propertyId);
             path.AddProperty(propertyId);
         }
     }

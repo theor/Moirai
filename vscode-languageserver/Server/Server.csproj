@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Moirai.Parser\Moirai.Parser.csproj" />
+    <ProjectReference Include="..\..\Moirai.Parser.Antlr\Moirai.Parser.Antlr.csproj" />
   </ItemGroup>
 
   <ItemGroup>

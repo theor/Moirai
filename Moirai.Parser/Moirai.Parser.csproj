@@ -7,22 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.0"/>
-        <PackageReference Include="Antlr4BuildTasks" Version="12.2.0" PrivateAssets="all"/>
+        <PackageReference Include="Superpower" Version="3.1.0"/>
     </ItemGroup>
     <ItemGroup>
-        <Antlr4 Include="moirai_lexer.g4">
-            <Package>Moirai.Parser</Package>
-        </Antlr4>
-        <Antlr4 Include="MoiraiParser.g4">
-            <Listener>true</Listener>
-            <Visitor>true</Visitor>
-            <Package>Moirai.Parser</Package>
-        </Antlr4>
-    </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\Moirai.SourceGenerators\Moirai.SourceGenerators\Moirai.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-
         <ProjectReference Include="..\Moirai\Moirai.csproj"/>
     </ItemGroup>
 

@@ -1,6 +1,4 @@
-using Moirai.Parser.Ast;
-
-namespace Moirai.Parser;
+﻿namespace Moirai.Parser;
 
 public class FunctionDescriptor : IFunctionDescriptor
 {
@@ -19,18 +17,30 @@ public class FunctionDescriptor : IFunctionDescriptor
         _parse = parse;
     }
 
-    public IValueCall Parse(AstVisitor parser, CallOrRawCall call, out PropertyValue.ValueType returnType)
+    public IValueCall Parse(AstVisitor parser, MoiraiParser.Raw_callContext call,
+        out PropertyValue.ValueType returnType)
     {
         (IValueCall, PropertyValue.ValueType) c = _parse(new FunctionParseContext(parser, call, null));
         returnType = c.Item2;
         if (c.Item1 != null)
             c.Item1.FunctionDescriptor = this;
-        else if (call.Call != null)
-            parser.AddError(StoryParser.ErrorCode.UnknownFunction, call.Span, "");
         else
-            throw new InvalidOperationException(call.Span.ToStringValue());
+            throw new InvalidOperationException(parser.Parser.TokenStream.GetText(call));
         return c.Item1;
     }
+
+    public IValueCall Parse(AstVisitor parser, MoiraiParser.CallContext call,
+        out PropertyValue.ValueType returnType)
+    {
+        (IValueCall, PropertyValue.ValueType) c = _parse(new FunctionParseContext(parser, call, null));
+        returnType = c.Item2;
+        if (c.Item1 != null)
+            c.Item1.FunctionDescriptor = this;
+        else
+            parser.AddError(StoryParser.ErrorCode.UnknownFunction, call, "");
+        return c.Item1;
+    }
+
 
     public string Print(StoryPrinter printer, IValueCall call)
     {
