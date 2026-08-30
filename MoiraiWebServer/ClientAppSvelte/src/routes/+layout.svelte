@@ -73,8 +73,15 @@
 
 <!-- App Shell -->
 <QueryClientProvider client={queryClient}>
+  <!--
+    grid-rows-[auto_1fr], not auto-rows-max: with content-sized rows the second row has no definite
+    height, so `h-full` on <main> resolves to auto, a page's `h-full overflow-auto` never has anything
+    to overflow, and body's `overflow: hidden` silently clips it. min-h-0 on the two row items is the
+    other half -- a grid item's default min-height:auto refuses to shrink below its content, which
+    would push the row back to content height.
+  -->
   <div
-    class="grid grid-cols-4 grid-flow-row auto-rows-max h-full w-full"
+    class="grid grid-cols-4 grid-rows-[auto_1fr] h-full w-full"
     use:shortcut={{ control: true, code: 'KeyG', callback: gotoLine }}
     use:shortcut={{ control: true, code: 'KeyD', callback: switchTab }}
   >
@@ -190,8 +197,8 @@
         </AppBar.Headline>
       </AppBar.Toolbar>
     </AppBar>
-    <aside class="m-4 flex-auto overflow-hidden h-full">
-      <div class="card p-4 mb-2 h-full max-h-[88vh] overflow-y-auto">
+    <aside class="m-4 min-h-0 overflow-hidden">
+      <div class="card p-4 h-full overflow-y-auto">
         <Tabs value={activeTab} onValueChange={(e) => (activeTab = e.value ?? 'details')}>
           <Tabs.List>
             <Tabs.Trigger value="details">Details</Tabs.Trigger>
@@ -208,7 +215,7 @@
         </Tabs>
       </div>
     </aside>
-    <main class="flex-auto col-span-3 space-y-4 p-4 pl-0 h-full">
+    <main class="col-span-3 min-h-0 space-y-4 p-4 pl-0 h-full">
       {@render children?.()}
     </main>
   </div>

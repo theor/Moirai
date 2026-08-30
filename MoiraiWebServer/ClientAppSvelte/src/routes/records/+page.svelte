@@ -122,9 +122,9 @@
   });
 </script>
 
-<div>
+<div class="h-full flex flex-col min-h-0">
   {#if allTags.length > 0}
-    <div class="tag-bar">
+    <div class="tag-bar shrink-0">
       {#each allTags as tag (tag)}
         <button
           type="button"
@@ -198,7 +198,8 @@
     background-color: color-mix(in oklab, var(--color-surface-500) 5%, transparent);
   }
   .scroll-container {
-    height: 84vh;
+    flex: 1;
+    min-height: 0;
     width: 100%;
     overflow: auto;
   }

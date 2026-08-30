@@ -128,7 +128,8 @@
     background-color: color-mix(in oklab, var(--color-surface-500) 5%, transparent);
   }
   .scroll-container {
-    height: 80vh;
+    flex: 1;
+    min-height: 0;
     width: 100%;
     overflow: auto;
 

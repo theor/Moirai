@@ -48,82 +48,81 @@
   }
 </script>
 
-<!--<div class="h-full w-full space-y-4  mb-4 ">-->
-
-<form class="field-group grid-cols-[auto_1fr_auto]" on:submit|preventDefault={runQuery}>
-  <label class="label" for="query">
-    <Search />
-  </label>
-  <input
-    id="query"
-    class="input"
-    bind:value={query}
-    on:input={() => debouncer.debounce()}
-    type="search"
-    name="query"
-    aria-label="Query"
-    placeholder="Search..."
-  />
-  <button type="submit" class="btn preset-filled-primary-500">Submit</button>
-</form>
-{#await results then results}
-  <div class="card p-4">
-    <!-- Open state is internal: v2 bound astOpen/sqlOpen but never read them. -->
-    <Accordion multiple>
-      <Accordion.Item value="ast">
-        <Accordion.ItemTrigger class="flex items-center gap-2">
-          <PineTree />
-          <span class="flex-auto">AST</span>
-          <Accordion.ItemIndicator class="transition-transform data-[state=open]:rotate-180">
-            <ChevronDown />
-          </Accordion.ItemIndicator>
-        </Accordion.ItemTrigger>
-        <Accordion.ItemContent>
-          <pre class="pre">{JSON.stringify(JSON.parse(results.query), null, 2)}</pre>
-        </Accordion.ItemContent>
-      </Accordion.Item>
-      <Accordion.Item value="sql">
-        <Accordion.ItemTrigger class="flex items-center gap-2">
-          <DatabaseSearch />
-          <span class="flex-auto">SQL</span>
-          <Accordion.ItemIndicator class="transition-transform data-[state=open]:rotate-180">
-            <ChevronDown />
-          </Accordion.ItemIndicator>
-        </Accordion.ItemTrigger>
-        <Accordion.ItemContent>
-          <pre class="pre">{results.sql}</pre>
-        </Accordion.ItemContent>
-      </Accordion.Item>
-    </Accordion>
-  </div>
-
-  {#if results.errors && results.errors.length > 0}
-    {#each results.errors as error, ei (ei)}
-      <aside class="card preset-filled-error-500 p-4 my-2"><div>{error}</div></aside>
-    {/each}
-  {:else}
-    <!--            <div class="w-full inline-block overflow-auto">-->
-    <div class="table-wrap overflow-auto">
-      <table class="table table-fixed overflow-auto" style="display: block">
-        <tbody>
-          {#each results.results as result, ri (ri)}
-            <tr>
-              <td>{result.eid}</td>
-              {#each result.properties as prop, pi (pi)}
-                <!--                    <td>{JSON.stringify(result)}</td>-->
-                <td>
-                  <div class="text-sm lg:justify-self-end font-semibold leading-6 capitalize">
-                    {prop.label}
-                  </div>
-                  <MoiraiText text={prop.value} selected={selected.getNumber()} />
-                </td>
-              {/each}
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+<div class="h-full overflow-auto space-y-4">
+  <form class="field-group grid-cols-[auto_1fr_auto]" on:submit|preventDefault={runQuery}>
+    <label class="label" for="query">
+      <Search />
+    </label>
+    <input
+      id="query"
+      class="input"
+      bind:value={query}
+      on:input={() => debouncer.debounce()}
+      type="search"
+      name="query"
+      aria-label="Query"
+      placeholder="Search..."
+    />
+    <button type="submit" class="btn preset-filled-primary-500">Submit</button>
+  </form>
+  {#await results then results}
+    <div class="card p-4">
+      <!-- Open state is internal: v2 bound astOpen/sqlOpen but never read them. -->
+      <Accordion multiple>
+        <Accordion.Item value="ast">
+          <Accordion.ItemTrigger class="flex items-center gap-2">
+            <PineTree />
+            <span class="flex-auto">AST</span>
+            <Accordion.ItemIndicator class="transition-transform data-[state=open]:rotate-180">
+              <ChevronDown />
+            </Accordion.ItemIndicator>
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <pre class="pre">{JSON.stringify(JSON.parse(results.query), null, 2)}</pre>
+          </Accordion.ItemContent>
+        </Accordion.Item>
+        <Accordion.Item value="sql">
+          <Accordion.ItemTrigger class="flex items-center gap-2">
+            <DatabaseSearch />
+            <span class="flex-auto">SQL</span>
+            <Accordion.ItemIndicator class="transition-transform data-[state=open]:rotate-180">
+              <ChevronDown />
+            </Accordion.ItemIndicator>
+          </Accordion.ItemTrigger>
+          <Accordion.ItemContent>
+            <pre class="pre">{results.sql}</pre>
+          </Accordion.ItemContent>
+        </Accordion.Item>
+      </Accordion>
     </div>
-    <!--            </div>-->
-  {/if}
-{/await}
-<!--</div>-->
+
+    {#if results.errors && results.errors.length > 0}
+      {#each results.errors as error, ei (ei)}
+        <aside class="card preset-filled-error-500 p-4 my-2"><div>{error}</div></aside>
+      {/each}
+    {:else}
+      <!--            <div class="w-full inline-block overflow-auto">-->
+      <div class="table-wrap overflow-auto">
+        <table class="table table-fixed overflow-auto" style="display: block">
+          <tbody>
+            {#each results.results as result, ri (ri)}
+              <tr>
+                <td>{result.eid}</td>
+                {#each result.properties as prop, pi (pi)}
+                  <!--                    <td>{JSON.stringify(result)}</td>-->
+                  <td>
+                    <div class="text-sm lg:justify-self-end font-semibold leading-6 capitalize">
+                      {prop.label}
+                    </div>
+                    <MoiraiText text={prop.value} selected={selected.getNumber()} />
+                  </td>
+                {/each}
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+      <!--            </div>-->
+    {/if}
+  {/await}
+</div>

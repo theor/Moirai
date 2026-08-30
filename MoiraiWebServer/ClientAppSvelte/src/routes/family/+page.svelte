@@ -74,8 +74,11 @@
 </div>
 
 <style>
+  .ftree-page {
+    height: 100%;
+  }
   .ftree-scroll {
-    height: 86vh;
+    height: 100%;
     overflow: auto;
     padding: 1rem;
   }
