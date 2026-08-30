@@ -5,7 +5,7 @@
 
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton-svelte';
-@import '@skeletonlabs/skeleton/themes/rosepine';
+@import '@skeletonlabs/skeleton/themes/mona';
 
 /* Skeleton's own classes live in node_modules, which Tailwind 4 does not scan by default. */
 @source '../node_modules/@skeletonlabs/skeleton-svelte/dist';
@@ -59,12 +59,18 @@ body {
  * Chart & meter tokens, scoped to .viz-root.
  *
  * Every value is a step of the active Skeleton theme, so the charts and the UI stay one system and a
- * theme swap carries them along. The steps were picked against the Rose Pine parchment surface
- * (#f9f4ee) and validated: the meter ramp (track #69a9ba -> fill #266b86) passes monotone lightness,
- * step gap, 2:1 light-end contrast and single-hue; the two status colours clear 3:1 on the surface and
- * separate by CVD dE 9.6 / normal-vision dE 16.1. Rose Pine is a pastel theme, so both status steps sit
- * just under the chroma floor a categorical series would need -- which is why status always ships as
- * glyph + label, never colour alone. Re-validate these steps if the theme changes.
+ * theme swap carries them along -- but which STEP passes is theme-specific, so re-validate on a swap.
+ * Picked and validated against Mona's white surface (#ffffff):
+ *
+ *   meter ramp   track primary-300 #b48ceb -> fill primary-600 #7547c8
+ *                monotone lightness, step gap, 2.66:1 light end, single hue (7 deg spread) -- all pass
+ *   status pair  critical error-800 #b53224 (6.09:1), warning warning-800 #a69a26 (2.89:1)
+ *                CVD dE 15.6, normal-vision dE 24.2
+ *
+ * warning-800 sits under 3:1, which is why the status COLOUR goes on the glyph and the label stays in
+ * ink: a colour on text has to clear contrast on its own, a colour on a mark beside a word does not.
+ * (warning-900 would clear 3:1 but drops CVD separation to dE 7.6, into the band that is only legal
+ * with secondary encoding -- the glyph is worth more than the extra contrast on a mark.)
  *
  * No prefers-color-scheme block on purpose: app.html carries `_dark`, i.e. the app is light-only, and a
  * media query here would flip the charts to dark on a page that stayed light.

@@ -29,12 +29,19 @@
     });
   });
 
-  // Status is carried by a glyph and a word as well as by colour -- the two problem hues sit under the
-  // chroma floor on this theme, so neither may be the only signal.
+  // Status reads as glyph + word first and colour second. The colour rides the glyph, never the label:
+  // a colour on text has to clear contrast on its own, and the warning step does not (see app.css).
   const STATUS: Record<RuleStatus, { glyph: string; label: string; colour: string }> = {
     'never-ran': { glyph: '\u2715', label: 'never ran', colour: 'var(--viz-critical)' },
     'never-completed': { glyph: '!', label: 'never completed', colour: 'var(--viz-warning)' },
     ok: { glyph: '\u2713', label: 'ok', colour: 'var(--viz-muted)' },
+  };
+
+  // Only the two problem rows are worth full-strength ink; "ok" recedes.
+  const MUTED: Record<RuleStatus, boolean> = {
+    'never-ran': false,
+    'never-completed': false,
+    ok: true,
   };
 
   const rules = $derived(report?.rules ?? []);
@@ -66,11 +73,13 @@
     <p class="opacity-60">No rules in this story.</p>
   {:else}
     <div class="flex items-center gap-4 mb-3 flex-wrap">
-      <span class="badge preset-tonal" style="color: var(--viz-critical)">
-        ✕ {counts.neverRan} never ran
+      <span class="badge preset-tonal">
+        <span aria-hidden="true" class="font-bold" style="color: var(--viz-critical)">✕</span>
+        {counts.neverRan} never ran
       </span>
-      <span class="badge preset-tonal" style="color: var(--viz-warning)">
-        ! {counts.neverCompleted} never completed
+      <span class="badge preset-tonal">
+        <span aria-hidden="true" class="font-bold" style="color: var(--viz-warning)">!</span>
+        {counts.neverCompleted} never completed
       </span>
       <Switch
         name="onlyProblems"
@@ -98,8 +107,10 @@
         {#each sorted as r (r.kind + r.id)}
           {@const s = STATUS[statusOf(r)]}
           <tr>
-            <td style="color: {s.colour}">
-              <span aria-hidden="true" class="font-bold mr-1">{s.glyph}</span>{s.label}
+            <td>
+              <span aria-hidden="true" class="font-bold mr-1" style="color: {s.colour}"
+                >{s.glyph}</span
+              ><span class:opacity-60={MUTED[statusOf(r)]}>{s.label}</span>
             </td>
             <td>
               <span class="font-semibold">{r.name}</span>
