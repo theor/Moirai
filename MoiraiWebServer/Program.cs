@@ -64,10 +64,12 @@ internal class Program
         while(string.IsNullOrEmpty(options.InputFile) || !File.Exists(options.InputFile))
         {
             Console.Error.WriteLine((!string.IsNullOrEmpty(options.InputFile)
-                ? "File does not exist."
+                ? $"File does not exist: '{Path.GetFullPath(options.InputFile)}'."
                 : "") +  "Specify an input file:");
             options.InputFile = (Console.ReadLine() ?? "").Replace("\\", "/");
         }
+
+        options.InputFile = Path.GetFullPath(options.InputFile);
         Console.WriteLine($"Input file: {options.InputFile}");
         OptionsInstance = options;
 
@@ -158,6 +160,12 @@ internal class Program
                     CreateNoWindow = true,
                     
                 });
+                if (Environment.OSVersion.Platform == PlatformID.Unix ||
+                    Environment.OSVersion.Platform == PlatformID.MacOSX)
+                {
+                    p.StartInfo.FileName = "/bin/bash";
+                    p.StartInfo.Arguments = "-c \"yarn run dev\"";
+                }
                     
                 p.EnableRaisingEvents = true;
                 p.OutputDataReceived += (sender, eventArgs) => logger.LogInformation(eventArgs.Data);
