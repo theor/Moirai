@@ -2,3 +2,6 @@
 package-lock.json
 pnpm-lock.yaml
 yarn.lock
+
+# The .NET WebAssembly runtime, staged by `yarn wasm:build` — a build artifact, not source.
+static/_framework

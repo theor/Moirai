@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "vite dev",
+    "dev:wasm": "VITE_MOIRAI_BACKEND=wasm vite dev",
     "build": "vite build",
+    "wasm:build": "node scripts/build-wasm.mjs",
+    "wasm:smoke": "node scripts/smoke-wasm.mjs",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

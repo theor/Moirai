@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0-browser</TargetFramework>
+        <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+        <OutputType>Exe</OutputType>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Moirai.Wasm</RootNamespace>
+        <WasmMainJSPath>main.js</WasmMainJSPath>
+
+        <!-- Required by the [JSExport]/[JSImport] source generator, which emits pointer code for the
+             marshalling stubs. None of our own code is unsafe. -->
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- Drops the ICU payload, and makes CurrentCulture invariant. The parser calls float.Parse and
+             int.Parse without an IFormatProvider, so on a comma-decimal locale a story's numeric literals
+             would otherwise misparse. The server sets this for the same reason. -->
+        <InvariantGlobalization>true</InvariantGlobalization>
+
+        <!-- Trim the framework, but not us. `partial` only trims assemblies marked trimmable, which the
+             BCL is and our project references are not — so System.Private.Xml, System.Data.Common and the
+             rest of the unused framework go, while every Moirai type survives whole. That distinction
+             matters because two things here reflect over our own types and would fail silently if trimmed:
+             the query page dumps the parsed expression tree with JsonSerializer.Serialize(e, e.GetType()),
+             and the DTOs go over the wire through reflection-based System.Text.Json. Untrimmed the bundle
+             is 25 MB, almost none of it ours. -->
+        <PublishTrimmed>true</PublishTrimmed>
+        <TrimMode>partial</TrimMode>
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Moirai.Api\Moirai.Api.csproj" />
+    </ItemGroup>
+
+</Project>

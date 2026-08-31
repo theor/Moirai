@@ -19,3 +19,7 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Staged by `yarn wasm:build` from Moirai.Wasm's publish output — build artifacts, not sources.
+/static/_framework
+/static/w.sg

@@ -41,6 +41,8 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['build/', '.svelte-kit/', 'dist/'],
+    // static/_framework is the .NET WebAssembly runtime, staged by `yarn wasm:build`. It is a build
+    // artifact of another project, and its bundled JS is minified — not ours to lint.
+    ignores: ['build/', '.svelte-kit/', 'dist/', 'static/_framework/'],
   },
 );
