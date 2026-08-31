@@ -6,9 +6,9 @@
   import { moiraiViewStore } from '$lib';
   import { shortcut } from '$lib/shortcut';
   import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import type { Pathname } from '$app/types';
-  import type { HTMLAnchorAttributes } from 'svelte/elements';
 
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
   import ActionList from '../components/ActionList.svelte';
@@ -18,8 +18,11 @@
   let yearInput: HTMLInputElement | undefined = $state();
   let yearValue: number | undefined = $state(undefined);
   let passYearsCount = $state(100);
-  const passYearsProgress = $derived($moiraiStore.passYearsProgress);
-  const passYearsRunning = $derived(passYearsProgress !== undefined);
+  const passYearsPercent = $derived($moiraiStore.passYearsPercent);
+  const passYearsRunning = $derived(passYearsPercent !== undefined);
+  // The WebAssembly backend has a runtime to start and possibly a world to rebuild, so "connecting" lasts
+  // seconds rather than milliseconds — long enough to click Reset before there is anything to reset.
+  const connecting = $derived($moiraiStore.conn === undefined);
 
   function gotoLine() {
     yearInput?.focus();
@@ -98,10 +101,33 @@
               {#each NAV_TABS as tab (tab.href)}
                 <Tabs.Trigger value={tab.href}>
                   {#snippet element(attributes)}
-                    <!-- Trigger types its attrs for <button>; we render an <a> for real navigation. -->
-                    <a
-                      {...attributes as unknown as HTMLAnchorAttributes}
-                      href="{resolve(tab.href)}{search}">{tab.label}</a
+                    <!--
+                      A button, not an <a>, and that is load-bearing rather than a style choice.
+
+                      Tabs is controlled and its value is the pathname, so every navigation changes it;
+                      the component reacts by re-activating the matching trigger, which it does by
+                      dispatching `new MouseEvent('click')` at the element. That event is
+                      `cancelable: false` and does not bubble, so it cannot be prevented and neither
+                      SvelteKit's router nor a Svelte `onclick` ever sees it — but the browser still runs
+                      an anchor's default navigation. The result was that a real click's soft navigation
+                      was immediately followed by a full page load of the same URL. Harmless with the
+                      server, where the world lives elsewhere; fatal with the in-browser engine, which
+                      lives in the page and was thrown away on every tab switch. A button has no default
+                      navigation, so the synthetic click does nothing and `goto` is the only way here.
+
+                      The cost is the affordances a real link has: no middle-click, no ctrl-click, no
+                      "copy link address" on the tab bar.
+                    -->
+                    <button
+                      {...attributes}
+                      type="button"
+                      onclick={(e) => {
+                        attributes.onclick?.(e);
+                        // The href is already resolved; the rule only recognises a literal resolve()
+                        // call as the argument, which a template literal is not.
+                        // eslint-disable-next-line svelte/no-navigation-without-resolve
+                        goto(`${resolve(tab.href)}${search}`);
+                      }}>{tab.label}</button
                     >
                   {/snippet}
                 </Tabs.Trigger>
@@ -109,7 +135,7 @@
             </Tabs.List>
           </Tabs>
           <span class="vr"></span>
-          <span class="mx-2">Year {$moiraiStore.year}</span>
+          <span class="mx-2">{connecting ? 'Starting…' : `Year ${$moiraiStore.year}`}</span>
           <form
             class="inline"
             onsubmit={(e) => {
@@ -134,6 +160,7 @@
           <button
             type="button"
             class="btn preset-filled-surface-500"
+            disabled={connecting}
             onclick={() => moiraiStore.reset()}>Reset</button
           >
           <form
@@ -159,13 +186,14 @@
             <button
               type="submit"
               class="btn {seedDirty ? 'preset-filled-primary-500' : 'preset-filled-surface-500'}"
-              disabled={!seedDirty}
+              disabled={!seedDirty || connecting}
               title="Rebuild the world from this seed">Apply</button
             >
           </form>
           <button
             type="button"
             class="btn preset-filled-surface-500"
+            disabled={connecting}
             onclick={rollSeed}
             title="Pick a random seed and rebuild the world">Roll</button
           >
@@ -181,13 +209,13 @@
             <button
               type="button"
               class="btn preset-filled-surface-500 whitespace-nowrap"
-              disabled={passYearsRunning}
+              disabled={passYearsRunning || connecting}
               onclick={() => moiraiStore.passYears(passYearsCount)}>Pass years</button
             >
           </div>
           {#if passYearsRunning}
             <div class="w-24 mx-2 inline-block align-middle">
-              <Progress value={passYearsProgress} max={passYearsCount}>
+              <Progress value={passYearsPercent} max={100}>
                 <Progress.Track>
                   <Progress.Range class="bg-primary-500" />
                 </Progress.Track>

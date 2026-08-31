@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { moiraiStore } from '$lib/connection';
+  import { moiraiStore, settledYear } from '$lib/connection';
   import type { FamilyTreeNode } from '$lib/connection';
   import type { Biography, BiographyEntry } from '$lib/types';
   import { groupByLabel, selectedEntity } from '$lib/utils';
@@ -32,12 +32,14 @@
     loading = false;
   }
 
-  // Reload on a new selection, and when the simulation year advances (a life is still being written).
+  // Reload on a new selection, and when the settled year advances (a life is still being written). The
+  // settled year rather than the raw one: a biography merges every record and changeset for the entity,
+  // so a pass would otherwise rebuild it per feed tick. See $lib/settled-year.
   let loadedFor = -1;
   let loadedYear = -1;
   $effect(() => {
     const id = selected;
-    const year = $moiraiStore.year;
+    const year = $settledYear;
     if (id !== loadedFor || year !== loadedYear) {
       loadedFor = id;
       loadedYear = year;

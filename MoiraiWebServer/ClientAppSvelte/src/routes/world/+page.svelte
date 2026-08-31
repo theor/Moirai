@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { moiraiStore } from '$lib/connection';
+  import { moiraiStore, settledYear } from '$lib/connection';
   import type { ChartableProperty, TimeSeries, WorldOverview } from '$lib/types';
   import { compact } from '$lib/chart';
   import LineChart from '../../components/LineChart.svelte';
@@ -39,15 +39,9 @@
 
   const keyOf = (p: ChartableProperty) => `${p.typeId}.${p.propertyName}`;
 
-  onMount(() => {
-    let prevYear = -1;
-    return moiraiStore.subscribe((s) => {
-      if (s.conn && s.year !== prevYear) {
-        prevYear = s.year;
-        void refresh();
-      }
-    });
-  });
+  // The settled year, not every year: an overview replays the whole changeset log, and a series replays
+  // it again per property. See $lib/settled-year.
+  onMount(() => settledYear.subscribe(() => void refresh()));
 
   const tiles = $derived([
     { label: 'Year', value: overview?.year ?? 0 },

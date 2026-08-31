@@ -5,7 +5,6 @@ export interface Record {
   changesetId: number;
   actionId: number;
   year: number;
-  categories: number;
   participants: number[];
   tags: string[] | null;
 }
@@ -124,4 +123,34 @@ export interface Biography {
   hasFamily: boolean;
   details: EntityPropertyDisplay[];
   timeline: BiographyEntry[];
+}
+
+// --- query, genealogy and changeset shapes -------------------------------------------------------
+// These mirror Moirai.Api's QueryResult / Result / FamilyTreeNode / EntityChangeDisplay.
+
+export interface Result {
+  eid: number;
+  properties: EntityPropertyDisplay[];
+}
+
+export interface QueryResult {
+  sql: string;
+  query: string;
+  results: Result[];
+  errors: string[];
+}
+
+/** A node in an entity's genealogy. `p1`/`p2` are parent ids, 0 meaning "none or beyond max depth". */
+export interface FamilyTreeNode {
+  id: number;
+  name: string;
+  p1: number;
+  p2: number;
+}
+
+export interface EntityChangeDisplay {
+  id: number;
+  year: number;
+  actionName: string;
+  changes: EntityPropertyDisplay[];
 }

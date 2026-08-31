@@ -1,7 +1,7 @@
 <script lang="ts">
   import { filteredEntity, groupByLabel, selectedEntity } from '$lib/utils';
   import { page } from '$app/stores';
-  import { moiraiStore, type EntityChangeDisplay } from '$lib/connection';
+  import { moiraiStore, settledYear, type EntityChangeDisplay } from '$lib/connection';
   import MoiraiText from './MoiraiText.svelte';
   import PreChip from './PreChip.svelte';
   import { Switch } from '@skeletonlabs/skeleton-svelte';
@@ -49,15 +49,13 @@
   }
   $: changesets = changesetsFor(selected);
 
-  onMount(() => {
-    let prevYear = get(moiraiStore).year;
-    return moiraiStore.subscribe((s) => {
-      if (s.year !== prevYear) {
-        prevYear = s.year;
-        if (selected > 0) changesets = changesetsFor(selected);
-      }
-    });
-  });
+  // The settled year, not every year: this scans the whole changeset log for one entity.
+  // See $lib/settled-year.
+  onMount(() =>
+    settledYear.subscribe(() => {
+      if (selected > 0) changesets = changesetsFor(selected);
+    }),
+  );
 
   function setFilter(checked: boolean) {
     filter = checked;

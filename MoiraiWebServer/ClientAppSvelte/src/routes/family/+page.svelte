@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { moiraiStore } from '$lib/connection';
+  import { moiraiStore, settledYear } from '$lib/connection';
   import type { FamilyTreeNode } from '$lib/connection';
   import { page } from '$app/stores';
   import { selectedEntity } from '$lib/utils';
@@ -9,11 +9,12 @@
 
   $: selected = selectedEntity($page).getNumber();
 
-  // Refetch when the selection or the simulation year changes (new people may have been born),
-  // and when `attempt` is bumped by the retry button in the error branch.
+  // Refetch when the selection or the settled year changes (new people may have been born), and when
+  // `attempt` is bumped by the retry button in the error branch. The settled year rather than the raw
+  // one: a tree walk is not cheap and a pass would otherwise trigger one per feed tick.
   let attempt = 0;
   let tree: Promise<FamilyTreeNode[]> | undefined;
-  $: tree = familyTreeFor(selected, $moiraiStore.year, attempt);
+  $: tree = familyTreeFor(selected, $settledYear, attempt);
   function familyTreeFor(sel: number, _year: number, _attempt: number) {
     return sel > 0 ? $moiraiStore.conn?.getFamilyTree(sel, maxDepth) : undefined;
   }

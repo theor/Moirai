@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { moiraiStore } from '$lib/connection';
+  import { moiraiStore, settledYear } from '$lib/connection';
   import type { RuleCoverageReport } from '$lib/types';
   import { hitRate, problemCounts, sortRules, statusOf, type RuleStatus } from '$lib/coverage';
   import { Switch } from '@skeletonlabs/skeleton-svelte';
@@ -19,15 +19,9 @@
     loading = false;
   }
 
-  onMount(() => {
-    let prevYear = -1;
-    return moiraiStore.subscribe((s) => {
-      if (s.conn && s.year !== prevYear) {
-        prevYear = s.year;
-        void refresh();
-      }
-    });
-  });
+  // The settled year, not every year: this query walks every rule in the story, and during a pass the
+  // raw year changes faster than the page can answer it. See $lib/settled-year.
+  onMount(() => settledYear.subscribe(() => void refresh()));
 
   // Status reads as glyph + word first and colour second. The colour rides the glyph, never the label:
   // a colour on text has to clear contrast on its own, and the warning step does not (see app.css).
