@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Xml;
 
 public struct EntityId
 {

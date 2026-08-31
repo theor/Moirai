@@ -13,6 +13,13 @@ public class Database
 
     public static Database Instance = null!;
 
+    /// <summary>
+    /// Where the engine's diagnostic output goes. Defaults to the console, which is right for the CLI,
+    /// the test suite and the web server. A host without a console — the WebAssembly build — points this
+    /// at its own sink instead, so the engine never has to know where it is running.
+    /// </summary>
+    public static Action<string> Log = Console.WriteLine;
+
     public enum Frequency
     {
         PerXYear,
@@ -438,7 +445,7 @@ public class Database
                     // History?.Changesets.Add(CurrentChangeset);
                     if (CurrentChangeset.Changes.Count != 0)
                     {
-                        Console.Error.WriteLine("Action failed but left changes:");
+                        Log("Action failed but left changes:");
                     }
 
                     success = false;
@@ -671,7 +678,6 @@ public class Database
 
     public void Init()
     {
-        Console.WriteLine(Path.GetFullPath("."));
         _singletons.Clear();
         _collections.Clear();
         _boolIndex.Clear();

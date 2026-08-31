@@ -59,7 +59,6 @@ public class FilterExactlyXEveryYYears : IFilter
             var p = _planning.First();
             _planning.RemoveAt(0);
             count++;
-            Console.WriteLine(p);
         }
         return count;
     }

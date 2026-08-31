@@ -230,14 +230,14 @@ public class ExecuteContext
             }
         }
 
-        Console.WriteLine("PassYears " + years + " took " + sw.ElapsedMilliseconds + "ms");
+        Database.Log("PassYears " + years + " took " + sw.ElapsedMilliseconds + "ms");
         Profiler.Dump();
 
         if (Database.ExecProfiler != null)
         {
             Database.ExecProfiler.Years = howMany;
             Database.ExecProfiler.ElapsedTicks = sw.ElapsedTicks;
-            Console.WriteLine(Database.ExecProfiler.Report());
+            Database.Log(Database.ExecProfiler.Report());
         }
     }
 

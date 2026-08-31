@@ -4,14 +4,15 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Moirai.Core;
 
-public class StoryPrinter
+public partial class StoryPrinter
 {
     private readonly Database _database;
 
     // Records embed entity references as <#id>label</> markup; for a plain-text chronicle we keep the
     // label and drop the tags.
-    private static readonly Regex EntityMarkup = new(@"<#\d+>([^<]*)</>", RegexOptions.Compiled);
-    public static string StripMarkup(string text) => EntityMarkup.Replace(text, "$1");
+    [GeneratedRegex(@"<#\d+>([^<]*)</>")]
+    private static partial Regex EntityMarkup();
+    public static string StripMarkup(string text) => EntityMarkup().Replace(text, "$1");
 
     public StoryPrinter(Database database)
     {
