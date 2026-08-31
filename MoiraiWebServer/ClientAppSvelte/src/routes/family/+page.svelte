@@ -9,11 +9,19 @@
 
   $: selected = selectedEntity($page).getNumber();
 
-  // Refetch when the selection or the simulation year changes (new people may have been born).
+  // Refetch when the selection or the simulation year changes (new people may have been born),
+  // and when `attempt` is bumped by the retry button in the error branch.
+  let attempt = 0;
   let tree: Promise<FamilyTreeNode[]> | undefined;
-  $: tree = familyTreeFor(selected, $moiraiStore.year);
-  function familyTreeFor(sel: number, _year: number) {
+  $: tree = familyTreeFor(selected, $moiraiStore.year, attempt);
+  function familyTreeFor(sel: number, _year: number, _attempt: number) {
     return sel > 0 ? $moiraiStore.conn?.getFamilyTree(sel, maxDepth) : undefined;
+  }
+
+  // A hub method that throws reaches us as a HubException whose message is the server's generic
+  // "unexpected error" text, so show whatever we get rather than inventing a friendlier line.
+  function errorText(err: unknown): string {
+    return err instanceof Error ? err.message : String(err);
   }
 
   function buildMap(list: FamilyTreeNode[]): Map<number, FamilyTreeNode> {
@@ -69,6 +77,16 @@
           {/if}
         </div>
       {/if}
+    {:catch error}
+      <div class="p-4">
+        <aside class="card preset-filled-error-500 p-4">
+          <p class="font-bold">Could not load the family tree for #{selected}.</p>
+          <p class="text-sm">{errorText(error)}</p>
+        </aside>
+        <button type="button" class="btn preset-tonal mt-3" on:click={() => (attempt += 1)}>
+          Retry
+        </button>
+      </div>
     {/await}
   {/if}
 </div>
