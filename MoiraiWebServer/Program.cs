@@ -1,8 +1,9 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using CommandLine;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
+using Moirai.Api;
 using Moirai.Core;
 using MoiraiWebServer.Hubs;
 
@@ -99,16 +100,9 @@ internal class Program
                 hubOptions.KeepAliveInterval = TimeSpan.FromSeconds(15);
                 hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(15);
                 hubOptions.EnableDetailedErrors = true;})
-            .AddJsonProtocol(options =>
-            {
-                options.PayloadSerializerOptions.IncludeFields = true;
-                options.PayloadSerializerOptions.IgnoreReadOnlyProperties = true; // WriteIndented = true,
-                options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-                options.PayloadSerializerOptions.Converters.Add(new EntityIdConverter());
-                options.PayloadSerializerOptions.Converters.Add(new PropertyIdConverter());
-                options.PayloadSerializerOptions.Converters.Add(new EntityTypeIdConverter());
-                options.PayloadSerializerOptions.Converters.Add(new ValueTypeConverter());
-            });
+            // One definition of the wire format, shared with the WebAssembly host so both produce
+            // byte-identical JSON for the same client. See Moirai.Api/MoiraiWireJson.cs.
+            .AddJsonProtocol(options => MoiraiWireJson.Configure(options.PayloadSerializerOptions));
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("CorsAllowAll",

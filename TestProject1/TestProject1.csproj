@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
@@ -20,6 +20,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Moirai.Api\Moirai.Api.csproj" />
       <ProjectReference Include="..\Moirai.Parser\Moirai.Parser.csproj" />
       <ProjectReference Include="..\Moirai.DebugAdapter\Moirai.DebugAdapter.csproj" />
     </ItemGroup>
