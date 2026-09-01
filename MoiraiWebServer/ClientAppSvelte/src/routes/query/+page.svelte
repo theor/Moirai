@@ -72,13 +72,17 @@
         <Accordion.Item value="ast">
           <Accordion.ItemTrigger class="flex items-center gap-2">
             <PineTree />
-            <span class="flex-auto">AST</span>
+            <span class="flex-auto">Parsed as</span>
             <Accordion.ItemIndicator class="transition-transform data-[state=open]:rotate-180">
               <ChevronDown />
             </Accordion.ItemIndicator>
           </Accordion.ItemTrigger>
           <Accordion.ItemContent>
-            <pre class="pre">{JSON.stringify(JSON.parse(results.query), null, 2)}</pre>
+            <!-- The engine prints the parsed expression back as .sg with the precedence made
+                 explicit, which is what answers "how was my text read?". It used to be a JSON dump of
+                 the node graph, which read worse and was the last thing forcing reflection into the
+                 WebAssembly build. -->
+            <pre class="pre">{results.query}</pre>
           </Accordion.ItemContent>
         </Accordion.Item>
         <Accordion.Item value="sql">

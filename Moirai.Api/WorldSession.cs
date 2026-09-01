@@ -1,6 +1,4 @@
 ﻿using System.Collections.Immutable;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Moirai.Core;
 using Moirai.Parser;
 
@@ -308,7 +306,12 @@ public sealed class WorldSession
                 return new QueryResult
                 {
                     Sql = sql,
-                    Query = JsonSerializer.Serialize(e, e.GetType(), AstDumpOptions),
+                    // The engine's own printer, not a JSON dump of the object graph. It renders the
+                    // parsed expression back as .sg with the precedence made explicit, which answers
+                    // "how was my text read?" better than a tree of node types — and it is the last
+                    // reflective serialization in the product, which is what kept the WebAssembly build
+                    // from being trimmed.
+                    Query = _db.Printer.Print(e).TrimEnd(),
                     Results = Array.ConvertAll(ids, eid => new Result
                     {
                         Eid = eid, Properties = EntityPropertyDisplays(eid.Id),
@@ -323,17 +326,6 @@ public sealed class WorldSession
             return new QueryResult { Sql = sql, Errors = new[] { e.ToString() } };
         }
     }
-
-    // The query page shows the parsed expression tree as JSON so you can see how your text was read.
-    // Reflection over arbitrary AST node types, deliberately: the point is to dump whatever is there.
-    private static readonly JsonSerializerOptions AstDumpOptions = new()
-    {
-        WriteIndented = true,
-        IncludeFields = true,
-        IgnoreReadOnlyFields = false,
-        IgnoreReadOnlyProperties = false,
-        DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-    };
 
     public void RunAction(int actionId)
     {

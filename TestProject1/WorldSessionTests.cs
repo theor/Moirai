@@ -275,7 +275,22 @@ public class WorldSessionTests
         // Every row starts with the synthetic Type row EntityPropertyDisplays prepends.
         Assert.That(result.Results, Has.All.Matches<Result>(r => r.Properties[0].Label == "Type"));
         Assert.That(result.Results, Has.All.Matches<Result>(r => r.Properties.Count > 1));
-        Assert.That(result.Query, Does.Contain("{"), "the parsed expression tree is dumped as JSON");
+        // The parsed expression is echoed back as .sg rather than as a dump of the object graph, which
+        // is what makes "how was my text read?" answerable — note the explicit parenthesisation.
+        Assert.That(result.Query, Does.StartWith("pick Person"));
+        Assert.That(result.Query, Does.Contain("alive"));
+        Assert.That(result.Query, Does.Not.Contain("{"), "no longer a JSON tree");
+    }
+
+    [Test]
+    public void QueryEchoesTheExpressionWithItsPrecedenceMadeExplicit()
+    {
+        // The point of showing the parsed expression is to reveal how the text was grouped, so the
+        // brackets are the content, not noise.
+        var result = Session().Query("pick Person $p: ($p.alive and $p.age = Age.Old)");
+
+        Assert.That(result.Errors, Is.Null.Or.Empty, () => string.Join("\n", result.Errors));
+        Assert.That(result.Query, Is.EqualTo("pick Person $0: (($0.alive and ($0.age = Age.Old)))"));
     }
 
     [Test]
