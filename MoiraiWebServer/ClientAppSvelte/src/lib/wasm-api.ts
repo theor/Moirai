@@ -4,6 +4,7 @@ import type {
   MoiraiStream,
   MoiraiStreamSubscriber,
   MoiraiSubscription,
+  StoryEditor,
 } from './api';
 import type {
   Biography,
@@ -14,9 +15,13 @@ import type {
   Message,
   QueryResult,
   RuleCoverageReport,
+  StoryApplyResult,
+  StoryDiagnostic,
   TimeSeries,
   WorldOverview,
 } from './types';
+import { storedStory, storeStory } from './story-storage';
+import { base } from '$app/paths';
 
 /** How often the engine is asked for new records. Matches the server's feed cadence. */
 const FEED_INTERVAL_MS = 500;
@@ -112,9 +117,37 @@ export class WasmApi implements MoiraiApi {
    */
   private chunkYears = INITIAL_CHUNK_YEARS;
 
+  /**
+   * The story the build shipped, kept so "revert" does not need a second fetch — and so it is still
+   * available after an edit has replaced the world's story.
+   */
+  private shippedStory = '';
+
   private constructor(engine: MoiraiEngine) {
     this.engine = engine;
   }
+
+  /**
+   * Editing the story, which this backend can offer because the story is simply a string it holds.
+   * `apply` goes through the engine, which refuses anything that does not parse, so a broken edit costs
+   * you nothing but the squiggles.
+   */
+  readonly story: StoryEditor = {
+    get: async () => this.invoke<string>('GetStory'),
+    original: async () => this.shippedStory,
+    validate: async (text: string) => this.invoke<StoryDiagnostic[]>('ValidateStory', text),
+    apply: async (text: string) => {
+      const result = this.invoke<StoryApplyResult>('SetStory', text);
+      if (result.applied) {
+        // A fresh world: the records are gone, so the feed has to start from the beginning again, and
+        // the remembered year is now the new story's start year rather than wherever we had got to.
+        this.cursor = 0;
+        storeStory(text);
+        this.remember();
+      }
+      return result;
+    },
+  };
 
   /** Build a session around an already-booted engine. The seam tests drive a fake through. */
   static fromEngine(engine: MoiraiEngine): WasmApi {
@@ -123,7 +156,13 @@ export class WasmApi implements MoiraiApi {
     return api;
   }
 
-  static async make(storyUrl = '/w.sg', defaultSeed = '42'): Promise<MoiraiApiHandle> {
+  /**
+   * `base` is the deployment's path prefix — empty when served from the root (dev, the .NET host), and
+   * `/Moirai` on the GitHub Pages project site. Both URLs here point at files in `static/`, which no
+   * bundler rewrites, so they are the two places a prefixed deployment would otherwise 404: the runtime
+   * would never load, and the story would never be fetched.
+   */
+  static async make(storyUrl = `${base}/w.sg`, defaultSeed = '42'): Promise<MoiraiApiHandle> {
     // Hidden from the bundler on purpose. `@vite-ignore` is not enough: in dev, Vite wraps a statically
     // visible dynamic import in `injectQuery(url, 'import')`, which routes the .NET runtime through
     // Vite's JavaScript transform instead of serving it verbatim out of `static/`. Going through
@@ -133,11 +172,11 @@ export class WasmApi implements MoiraiApi {
     ) => Promise<{ boot(): Promise<MoiraiEngine> }>;
 
     const { boot } = await importRuntime(
-      new URL('/_framework/main.js', window.location.origin).href,
+      new URL(`${base}/_framework/main.js`, window.location.origin).href,
     );
     const engine = await boot();
 
-    const story = await fetch(storyUrl).then((r) => {
+    const shipped = await fetch(storyUrl).then((r) => {
       if (!r.ok) {
         throw new Error(
           `Could not fetch the story from ${storyUrl} (${r.status}). Did you run \`yarn wasm:build\`?`,
@@ -145,12 +184,16 @@ export class WasmApi implements MoiraiApi {
       }
       return r.text();
     });
+    // An edited story outranks the shipped one: it is what the last world here was built from, and
+    // rebuilding from `w.sg` instead would quietly throw the edit away on the next reload.
+    const story = storedStory() ?? shipped;
     // Rebuild the world we were on, if there was one, rather than starting a new one.
     const previous = rememberedWorld();
     const seed = previous?.seed ?? defaultSeed;
     engine.Load(story, seed);
 
     const api = WasmApi.fromEngine(engine);
+    api.shippedStory = shipped;
     if (previous) await api.fastForwardTo(previous.year);
     api.remember();
 
@@ -226,6 +269,10 @@ export class WasmApi implements MoiraiApi {
 
   async save(): Promise<void> {
     await this.invokeAsync('Save');
+  }
+
+  getClientData(): Promise<ClientData> {
+    return this.invokeAsync<ClientData>('GetClientData');
   }
 
   query(q: string): Promise<QueryResult> {

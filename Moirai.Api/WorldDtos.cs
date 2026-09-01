@@ -1,4 +1,5 @@
 using Moirai.Core;
+using Moirai.Parser;
 
 namespace Moirai.Api;
 
@@ -145,3 +146,25 @@ public struct Message(Database.Record? record)
 /// next time. See <see cref="WorldSession.DrainFeed"/>.
 /// </summary>
 public record FeedTick(int Cursor, List<Message> Messages);
+
+/// <summary>
+/// One parser diagnostic, positioned in the story text.
+///
+/// <para>The coordinates are <see cref="StoryParser.Error"/>'s own and are deliberately unconverted:
+/// <b>Line is 1-based, Col is 0-based</b> (the ANTLR token convention the engine inherited — see the
+/// comment on <c>Error</c>'s span constructor). A viewer converts once, somewhere it can test.</para>
+/// </summary>
+public record StoryDiagnostic(
+    string Severity,
+    string Code,
+    int Line,
+    int Col,
+    int LineEnd,
+    int ColEnd,
+    string Message);
+
+/// <summary>
+/// What came of handing a new story to a session. <c>Applied</c> is false when the story did not parse,
+/// in which case the world is exactly as it was and <c>Year</c> is where it still stands.
+/// </summary>
+public record StoryApplyResult(bool Applied, long Year, StoryDiagnostic[] Diagnostics);

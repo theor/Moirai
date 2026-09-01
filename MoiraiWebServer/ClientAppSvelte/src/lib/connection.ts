@@ -8,6 +8,7 @@ import {
   type Message,
   MessageType,
   type Record,
+  type StoryApplyResult,
 } from './types';
 
 // Re-exported so the pages that have always imported these from here keep working. The definitions
@@ -133,6 +134,24 @@ export const moiraiStore = {
       records: [],
       clientData: x.clientData ? { ...x.clientData, seed } : x.clientData,
     }));
+  },
+  /**
+   * Rebuild the world from an edited story. A story that does not parse changes nothing, so the store is
+   * only cleared once the engine says it took.
+   *
+   * Unlike `reset`, this refreshes `clientData`: a story change can add or remove events and types, and
+   * the app bar's event list renders straight off that.
+   */
+  applyStory: async (text: string): Promise<StoryApplyResult | undefined> => {
+    const conn = backend();
+    if (!conn?.story) return undefined;
+    const result = await conn.story.apply(text);
+    if (result.applied) {
+      writableStore.update((x) => ({ ...x, year: result.year, records: [], changesets: [] }));
+      const clientData = await conn.getClientData();
+      writableStore.update((x) => ({ ...x, clientData }));
+    }
+    return result;
   },
   passYears: (amount: number) => {
     const subscriber: MoiraiStreamSubscriber<number> = {

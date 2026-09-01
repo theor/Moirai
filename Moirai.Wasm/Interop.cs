@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices.JavaScript;
+﻿using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using Moirai.Api;
@@ -74,6 +74,9 @@ public static partial class MoiraiInterop
             "GetPropertySeries" => Json(Session.GetPropertySeries((int)Int(0), Str(1))),
             "GetRuleCoverage" => Json(Session.GetRuleCoverage()),
             "Query" => Json(Session.Query(Str(0))),
+            "GetStory" => Json(Session.GetStory()),
+            "ValidateStory" => Json(Session.ValidateStory(Str(0))),
+            "SetStory" => Json(Session.SetStory(Str(0))),
             "GetFamilyTree" => Json(Session.GetFamilyTree((uint)Int(0), (int)Int(1))),
             "GetEntityDetails" => Json(Session.GetEntityDetails((uint)Int(0))),
             "GetChangesetsCount" => Json(Session.GetChangesetsCount()),

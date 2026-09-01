@@ -17,6 +17,10 @@ class FakeEngine implements MoiraiEngine {
   /** Batches to hand out, one per StreamTick, on top of the year heartbeat. */
   feed: Message[][] = [];
   passYearsThrows = false;
+  /** Cursors the host has asked the feed for. A story change has to send it back to zero. */
+  readonly cursors: number[] = [];
+  /** Whether SetStory reports the story as having parsed. */
+  storyApplies = true;
 
   Load(story: string, seed: string) {
     this.loadedWith = { story, seed };
@@ -27,6 +31,10 @@ class FakeEngine implements MoiraiEngine {
     const args = JSON.parse(argsJson) as unknown[];
     this.calls.push(`${method}(${args.join(',')})`);
     if (method === 'GetSeed') return JSON.stringify(this.seed);
+    if (method === 'GetStory') return JSON.stringify('event a {}');
+    if (method === 'ValidateStory') return JSON.stringify([]);
+    if (method === 'SetStory')
+      return JSON.stringify({ applied: this.storyApplies, year: 764, diagnostics: [] });
     if (method === 'Reset') {
       this.year = 764;
       return JSON.stringify(this.year);
@@ -47,6 +55,7 @@ class FakeEngine implements MoiraiEngine {
   }
 
   StreamTick(cursor: number): string {
+    this.cursors.push(cursor);
     const queued = this.feed.shift() ?? [];
     // The real DrainFeed always closes a tick with the year heartbeat.
     const messages: Message[] = [
@@ -65,13 +74,21 @@ const record = (text: string): Message => ({
 
 /** A session-storage stub, since the host remembers the world it is on. */
 const store = new Map<string, string>();
+/** Local storage is where an edited story lives — a longer life than the world's, on purpose. */
+const local = new Map<string, string>();
 beforeEach(() => {
   store.clear();
+  local.clear();
   vi.stubGlobal('window', {
     location: { origin: 'http://localhost', search: '' },
     sessionStorage: {
       getItem: (k: string) => store.get(k) ?? null,
       setItem: (k: string, v: string) => void store.set(k, v),
+    },
+    localStorage: {
+      getItem: (k: string) => local.get(k) ?? null,
+      setItem: (k: string, v: string) => void local.set(k, v),
+      removeItem: (k: string) => void local.delete(k),
     },
   });
 });
@@ -363,5 +380,53 @@ describe('WasmApi world persistence', () => {
 
     expect(years.at(-1)).toBe(1764);
     expect(years.filter((y) => y > 764 && y < 1764).length).toBeGreaterThan(0);
+  });
+});
+
+describe('editing the story', () => {
+  it('dispatches to the session methods by name', async () => {
+    const { engine, start } = make();
+    const api = start();
+
+    await api.story.get();
+    await api.story.validate('event a {}');
+
+    expect(engine.calls).toEqual(['GetStory()', 'ValidateStory(event a {})']);
+  });
+
+  it('restarts the feed after a story is applied', async () => {
+    // A new story is a new world with no records in it, so the cursor has to go back to zero. Left
+    // where it was, every record the fresh world produces before it catches up is skipped — the feed
+    // simply stays empty, with nothing to say why.
+    const { engine, start } = make();
+    const api = start();
+    await runToCompletion(api, 100);
+    expect(engine.cursors.at(-1)).toBeGreaterThan(0);
+
+    const before = engine.cursors.length;
+    await api.story.apply('event a {}');
+
+    expect(engine.cursors.slice(before)).toContain(0);
+  });
+
+  it('keeps an applied story, so a reload rebuilds the world you were looking at', async () => {
+    const { start } = make();
+    await start().story.apply('event edited {}');
+
+    expect(local.get('moirai.story')).toBe('event edited {}');
+  });
+
+  it('keeps nothing when the story did not parse', async () => {
+    const { engine, start } = make();
+    engine.storyApplies = false;
+    const api = start();
+    await runToCompletion(api, 100);
+
+    const result = await api.story.apply('event broken {');
+
+    expect(result.applied).toBe(false);
+    expect(local.has('moirai.story')).toBe(false);
+    // The world is untouched, so what was remembered about it must be too.
+    expect(JSON.parse(store.get('moirai.wasm.world') ?? 'null').year).toBe(864);
   });
 });

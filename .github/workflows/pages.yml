@@ -1,0 +1,82 @@
+# Publishes the WebAssembly build to GitHub Pages: https://theor.github.io/Moirai/
+#
+# The site is the whole app with no server behind it — the engine is compiled to WebAssembly and the
+# world is built in the visitor's browser. Kept apart from dotnet.yml on purpose: this job needs the
+# `wasm-tools`/`wasm-experimental` workloads, which Moirai.Wasm is deliberately excluded from the
+# solution to avoid forcing on everyone, and a Pages deployment has no business gating a pull request.
+name: Pages
+
+on:
+  push:
+    branches: ['main']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and let a newer commit win. Cancelling an in-flight *deploy* is not safe,
+# hence cancel-in-progress: false — a superseded build simply queues behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: MoiraiWebServer/ClientAppSvelte
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: MoiraiWebServer/ClientAppSvelte/yarn.lock
+
+      # Not part of the SDK, and not implied by the project reference: Moirai.Wasm targets
+      # net10.0-browser, which only exists once these are installed.
+      - name: Install the WebAssembly workloads
+        run: dotnet workload install wasm-tools wasm-experimental
+        working-directory: .
+
+      - run: yarn install --frozen-lockfile
+
+      # Publishes Moirai.Wasm and stages the runtime and w.sg into static/.
+      - run: yarn wasm:build
+
+      # Boots the staged bundle under Node and calls every export. Every failure mode here is quiet —
+      # trimming yields empty JSON rather than a build error, a wrong serializer renames every property
+      # — and all of them look like a blank page, which is a poor thing to discover in production.
+      - run: yarn wasm:smoke
+
+      # `yarn run check`, not `yarn check`: yarn classic has a built-in `check` command (it verifies
+      # the lockfile) that shadows a script of the same name, and it fails on this tree.
+      - run: yarn run test --run
+      - run: yarn run check
+      - run: yarn run lint
+
+      # Builds with base=/Moirai and backend=wasm, and copies index.html to 404.html so Pages' own
+      # 404 handling becomes the SPA's deep-link routing.
+      - run: yarn build:pages
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: MoiraiWebServer/ClientAppSvelte/build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

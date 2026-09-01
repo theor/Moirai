@@ -1,5 +1,6 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Moirai.Api;
+using Moirai.Core;
 
 namespace TestProject1;
 
@@ -520,6 +521,79 @@ public class WorldSessionTests
 
         Assert.That(s.DrainFeed(cursor, out cursor).Any(m => m.Type == Message.MessageType.Reset), Is.True);
         Assert.That(s.DrainFeed(cursor, out cursor).Any(m => m.Type == Message.MessageType.Reset), Is.False);
+    }
+
+    // ---- editing the story --------------------------------------------------
+
+    [Test]
+    public void TheStoryComesBackOutAsItWentIn()
+    {
+        var s = Session();
+        Assert.That(s.GetStory(), Is.EqualTo(Wsg()));
+        Assert.That(s.ValidateStory(Wsg()).Where(d => d.Severity == "Error"), Is.Empty);
+    }
+
+    [Test]
+    public void AStoryThatDoesNotParseLeavesTheWorldExactlyAsItWas()
+    {
+        var s = Session();
+        s.PassYears(20);
+        var year = s.Year;
+        var records = s.RecordCount;
+
+        var result = s.SetStory(Wsg() + "\nevent broken { set $nobody. }\n");
+
+        Assert.That(result.Applied, Is.False);
+        Assert.That(result.Diagnostics.Any(d => d.Severity == "Error"), Is.True);
+        // A diagnostic with no position cannot be shown against the text that caused it.
+        Assert.That(result.Diagnostics.First(d => d.Severity == "Error").Line, Is.GreaterThan(0));
+        Assert.That(s.Year, Is.EqualTo(year));
+        Assert.That(s.RecordCount, Is.EqualTo(records));
+        Assert.That(s.GetStory(), Is.EqualTo(Wsg()));
+    }
+
+    [Test]
+    public void AppliedStoryRebuildsTheWorldAtItsStartYear()
+    {
+        var s = Session();
+        s.PassYears(20);
+        Assert.That(s.Year, Is.GreaterThan(s.Database.StartYear));
+
+        var story = Wsg() + "\nevent an_added_event {\n  record('nothing happened')\n}\n";
+        var result = s.SetStory(story);
+
+        Assert.That(result.Applied, Is.True);
+        Assert.That(result.Diagnostics.Any(d => d.Severity == "Error"), Is.False);
+        Assert.That(s.Year, Is.EqualTo(s.Database.StartYear));
+        Assert.That(s.GetStory(), Is.EqualTo(story));
+        // The event list is what the app bar renders, so a story change has to show up there.
+        Assert.That(s.GetClientData().Actions.Select(a => a.Name), Does.Contain("an_added_event"));
+    }
+
+    [Test]
+    public void ValidatingAStoryDoesNotStealDatabaseInstanceFromTheLiveWorld()
+    {
+        // Database.Instance is a mutable static that live simulation code reads (Changeset clones an
+        // entity through it), so a validation parse that leaves it pointing at its throwaway world
+        // corrupts the next changeset rather than failing outright.
+        var s = Session();
+        s.ValidateStory("entity Unrelated { prop x: number }");
+
+        Assert.That(Database.Instance, Is.SameAs(s.Database));
+        Assert.DoesNotThrow(() => s.PassYears(5));
+    }
+
+    [Test]
+    public void AResetNoticeFollowsAnAppliedStory()
+    {
+        // The feed is how a viewer learns to clear itself. Without the notice the records from the old
+        // story stay on screen above the new world's.
+        var s = Session();
+        s.DrainFeed(0, out var cursor);
+
+        s.SetStory(Wsg());
+
+        Assert.That(s.DrainFeed(cursor, out _).Any(m => m.Type == Message.MessageType.Reset), Is.True);
     }
 
     // ---- the wire format --------------------------------------------------

@@ -21,6 +21,13 @@ import type {
 export class SignalRApi implements MoiraiApi {
   public connection: HubConnection;
 
+  /**
+   * No story editing here. The server's story is the `.sg` file it was started with, watched for changes
+   * on disk — so the editing loop already exists and belongs to whatever editor has the file open. The
+   * Story tab hides itself on this backend rather than offering a box that fights the watcher.
+   */
+  readonly story = null;
+
   private constructor(connection: HubConnection) {
     this.connection = connection;
   }
@@ -43,6 +50,10 @@ export class SignalRApi implements MoiraiApi {
     this.connection.onreconnected(() => handler(true));
     this.connection.onreconnecting(() => handler(false));
     this.connection.onclose(() => handler(false));
+  }
+
+  getClientData(): Promise<ClientData> {
+    return this.connection.invoke('GetClientData');
   }
 
   runAction(actionId: number): Promise<void> {

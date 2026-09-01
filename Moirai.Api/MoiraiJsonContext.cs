@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 using Moirai.Core;
 
 namespace Moirai.Api;
@@ -32,6 +32,8 @@ namespace Moirai.Api;
 [JsonSerializable(typeof(TimeSeries))]
 [JsonSerializable(typeof(RuleCoverageReport))]
 [JsonSerializable(typeof(QueryResult))]
+[JsonSerializable(typeof(StoryApplyResult))]
+[JsonSerializable(typeof(StoryDiagnostic[]))]
 [JsonSerializable(typeof(FeedTick))]
 [JsonSerializable(typeof(List<Message>))]
 [JsonSerializable(typeof(List<EntityChangeDisplay>))]
@@ -42,6 +44,8 @@ namespace Moirai.Api;
 [JsonSerializable(typeof(PropertyValue.ValueBaseType))]
 // Returned bare by the WebAssembly host's Invoke.
 [JsonSerializable(typeof(long))]
+// GetStory returns the whole .sg as one string.
+[JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(ulong))]
 [JsonSerializable(typeof(int))]
 public partial class MoiraiJsonContext : JsonSerializerContext;

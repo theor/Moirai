@@ -156,5 +156,49 @@ check(
   JSON.stringify(texts(afterReseed)) !== JSON.stringify(texts(before)),
 );
 
+// Editing the story. Trimming and the JSON context are what these are really testing: StoryDiagnostic
+// and StoryApplyResult are new wire types, and a type missing from MoiraiJsonContext fails here rather
+// than as an undefined in someone's browser.
+const roundTripped = call('GetStory');
+check(
+  'GetStory: the story comes back whole',
+  roundTripped === story,
+  `${roundTripped.length} chars`,
+);
+
+const clean = call('ValidateStory', story);
+check(
+  'ValidateStory: w.sg has no errors',
+  Array.isArray(clean) && clean.every((d) => d.severity !== 'Error'),
+  `${clean.length} diagnostics`,
+);
+
+const broken = call('ValidateStory', story + '\nevent oops { set $nobody. }\n');
+const firstError = broken.find((d) => d.severity === 'Error');
+check('ValidateStory: a broken story reports an error', !!firstError);
+check(
+  'ValidateStory: the error carries a position',
+  firstError && firstError.line > 0 && typeof firstError.message === 'string',
+  firstError && `${firstError.line}:${firstError.col} ${firstError.code}`,
+);
+
+const yearBefore = JSON.parse(interop.PassYears(0));
+const refused = call('SetStory', story + '\nevent oops { set $nobody. }\n');
+check('SetStory: refuses a story that does not parse', refused.applied === false);
+check(
+  'SetStory: a refused story leaves the world alone',
+  JSON.parse(interop.PassYears(0)) === yearBefore && call('GetStory') === story,
+);
+
+const applied = call(
+  'SetStory',
+  story + "\nevent an_added_event {\n  record('nothing happened')\n}\n",
+);
+check('SetStory: applies a story that parses', applied.applied === true, `year=${applied.year}`);
+check(
+  'SetStory: the new event reaches ClientData',
+  call('GetClientData').actions.some((a) => a.name === 'an_added_event'),
+);
+
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} CHECK(S) FAILED.`);
 process.exit(failures === 0 ? 0 : 1);

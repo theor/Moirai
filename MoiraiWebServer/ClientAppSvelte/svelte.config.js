@@ -15,6 +15,12 @@ const config = {
     // This is a client-rendered SPA (ssr=false in the root layout); a fallback page lets
     // adapter-static emit a single-page app instead of requiring every route to be prerenderable.
     adapter: adapter({ fallback: 'index.html' }),
+
+    // Empty unless something asks for a prefix, which keeps `yarn dev` and the .NET host (both of which
+    // serve from /) exactly as they were. `yarn build:pages` sets it to /Moirai, because a GitHub Pages
+    // project site lives under the repository name. Pointing a domain at the site later means dropping
+    // the BASE_PATH from the workflow, not unpicking anything here.
+    paths: { base: process.env.BASE_PATH ?? '' },
   },
 };
 export default config;

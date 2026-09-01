@@ -7,7 +7,7 @@
   import { shortcut } from '$lib/shortcut';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import { resolve } from '$app/paths';
+  import { asset, resolve } from '$app/paths';
   import type { Pathname } from '$app/types';
 
   import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
@@ -64,6 +64,7 @@
   const search = $derived($page.url.search);
 
   const NAV_TABS: { href: Pathname; label: string }[] = [
+    { href: '/', label: 'Home' },
     { href: '/records', label: 'Records' },
     { href: '/life', label: 'Life' },
     { href: '/changesets', label: 'Changesets' },
@@ -72,6 +73,15 @@
     { href: '/world', label: 'World' },
     { href: '/rules', label: 'Rules' },
   ];
+
+  // Story editing is a backend capability, not a build-time one: the in-browser engine holds its story as
+  // a string it can be handed another of, while the server's is a file on disk its watcher owns. Asking
+  // `conn.story` rather than which backend loaded keeps the layout out of the transport business.
+  const tabs = $derived(
+    $moiraiStore.conn?.story
+      ? [...NAV_TABS, { href: '/story' as Pathname, label: 'Story' }]
+      : NAV_TABS,
+  );
 </script>
 
 <!-- App Shell -->
@@ -92,13 +102,13 @@
     <AppBar class="col-span-4">
       <AppBar.Toolbar class="grid-cols-[auto_1fr]">
         <AppBar.Lead class="flex items-center">
-          <img src="/icon.png" alt="Moirai" class="w-8 h-8 mr-2" />
+          <img src={asset('/icon.png')} alt="Moirai" class="w-8 h-8 mr-2" />
           <strong class="text-xl mr-4 font-serif">Moirai</strong>
         </AppBar.Lead>
         <AppBar.Headline class="flex flex-wrap items-center gap-2">
           <Tabs value={$page.url.pathname} class="w-auto">
             <Tabs.List class="mb-0 pb-0 border-b-0">
-              {#each NAV_TABS as tab (tab.href)}
+              {#each tabs as tab (tab.href)}
                 <Tabs.Trigger value={tab.href}>
                   {#snippet element(attributes)}
                     <!--

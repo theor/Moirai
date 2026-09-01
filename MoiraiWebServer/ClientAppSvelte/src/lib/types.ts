@@ -154,3 +154,29 @@ export interface EntityChangeDisplay {
   actionName: string;
   changes: EntityPropertyDisplay[];
 }
+
+// --- editing the story ---------------------------------------------------------------------------
+// Mirrors Moirai.Api's StoryDiagnostic / StoryApplyResult.
+
+/**
+ * One thing the parser has to say about a story.
+ *
+ * The coordinates are the engine's own and are **1-based line, 0-based column** — the convention
+ * `StoryParser.Error` inherited from ANTLR. `$lib/diagnostics` is the one place that converts them.
+ */
+export interface StoryDiagnostic {
+  severity: 'Error' | 'Warning' | 'Information';
+  code: string;
+  line: number;
+  col: number;
+  lineEnd: number;
+  colEnd: number;
+  message: string;
+}
+
+/** What came of applying a story. When `applied` is false the world is untouched and `year` is where it still stands. */
+export interface StoryApplyResult {
+  applied: boolean;
+  year: number;
+  diagnostics: StoryDiagnostic[];
+}

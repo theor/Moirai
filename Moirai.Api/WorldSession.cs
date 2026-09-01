@@ -19,7 +19,8 @@ namespace Moirai.Api;
 /// </summary>
 public sealed class WorldSession
 {
-    private readonly Func<string> _storyText;
+    // Not readonly: SetStory swaps it, which is how the browser edits the world it is looking at.
+    private Func<string> _storyText;
     private readonly bool _profiling;
 
     private Database _db;
@@ -77,6 +78,10 @@ public sealed class WorldSession
 
     private IDebugHook? _attachedHook;
 
+    // What the parser said about the story the current world was built from. Warnings survive a
+    // successful build, so an editor can still show them once the world is up.
+    private StoryDiagnostic[] _diagnostics = Array.Empty<StoryDiagnostic>();
+
     // ---- lifecycle ---------------------------------------------------------
 
     /// <summary>Rebuild the world from the story text. Returns the year of the fresh world.</summary>
@@ -85,7 +90,8 @@ public sealed class WorldSession
         // This order is load-bearing. SetSeed must precede Init, because @start events run inside Init
         // and have to draw from the requested seed; and History must exist before Init so the setup
         // changesets land in the log the World and Life pages replay.
-        _db = StoryParser.Parse(_storyText(), out List<StoryParser.Error> _);
+        _db = StoryParser.Parse(_storyText(), out var errors);
+        _diagnostics = Diagnose(errors);
         _db.History = new History();
         _db.ProfilingEnabled = _profiling;
         _db.SetSeed(_seed);
@@ -104,6 +110,84 @@ public sealed class WorldSession
 
     /// <summary>The seed the current world was built with.</summary>
     public ulong GetSeed() => _seed;
+
+    // ---- the story ---------------------------------------------------------
+    //
+    // Editing the story from the viewer is a browser-only affair: the server's story is a file on disk
+    // and its watcher owns it, so a host that has one should not offer these. They live here anyway
+    // because the rule holds that WorldSession is the whole client API and nothing duplicates it.
+
+    /// <summary>The story text the current world was built from.</summary>
+    public string GetStory() => _storyText();
+
+    /// <summary>Everything the parser said about the story the current world was built from.</summary>
+    public StoryDiagnostic[] GetStoryDiagnostics() => _diagnostics;
+
+    /// <summary>
+    /// Parse <paramref name="text"/> without touching the live world, and report what the parser found.
+    /// This is what an editor calls as you type.
+    /// </summary>
+    public StoryDiagnostic[] ValidateStory(string text)
+    {
+        // Database.Instance is a mutable static, assigned by every Database constructor and read by
+        // *live* simulation code -- Changeset clones an entity through Database.Instance.GetEntityType.
+        // Parsing a throwaway world would leave it pointing at the throwaway, so the world being
+        // validated against would start describing its entities with another story's types. Putting it
+        // back is the whole reason this method is not a one-liner.
+        var live = Database.Instance;
+        try
+        {
+            StoryParser.Parse(text, out var errors);
+            return Diagnose(errors);
+        }
+        catch (Exception e)
+        {
+            return [Fatal(e)];
+        }
+        finally
+        {
+            Database.Instance = live;
+        }
+    }
+
+    /// <summary>
+    /// Rebuild the world from a new story. Nothing happens if it does not parse: the world stays exactly
+    /// as it was and the diagnostics say why. A story that does parse produces a fresh world at its start
+    /// year, which is <see cref="Reset"/>'s behaviour and not a fast-forward -- the years the old world
+    /// lived through were the old story's.
+    /// </summary>
+    public StoryApplyResult SetStory(string text)
+    {
+        var diagnostics = ValidateStory(text);
+        if (Array.Exists(diagnostics, d => d.Severity == nameof(StoryParser.Severity.Error)))
+            return new StoryApplyResult(false, Year, diagnostics);
+
+        // A story can parse clean and still throw on the way up -- an @start event that picks from an
+        // empty world, say. Keeping the old text means a session survives that instead of being left
+        // with no world at all.
+        var previous = _storyText;
+        try
+        {
+            _storyText = () => text;
+            Reset();
+            return new StoryApplyResult(true, Year, _diagnostics);
+        }
+        catch (Exception e)
+        {
+            _storyText = previous;
+            Reset();
+            return new StoryApplyResult(false, Year, [Fatal(e)]);
+        }
+    }
+
+    private static StoryDiagnostic[] Diagnose(List<StoryParser.Error> errors) =>
+        errors.ConvertAll(e => new StoryDiagnostic(e.Severity.ToString(), e.Code.ToString(),
+            e.Line, e.Col, e.LineEnd, e.ColEnd, e.Message)).ToArray();
+
+    // An exception has no position, so it is reported against the first character rather than nowhere.
+    private static StoryDiagnostic Fatal(Exception e) =>
+        new(nameof(StoryParser.Severity.Error), nameof(StoryParser.ErrorCode.Exception), 1, 0, 1, 1,
+            e.Message);
 
     /// <summary>Simulate forward. Synchronous: the caller decides what thread wears the cost.</summary>
     public void PassYears(int years, IProgress<int>? progress = null, CancellationToken ct = default) =>

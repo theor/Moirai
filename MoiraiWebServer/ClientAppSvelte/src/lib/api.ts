@@ -7,6 +7,8 @@ import type {
   Message,
   QueryResult,
   RuleCoverageReport,
+  StoryApplyResult,
+  StoryDiagnostic,
   TimeSeries,
   WorldOverview,
 } from './types';
@@ -34,6 +36,26 @@ export interface MoiraiStream<T> {
 }
 
 /**
+ * Reading and rewriting the story a world is built from.
+ *
+ * A capability rather than four more methods on {@link MoiraiApi}, because only one backend has it. The
+ * in-browser engine holds its story as a string in the page, so editing it is just handing it another
+ * one; the server's story is a file on disk that its watcher owns, and a viewer writing to it would be
+ * fighting whatever editor is already open on it. Saying that in the type means the UI asks
+ * `conn.story !== null` instead of asking which transport it got.
+ */
+export interface StoryEditor {
+  /** The story the current world was built from. */
+  get(): Promise<string>;
+  /** The story the build shipped, for reverting to. */
+  original(): Promise<string>;
+  /** What the parser makes of `text`, without touching the world. */
+  validate(text: string): Promise<StoryDiagnostic[]>;
+  /** Rebuild the world from `text`. A story that does not parse changes nothing. */
+  apply(text: string): Promise<StoryApplyResult>;
+}
+
+/**
  * Everything the viewer can ask of a world, independent of where that world lives.
  *
  * Two implementations exist: {@link SignalRApi}, which talks to the .NET host over a hub, and
@@ -42,6 +64,9 @@ export interface MoiraiStream<T> {
  * calling `conn.getBiography(id)` never learns which one it got.
  */
 export interface MoiraiApi {
+  /** Editing the story, where the backend can offer it. Null on the server, whose story is a file. */
+  readonly story: StoryEditor | null;
+
   /** Rebuild the world from the story. Returns the year of the fresh world. */
   reset(): Promise<number>;
   /** Rebuild from a different seed. The simulation is deterministic per seed. */
@@ -54,6 +79,9 @@ export interface MoiraiApi {
 
   /** The record feed: new records, a year heartbeat, and reset notices. */
   streamRecords(): MoiraiStream<Message>;
+
+  /** The startup snapshot: the story's events and types, and the seed. Re-read after a story change. */
+  getClientData(): Promise<ClientData>;
 
   query(q: string): Promise<QueryResult>;
   getBiography(entityId: number): Promise<Biography>;

@@ -99,3 +99,30 @@ body {
   border-radius: 0 4px 4px 0;
   height: 100%;
 }
+
+/*
+ * Story editor tokens, scoped to .cm-moirai.
+ *
+ * Same rule as .viz-root above: every value is a step of the active Skeleton theme, so a theme swap
+ * carries the editor with it -- and, as there, which step passes is theme-specific. Validated against
+ * Mona's white surface (#ffffff), contrast on white in brackets:
+ *
+ *   keyword  primary-700  #693cb3 (7.25)   string   secondary-700 #14772c (5.70)
+ *   type     tertiary-900 #1e6764 (6.58)   literal  error-900     #9a2922 (7.71)
+ *   local    surface-800  #404852 (9.23)   operator surface-700   #5a5d63 (6.61)
+ *   meta     surface-600  #6e7378 (4.78)   comment  surface-500   #84888e (3.55)
+ *
+ * `$p` is deliberately near-ink rather than a colour: it is the most common token in a story, and a
+ * loud one turns every line into confetti. The comment step is the only one under 4.5, which is the
+ * point of a comment -- and it still clears 3:1.
+ */
+.cm-moirai {
+  --syn-keyword: var(--color-primary-700);
+  --syn-type: var(--color-tertiary-900);
+  --syn-local: var(--color-surface-800);
+  --syn-string: var(--color-secondary-700);
+  --syn-literal: var(--color-error-900);
+  --syn-operator: var(--color-surface-700);
+  --syn-meta: var(--color-surface-600);
+  --syn-comment: var(--color-surface-500);
+}
