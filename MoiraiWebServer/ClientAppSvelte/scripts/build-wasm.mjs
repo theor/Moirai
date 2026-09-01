@@ -36,7 +36,13 @@ if (!existsSync(framework)) {
 const target = join(staticDir, '_framework');
 rmSync(target, { recursive: true, force: true });
 mkdirSync(staticDir, { recursive: true });
-cpSync(framework, target, { recursive: true });
+
+// Source maps are for stepping through the runtime's own JavaScript, which a visitor never does. They
+// are safe to leave behind because nothing references them but devtools — unlike the native symbol map,
+// which is listed in the boot manifest and so has to be suppressed at publish time instead (see
+// WasmEmitSymbolMap in Moirai.Wasm.csproj).
+const DEBUG_ONLY = /\.map$/;
+cpSync(framework, target, { recursive: true, filter: (src) => !DEBUG_ONLY.test(src) });
 
 // The engine's boot script sits alongside the runtime it imports.
 cpSync(join(appBundle, 'main.js'), join(target, 'main.js'));
