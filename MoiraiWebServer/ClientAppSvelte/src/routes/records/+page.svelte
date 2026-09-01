@@ -1,5 +1,6 @@
 <script lang="ts">
   import { moiraiStore } from '$lib/connection';
+  import { allTags, visibleRecords } from '$lib/records';
   import {
     createTable,
     FlexRender,
@@ -23,9 +24,7 @@
   const tagFilter = $derived(filteredTag($page).get() ?? '');
 
   // Union of all tags seen across loaded records, for the chronicle filter bar.
-  const allTags = $derived(
-    Array.from(new Set($moiraiStore.records.flatMap((r) => r.tags ?? []))).sort(),
-  );
+  const tags = $derived(allTags($moiraiStore.records));
 
   function toggleTag(tag: string) {
     const param = filteredTag($page);
@@ -62,19 +61,16 @@
     },
   ];
 
+  const hiddenActionIds = $derived(
+    new Set(($moiraiStore.clientData?.actions ?? []).filter((a) => a.hidden).map((a) => a.id)),
+  );
+
   const rowData = $derived(
-    $moiraiStore.records
-      .filter(
-        (r) =>
-          (filtered < 0 ||
-            (r.participants?.includes(filtered) ?? r.text.indexOf('#' + filtered + '>') !== -1)) &&
-          (tagFilter === '' || (r.tags?.includes(tagFilter) ?? false)) &&
-          $moiraiStore.clientData!.actions.find((a) => a.id === r.actionId)?.hidden !== true,
-      )
-      .map((r) => ({
-        ...r,
-        selected,
-      })),
+    visibleRecords($moiraiStore.records, {
+      entity: filtered,
+      tag: tagFilter,
+      hiddenActionIds,
+    }).map((r) => ({ ...r, selected })),
   );
 
   let virtualListEl: HTMLDivElement | undefined = $state();
@@ -123,9 +119,9 @@
 </script>
 
 <div class="h-full flex flex-col min-h-0">
-  {#if allTags.length > 0}
+  {#if tags.length > 0}
     <div class="tag-bar shrink-0">
-      {#each allTags as tag (tag)}
+      {#each tags as tag (tag)}
         <button
           type="button"
           class="chip {tagFilter === tag ? 'preset-filled-primary-500' : 'preset-tonal'}"

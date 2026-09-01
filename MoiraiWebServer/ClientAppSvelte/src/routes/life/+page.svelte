@@ -1,5 +1,6 @@
 <script lang="ts">
   import { moiraiStore, settledYear } from '$lib/connection';
+  import { byId, childrenOf } from '$lib/family';
   import type { FamilyTreeNode } from '$lib/connection';
   import type { Biography, BiographyEntry } from '$lib/types';
   import { groupByLabel, selectedEntity } from '$lib/utils';
@@ -72,8 +73,8 @@
       : undefined,
   );
 
-  const familyMap = $derived(new Map(family.map((n) => [n.id, n])));
-  const children = $derived(family.filter((n) => n.p1 === selected || n.p2 === selected));
+  const familyMap = $derived(byId(family));
+  const children = $derived(childrenOf(family, selected));
 
   function select(id: number) {
     selectedEntity($page).setNumber(id);

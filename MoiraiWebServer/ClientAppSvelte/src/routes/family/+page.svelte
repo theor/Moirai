@@ -1,5 +1,6 @@
 <script lang="ts">
   import { moiraiStore, settledYear } from '$lib/connection';
+  import { byId, childrenOf } from '$lib/family';
   import type { FamilyTreeNode } from '$lib/connection';
   import { page } from '$app/stores';
   import { selectedEntity } from '$lib/utils';
@@ -25,15 +26,6 @@
     return err instanceof Error ? err.message : String(err);
   }
 
-  function buildMap(list: FamilyTreeNode[]): Map<number, FamilyTreeNode> {
-    return new Map(list.map((n) => [n.id, n]));
-  }
-
-  // Children = nodes whose parent1/parent2 is the focus entity.
-  function childrenOf(list: FamilyTreeNode[], focus: number): FamilyTreeNode[] {
-    return list.filter((n) => n.p1 === focus || n.p2 === focus);
-  }
-
   function select(id: number) {
     selectedEntity($page).setNumber(id);
   }
@@ -52,7 +44,7 @@
       {#if !list || list.length === 0}
         <p class="opacity-60 p-4">No family data for #{selected}.</p>
       {:else}
-        {@const map = buildMap(list)}
+        {@const map = byId(list)}
         {@const kids = childrenOf(list, selected)}
         <div class="ftree-scroll">
           <h4 class="h4 mb-2 opacity-70">Ancestors</h4>
