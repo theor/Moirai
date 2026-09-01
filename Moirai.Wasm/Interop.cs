@@ -109,8 +109,6 @@ public static partial class MoiraiInterop
         return Json(new FeedTick(newCursor, batch));
     }
 
-    private record FeedTick(int Cursor, List<Message> Messages);
-
     private static string Json<T>(T value) => JsonSerializer.Serialize(value, MoiraiWireJson.Options);
 
     private static string Void(Action action)

@@ -139,3 +139,9 @@ public struct Message(Database.Record? record)
 
     public static Message YearMessage(long year) => new() { Type = MessageType.Year, Year = year };
 }
+
+/// <summary>
+/// One tick of the record feed as a host hands it to a viewer: the messages, and the cursor to pass back
+/// next time. See <see cref="WorldSession.DrainFeed"/>.
+/// </summary>
+public record FeedTick(int Cursor, List<Message> Messages);

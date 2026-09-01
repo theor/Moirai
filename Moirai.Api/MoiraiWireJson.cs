@@ -35,6 +35,12 @@ public static class MoiraiWireJson
         o.Converters.Add(new PropertyIdConverter());
         o.Converters.Add(new EntityTypeIdConverter());
         o.Converters.Add(new ValueTypeConverter());
+
+        // Inserted, not assigned: the generated resolver answers for the wire types, and on a host where
+        // reflection is available (the server, whose hub also serializes its own framing types) the
+        // default resolver stays behind it as a fallback. In the browser, where reflection is switched
+        // off, the chain is this and nothing else — which is the point.
+        o.TypeInfoResolverChain.Insert(0, MoiraiJsonContext.Default);
     }
 
     /// <summary>
