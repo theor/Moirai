@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
-using System.Threading;
-using Moirai.Core;
+﻿using Moirai.Core;
 using Moirai.Parser;
 
 namespace TestProject1;
@@ -54,58 +52,39 @@ trigger on_birth {
         var db = StoryParser.Parse(Story, out var errors);
         Assert.That(errors, Is.Empty, string.Join("\n", errors));
 
-        var session = new DebugSession();
-        db.History = new();
-        db.DebugHook = session;
-        db.Init();   // @start runs here (mode=Continue, no breakpoints yet) -> no stop
-
         int bpLine = LineOf(Story, "set $p.alive = true");
-        var accepted = session.SetBreakpoints("story.sg", new[] { bpLine });
-        Assert.That(accepted, Does.Contain(bpLine));
 
-        var stops = new BlockingCollection<DebugSession.StopInfo>();
-        session.Stopped += s => stops.Add(s);
+        // @start runs inside Init, before any breakpoint exists, so it cannot stop.
+        using var run = DebugRun.Start(db, 3, "story.sg", bpLine);
+        Assert.That(run.AcceptedBreakpoints, Does.Contain(bpLine));
 
-        var done = new ManualResetEventSlim(false);
-        Exception? workerError = null;
-        var worker = new Thread(() =>
-        {
-            try { db.Ctx.PassYears(3, true); }
-            catch (Exception e) { workerError = e; }
-            finally { done.Set(); }
-        }) { IsBackground = true };
-        worker.Start();
-
-        int stopCount = 0;
         bool sawSpawnFrame = false;
         bool sawPVariable = false;
 
-        // Drive the session: each stop we inspect, then continue, until the run finishes.
-        while (!done.Wait(0) || stops.Count > 0)
+        // Exactly one hit per year, so the count is a loop bound rather than something to discover by
+        // waiting for stops to stop coming. Whatever the run does after those three is caught by the
+        // emptiness check below, and neither depends on how promptly the worker is scheduled.
+        for (int year = 1; year <= 3; year++)
         {
-            if (!stops.TryTake(out var info, 5000))
-                break;
-
-            stopCount++;
+            var info = run.NextStop($"breakpoint hit {year} of 3");
             Assert.That(info.Reason, Is.EqualTo(DebugSession.StopReason.Breakpoint));
             Assert.That(info.Line, Is.EqualTo(bpLine), "stopped on the wrong line");
 
-            var stack = session.GetStack();
+            var stack = run.Session.GetStack();
             Assert.That(stack, Is.Not.Empty);
             Assert.That(stack[0].Line, Is.EqualTo(bpLine));
             if (stack[0].Name == "spawn") sawSpawnFrame = true;
 
             // $p was created on the previous line, so it must be visible & valued here.
-            var vars = session.GetVariables(0);
+            var vars = run.Session.GetVariables(0);
             if (vars.Any(v => v.Name == "$p" && !string.IsNullOrEmpty(v.Value)))
                 sawPVariable = true;
 
-            session.Continue();
+            run.Session.Continue();
         }
 
-        Assert.That(done.Wait(5000), Is.True, "simulation thread did not finish");
-        Assert.That(workerError, Is.Null, workerError?.ToString());
-        Assert.That(stopCount, Is.EqualTo(3), "breakpoint should hit once per year");
+        run.Drain();
+        Assert.That(run.Stops, Is.Empty, "the breakpoint should hit once per year and no more");
         Assert.That(sawSpawnFrame, Is.True, "top frame should be the spawn event");
         Assert.That(sawPVariable, Is.True, "$p should be inspectable at the breakpoint");
     }
@@ -116,27 +95,12 @@ trigger on_birth {
         var db = StoryParser.Parse(Story, out var errors);
         Assert.That(errors, Is.Empty, string.Join("\n", errors));
 
-        var session = new DebugSession();
-        db.History = new();
-        db.DebugHook = session;
-        db.Init();
-
         // Break inside age_up's each-loop, where $p is an existing Person with alive/age set.
         int bpLine = LineOf(Story, "set $p.age = $p.age + 1");
-        session.SetBreakpoints("story.sg", new[] { bpLine });
+        using var run = DebugRun.Start(db, 2, "story.sg", bpLine);
+        var session = run.Session;
 
-        var stops = new BlockingCollection<DebugSession.StopInfo>();
-        session.Stopped += s => stops.Add(s);
-
-        var done = new ManualResetEventSlim(false);
-        var worker = new Thread(() =>
-        {
-            try { db.Ctx.PassYears(2, true); }
-            finally { done.Set(); }
-        }) { IsBackground = true };
-        worker.Start();
-
-        Assert.That(stops.TryTake(out _, 5000), Is.True, "did not stop");
+        run.NextStop("the breakpoint in age_up");
 
         // $p is an entity-typed local: it must be expandable.
         var locals = session.GetVariables(0);
@@ -154,15 +118,7 @@ trigger on_birth {
         Assert.That(props.Any(v => v.Name == "age"), Is.True, "expanded entity should expose 'age'");
 
         // Drain remaining stops so the run can finish.
-        session.Continue();
-        while (!done.Wait(50))
-        {
-            if (stops.TryTake(out _, 2000))
-                session.Continue();
-            else
-                break;
-        }
-        Assert.That(done.Wait(5000), Is.True);
+        run.Drain();
     }
 
     [Test]
@@ -171,26 +127,11 @@ trigger on_birth {
         var db = StoryParser.Parse(Story, out var errors);
         Assert.That(errors, Is.Empty, string.Join("\n", errors));
 
-        var session = new DebugSession();
-        db.History = new();
-        db.DebugHook = session;
-        db.Init();
-
         int bpLine = LineOf(Story, "set $p.age = $p.age + 1");
-        session.SetBreakpoints("story.sg", new[] { bpLine });
+        using var run = DebugRun.Start(db, 2, "story.sg", bpLine);
+        var session = run.Session;
 
-        var stops = new BlockingCollection<DebugSession.StopInfo>();
-        session.Stopped += s => stops.Add(s);
-
-        var done = new ManualResetEventSlim(false);
-        var worker = new Thread(() =>
-        {
-            try { db.Ctx.PassYears(2, true); }
-            finally { done.Set(); }
-        }) { IsBackground = true };
-        worker.Start();
-
-        Assert.That(stops.TryTake(out _, 5000), Is.True, "did not stop");
+        run.NextStop("the breakpoint in age_up");
 
         var world = session.GetVariablesByReference(session.GetWorldReference());
         var year = world.FirstOrDefault(v => v.Name == "year");
@@ -203,15 +144,7 @@ trigger on_birth {
         Assert.That(person, Is.Not.Null, "World should list the Person type");
         Assert.That(int.Parse(person!.Value), Is.GreaterThanOrEqualTo(1), "at least one Person exists");
 
-        session.Continue();
-        while (!done.Wait(50))
-        {
-            if (stops.TryTake(out _, 2000))
-                session.Continue();
-            else
-                break;
-        }
-        Assert.That(done.Wait(5000), Is.True);
+        run.Drain();
     }
 
     private const string ScheduleStory = @"
@@ -243,21 +176,11 @@ trigger born {
         var db = StoryParser.Parse(ScheduleStory, out var errors);
         Assert.That(errors, Is.Empty, string.Join("\n", errors));
 
-        var session = new DebugSession();
-        db.History = new();
-        db.DebugHook = session;
-        db.Init();
-
         int bpLine = LineOf(ScheduleStory, "set $self.grown = true");
-        session.SetBreakpoints("s.sg", new[] { bpLine });
+        using var run = DebugRun.Start(db, 3, "s.sg", bpLine);
+        var session = run.Session;
 
-        var stops = new BlockingCollection<DebugSession.StopInfo>();
-        session.Stopped += s => stops.Add(s);
-        var done = new ManualResetEventSlim(false);
-        new Thread(() => { try { db.Ctx.PassYears(3, true); } finally { done.Set(); } })
-            { IsBackground = true }.Start();
-
-        Assert.That(stops.TryTake(out var info, 5000), Is.True, "scheduled body breakpoint never hit");
+        var info = run.NextStop("the breakpoint in a scheduled body");
         Assert.That(info.Line, Is.EqualTo(bpLine));
 
         var stack = session.GetStack();
@@ -270,13 +193,7 @@ trigger born {
         Assert.That(self!.Value, Does.Contain("Person"), "$self should resolve to the bound entity");
         Assert.That(self.VariablesReference, Is.GreaterThan(0), "$self should be expandable");
 
-        session.Continue();
-        while (!done.Wait(50))
-        {
-            if (stops.TryTake(out _, 1000)) session.Continue();
-            else break;
-        }
-        Assert.That(done.Wait(5000), Is.True);
+        run.Drain();
     }
 
     [Test]
@@ -285,38 +202,21 @@ trigger born {
         var db = StoryParser.Parse(Story, out var errors);
         Assert.That(errors, Is.Empty, string.Join("\n", errors));
 
-        var session = new DebugSession();
-        db.History = new();
-        db.DebugHook = session;
-        db.Init();
-
         int createLine = LineOf(Story, "create Person $p");
         int setLine = LineOf(Story, "set $p.alive = true");
-        session.SetBreakpoints("story.sg", new[] { createLine });
-
-        var stops = new BlockingCollection<DebugSession.StopInfo>();
-        session.Stopped += s => stops.Add(s);
-
-        var done = new ManualResetEventSlim(false);
-        var worker = new Thread(() =>
-        {
-            try { db.Ctx.PassYears(1, true); }
-            finally { done.Set(); }
-        }) { IsBackground = true };
-        worker.Start();
+        using var run = DebugRun.Start(db, 1, "story.sg", createLine);
 
         // First stop: the breakpoint on `create Person`.
-        Assert.That(stops.TryTake(out var first, 5000), Is.True);
+        var first = run.NextStop("the breakpoint on `create Person`");
         Assert.That(first.Reason, Is.EqualTo(DebugSession.StopReason.Breakpoint));
         Assert.That(first.Line, Is.EqualTo(createLine));
 
         // Step over -> next statement in the same event is `set $p.alive`.
-        session.StepOver();
-        Assert.That(stops.TryTake(out var second, 5000), Is.True);
+        run.Session.StepOver();
+        var second = run.NextStop("step-over");
         Assert.That(second.Reason, Is.EqualTo(DebugSession.StopReason.Step));
         Assert.That(second.Line, Is.EqualTo(setLine));
 
-        session.Continue();
-        Assert.That(done.Wait(5000), Is.True, "simulation thread did not finish");
+        run.Drain();
     }
 }
