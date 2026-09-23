@@ -1,4 +1,4 @@
-using Moirai.Parser;
+﻿using Moirai.Parser;
 
 namespace TestProject1;
 
@@ -32,6 +32,46 @@ public class WsgStoryTests
         db.Init();
         db.Ctx.PassYears(120, true);
         Assert.That(db.Records.Count, Is.GreaterThan(0), "a 120-year run should produce narrative records");
+    }
+
+    [Test]
+    public void SiblingsDoNotMarryOrHaveChildrenTogether()
+    {
+        // wedding used to rule out only parent and child, and siblings share a `place`, so by year 964
+        // on seed 42 over a quarter of the children with two parents were born to full siblings.
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(200, true);
+
+        var person = db.GetEntityType("Person");
+        var p1 = person.GetPropertyId("parent1");
+        var p2 = person.GetPropertyId("parent2");
+        var partner = person.GetPropertyId("partner");
+        var people = db.Entities.Where(e => e.Type == person.Id).ToDictionary(e => e.Id.Id);
+        uint Ref(Entity e, PropertyId p) => e.TryGetProperty(p, out var v) ? v.Id.Id : 0;
+        HashSet<uint> Parents(uint id) =>
+            people.TryGetValue(id, out var e) ? new[] { Ref(e, p1), Ref(e, p2) }.Where(x => x != 0).ToHashSet() : new();
+        bool Siblings(uint a, uint b) => Parents(a).Overlaps(Parents(b));
+
+        var coupled = 0;
+        foreach (var e in people.Values)
+        {
+            var a = Ref(e, p1);
+            var b = Ref(e, p2);
+            if (a != 0 && b != 0)
+            {
+                coupled++;
+                Assert.That(Siblings(a, b), Is.False, $"#{e.Id.Id}'s parents #{a} and #{b} share a parent");
+            }
+
+            var mate = Ref(e, partner);
+            if (mate != 0)
+                Assert.That(Siblings(e.Id.Id, mate), Is.False, $"#{e.Id.Id} is partnered with a sibling, #{mate}");
+        }
+
+        Assert.That(coupled, Is.GreaterThan(20), "the check needs families to look at");
     }
 
     [Test]

@@ -41,8 +41,8 @@ The <#22>The Founding Age</> ends; <#25>The Wandering Years</> begins in the yea
 <#30>Evangelique Grimsbane</> is born in <#6>The Province of Aithne</>
 <#30>Evangelique Grimsbane</> takes the faith of <#12>Auberon, God of The Sea</>
 A famine hits <#8>The Kingdom of Aeronwen</>
-<#23>Aislinn Fenwick</> becomes a <#23>Bandit</>
-<#24>Arwen Holloway</> becomes a <#24>Hunter</>
+<#23>Aislinn Fenwick</> becomes a <#23>Soldier</>
+<#24>Arwen Holloway</> becomes a <#24>Merchant</>
 <#31>Vivia Thornwood</> is born in <#6>The Province of Aithne</>
 <#31>Vivia Thornwood</> takes the faith of <#12>Auberon, God of The Sea</>
 <#30>Evangelique Grimsbane</> moves to <#4>The Coast of Aoife</>
@@ -57,55 +57,49 @@ A famine hits <#8>The Kingdom of Aeronwen</>
 <#29>Dawn Dunmere</> moves to <#4>The Coast of Aoife</>
 <#24>Arwen Holloway</> and <#23>Aislinn Fenwick</> have a child, <#36>Evander Holloway</>
 <#26>Arianell Fenwick</> becomes a <#26>Hunter</>
-<#27>Artemis Vaelin</> becomes a <#27>Bandit</>
+<#27>Artemis Vaelin</> becomes a <#27>Smith</>
 <#34>Adrienne Ironvale</> takes the faith of <#14>Morgana, God of Fertility</>
 <#35>Caradoc Oakhart</> takes the faith of <#19>Morgaine, God of The Sea</>
 An earthquake hits <#9>The Province of Amaris</>
 <#32>Abraxas Thornwood</> takes the faith of <#18>Victoire, God of The Sea</>
 <#29>Dawn Dunmere</> moves to <#7>The Land of Branwen</>
 <#29>Dawn Dunmere</> moves to <#5>The Kingdom of Corabella</>
-<#28>Aeronwen Fenwick</> becomes a <#28>Painter</>
+<#28>Aeronwen Fenwick</> becomes a <#28>Sculptor</>
 <#37>Silvana Ashford</> is born in <#4>The Coast of Aoife</>
 <#37>Silvana Ashford</> takes the faith of <#21>Calliope, God of Death</>
-<#38>Morrigan Stormwell</> is born in <#8>The Kingdom of Aeronwen</>
-<#38>Morrigan Stormwell</> takes the faith of <#15>Corinda, God of War</>
-<#24>Arwen Holloway</> and <#23>Aislinn Fenwick</> have a child, <#39>Auberon Holloway</>
+<#27>Artemis Vaelin</> crafts the <#38>Spear of Niamh</>
+<#37>Silvana Ashford</> acquires the <#38>Spear of Niamh</> from <#27>Artemis Vaelin</>
+<#41>Morrigan Stormwell</> is born in <#8>The Kingdom of Aeronwen</>
+<#41>Morrigan Stormwell</> takes the faith of <#15>Corinda, God of War</>
+<#24>Arwen Holloway</> and <#23>Aislinn Fenwick</> have a child, <#42>Auberon Holloway</>
 <#26>Arianell Fenwick</> and <#28>Aeronwen Fenwick</> get married
-<#26>Arianell Fenwick</> and <#28>Aeronwen Fenwick</> have a child, <#40>Angeline Fenwick</>
-<#28>Aeronwen Fenwick</> depicts <#38>Morrigan Stormwell</> in the <#41>Portrait of Morrigan Stormwell</>
-<#29>Dawn Dunmere</> becomes a <#29>Merchant</>
-<#28>Aeronwen Fenwick</> lost the <#41>Portrait of Morrigan Stormwell</>
-<#44>Willow Grimsbane</> is born in <#6>The Province of Aithne</>
-<#24>Arwen Holloway</> and <#23>Aislinn Fenwick</> have a child, <#45>Morgana Holloway</>
-<#44>Willow Grimsbane</> have their <#46>portrait</> painted by <#28>Aeronwen Fenwick</>
-<#44>Willow Grimsbane</> lost the <#46>Portrait of Willow Grimsbane</>
-<#30>Evangelique Grimsbane</> becomes a <#30>Soldier</>
+<#26>Arianell Fenwick</> and <#28>Aeronwen Fenwick</> have a child, <#43>Angeline Fenwick</>
+<#29>Dawn Dunmere</> becomes a <#29>Bandit</>
+<#37>Silvana Ashford</> lost the <#38>Spear of Niamh</>
+<#45>Willow Grimsbane</> is born in <#6>The Province of Aithne</>
+<#24>Arwen Holloway</> and <#23>Aislinn Fenwick</> have a child, <#46>Morgana Holloway</>
+<#30>Evangelique Grimsbane</> becomes a <#30>Sculptor</>
 An earthquake hits <#11>The Land of Lancelot</>
-<#24>Arwen Holloway</> have their <#49>portrait</> painted by <#28>Aeronwen Fenwick</>
-<#44>Willow Grimsbane</> takes the faith of <#13>Moon, God of Fertility</>
-<#24>Arwen Holloway</> lost the <#49>Portrait of Arwen Holloway</>
-<#27>Artemis Vaelin</> bandits pillage a town of <#9>The Province of Amaris</>
-<#35>Caradoc Oakhart</> die in the pillage of <#9>The Province of Amaris</>
-<#28>Aeronwen Fenwick</> and <#26>Arianell Fenwick</> have a child, <#52>Lancelot Fenwick</>
-<#30>Evangelique Grimsbane</> founds the knightly order <#53>the Sundered Crown</>
+<#45>Willow Grimsbane</> takes the faith of <#13>Moon, God of Fertility</>
+<#28>Aeronwen Fenwick</> and <#26>Arianell Fenwick</> have a child, <#47>Lancelot Fenwick</>
+<#30>Evangelique Grimsbane</> founds the cult <#48>the Sundered Crown</>
 <#31>Vivia Thornwood</> becomes a <#31>Soldier</>
-<#32>Abraxas Thornwood</> becomes a <#32>Sculptor</>
-<#23>Aislinn Fenwick</> founds the village of <#54>Riverton</> in <#10>The Land of Oleander</>
-<#55>Opal Fenwick</> is born in <#4>The Coast of Aoife</>
-<#56>Belladonna Ironvale</> is born in <#3>The Kingdom of Lunette</>
-<#56>Belladonna Ironvale</> takes the faith of <#19>Morgaine, God of The Sea</>
-<#27>Artemis Vaelin</> joins the <#53>the Sundered Crown</>
-<#30>Evangelique Grimsbane</> of <#30>the Sundered Crown</> strikes down the outlaw <#27>Artemis Vaelin</>
-<#33>Crescent Grimsbane</> becomes a <#33>Bandit</>
-The village of <#54>Riverton</> grows into a town
-<#55>Opal Fenwick</> takes the faith of <#20>Arella, God of War</>
-<#23>Aislinn Fenwick</> and <#24>Arwen Holloway</> have a child, <#57>Briar Fenwick</>
-<#57>Briar Fenwick</> have their <#58>portrait</> painted by <#28>Aeronwen Fenwick</>
-<#57>Briar Fenwick</> lost the <#58>Portrait of Briar Fenwick</>
-<#32>Abraxas Thornwood</> joins the <#53>the Sundered Crown</>
-<#61>Throxis</>, a <#61>Giant</>, awakens in <#11>The Land of Lancelot</>
-<#34>Adrienne Ironvale</> becomes a <#34>Soldier</>
-<#33>Crescent Grimsbane</> joins the <#53>the Sundered Crown</>
-<#29>Dawn Dunmere</> joins the <#53>the Sundered Crown</>
-<#24>Arwen Holloway</> joins the <#53>the Sundered Crown</>
-<#26>Arianell Fenwick</> and <#28>Aeronwen Fenwick</> have a child, <#62>Branwen Fenwick</>
+<#32>Abraxas Thornwood</> becomes a <#32>Merchant</>
+<#23>Aislinn Fenwick</> founds the village of <#49>Riverton</> in <#10>The Land of Oleander</>
+<#50>Opal Fenwick</> is born in <#4>The Coast of Aoife</>
+<#51>Belladonna Ironvale</> is born in <#3>The Kingdom of Lunette</>
+<#51>Belladonna Ironvale</> takes the faith of <#19>Morgaine, God of The Sea</>
+<#27>Artemis Vaelin</> crafts the <#52>Greatsword of Áine</>
+<#27>Artemis Vaelin</> joins the cult <#48>the Sundered Crown</>, devoted to <#48>Auberon, God of The Sea</>
+<#33>Crescent Grimsbane</> becomes a <#33>Hunter</>
+The village of <#49>Riverton</> grows into a town
+<#50>Opal Fenwick</> takes the faith of <#20>Arella, God of War</>
+<#23>Aislinn Fenwick</> and <#24>Arwen Holloway</> have a child, <#54>Briar Fenwick</>
+<#27>Artemis Vaelin</> lost the <#52>Greatsword of Áine</>
+<#32>Abraxas Thornwood</> joins the cult <#48>the Sundered Crown</>, devoted to <#48>Auberon, God of The Sea</>
+<#56>Throxis</>, a <#56>Giant</>, awakens in <#11>The Land of Lancelot</>
+<#34>Adrienne Ironvale</> becomes a <#34>Fisher</>
+<#33>Crescent Grimsbane</> joins the cult <#48>the Sundered Crown</>, devoted to <#48>Auberon, God of The Sea</>
+<#29>Dawn Dunmere</> joins the cult <#48>the Sundered Crown</>, devoted to <#48>Auberon, God of The Sea</>
+<#24>Arwen Holloway</> joins the cult <#48>the Sundered Crown</>, devoted to <#48>Auberon, God of The Sea</>
+<#26>Arianell Fenwick</> and <#28>Aeronwen Fenwick</> have a child, <#57>Branwen Fenwick</>
