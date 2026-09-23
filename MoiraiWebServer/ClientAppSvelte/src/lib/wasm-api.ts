@@ -53,40 +53,29 @@ export interface MoiraiEngine {
   StreamTick(cursor: number): string;
 }
 
+/** Which world to build. Every part is optional; what is missing gets a default. */
+export interface WorldRequest {
+  /** As a string: a seed is a `ulong`, and the big ones do not survive a `number`. */
+  seed?: string;
+  /** The year to open at. Absent means {@link OPENING_YEARS} of history. */
+  year?: number | null;
+  /** A story carried by the link, which outranks both the local draft and the shipped one. */
+  story?: string;
+  storyUrl?: string;
+}
+
 /** Yield to the browser so it can paint and handle input before the next chunk. */
 const yieldToBrowser = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 /**
- * Where the identity of the current world is kept so it survives a page load.
+ * How far a world with no year in its link is simulated before it is shown.
  *
- * The nav links do real navigation, so switching tabs is a fresh document — and with the engine living in
- * the page rather than on a server, that would otherwise throw the world away and drop you back at year
- * one. Nothing needs to be serialized to avoid that: a Moirai world is entirely determined by its story,
- * its seed and its year, so remembering seed and year is enough to rebuild the identical world. That is
- * the same trick the server uses to restore a world after the story file changes on disk.
+ * A world at its start year is an empty one: no records, no people, nothing to read. Arriving there asks
+ * the visitor to work out that they must press a button before anything exists. Two centuries is roughly
+ * a second of simulation and produces a world with a few hundred records in it — something to look at
+ * immediately, and a reason to press the button for more.
  */
-const WORLD_KEY = 'moirai.wasm.world';
-
-type RememberedWorld = { seed: string; year: number };
-
-function rememberWorld(world: RememberedWorld) {
-  try {
-    window.sessionStorage.setItem(WORLD_KEY, JSON.stringify(world));
-  } catch {
-    // Private browsing can refuse storage. The world simply will not survive a navigation.
-  }
-}
-
-function rememberedWorld(): RememberedWorld | null {
-  try {
-    const raw = window.sessionStorage.getItem(WORLD_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as RememberedWorld;
-    return typeof parsed?.seed === 'string' && Number.isFinite(parsed?.year) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
+const OPENING_YEARS = 200;
 
 /**
  * {@link MoiraiApi} backed by the engine compiled to WebAssembly. No server involved: the world is built
@@ -128,6 +117,13 @@ export class WasmApi implements MoiraiApi {
   }
 
   /**
+   * The world lives in this page, so its identity belongs in the URL — which is what makes a link to it
+   * mean anything to anyone else. The server's world does not: it is one shared world on a machine, and
+   * a link naming a seed and a year would describe nothing the recipient could see.
+   */
+  readonly worldInPage = true;
+
+  /**
    * Editing the story, which this backend can offer because the story is simply a string it holds.
    * `apply` goes through the engine, which refuses anything that does not parse, so a broken edit costs
    * you nothing but the squiggles.
@@ -139,11 +135,9 @@ export class WasmApi implements MoiraiApi {
     apply: async (text: string) => {
       const result = this.invoke<StoryApplyResult>('SetStory', text);
       if (result.applied) {
-        // A fresh world: the records are gone, so the feed has to start from the beginning again, and
-        // the remembered year is now the new story's start year rather than wherever we had got to.
+        // A fresh world with no records in it, so the feed has to start from the beginning again.
         this.cursor = 0;
         storeStory(text);
-        this.remember();
       }
       return result;
     },
@@ -157,12 +151,20 @@ export class WasmApi implements MoiraiApi {
   }
 
   /**
+   * Boot the engine and build the world the caller asks for.
+   *
+   * The world's identity — seed, year, and a story if the link carried one — arrives as an argument
+   * rather than being read from storage here: it comes from the URL now (see `$lib/world-address`), and
+   * keeping the reading of it in one place is what stops this class having an opinion about where a
+   * world comes from.
+   *
    * `base` is the deployment's path prefix — empty when served from the root (dev, the .NET host), and
-   * `/Moirai` on the GitHub Pages project site. Both URLs here point at files in `static/`, which no
+   * `/Moirai` on the GitHub Pages project site. Both URLs below point at files in `static/`, which no
    * bundler rewrites, so they are the two places a prefixed deployment would otherwise 404: the runtime
    * would never load, and the story would never be fetched.
    */
-  static async make(storyUrl = `${base}/w.sg`, defaultSeed = '42'): Promise<MoiraiApiHandle> {
+  static async make(request: WorldRequest = {}): Promise<MoiraiApiHandle> {
+    const storyUrl = request.storyUrl ?? `${base}/w.sg`;
     // Hidden from the bundler on purpose. `@vite-ignore` is not enough: in dev, Vite wraps a statically
     // visible dynamic import in `injectQuery(url, 'import')`, which routes the .NET runtime through
     // Vite's JavaScript transform instead of serving it verbatim out of `static/`. Going through
@@ -184,20 +186,31 @@ export class WasmApi implements MoiraiApi {
       }
       return r.text();
     });
-    // An edited story outranks the shipped one: it is what the last world here was built from, and
-    // rebuilding from `w.sg` instead would quietly throw the edit away on the next reload.
-    const story = storedStory() ?? shipped;
-    // Rebuild the world we were on, if there was one, rather than starting a new one.
-    const previous = rememberedWorld();
-    const seed = previous?.seed ?? defaultSeed;
-    engine.Load(story, seed);
+    // Precedence, strongest first: a story the link carried (the sender meant that exact world), then
+    // the draft this browser has been editing, then the one the build ships. Getting this order wrong
+    // is silent — you would look at a world that is not the one you were sent.
+    const story = request.story ?? storedStory() ?? shipped;
+    if (request.story !== undefined) storeStory(request.story);
+    engine.Load(story, request.seed ?? '42');
 
     const api = WasmApi.fromEngine(engine);
     api.shippedStory = shipped;
-    if (previous) await api.fastForwardTo(previous.year);
-    api.remember();
+    await api.openTo(request.year ?? null);
 
     return { api, clientData: api.invoke<ClientData>('GetClientData'), connected: true };
+  }
+
+  /**
+   * Simulate up to the year this world was opened at: the one the link named, or
+   * {@link OPENING_YEARS} of history if it named none.
+   *
+   * Separate from {@link make} so the default can be tested — everything else in `make` is behind a
+   * runtime the tests cannot boot.
+   */
+  async openTo(year: number | null): Promise<number> {
+    const target = year ?? this.currentYear() + OPENING_YEARS;
+    await this.fastForwardTo(target);
+    return this.currentYear();
   }
 
   /**
@@ -231,11 +244,6 @@ export class WasmApi implements MoiraiApi {
     return tick.messages.at(-1)?.year ?? 0;
   }
 
-  /** Record the world's identity so the next page load can rebuild it. */
-  private remember() {
-    rememberWorld({ seed: String(this.invoke<number>('GetSeed')), year: this.currentYear() });
-  }
-
   // An in-browser engine is either there or the page is broken, so liveness never changes.
   onConnectedChanged(_handler: (connected: boolean) => void) {}
 
@@ -252,15 +260,11 @@ export class WasmApi implements MoiraiApi {
   }
 
   async reset(): Promise<number> {
-    const year = await this.invokeAsync<number>('Reset');
-    this.remember();
-    return year;
+    return this.invokeAsync<number>('Reset');
   }
 
   async reseed(seed: number): Promise<number> {
-    const year = await this.invokeAsync<number>('Reseed', seed);
-    this.remember();
-    return year;
+    return this.invokeAsync<number>('Reseed', seed);
   }
 
   async runAction(actionId: number): Promise<void> {
@@ -323,7 +327,6 @@ export class WasmApi implements MoiraiApi {
         void (async () => {
           try {
             let done = 0;
-            let sinceRemembered = 0;
             while (done < years && !cancelled) {
               const chunk = Math.min(this.chunkYears, years - done);
               const started = performance.now();
@@ -339,17 +342,9 @@ export class WasmApi implements MoiraiApi {
               this.adjustChunkSize(chunk, performance.now() - started);
 
               done += chunk;
-              sinceRemembered += chunk;
               subscriber.next(Math.round((100 * done) / years));
-              if (sinceRemembered >= 100) {
-                this.remember();
-                sinceRemembered = 0;
-              }
               await yieldToBrowser();
             }
-            // Remembered per chunk, not just at the end: a tab switch mid-pass should land you where the
-            // simulation had actually got to.
-            this.remember();
             subscriber.complete();
           } catch (err) {
             subscriber.error(err);

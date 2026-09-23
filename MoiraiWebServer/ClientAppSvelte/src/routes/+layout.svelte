@@ -2,11 +2,12 @@
   import '../app.css';
   import { AppBar, Tabs, Progress } from '@skeletonlabs/skeleton-svelte';
   import DetailsPanel from '../components/DetailsPanel.svelte';
-  import { moiraiStore } from '$lib/connection';
+  import { moiraiStore, settledYear } from '$lib/connection';
+  import { withAddress } from '$lib/world-address';
   import { moiraiViewStore } from '$lib';
   import { shortcut } from '$lib/shortcut';
   import { page } from '$app/stores';
-  import { goto } from '$app/navigation';
+  import { goto, replaceState } from '$app/navigation';
   import { asset, resolve } from '$app/paths';
   import type { Pathname } from '$app/types';
 
@@ -60,8 +61,43 @@
     applySeed();
   }
 
-  // Keep the selection/filter state (e/f/t search params) when switching tabs.
-  const search = $derived($page.url.search);
+  /**
+   * Keep the query string — the selected entity, the filters, and the world's seed and year — when
+   * switching tabs.
+   *
+   * Read from the live URL at the moment of the click, not from `$page.url`. Shallow routing updates the
+   * browser's URL and deliberately leaves `page.url` pointing at the last real navigation, so a derived
+   * from it goes stale the moment the year is written below — and a tab click would then navigate to a
+   * year the world had already passed, sending you backwards in time.
+   */
+  const currentSearch = () => window.location.search;
+
+  /**
+   * Keep the URL saying which world this is.
+   *
+   * A world is its story, its seed and its year, so those three in the address bar make every world a
+   * link — and, incidentally, make it survive a reload without anything being stored. Only the backend
+   * whose world lives in the page takes part: the server has one world of its own, and a link naming a
+   * year would describe nothing the recipient could see.
+   *
+   * Driven by the settled year rather than the live one, because a pass changes the year continuously
+   * and rewriting the URL per feed tick would be pointless churn. replaceState, not goto: this is the
+   * same page, and it must not fill the back button with one entry per century. It is SvelteKit's
+   * replaceState rather than the browser's so that `$page.url` follows — the nav tabs carry
+   * `$page.url.search` across a navigation, and a stale one there would send you back in time.
+   */
+  $effect(() => {
+    const seed = $moiraiStore.clientData?.seed;
+    const year = $settledYear;
+    if (!$moiraiStore.conn?.worldInPage || seed === undefined || year <= 0) return;
+
+    const next = withAddress(new URL(window.location.href), { seed: String(seed), year });
+    // `next` is the current absolute URL with two parameters changed, so it is already resolved —
+    // resolving it again would double the base path. The rule only recognises a literal resolve()
+    // call, hence the same narrow exemption urlParam() takes in $lib/utils.
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
+    if (next.href !== window.location.href) replaceState(next, {});
+  });
 
   const NAV_TABS: { href: Pathname; label: string }[] = [
     { href: '/', label: 'Home' },
@@ -136,7 +172,7 @@
                         // The href is already resolved; the rule only recognises a literal resolve()
                         // call as the argument, which a template literal is not.
                         // eslint-disable-next-line svelte/no-navigation-without-resolve
-                        goto(`${resolve(tab.href)}${search}`);
+                        goto(`${resolve(tab.href)}${currentSearch()}`);
                       }}>{tab.label}</button
                     >
                   {/snippet}

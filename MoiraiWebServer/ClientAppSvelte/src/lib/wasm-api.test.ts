@@ -335,51 +335,42 @@ describe('WasmApi record feed', () => {
   });
 });
 
-describe('WasmApi world persistence', () => {
-  // The nav links do real navigation, so switching tabs is a fresh document and a fresh engine. Nothing
-  // is serialized to survive that: a world is determined by its story, seed and year, so remembering
-  // seed and year rebuilds the identical world.
-  const remembered = () => JSON.parse(store.get('moirai.wasm.world') ?? 'null');
+describe('WasmApi opening year', () => {
+  // Where a world's identity lives is the URL's business now (see world-address.ts); what belongs here
+  // is what this host does with the year it is handed.
 
-  it('remembers the year it reached', async () => {
+  it('simulates to the year it was asked for', async () => {
     const { engine, start } = make();
-    const api = start();
-    await runToCompletion(api, 200);
+    await start().openTo(900);
 
-    expect(engine.year).toBe(964);
-    expect(remembered()).toEqual({ seed: '42', year: 964 });
+    expect(engine.year).toBe(900);
   });
 
-  it('remembers a new seed after reseeding', async () => {
-    const { start } = make();
-    await start().reseed(1234);
-    expect(remembered()).toEqual({ seed: '1234', year: 764 });
+  it('gives a link with no year two centuries of history, rather than an empty world', async () => {
+    // A world at its start year has no records in it at all. Arriving there asks a visitor to work out
+    // that they must press a button before anything exists.
+    const { engine, start } = make();
+    await start().openTo(null);
+
+    expect(engine.year).toBe(964); // the fake starts at 764
   });
 
-  it('remembers the reset year, so a reload does not resurrect the old world', async () => {
-    const { start } = make();
-    const api = start();
-    await runToCompletion(api, 100);
-    expect(remembered().year).toBe(864);
+  it('opens in chunks, so a page load does not lock up while it catches up', async () => {
+    const { engine, start } = make();
+    await start().openTo(1064);
 
-    await api.reset();
-    expect(remembered()).toEqual({ seed: '42', year: 764 });
+    expect(engine.chunks.length).toBeGreaterThan(1);
+    expect(engine.chunks.reduce((a, b) => a + b, 0)).toBe(300);
   });
 
-  it('checkpoints mid-pass, so a tab switch lands where the simulation had got to', async () => {
-    // Asserted over the whole sequence of writes rather than a snapshot: a fake engine finishes a
-    // thousand years faster than a timer can observe the middle of it.
-    const years: number[] = [];
-    store.set = ((k: string, v: string) => {
-      if (k === 'moirai.wasm.world') years.push(JSON.parse(v).year);
-      return Map.prototype.set.call(store, k, v);
-    }) as typeof store.set;
+  it('does nothing when the world is already past that year', async () => {
+    // A link can name a year behind where the story starts; the simulation has no reverse gear, and
+    // asking for one should be a no-op rather than an error.
+    const { engine, start } = make();
+    await start().openTo(700);
 
-    const { start } = make();
-    await runToCompletion(start(), 1000);
-
-    expect(years.at(-1)).toBe(1764);
-    expect(years.filter((y) => y > 764 && y < 1764).length).toBeGreaterThan(0);
+    expect(engine.year).toBe(764);
+    expect(engine.chunks).toEqual([]);
   });
 });
 
@@ -406,7 +397,9 @@ describe('editing the story', () => {
     const before = engine.cursors.length;
     await api.story.apply('event a {}');
 
-    expect(engine.cursors.slice(before)).toContain(0);
+    // The next tick of the feed, not the apply itself: what matters is that the poll goes back to the
+    // start, so the new world's records are read rather than skipped.
+    await vi.waitFor(() => expect(engine.cursors.slice(before)).toContain(0), { timeout: 3000 });
   });
 
   it('keeps an applied story, so a reload rebuilds the world you were looking at', async () => {
@@ -426,7 +419,7 @@ describe('editing the story', () => {
 
     expect(result.applied).toBe(false);
     expect(local.has('moirai.story')).toBe(false);
-    // The world is untouched, so what was remembered about it must be too.
-    expect(JSON.parse(store.get('moirai.wasm.world') ?? 'null').year).toBe(864);
+    // The world is untouched: no records were thrown away, so the feed cursor must not have moved.
+    expect(engine.cursors.at(-1)).toBeGreaterThan(0);
   });
 });

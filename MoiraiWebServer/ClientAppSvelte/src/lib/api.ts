@@ -67,6 +67,15 @@ export interface MoiraiApi {
   /** Editing the story, where the backend can offer it. Null on the server, whose story is a file. */
   readonly story: StoryEditor | null;
 
+  /**
+   * Whether the world lives in this page, and so belongs in the URL.
+   *
+   * True for the in-browser engine, where seed and year are the whole identity of a world and a link
+   * carrying them rebuilds it exactly. False for the server, which has one world of its own: a link
+   * naming a seed and a year would describe nothing the recipient could see.
+   */
+  readonly worldInPage: boolean;
+
   /** Rebuild the world from the story. Returns the year of the fresh world. */
   reset(): Promise<number>;
   /** Rebuild from a different seed. The simulation is deterministic per seed. */

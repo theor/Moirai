@@ -1,4 +1,5 @@
 import type { MoiraiApiHandle } from './api';
+import { decompress, readAddress, readStoryParam } from './world-address';
 
 export type BackendKind = 'signalr' | 'wasm';
 
@@ -48,8 +49,30 @@ export function chosenBackend(): BackendKind {
 export async function createApi(): Promise<MoiraiApiHandle> {
   if (chosenBackend() === 'wasm') {
     const { WasmApi } = await import('./wasm-api');
-    return WasmApi.make();
+    // The URL is where a world's identity lives, and this is the one place it is read. A link with no
+    // year gets a couple of centuries of history rather than an empty world — see WasmApi.openTo.
+    const { seed, year } = readAddress(new URL(window.location.href));
+    return WasmApi.make({
+      seed: seed ?? undefined,
+      year,
+      story: await storyFromLink(),
+    });
   }
   const { SignalRApi } = await import('./signalr-api');
   return SignalRApi.make();
+}
+
+/**
+ * The story a link carried, if it carried one. A corrupt fragment is ignored rather than fatal: the
+ * visitor still gets a world, just not the sender's, which beats a blank page with a decoding error.
+ */
+async function storyFromLink(): Promise<string | undefined> {
+  const param = readStoryParam(window.location.hash);
+  if (param === null) return undefined;
+  try {
+    return await decompress(param);
+  } catch (err) {
+    console.error('The story in this link could not be read', err);
+    return undefined;
+  }
 }
