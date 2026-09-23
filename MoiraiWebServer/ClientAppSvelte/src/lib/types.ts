@@ -146,6 +146,14 @@ export interface FamilyTreeNode {
   name: string;
   p1: number;
   p2: number;
+  /** Year of birth (`birthdate`, else the year the entity was created); 0 when unknown. */
+  born: number;
+  /** Year of death (`deathdate`); 0 when unknown or alive. */
+  died: number;
+  /** Dead, even when the story did not record the year. */
+  dead: boolean;
+  /** The `partner` reference, or 0. */
+  partner: number;
 }
 
 export interface EntityChangeDisplay {
@@ -179,4 +187,22 @@ export interface StoryApplyResult {
   applied: boolean;
   year: number;
   diagnostics: StoryDiagnostic[];
+}
+
+/** Mirrors Moirai.Api's NotableEntity: one entity and how many records mention it. */
+export interface NotableEntity {
+  id: number;
+  name: string;
+  mentions: number;
+  firstYear: number;
+  lastYear: number;
+}
+
+/** Mirrors Moirai.Api's NotableGroup: the most mentioned entities of one type. */
+export interface NotableGroup {
+  typeId: number;
+  typeName: string;
+  /** The type declares parent1/parent2, so its entities have a family tree. */
+  hasFamily: boolean;
+  top: NotableEntity[];
 }

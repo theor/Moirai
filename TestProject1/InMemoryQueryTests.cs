@@ -1,4 +1,4 @@
-using Moirai.Core;
+﻿using Moirai.Core;
 using Moirai.Parser;
 
 namespace TestProject1;
@@ -62,8 +62,8 @@ public class InMemoryQueryTests
         }
         """;
 
-    // The family tree's children query (WorldSession.GetFamilyTree) is a hand-built back-reference: find
-    // every entity of a type whose parent1/parent2 points at one id. It runs outside any rule, so its
+    // A hand-built back-reference, as the family tree's children query used to be (WorldSession.GetFamilyTree
+    // now indexes parents in one pass): find every entity of a type whose parent1/parent2 points at one id. It runs outside any rule, so its
     // query variable sits in slot 0 of an empty value stack — which is what this pins. Building the
     // same predicate with the retired -1 "no variable" index instead makes FindAll bind the stack at
     // index -1 and throw, and the whole Family page goes blank.

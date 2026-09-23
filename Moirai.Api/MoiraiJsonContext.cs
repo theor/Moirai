@@ -31,6 +31,7 @@ namespace Moirai.Api;
 [JsonSerializable(typeof(WorldOverview))]
 [JsonSerializable(typeof(TimeSeries))]
 [JsonSerializable(typeof(RuleCoverageReport))]
+[JsonSerializable(typeof(NotableGroup[]))]
 [JsonSerializable(typeof(QueryResult))]
 [JsonSerializable(typeof(StoryApplyResult))]
 [JsonSerializable(typeof(StoryDiagnostic[]))]
@@ -48,4 +49,5 @@ namespace Moirai.Api;
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(ulong))]
 [JsonSerializable(typeof(int))]
+[JsonSerializable(typeof(int[]))]
 public partial class MoiraiJsonContext : JsonSerializerContext;

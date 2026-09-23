@@ -277,6 +277,19 @@ public class ChatHub : Hub
         }
     }
 
+    public int[] GetEntityTypes()
+    {
+        Mutex.Wait();
+        try
+        {
+            return _session!.GetEntityTypes();
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
     public RuleCoverageReport GetRuleCoverage()
     {
         Mutex.Wait();
@@ -324,6 +337,36 @@ public class ChatHub : Hub
         try
         {
             return _session!.GetEntityDetails(eid);
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
+    // Reads, so the same short wait as GetEntityDetails: an empty answer beats queueing the UI behind a
+    // running simulation.
+    public NotableGroup[] GetNotable(int perType)
+    {
+        if (!Mutex.Wait(500))
+            return Array.Empty<NotableGroup>();
+        try
+        {
+            return _session!.GetNotable(perType);
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
+    public IList<EntityPropertyDisplay> GetEntityAt(uint eid, long year)
+    {
+        if (!Mutex.Wait(500))
+            return new List<EntityPropertyDisplay>();
+        try
+        {
+            return _session!.GetEntityAt(eid, year);
         }
         finally
         {

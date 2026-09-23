@@ -185,6 +185,129 @@ public class WorldSessionTests
     }
 
     [Test]
+    public void NotableCountsAreTheRecordsOnEachLifePage()
+    {
+        var s = Session();
+        s.PassYears(100);
+
+        var groups = s.GetNotable(5);
+
+        Assert.That(groups, Is.Not.Empty);
+        Assert.That(groups.Select(g => g.TypeName), Does.Not.Contain("Time"), "singletons are furniture");
+        Assert.That(groups.Single(g => g.TypeName == "Person").HasFamily, Is.True);
+        Assert.That(groups.Single(g => g.TypeName == "Country").HasFamily, Is.False);
+        foreach (var g in groups)
+        {
+            Assert.That(g.Top, Has.Length.InRange(1, 5));
+            Assert.That(g.Top.Select(e => e.Mentions), Is.Ordered.Descending);
+            foreach (var e in g.Top)
+            {
+                var bio = s.GetBiography(e.Id);
+                Assert.That(bio.TypeName, Is.EqualTo(g.TypeName));
+                Assert.That(bio.Timeline.Count(t => t.Kind == "record"), Is.EqualTo(e.Mentions),
+                    $"{e.Name}: the count is the number of records on its Life page");
+                Assert.That(e.FirstYear, Is.LessThanOrEqualTo(e.LastYear));
+            }
+        }
+    }
+
+    [Test]
+    public void AnEntityInThePastIsItsLastChangesetBeforeThatYear()
+    {
+        var s = Session();
+        s.PassYears(100);
+        var person = PersonWithAChangeAfterBirth(s, out var born, out var changedIn);
+
+        Assert.That(s.GetEntityAt(person, born - 1), Is.Empty, "not born yet");
+
+        var atBirth = s.GetEntityAt(person, born);
+        var later = s.GetEntityAt(person, changedIn);
+        Assert.That(atBirth.First(), Is.EqualTo(new EntityPropertyDisplay("Type", "Person")));
+        Assert.That(later, Is.Not.EqualTo(atBirth).AsCollection, "the state moves with the log");
+
+        // The present is the live details, @display rows and all.
+        Assert.That(s.GetEntityAt(person, s.Year), Is.EqualTo(s.GetEntityDetails(person)).AsCollection);
+    }
+
+    [Test]
+    public void ThePastLeavesOutTheWholeWorldQueries()
+    {
+        var s = Session();
+        s.PassYears(100);
+        var person = PersonWithAChangeAfterBirth(s, out _, out var changedIn);
+
+        // @display rows (Children, Parents, ...) are live queries; a past state lists stored properties only.
+        var labels = s.GetEntityAt(person, changedIn).Select(d => d.Label).ToList();
+        Assert.That(labels.Where(l => l.StartsWith('\'')), Is.Empty);
+    }
+
+    // A person whose state changed in a later year than the one they were born in.
+    private static uint PersonWithAChangeAfterBirth(WorldSession s, out long born, out long changedIn)
+    {
+        foreach (var cs in s.Database.History!.Changesets)
+        foreach (var c in cs.Changes)
+        {
+            if (!c.Prev.Id.IsNull || s.Database.GetEntityType(c.New.Type).Name != "Person") continue;
+            var id = c.New.Id.Id;
+            var bornYear = cs.Year;
+            var later = s.Database.History.Changesets
+                .FirstOrDefault(x => x.Year > bornYear && x.Changes.Any(ch => ch.New.Id.Id == id));
+            if (later.ActionName == null) continue;
+            born = bornYear;
+            changedIn = later.Year;
+            return id;
+        }
+
+        throw new AssertionException("w.sg should have a person who changes after birth");
+    }
+
+    [Test]
+    public void FamilyNodesCarryBirthDeathAndPartner()
+    {
+        var s = Session();
+        s.PassYears(150);
+        var db = s.Database;
+        var person = db.GetEntityType("Person");
+        var partnerProp = person.GetPropertyId("partner");
+        var aliveProp = person.GetPropertyId("alive");
+
+        // Someone with a partner, so the partner node is exercised too.
+        var root = db.Entities.First(e => e.Type.Id == person.Id.Id
+                                          && e.TryGetProperty(partnerProp, out var p) && !p.Id.IsNull);
+
+        var nodes = s.GetFamilyTree(root.Id.Id, 4);
+        var byId = nodes.ToDictionary(n => n.Id);
+        var me = byId[root.Id.Id];
+
+        Assert.That(me.Partner, Is.Not.Zero);
+        Assert.That(byId, Does.ContainKey(me.Partner), "the partner gets a node to stand beside the root");
+        foreach (var n in nodes)
+        {
+            Assert.That(n.Born, Is.GreaterThanOrEqualTo(db.StartYear), $"{n.Name} has a birth year");
+            db.TryGetEntity(new EntityId(n.Id), out var e);
+            var alive = e.TryGetProperty(aliveProp, out var a) && a.BoolValue;
+            Assert.That(n.Dead, Is.EqualTo(!alive), $"{n.Name}: dead is the story's alive = false");
+            if (n.Died != 0)
+                Assert.That(n.Died, Is.GreaterThanOrEqualTo(n.Born));
+        }
+    }
+
+    [Test]
+    public void EntityTypesAreIndexedByEntityId()
+    {
+        var s = Session();
+        s.PassYears(50);
+
+        var types = s.GetEntityTypes();
+
+        Assert.That(types[0], Is.EqualTo(0), "id 0 is never an entity");
+        var entities = s.Database.Entities.ToList();
+        Assert.That(types, Has.Length.EqualTo(entities.Max(e => e.Id.Id) + 1));
+        foreach (var e in entities)
+            Assert.That(types[e.Id.Id], Is.EqualTo((int)e.Type.Id), $"entity {e.Id}");
+    }
+
+    [Test]
     public void BiographyInterleavesRecordsAndChangesInCausalOrder()
     {
         var s = Session();
@@ -408,6 +531,44 @@ public class WorldSessionTests
             if (n.P1 != 0) Assert.That(ids, Contains.Item(n.P1), $"#{n.Id}'s parent1 is missing from the tree");
             if (n.P2 != 0) Assert.That(ids, Contains.Item(n.P2), $"#{n.Id}'s parent2 is missing from the tree");
         }
+    }
+
+    [Test]
+    public void FamilyTreeReachesGrandchildrenSiblingsAndInLaws()
+    {
+        var s = Session();
+        s.PassYears(200);
+        var db = s.Database;
+        var person = db.GetEntityType("Person");
+        var p1 = person.GetPropertyId("parent1");
+        var p2 = person.GetPropertyId("parent2");
+        var partnerProp = person.GetPropertyId("partner");
+        var people = db.Entities.Where(e => e.Type.Id == person.Id.Id).ToList();
+        uint Ref(Entity e, PropertyId p) => e.TryGetProperty(p, out var v) ? v.Id.Id : 0;
+        bool IsChildOf(Entity c, uint parent) => Ref(c, p1) == parent || Ref(c, p2) == parent;
+
+        // A grandparent: someone with a child who has a child of their own.
+        var grand = people.First(g => people.Any(c => IsChildOf(c, g.Id.Id)
+                                                       && people.Any(gc => IsChildOf(gc, c.Id.Id))));
+        var child = people.First(c => IsChildOf(c, grand.Id.Id) && people.Any(gc => IsChildOf(gc, c.Id.Id)));
+        var grandchild = people.First(gc => IsChildOf(gc, child.Id.Id));
+
+        var ids = s.GetFamilyTree(grand.Id.Id, 4).Select(n => n.Id).ToHashSet();
+        Assert.That(ids, Contains.Item(grandchild.Id.Id), "descendants go deeper than one generation");
+        var coParent = Ref(grandchild, p1) == child.Id.Id ? Ref(grandchild, p2) : Ref(grandchild, p1);
+        if (coParent != 0)
+            Assert.That(ids, Contains.Item(coParent), "a child's co-parent is in the family");
+
+        // From the grandchild's side: its siblings are there.
+        var siblings = people.Where(x => x.Id.Id != grandchild.Id.Id && IsChildOf(x, child.Id.Id)).ToList();
+        var fromBelow = s.GetFamilyTree(grandchild.Id.Id, 4).Select(n => n.Id).ToHashSet();
+        foreach (var sib in siblings)
+            Assert.That(fromBelow, Contains.Item(sib.Id.Id), "siblings, whole or half");
+
+        // A married descendant brings their partner.
+        var married = people.FirstOrDefault(c => IsChildOf(c, grand.Id.Id) && Ref(c, partnerProp) != 0);
+        if (married.Id.Id != 0)
+            Assert.That(ids, Contains.Item(Ref(married, partnerProp)), "a child's partner is in the family");
     }
 
     [Test]

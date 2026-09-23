@@ -104,6 +104,27 @@ check('Query: row properties lead with Type', q.results?.[0]?.properties?.[0]?.l
 const eid = q.results[0].eid;
 check('EntityId collapses to a number', typeof eid === 'number', `eid=${eid}`);
 
+const entityTypes = call('GetEntityTypes');
+check(
+  'GetEntityTypes: one type per entity, indexed by id',
+  Array.isArray(entityTypes) && entityTypes[0] === 0 && entityTypes[eid] > 0,
+  `${entityTypes.length} entries`,
+);
+const notableGroups = call('GetNotable', 3);
+check(
+  'GetNotable: groups of at most 3, most mentioned first',
+  notableGroups.length > 0 &&
+    notableGroups.every((g) => g.top.length <= 3 && typeof g.hasFamily === 'boolean') &&
+    notableGroups[0].top[0].mentions >= notableGroups[0].top.at(-1).mentions,
+  `${notableGroups.length} groups, first ${notableGroups[0]?.typeName}`,
+);
+const pastYear = call('GetWorldOverview').year - 60;
+const past = call('GetEntityAt', eid, pastYear);
+check(
+  'GetEntityAt: a past state is rows or nothing',
+  Array.isArray(past),
+  `${past.length} rows at ${pastYear}`,
+);
 const details = call('GetEntityDetails', eid);
 check('GetEntityDetails: rows returned', details.length > 0, `${details.length} rows`);
 

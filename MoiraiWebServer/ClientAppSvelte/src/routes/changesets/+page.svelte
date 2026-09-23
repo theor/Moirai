@@ -4,7 +4,7 @@
 </script>
 
 <div class="h-full flex flex-col min-h-0">
-  <h1 class="h2 mb-2 shrink-0">Changesets</h1>
+  <h1 class="h4 mb-2 shrink-0">Changesets</h1>
   {#if $moiraiStore.conn}
     <ChangesetList />
   {:else}

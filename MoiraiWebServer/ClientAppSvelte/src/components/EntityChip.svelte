@@ -1,31 +1,35 @@
 <script lang="ts">
   import { filteredEntity, selectedEntity } from '$lib/utils';
+  import { moiraiStore } from '$lib/connection';
+  import { entityTypes } from '$lib/entity-types';
+  import { slotOf } from '$lib/entity-style';
   import { page } from '$app/stores';
 
-  export let id: number;
-  export let label: string;
-  export let active: boolean;
+  let { id, label, active }: { id: number; label: string; active: boolean } = $props();
 
-  const sel = selectedEntity($page);
-  const filter = filteredEntity($page);
+  // Colour says the type; see $lib/entity-style and `.ent` in app.css.
+  const slot = $derived(slotOf(id, $entityTypes.types, $entityTypes.slots));
+  const typeName = $derived(
+    $moiraiStore.clientData?.types.find((t) => t.id === $entityTypes.types[id])?.name,
+  );
 
   function onClick(e: MouseEvent) {
     // Shift+click filters the records to this entity; a plain click selects it.
     if (e.shiftKey) {
+      const filter = filteredEntity($page);
       filter.setNumber(filter.getNumber() === id ? -1 : id);
     } else {
-      sel.setNumber(id);
+      selectedEntity($page).setNumber(id);
     }
   }
 </script>
 
 <button
   type="button"
-  class="badge mr-1 [&>*]:pointer-events-none"
-  class:preset-filled-secondary-500={active}
-  class:preset-tonal-secondary={!active}
-  title={`Click to select #${id} · Shift+click to filter`}
-  on:click={onClick}
+  class="ent ent-{slot}"
+  class:active
+  title={`${typeName ?? 'Entity'} #${id} · click to select · shift+click to filter`}
+  onclick={onClick}
 >
   {label ?? id}
 </button>

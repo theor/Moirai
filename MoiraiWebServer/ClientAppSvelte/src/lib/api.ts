@@ -6,6 +6,7 @@ import type {
   FamilyTreeNode,
   Message,
   QueryResult,
+  NotableGroup,
   RuleCoverageReport,
   StoryApplyResult,
   StoryDiagnostic,
@@ -97,7 +98,13 @@ export interface MoiraiApi {
   getWorldOverview(): Promise<WorldOverview>;
   getPropertySeries(typeId: number, propertyName: string): Promise<TimeSeries>;
   getRuleCoverage(): Promise<RuleCoverageReport>;
+  /** Every entity's type id, indexed by entity id (0 = no entity). Colours the entity chips. */
+  getEntityTypes(): Promise<number[]>;
   getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]>;
+  /** The entities mentioned in the most records, `perType` of each type, most-mentioned type first. */
+  getNotable(perType: number): Promise<NotableGroup[]>;
+  /** An entity's properties at the end of `year`: empty before it existed, live details from now on. */
+  getEntityAt(entityId: number, year: number): Promise<EntityPropertyDisplay[]>;
   getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]>;
   getChangesets(start: number, count: number): Promise<EntityChangeDisplay[]>;
   getEntityChangesets(entityId: number): Promise<EntityChangeDisplay[]>;

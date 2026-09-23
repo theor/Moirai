@@ -4,7 +4,7 @@
   import { createInfiniteQuery } from '@tanstack/svelte-query';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { moiraiStore, type EntityChangeDisplay } from '$lib/connection';
-  import PreChip from './PreChip.svelte';
+  import { humanLabel } from '$lib/format';
   import { untrack } from 'svelte';
 
   let virtualListEl: HTMLDivElement | undefined = $state();
@@ -74,7 +74,7 @@
 {:else if query.isError}
   <span>Error: {query.error.message}</span>
 {:else if query.isSuccess}
-  <div class="scroll-container bg-surface-200-800" bind:this={virtualListEl}>
+  <div class="scroll-container" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
       <div
         style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({items[0]
@@ -85,8 +85,7 @@
           <div
             use:measure
             data-index={row.index}
-            class:list-item-even={row.index % 2 === 0}
-            class:list-item-odd={row.index % 2 === 1}
+            class="py-1.5 px-2 border-b border-surface-100 text-sm"
           >
             {#if row.index > allRows.length - 1}
               {#if query.hasNextPage}
@@ -96,20 +95,17 @@
               {/if}
             {:else}
               {@const item = allRows[row.index]}
-              <div>
-                <PreChip text={item.year} />
-
+              <div class="flex items-baseline gap-2">
+                <span class="year-mark w-10">{item.year}</span>
+                <span class="font-medium">{item.actionName}</span>
                 <EntityChip id={item.id} label={'#' + item.id} active={false} />
-
-                {item.actionName}
               </div>
-              <div class="flex">
+              <div class="flex flex-wrap gap-x-4 pl-12 text-xs text-surface-700 leading-6">
                 {#each item.changes as change, ci (ci)}
-                  <span class=" px-2 m-1 flex-row">
-                    <kbd class="kbd">{change.label}</kbd>
-                    <MoiraiText text={change.value} selected={-1} />
+                  <span>
+                    <span class="font-medium">{humanLabel(change.label)}</span>
+                    <MoiraiText text={change.value} selected={-1} value />
                   </span>
-                  <span class="vr"></span>
                 {/each}
               </div>
             {/if}
@@ -124,9 +120,6 @@
 {/if}
 
 <style>
-  .list-item-odd {
-    background-color: color-mix(in oklab, var(--color-surface-500) 5%, transparent);
-  }
   .scroll-container {
     flex: 1;
     min-height: 0;

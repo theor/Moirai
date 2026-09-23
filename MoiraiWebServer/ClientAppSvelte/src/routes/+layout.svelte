@@ -1,9 +1,14 @@
 <script lang="ts">
   import '../app.css';
-  import { AppBar, Tabs, Progress } from '@skeletonlabs/skeleton-svelte';
+  import { Tabs, Progress } from '@skeletonlabs/skeleton-svelte';
+  import Play from 'virtual:icons/mdi/play';
+  import Dice from 'virtual:icons/mdi/dice-5';
+  import Restart from 'virtual:icons/mdi/restart';
+  import ListChecks from 'virtual:icons/mdi/format-list-checks';
   import DetailsPanel from '../components/DetailsPanel.svelte';
   import { moiraiStore, settledYear } from '$lib/connection';
   import { withAddress } from '$lib/world-address';
+  import { selectedEntity } from '$lib/utils';
   import { moiraiViewStore } from '$lib';
   import { shortcut } from '$lib/shortcut';
   import { page } from '$app/stores';
@@ -35,6 +40,27 @@
   let activeTab = $state('details');
   function switchTab() {
     activeTab = PANEL_TABS[(PANEL_TABS.indexOf(activeTab) + 1) % PANEL_TABS.length];
+    if (activeTab === 'events') eventsOpen = true;
+  }
+
+  /**
+   * The side panel shows only when it has something to say: an entity is selected, or the event list was
+   * asked for. It used to take a quarter of the screen on every page, mostly to read "No entity selected".
+   * The Life page leaves details out, because its own State column already shows them.
+   */
+  let eventsOpen = $state(false);
+  const selected = $derived(selectedEntity($page).getNumber());
+  const onLife = $derived($page.url.pathname.endsWith('/life'));
+  const showDetails = $derived(selected > 0 && !onLife);
+  const panelOpen = $derived(eventsOpen || showDetails);
+  $effect(() => {
+    // Whichever tab has content wins when the other has none.
+    if (!eventsOpen && activeTab === 'events') activeTab = 'details';
+    if (!showDetails && eventsOpen) activeTab = 'events';
+  });
+  function toggleEvents() {
+    eventsOpen = !eventsOpen;
+    activeTab = eventsOpen ? 'events' : 'details';
   }
 
   const queryClient = new QueryClient();
@@ -123,174 +149,215 @@
 <!-- App Shell -->
 <QueryClientProvider client={queryClient}>
   <!--
-    grid-rows-[auto_1fr], not auto-rows-max: with content-sized rows the second row has no definite
+    grid-rows-[auto_auto_1fr], not auto-rows-max: with content-sized rows the last row has no definite
     height, so `h-full` on <main> resolves to auto, a page's `h-full overflow-auto` never has anything
-    to overflow, and body's `overflow: hidden` silently clips it. min-h-0 on the two row items is the
-    other half -- a grid item's default min-height:auto refuses to shrink below its content, which
-    would push the row back to content height.
+    to overflow, and body's `overflow: hidden` silently clips it. min-h-0 on the row items is the other
+    half -- a grid item's default min-height:auto refuses to shrink below its content, which would push
+    the row back to content height.
   -->
   <div
-    class="grid grid-cols-4 grid-rows-[auto_1fr] h-full w-full"
+    class="grid grid-rows-[auto_auto_1fr] h-full w-full bg-white"
     use:shortcut={{ control: true, code: 'KeyG', callback: gotoLine }}
     use:shortcut={{ control: true, code: 'KeyD', callback: switchTab }}
   >
-    <!-- App Bar -->
-    <AppBar class="col-span-4">
-      <AppBar.Toolbar class="grid-cols-[auto_1fr]">
-        <AppBar.Lead class="flex items-center">
-          <img src={asset('/icon.png')} alt="Moirai" class="w-8 h-8 mr-2" />
-          <strong class="text-xl mr-4 font-serif">Moirai</strong>
-        </AppBar.Lead>
-        <AppBar.Headline class="flex flex-wrap items-center gap-2">
-          <Tabs value={$page.url.pathname} class="w-auto">
-            <Tabs.List class="mb-0 pb-0 border-b-0">
-              {#each tabs as tab (tab.href)}
-                <Tabs.Trigger value={tab.href}>
-                  {#snippet element(attributes)}
-                    <!--
-                      A button, not an <a>, and that is load-bearing rather than a style choice.
+    <!-- Row 1: where you are. -->
+    <header class="flex items-center gap-4 px-4 h-12 border-b border-surface-200">
+      <div class="flex items-center shrink-0">
+        <img src={asset('/icon.png')} alt="" class="w-6 h-6 mr-2" />
+        <strong class="text-lg font-serif">Moirai</strong>
+      </div>
+      <nav class="min-w-0 overflow-x-auto">
+        <Tabs value={$page.url.pathname} class="w-auto">
+          <Tabs.List class="mb-0 pb-0 border-b-0 gap-0">
+            {#each tabs as tab (tab.href)}
+              <Tabs.Trigger value={tab.href} class="px-3 py-1 text-sm">
+                {#snippet element(attributes)}
+                  <!--
+                  A button, not an <a>, and that is load-bearing rather than a style choice.
 
-                      Tabs is controlled and its value is the pathname, so every navigation changes it;
-                      the component reacts by re-activating the matching trigger, which it does by
-                      dispatching `new MouseEvent('click')` at the element. That event is
-                      `cancelable: false` and does not bubble, so it cannot be prevented and neither
-                      SvelteKit's router nor a Svelte `onclick` ever sees it — but the browser still runs
-                      an anchor's default navigation. The result was that a real click's soft navigation
-                      was immediately followed by a full page load of the same URL. Harmless with the
-                      server, where the world lives elsewhere; fatal with the in-browser engine, which
-                      lives in the page and was thrown away on every tab switch. A button has no default
-                      navigation, so the synthetic click does nothing and `goto` is the only way here.
+                  Tabs is controlled and its value is the pathname, so every navigation changes it;
+                  the component reacts by re-activating the matching trigger, which it does by
+                  dispatching `new MouseEvent('click')` at the element. That event is
+                  `cancelable: false` and does not bubble, so it cannot be prevented and neither
+                  SvelteKit's router nor a Svelte `onclick` ever sees it — but the browser still runs
+                  an anchor's default navigation. The result was that a real click's soft navigation
+                  was immediately followed by a full page load of the same URL. Harmless with the
+                  server, where the world lives elsewhere; fatal with the in-browser engine, which
+                  lives in the page and was thrown away on every tab switch. A button has no default
+                  navigation, so the synthetic click does nothing and `goto` is the only way here.
 
-                      The cost is the affordances a real link has: no middle-click, no ctrl-click, no
-                      "copy link address" on the tab bar.
-                    -->
-                    <button
-                      {...attributes}
-                      type="button"
-                      onclick={(e) => {
-                        attributes.onclick?.(e);
-                        // The href is already resolved; the rule only recognises a literal resolve()
-                        // call as the argument, which a template literal is not.
-                        // eslint-disable-next-line svelte/no-navigation-without-resolve
-                        goto(`${resolve(tab.href)}${currentSearch()}`);
-                      }}>{tab.label}</button
-                    >
-                  {/snippet}
-                </Tabs.Trigger>
-              {/each}
-            </Tabs.List>
-          </Tabs>
-          <span class="vr"></span>
-          <span class="mx-2">{connecting ? 'Starting…' : `Year ${$moiraiStore.year}`}</span>
-          <form
-            class="inline"
-            onsubmit={(e) => {
-              e.preventDefault();
-              $moiraiViewStore.gotoYear = yearValue;
-              yearValue = undefined;
-            }}
-          >
-            <label class="label inline-block">
-              <span class="sr-only">Go to year</span>
-              <input
-                placeholder="Go to"
-                bind:this={yearInput}
-                bind:value={yearValue}
-                name="gotoYear"
-                aria-label="Go to year"
-                class="input w-30"
-                type="number"
-              />
-            </label>
-          </form>
+                  The cost is the affordances a real link has: no middle-click, no ctrl-click, no
+                  "copy link address" on the tab bar.
+                -->
+                  <button
+                    {...attributes}
+                    type="button"
+                    onclick={(e) => {
+                      attributes.onclick?.(e);
+                      // The href is already resolved; the rule only recognises a literal resolve()
+                      // call as the argument, which a template literal is not.
+                      // eslint-disable-next-line svelte/no-navigation-without-resolve
+                      goto(`${resolve(tab.href)}${currentSearch()}`);
+                    }}>{tab.label}</button
+                  >
+                {/snippet}
+              </Tabs.Trigger>
+            {/each}
+          </Tabs.List>
+        </Tabs>
+      </nav>
+    </header>
+
+    <!--
+      Row 2: the world. Grouped by what the controls do -- time on the left, with the one primary action;
+      the world's identity on the right, with Reset last and quiet because it throws work away.
+    -->
+    <div
+      class="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2 border-b border-surface-200 bg-surface-50"
+    >
+      <div class="flex items-baseline gap-2">
+        <span class="text-xs text-surface-600">Year</span>
+        <span class="text-2xl font-semibold tabular-nums leading-none">
+          {connecting ? '…' : $moiraiStore.year}
+        </span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div class="field-group grid-cols-[4.5rem_auto] inline-grid">
+          <input
+            type="number"
+            min="1"
+            name="passYearsCount"
+            aria-label="Number of years to pass"
+            bind:value={passYearsCount}
+            class="input text-sm"
+          />
           <button
             type="button"
-            class="btn preset-filled-surface-500"
-            disabled={connecting}
-            onclick={() => moiraiStore.reset()}>Reset</button
+            class="btn btn-sm preset-filled-primary-500 whitespace-nowrap"
+            disabled={passYearsRunning || connecting}
+            onclick={() => moiraiStore.passYears(passYearsCount)}
+            ><Play />Pass {passYearsCount === 1 ? 'year' : 'years'}</button
           >
-          <form
-            class="field-group grid-cols-[auto_auto_auto] inline-grid align-middle"
-            onsubmit={(e) => {
-              e.preventDefault();
-              applySeed();
-            }}
-          >
-            <span
-              class="label preset-tonal"
-              title="Base RNG seed — the world is deterministic per seed">Seed</span
-            >
-            <input
-              type="number"
-              min="0"
-              step="1"
-              name="seed"
-              aria-label="RNG seed"
-              bind:value={seedValue}
-              class="input w-28"
-            />
-            <button
-              type="submit"
-              class="btn {seedDirty ? 'preset-filled-primary-500' : 'preset-filled-surface-500'}"
-              disabled={!seedDirty || connecting}
-              title="Rebuild the world from this seed">Apply</button
-            >
-          </form>
-          <button
-            type="button"
-            class="btn preset-filled-surface-500"
-            disabled={connecting}
-            onclick={rollSeed}
-            title="Pick a random seed and rebuild the world">Roll</button
-          >
-          <div class="field-group grid-cols-[auto_1fr] w-44 inline-grid align-middle">
-            <input
-              type="number"
-              min="1"
-              name="passYearsCount"
-              aria-label="Number of years to pass"
-              bind:value={passYearsCount}
-              class="input"
-            />
-            <button
-              type="button"
-              class="btn preset-filled-surface-500 whitespace-nowrap"
-              disabled={passYearsRunning || connecting}
-              onclick={() => moiraiStore.passYears(passYearsCount)}>Pass years</button
-            >
+        </div>
+        {#if passYearsRunning}
+          <div class="w-24">
+            <Progress value={passYearsPercent} max={100}>
+              <Progress.Track>
+                <Progress.Range class="bg-primary-500" />
+              </Progress.Track>
+            </Progress>
           </div>
-          {#if passYearsRunning}
-            <div class="w-24 mx-2 inline-block align-middle">
-              <Progress value={passYearsPercent} max={100}>
-                <Progress.Track>
-                  <Progress.Range class="bg-primary-500" />
-                </Progress.Track>
-              </Progress>
+        {/if}
+      </div>
+
+      <form
+        onsubmit={(e) => {
+          e.preventDefault();
+          $moiraiViewStore.gotoYear = yearValue;
+          yearValue = undefined;
+        }}
+      >
+        <input
+          placeholder="Go to year"
+          title="Scroll the records to a year (Ctrl+G)"
+          bind:this={yearInput}
+          bind:value={yearValue}
+          name="gotoYear"
+          aria-label="Go to year"
+          class="input input-sm w-28 text-sm"
+          type="number"
+        />
+      </form>
+
+      <div class="grow"></div>
+
+      <form
+        class="flex items-center gap-1"
+        onsubmit={(e) => {
+          e.preventDefault();
+          applySeed();
+        }}
+      >
+        <label
+          for="seed-input"
+          class="text-xs text-surface-600"
+          title="Base RNG seed — the world is deterministic per seed">Seed</label
+        >
+        <input
+          id="seed-input"
+          type="number"
+          min="0"
+          step="1"
+          name="seed"
+          aria-label="RNG seed"
+          bind:value={seedValue}
+          class="input w-24 text-sm"
+        />
+        {#if seedDirty}
+          <button
+            type="submit"
+            class="btn btn-sm preset-filled-primary-500"
+            disabled={connecting}
+            title="Rebuild the world from this seed">Apply</button
+          >
+        {/if}
+        <button
+          type="button"
+          class="btn-icon btn-icon-sm hover:preset-tonal"
+          disabled={connecting}
+          onclick={rollSeed}
+          title="Pick a random seed and rebuild the world"
+          aria-label="Random seed"><Dice /></button
+        >
+      </form>
+
+      <button
+        type="button"
+        class="btn btn-sm hover:preset-tonal text-surface-700"
+        disabled={connecting}
+        onclick={() => moiraiStore.reset()}
+        title="Rebuild this world from its start year"><Restart />Reset</button
+      >
+      <button
+        type="button"
+        class="btn btn-sm {eventsOpen ? 'preset-tonal-primary' : 'hover:preset-tonal'}"
+        aria-pressed={eventsOpen}
+        onclick={toggleEvents}
+        title="Show the event list: run an event now, or hide its records (Ctrl+D)"
+        ><ListChecks />Events</button
+      >
+    </div>
+
+    <div class="flex min-h-0">
+      {#if panelOpen}
+        <aside class="w-80 shrink-0 min-h-0 overflow-y-auto border-r border-surface-200 p-4">
+          {#if showDetails && eventsOpen}
+            <div class="flex gap-1 p-1 mb-3 rounded-lg bg-surface-100" role="tablist">
+              {#each PANEL_TABS as t (t)}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === t}
+                  class="flex-1 btn btn-sm capitalize {activeTab === t
+                    ? 'bg-white shadow-sm'
+                    : 'text-surface-600'}"
+                  onclick={() => (activeTab = t)}>{t}</button
+                >
+              {/each}
             </div>
           {/if}
-        </AppBar.Headline>
-      </AppBar.Toolbar>
-    </AppBar>
-    <aside class="m-4 min-h-0 overflow-hidden">
-      <div class="card p-4 h-full overflow-y-auto">
-        <Tabs value={activeTab} onValueChange={(e) => (activeTab = e.value ?? 'details')}>
-          <Tabs.List>
-            <Tabs.Trigger value="details">Details</Tabs.Trigger>
-            <Tabs.Trigger value="events">Events</Tabs.Trigger>
-          </Tabs.List>
-          <Tabs.Content value="details">
+          {#if activeTab === 'details' && showDetails}
             <DetailsPanel />
-          </Tabs.Content>
-          <Tabs.Content value="events">
-            {#if $moiraiStore.clientData}
-              <ActionList />
-            {/if}
-          </Tabs.Content>
-        </Tabs>
-      </div>
-    </aside>
-    <main class="col-span-3 min-h-0 space-y-4 p-4 pl-0 h-full">
-      {@render children?.()}
-    </main>
+          {:else if $moiraiStore.clientData}
+            <!-- Closed from the Events button in the toolbar, which stays pressed while this is open. -->
+            <ActionList />
+          {/if}
+        </aside>
+      {/if}
+      <main class="flex-1 min-w-0 min-h-0 h-full p-4 space-y-4">
+        {@render children?.()}
+      </main>
+    </div>
   </div>
 </QueryClientProvider>

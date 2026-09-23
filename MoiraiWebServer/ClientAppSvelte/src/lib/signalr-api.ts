@@ -9,6 +9,7 @@ import type {
   FamilyTreeNode,
   Message,
   QueryResult,
+  NotableGroup,
   RuleCoverageReport,
   TimeSeries,
   WorldOverview,
@@ -111,8 +112,20 @@ export class SignalRApi implements MoiraiApi {
     return this.connection.invoke<RuleCoverageReport>('GetRuleCoverage');
   }
 
+  getEntityTypes(): Promise<number[]> {
+    return this.connection.invoke<number[]>('GetEntityTypes');
+  }
+
   getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]> {
     return this.connection.invoke('GetEntityDetails', entityId);
+  }
+
+  getNotable(perType: number): Promise<NotableGroup[]> {
+    return this.connection.invoke<NotableGroup[]>('GetNotable', perType);
+  }
+
+  getEntityAt(entityId: number, year: number): Promise<EntityPropertyDisplay[]> {
+    return this.connection.invoke<EntityPropertyDisplay[]>('GetEntityAt', entityId, year);
   }
 
   getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]> {

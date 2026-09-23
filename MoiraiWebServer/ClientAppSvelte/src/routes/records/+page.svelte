@@ -14,9 +14,9 @@
   import { page } from '$app/stores';
   import type { Record } from '$lib/types';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
-  import PreChip from '../../components/PreChip.svelte';
   import { filteredEntity, filteredTag, selectedEntity } from '$lib/utils';
   import { moiraiViewStore } from '$lib';
+  import { unquote } from '$lib/format';
   import binarysearch from 'binary-search';
 
   const selected = $derived(selectedEntity($page).getNumber());
@@ -39,25 +39,30 @@
     {
       header: 'Year',
       accessorKey: 'year',
-      size: 70,
-      cell: (info) => renderComponent(PreChip, { text: info.cell.getValue() as string }),
+      size: 64,
+      // Only where the year changes: a column of identical numbers is noise, and a gap reads as "same
+      // year" at a glance.
+      cell: (info) => {
+        const year = info.cell.getValue<number>();
+        const prev = rowData[info.row.index - 1];
+        return prev && prev.year === year ? '' : String(year);
+      },
+    },
+    {
+      header: 'Record',
+      accessorKey: 'text',
+      cell: (info) =>
+        renderComponent(MoiraiText, { text: info.cell.getValue() as string, selected }),
     },
     {
       header: 'Event',
-      minSize: 75,
+      size: 180,
       id: 'actionId',
       accessorKey: 'actionId',
       cell: (info) => {
         const actionId = info.cell.getValue<number>();
-        const action = $moiraiStore.clientData!.actions.find((a) => a.id === actionId);
-        return renderComponent(MoiraiText, { text: action?.name ?? '', selected });
+        return $moiraiStore.clientData?.actions.find((a) => a.id === actionId)?.name ?? '';
       },
-    },
-    {
-      header: 'Text',
-      accessorKey: 'text',
-      cell: (info) =>
-        renderComponent(MoiraiText, { text: info.cell.getValue() as string, selected }),
     },
   ];
 
@@ -124,30 +129,35 @@
       {#each tags as tag (tag)}
         <button
           type="button"
-          class="chip {tagFilter === tag ? 'preset-filled-primary-500' : 'preset-tonal'}"
+          class="tag {tagFilter === tag ? 'on' : ''}"
+          aria-pressed={tagFilter === tag}
           onclick={() => toggleTag(tag)}
         >
-          {tag}
+          {unquote(tag)}
         </button>
       {/each}
       {#if tagFilter !== ''}
-        <button type="button" class="chip preset-tonal" onclick={() => toggleTag(tagFilter)}>
-          clear
+        <button
+          type="button"
+          class="text-xs text-surface-600 hover:underline ml-1"
+          onclick={() => toggleTag(tagFilter)}
+        >
+          Clear filter
         </button>
       {/if}
     </div>
   {/if}
-  <div class="table-wrap scroll-container bg-surface-200-800" bind:this={virtualListEl}>
+  <div class="scroll-container" bind:this={virtualListEl}>
     <div style="position: relative; height: {$virtualizer.getTotalSize()}px;">
       <table class="table table-fixed w-full" style="overflow:unset">
         <thead>
           {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
             <tr>
-              {#each headerGroup.headers as header, idx (header.id)}
+              {#each headerGroup.headers as header (header.id)}
+                <!-- The record takes whatever the fixed columns leave. -->
                 <th
-                  style={idx !== headerGroup.headers.length - 1
-                    ? `width: ${header.getSize()}px`
-                    : ''}
+                  class={header.id}
+                  style={header.id !== 'text' ? `width: ${header.getSize()}px` : ''}
                 >
                   {#if !header.isPlaceholder}
                     <FlexRender {header} />
@@ -160,7 +170,6 @@
         <tbody>
           {#each $virtualizer.getVirtualItems() as row, idx (row.index)}
             <tr
-              class:odd={row.index % 2 === 0}
               style="height: {row.size + 1}px; transform: translateY({row.start -
                 idx * row.size}px);"
             >
@@ -178,20 +187,38 @@
 </div>
 
 <style>
-  /* Tailwind 4 needs the theme in scope for @apply inside component styles. */
-  @reference "../../app.css";
-
-  .table tbody tr {
-    border-bottom-width: 0px;
-  }
   .table {
     background-color: transparent;
   }
-  .table tbody tr {
-    background-color: var(--color-surface-100);
+  .table thead th {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-surface-600);
+    border-bottom: 1px solid var(--color-surface-200);
   }
-  .table tbody tr.odd {
-    background-color: color-mix(in oklab, var(--color-surface-500) 5%, transparent);
+  .table tbody tr {
+    border-bottom: 1px solid var(--color-surface-100);
+    background: transparent;
+  }
+  .table tbody tr:hover {
+    background: var(--color-surface-50);
+  }
+  .table td {
+    vertical-align: baseline;
+    line-height: 1.75rem;
+  }
+  :global(td.year) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-surface-600);
+  }
+  :global(td.actionId) {
+    font-size: 0.75rem;
+    color: var(--color-surface-500);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .scroll-container {
     flex: 1;
@@ -202,17 +229,19 @@
   .tag-bar {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
+    padding: 0 0 0.5rem;
   }
-  .tag-bar .chip {
+  .tag-bar .tag {
     cursor: pointer;
   }
-
-  :global(td.actionId span) {
-    @apply inline-block;
-    @apply text-ellipsis;
-    @apply overflow-hidden;
-    @apply w-full;
+  .tag-bar .tag:hover {
+    border-color: var(--color-surface-500);
+  }
+  .tag-bar .tag.on {
+    background: var(--color-primary-500);
+    border-color: var(--color-primary-500);
+    color: white;
   }
 </style>

@@ -1,4 +1,4 @@
-using Moirai.Core;
+﻿using Moirai.Core;
 using Moirai.Parser;
 
 namespace Moirai.Api;
@@ -87,6 +87,24 @@ public struct FamilyTreeNode(uint id, string name, uint p1, uint p2) : IEquatabl
     public uint P1 { get; init; } = p1;
     public uint P2 { get; init; } = p2;
 
+    /// <summary>
+    /// Year of birth: the type's <c>birthdate</c> if it declares one and it is set, else the year the
+    /// entity was created. 0 when neither is known.
+    /// </summary>
+    public long Born { get; init; }
+
+    /// <summary>Year of death from the type's <c>deathdate</c>, or 0 when unknown or still alive.</summary>
+    public long Died { get; init; }
+
+    /// <summary>
+    /// Dead, from <c>deathdate</c> being set or a bool <c>alive</c> being false. Separate from
+    /// <see cref="Died"/> because a story can kill someone without recording when.
+    /// </summary>
+    public bool Dead { get; init; }
+
+    /// <summary>The type's <c>partner</c> reference, or 0.</summary>
+    public uint Partner { get; init; }
+
     public void Deconstruct(out uint id, out string name, out uint p1, out uint p2)
     {
         id = this.Id;
@@ -101,6 +119,15 @@ public struct FamilyTreeNode(uint id, string name, uint p1, uint p2) : IEquatabl
     public static bool operator ==(FamilyTreeNode left, FamilyTreeNode right) => left.Equals(right);
     public static bool operator !=(FamilyTreeNode left, FamilyTreeNode right) => !left.Equals(right);
 }
+
+/// <summary>One entity and how much the story has had to say about it.</summary>
+public record NotableEntity(uint Id, string Name, int Mentions, long FirstYear, long LastYear);
+
+/// <summary>
+/// The most mentioned entities of one type. Groups come most-mentioned type first. <c>HasFamily</c> says
+/// the type declares parent1/parent2, i.e. its entities have a family tree to show.
+/// </summary>
+public record NotableGroup(int TypeId, string TypeName, bool HasFamily, NotableEntity[] Top);
 
 public struct Result
 {

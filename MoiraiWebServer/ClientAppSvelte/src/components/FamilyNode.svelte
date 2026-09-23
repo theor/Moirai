@@ -1,21 +1,35 @@
 <script lang="ts">
-  import { selectedEntity } from '$lib/utils';
-  import { page } from '$app/stores';
   import type { FamilyTreeNode } from '$lib/connection';
+  import type { Sibling } from '$lib/family';
+  import PersonCard from './PersonCard.svelte';
+  import FamilyNode from './FamilyNode.svelte';
 
-  // Recursively renders one person and their ancestors (parents above the child),
-  // producing a classic upward genealogy pyramid. The flat node list returned by
-  // GetFamilyTree is indexed by id in `nodes`.
-  export let nodeId: number;
-  export let nodes: Map<number, FamilyTreeNode>;
-  export let focus: number;
+  /**
+   * One person and their ancestors, parents above the child: a classic upward genealogy pyramid built
+   * by recursion. The flat node list GetFamilyTree returns is indexed by id in `nodes`.
+   *
+   * `withPartner` and `siblings` are for the root only: the person the tree is centred on stands beside
+   * their partner, between their elder and younger siblings, with their parents above the row.
+   */
+  let {
+    nodeId,
+    nodes,
+    focus,
+    withPartner = false,
+    siblings = [],
+  }: {
+    nodeId: number;
+    nodes: Map<number, FamilyTreeNode>;
+    focus: number;
+    withPartner?: boolean;
+    siblings?: Sibling[];
+  } = $props();
 
-  $: node = nodes.get(nodeId);
-  $: parents = node ? [node.p1, node.p2].filter((p) => p && nodes.has(p)) : [];
-
-  function select(id: number) {
-    selectedEntity($page).setNumber(id);
-  }
+  const node = $derived(nodes.get(nodeId));
+  const parents = $derived(node ? [node.p1, node.p2].filter((p) => p && nodes.has(p)) : []);
+  const partner = $derived(withPartner && node?.partner ? nodes.get(node.partner) : undefined);
+  const elder = $derived(node ? siblings.filter((s) => s.node.born <= node.born) : []);
+  const younger = $derived(node ? siblings.filter((s) => s.node.born > node.born) : []);
 </script>
 
 {#if node}
@@ -23,20 +37,23 @@
     {#if parents.length > 0}
       <div class="fparents">
         {#each parents as pid (pid)}
-          <svelte:self nodeId={pid} {nodes} {focus} />
+          <FamilyNode nodeId={pid} {nodes} {focus} />
         {/each}
       </div>
     {/if}
-    <button
-      type="button"
-      class="fperson chip {nodeId === focus
-        ? 'preset-filled-primary-500'
-        : 'preset-tonal-secondary'}"
-      on:click={() => select(nodeId)}
-      title={`#${nodeId} — click to re-root`}
-    >
-      {node.name}
-    </button>
+    <div class="fcouple">
+      {#each elder as s (s.node.id)}
+        <PersonCard node={s.node} note={s.half ? 'half' : ''} />
+      {/each}
+      <PersonCard {node} focus={nodeId === focus} />
+      {#if partner}
+        <span class="text-surface-500" title="Partner">⚭</span>
+        <PersonCard node={partner} />
+      {/if}
+      {#each younger as s (s.node.id)}
+        <PersonCard node={s.node} note={s.half ? 'half' : ''} />
+      {/each}
+    </div>
   </div>
 {/if}
 
@@ -45,7 +62,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 0 0.5rem;
+    margin: 0 0.25rem;
   }
   .fparents {
     display: flex;
@@ -53,21 +70,22 @@
     align-items: flex-end;
     justify-content: center;
     gap: 0.5rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
     position: relative;
   }
   /* connector line from the parents row down to the child */
   .fparents::after {
     content: '';
     position: absolute;
-    bottom: -0.75rem;
+    bottom: -1rem;
     left: 50%;
     width: 1px;
-    height: 0.75rem;
-    background: color-mix(in oklab, var(--color-surface-500) 60%, transparent);
+    height: 1rem;
+    background: var(--color-surface-300);
   }
-  .fperson {
-    cursor: pointer;
-    white-space: nowrap;
+  .fcouple {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
   }
 </style>

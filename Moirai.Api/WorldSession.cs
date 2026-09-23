@@ -274,6 +274,22 @@ public sealed class WorldSession
     };
 
     /// <summary>
+    /// Every entity's type id, indexed by entity id (index 0 is unused and holds 0). Record text links an
+    /// entity by id and name only, so this is how a viewer tells a person from a country at a glance
+    /// without asking the world once per link.
+    /// </summary>
+    public int[] GetEntityTypes()
+    {
+        var types = new List<int> { 0 };
+        foreach (var e in _db.Entities)
+        {
+            while (types.Count < e.Id.Id) types.Add(0);
+            types.Add((int)e.Type.Id);
+        }
+        return types.ToArray();
+    }
+
+    /// <summary>
     /// Everything the world knows about one entity, on one page: its current state, and its whole life
     /// as a single ordered timeline. The three sources — records, changesets and the family tree — were
     /// each reachable before, on three different pages that did not know about each other.
@@ -289,9 +305,9 @@ public sealed class WorldSession
 
         var entries = new List<BiographyEntry>();
 
-        // Setup effects run inside Init() before Time exists, so their changesets and records carry
-        // year 0 while the world actually begins at StartYear (764 in w.sg). Clamping puts them at
-        // the start of the life instead of an orphan "year 0" heading centuries before it.
+        // A story's @start events run before it sets Time.year, and whatever they record before that
+        // line carries year 0 (w.sg sets it first, so nothing does). Clamping puts such entries at the
+        // start of the life instead of an orphan "year 0" heading centuries before it.
         long Begins(long year) => Math.Max(year, _db.StartYear);
 
         foreach (var r in _db.Records)
@@ -316,6 +332,73 @@ public sealed class WorldSession
             .ToArray();
 
         return new Biography(eid, name, type.Name, HasParents(type), EntityPropertyDisplays(eid), ordered);
+    }
+
+    /// <summary>
+    /// The entities the story talks about most, grouped by type: for each type, the <paramref name="perType"/>
+    /// entities mentioned in the most records. "Mentioned" is the same test the biography uses, so an
+    /// entity's count here is the number of records on its Life page.
+    ///
+    /// <para>Singletons (Time) are left out: they are the world's furniture, not its characters.</para>
+    /// </summary>
+    public NotableGroup[] GetNotable(int perType)
+    {
+        var tally = new Dictionary<uint, (int Count, long First, long Last)>();
+        var seen = new HashSet<uint>();
+        foreach (var r in _db.Records)
+        {
+            seen.Clear();
+            foreach (var id in Mentioned(r))
+            {
+                if (!seen.Add(id)) continue;
+                tally[id] = tally.TryGetValue(id, out var t)
+                    ? (t.Count + 1, t.First, r.Year)
+                    : (1, r.Year, r.Year);
+            }
+        }
+
+        return tally
+            .Select(kv => (Id: kv.Key, kv.Value.Count, kv.Value.First, kv.Value.Last,
+                Found: _db.TryGetEntity(new EntityId(kv.Key), out var e), Entity: e))
+            .Where(x => x.Found && !_db.GetEntityType(x.Entity.Type).IsSingleton)
+            .GroupBy(x => x.Entity.Type.Id)
+            .Select(g => (Type: _db.GetEntityType(g.First().Entity.Type), Total: g.Sum(x => x.Count),
+                Top: g.OrderByDescending(x => x.Count).ThenByDescending(x => x.Last).ThenBy(x => x.Id)
+                    .Take(perType)
+                    .Select(x => new NotableEntity(x.Id, NameOf(x.Entity), x.Count, x.First, x.Last))
+                    .ToArray()))
+            .OrderByDescending(g => g.Total)
+            .ThenBy(g => g.Type.Name, StringComparer.Ordinal)
+            .Select(g => new NotableGroup((int)g.Type.Id.Id, g.Type.Name, HasParents(g.Type), g.Top))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// An entity's properties as they stood at the end of <paramref name="year"/>. Empty if it did not
+    /// exist yet; its live details if <paramref name="year"/> is the present or later.
+    ///
+    /// <para>Nothing is snapshotted for this. A closed changeset holds a full copy of every entity it
+    /// touched, so the last changeset on or before the year that touched this entity <i>is</i> its state
+    /// then. The log is in time order, so the scan stops at the first changeset past the year.</para>
+    ///
+    /// <para>@display rows (Children, Members…) are left out of a past state: they are queries over the
+    /// whole world, and answering them for another year would mean rebuilding every entity, not one.</para>
+    /// </summary>
+    public IList<EntityPropertyDisplay> GetEntityAt(uint eid, long year)
+    {
+        if (year >= _db.Ctx.Year || _db.History == null)
+            return EntityPropertyDisplays(eid);
+
+        Entity? then = null;
+        foreach (var cs in _db.History.Changesets)
+        {
+            if (cs.Year > year) break;
+            foreach (var change in cs.Changes)
+                if (change.New.Id.Id == eid)
+                    then = change.New;
+        }
+
+        return then is { } e ? PropertyRows(e) : new List<EntityPropertyDisplay>();
     }
 
     /// <summary>
@@ -446,10 +529,17 @@ public sealed class WorldSession
             .ToList();
     }
 
+    /// <summary>
+    /// Everyone related to <paramref name="eid"/> by blood or marriage, within <paramref name="maxDepth"/>
+    /// generations either way: ancestors, siblings (half-siblings too), every generation of descendants,
+    /// and the partners and co-parents that make those families. It used to stop one generation down,
+    /// which hid grandchildren, siblings and a child's spouse.
+    ///
+    /// <para>Every parent a node names is itself in the list: references to anyone outside the cut are
+    /// cleared, so a view can follow P1/P2 without ever meeting a missing node.</para>
+    /// </summary>
     public List<FamilyTreeNode> GetFamilyTree(uint eid, int maxDepth)
     {
-        HashSet<FamilyTreeNode> nodes = new();
-
         // The tree is built against the root entity's own type, not a hardcoded Person: any type
         // declaring parent1/parent2 gets a genealogy, and one that doesn't gets an empty list
         // instead of a tree of garbage read through the wrong type's property ids.
@@ -461,58 +551,80 @@ public sealed class WorldSession
         if (!prop1.IsValid || !prop2.IsValid)
             return new List<FamilyTreeNode>();
 
-        Queue<(EntityId id, int depth)> queue = new();
-        queue.Enqueue((new EntityId(eid), 0));
-        while (queue.TryDequeue(out var item))
+        var life = new LifeFacts(this, rootType);
+        uint Parent(Entity e, PropertyId p) => e.TryGetProperty(p, out var v) ? v.Id.Id : 0;
+
+        // parent -> children, from one pass over the world. Walking down several generations with one
+        // back-reference query per person would scan the whole type once per node.
+        var childrenOf = new Dictionary<uint, List<uint>>();
+        foreach (var e in _db.Entities)
         {
-            if (!_db.TryGetEntity(item.id, out Entity e))
-                continue;
-            var node = new FamilyTreeNode(e.Id.Id,
-                e.TryGetProperty(Database.PropName, out var name) ? name.Value! : e.Id.ToString(),
-                item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0,
-                item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0
-            );
-            if (node.P1 != 0)
-                queue.Enqueue((new EntityId(node.P1), item.depth + 1));
-            if (node.P2 != 0)
-                queue.Enqueue((new EntityId(node.P2), item.depth + 1));
-            nodes.Add(node);
+            if (e.Type.Id != rootType.Id.Id) continue;
+            var p1 = Parent(e, prop1);
+            var p2 = Parent(e, prop2);
+            if (p1 != 0) Kids(p1).Add(e.Id.Id);
+            if (p2 != 0 && p2 != p1) Kids(p2).Add(e.Id.Id);
+        }
+        List<uint> Kids(uint id) =>
+            childrenOf.TryGetValue(id, out var l) ? l : childrenOf[id] = new List<uint>();
+        IEnumerable<uint> ChildrenOf(uint id) =>
+            childrenOf.TryGetValue(id, out var l) ? l : Enumerable.Empty<uint>();
+
+        var nodes = new Dictionary<uint, FamilyTreeNode>();
+        bool Add(uint id)
+        {
+            if (id == 0 || nodes.ContainsKey(id) || !_db.TryGetEntity(new EntityId(id), out var e))
+                return false;
+            nodes[id] = life.Node(e, Parent(e, prop1), Parent(e, prop2));
+            return true;
         }
 
-        // Children: everyone whose parent1/parent2 is the root. The predicate reads the candidate
-        // through a real value-stack slot inside its own scope — the old -1 "no variable" index is
-        // retired, and FindAll binding it would index the value stack at -1 and throw.
-        const int queryVar = 0;
-        using (_db.Ctx.RunScope(true))
+        // Up: ancestors.
+        Add(eid);
+        var up = new Queue<(uint id, int depth)>();
+        up.Enqueue((eid, 0));
+        while (up.TryDequeue(out var item))
         {
-            _db.FindAll(rootType.Id,
-                new BinaryOperator(BinaryOperator.Operator.Or,
-                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(queryVar, rootType.RefType, prop1), new Literal(new EntityId(eid))),
-                    new BinaryOperator(BinaryOperator.Operator.Equals, new PropertyPath(queryVar, rootType.RefType, prop2), new Literal(new EntityId(eid)))
-                ), queryVar, ref _queryResults);
+            if (item.depth >= maxDepth) continue;
+            var n = nodes[item.id];
+            foreach (var parent in new[] { n.P1, n.P2 })
+                if (Add(parent))
+                    up.Enqueue((parent, item.depth + 1));
         }
 
-        foreach (var id in _queryResults)
-            queue.Enqueue((id, 0));
-        while (queue.TryDequeue(out var item))
+        // Across: siblings, whole and half.
+        var me = nodes[eid];
+        foreach (var parent in new[] { me.P1, me.P2 })
+            if (parent != 0)
+                foreach (var sibling in ChildrenOf(parent))
+                    Add(sibling);
+
+        // Down: every generation of descendants, each with its partner and every co-parent, which is what
+        // turns a list of children into families.
+        var down = new Queue<(uint id, int depth)>();
+        down.Enqueue((eid, 0));
+        while (down.TryDequeue(out var item))
         {
-            if (!_db.TryGetEntity(item.id, out Entity e))
-                continue;
-            var p1Id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop1, out var p1) ? p1.Id.Id : 0;
-            var p2Id = item.depth >= maxDepth ? 0 : e.TryGetProperty(prop2, out var p2) ? p2.Id.Id : 0;
-            nodes.Add(new FamilyTreeNode(e.Id.Id,
-                e.TryGetProperty(Database.PropName, out var name) ? name.Value! : e.Id.ToString(),
-                p1Id,
-                p2Id
-            ));
-            // A child's other parent is not in the ancestor sweep, so name it here rather than let
-            // the client show an unnamed node. Add is a no-op when the id is already known, so this
-            // never overwrites a node the sweep built (FamilyTreeNode equality is the id alone).
-            AddCoParent(nodes, p1Id);
-            AddCoParent(nodes, p2Id);
+            Add(nodes[item.id].Partner);
+            if (item.depth >= maxDepth) continue;
+            foreach (var child in ChildrenOf(item.id))
+            {
+                Add(child);
+                var c = nodes[child];
+                Add(c.P1);
+                Add(c.P2);
+                down.Enqueue((child, item.depth + 1));
+            }
         }
 
-        return nodes.ToList();
+        // Keep the promise: no node names a parent the list does not contain.
+        return nodes.Values
+            .Select(n => n with
+            {
+                P1 = nodes.ContainsKey(n.P1) ? n.P1 : 0,
+                P2 = nodes.ContainsKey(n.P2) ? n.P2 : 0,
+            })
+            .ToList();
     }
 
     public IList<EntityPropertyDisplay> GetEntityDetails(uint eid) => EntityPropertyDisplays(eid);
@@ -552,12 +664,51 @@ public sealed class WorldSession
         return predicate == null ? $"{keyword} {typeName}" : $"{keyword} {typeName} and …";
     }
 
-    private void AddCoParent(HashSet<FamilyTreeNode> nodes, uint id)
+    /// <summary>
+    /// Birth, death and partner for a family tree, read by the same convention the tree already uses for
+    /// <c>parent1</c>/<c>parent2</c>: a type that declares <c>birthdate</c>, <c>deathdate</c>,
+    /// <c>alive</c> or <c>partner</c> gets them shown, one that does not simply shows less.
+    /// </summary>
+    private sealed class LifeFacts(WorldSession s, EntityType type)
     {
-        if (id == 0 || !_db.TryGetEntity(new EntityId(id), out var e))
-            return;
-        nodes.Add(new FamilyTreeNode(id,
-            e.TryGetProperty(Database.PropName, out var name) ? name.Value! : e.Id.ToString(), 0, 0));
+        private readonly PropertyId _birth = type.GetPropertyId("birthdate");
+        private readonly PropertyId _death = type.GetPropertyId("deathdate");
+        private readonly PropertyId _alive = type.GetPropertyId("alive");
+        private readonly PropertyId _partner = type.GetPropertyId("partner");
+        private Dictionary<uint, long>? _created;
+
+        public FamilyTreeNode Node(Entity e, uint p1, uint p2)
+        {
+            var born = Number(e, _birth);
+            if (born == 0) born = Created(e.Id.Id);
+            var died = Number(e, _death);
+            var dead = died != 0 || (_alive.IsValid && e.TryGetProperty(_alive, out var a) && !a.BoolValue);
+            var partner = _partner.IsValid && e.TryGetProperty(_partner, out var p) ? p.Id.Id : 0;
+            return new FamilyTreeNode(e.Id.Id, NameOf(e), p1, p2)
+            {
+                Born = born, Died = died, Dead = dead, Partner = partner,
+            };
+        }
+
+        private static long Number(Entity e, PropertyId id) =>
+            id.IsValid && e.TryGetProperty(id, out var v) ? v.IntValue : 0;
+
+        // The year the entity was created, from the first changeset that shows it with no previous self.
+        // Built once per tree, on first need: most stories give a person a birthdate and never get here.
+        private long Created(uint id)
+        {
+            if (_created == null)
+            {
+                _created = new();
+                if (s._db.History != null)
+                    foreach (var cs in s._db.History.Changesets)
+                    foreach (var c in cs.Changes)
+                        if (c.Prev.Id.IsNull)
+                            _created.TryAdd(c.New.Id.Id, cs.Year);
+            }
+
+            return _created.GetValueOrDefault(id);
+        }
     }
 
     private IList<EntityChangeDisplay> GetChangesetDetails(Changeset cs) =>
@@ -589,12 +740,8 @@ public sealed class WorldSession
             return ImmutableList<EntityPropertyDisplay>.Empty;
         }
 
-        var details = e.Properties.Where(p => p.Id.IsValid)
-            .Select(p => new EntityPropertyDisplay(
-                _db.GetPropertyName(p.Id),
-                PrintValue(p.Id, p.Value))).ToList();
+        var details = PropertyRows(e);
         var t = _db.GetEntityType(e.Type);
-        details.Insert(0, new EntityPropertyDisplay("Type", t.Name));
         foreach (var display in t.Attributes)
         {
             using var _ = _db.Ctx.RunScope(false);
@@ -612,6 +759,45 @@ public sealed class WorldSession
         }
 
         return details;
+    }
+
+    // The Type row, then every set property. Shared by the live details and a past state.
+    private List<EntityPropertyDisplay> PropertyRows(Entity e)
+    {
+        var rows = e.Properties.Where(p => p.Id.IsValid)
+            .Select(p => new EntityPropertyDisplay(_db.GetPropertyName(p.Id), PrintValue(p.Id, p.Value)))
+            .ToList();
+        rows.Insert(0, new EntityPropertyDisplay("Type", _db.GetEntityType(e.Type).Name));
+        return rows;
+    }
+
+    private static string NameOf(Entity e) =>
+        e.TryGetProperty(Database.PropName, out var n) && n.Value is { } s ? s : e.Id.ToString();
+
+    // The entities a record is about: its {$var} participants, or, for a record that bound none, the
+    // <#id> links the printer wrote into its text. Same rule as MentionsEntity, for every id at once.
+    private static IEnumerable<uint> Mentioned(Database.Record r)
+    {
+        if (r.Participants is { Length: > 0 })
+        {
+            foreach (var p in r.Participants)
+                if (!p.IsNull) yield return p.Id;
+            yield break;
+        }
+
+        // Scanned by hand rather than with a Regex: nothing else in the engine uses one, and the browser
+        // build's trimmer drops System.Text.RegularExpressions (240 KB) only while that stays true.
+        var text = r.Text;
+        for (var i = text.IndexOf("<#", StringComparison.Ordinal); i >= 0;
+             i = text.IndexOf("<#", i + 2, StringComparison.Ordinal))
+        {
+            uint id = 0;
+            var j = i + 2;
+            while (j < text.Length && char.IsAsciiDigit(text[j]))
+                id = id * 10 + (uint)(text[j++] - '0');
+            if (j > i + 2 && j < text.Length && text[j] == '>')
+                yield return id;
+        }
     }
 
     // Reference values render as the <#id>name</> markup the client turns into a link (see

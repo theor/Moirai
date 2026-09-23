@@ -14,6 +14,7 @@ import type {
   FamilyTreeNode,
   Message,
   QueryResult,
+  NotableGroup,
   RuleCoverageReport,
   StoryApplyResult,
   StoryDiagnostic,
@@ -299,8 +300,20 @@ export class WasmApi implements MoiraiApi {
     return this.invokeAsync<RuleCoverageReport>('GetRuleCoverage');
   }
 
+  getEntityTypes(): Promise<number[]> {
+    return this.invokeAsync<number[]>('GetEntityTypes');
+  }
+
   getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]> {
     return this.invokeAsync<EntityPropertyDisplay[]>('GetEntityDetails', entityId);
+  }
+
+  getNotable(perType: number): Promise<NotableGroup[]> {
+    return this.invokeAsync<NotableGroup[]>('GetNotable', perType);
+  }
+
+  getEntityAt(entityId: number, year: number): Promise<EntityPropertyDisplay[]> {
+    return this.invokeAsync<EntityPropertyDisplay[]>('GetEntityAt', entityId, year);
   }
 
   getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]> {
