@@ -11,6 +11,11 @@ public class Database
     public static readonly PropertyId PropName = new(3, default);
     public static readonly PropertyId PropYear = new(4, default);
 
+    private const uint TimeTypeId = 1;
+    // The year as the built-in Time type actually declares it. PropertyId equality includes the type, so
+    // PropYear itself (type 0) never matches a real write.
+    private static readonly PropertyId TimeYear = new(PropYear.Id, new EntityTypeId(TimeTypeId));
+
     public static Database Instance = null!;
 
     /// <summary>
@@ -133,7 +138,7 @@ public class Database
         Types = new List<EntityType>
         {
             new EntityType("default", 0),
-            new EntityType("Time", 1) { IsSingleton = true }.DeclareProperty("year", PropYear.Id,
+            new EntityType("Time", TimeTypeId) { IsSingleton = true }.DeclareProperty("year", PropYear.Id,
                 PropertyValue.TypeNumber)
         };
         BuiltinTypes = Types.Count;
@@ -233,6 +238,13 @@ public class Database
         }
 
         PropertyValue prev = entity.SetProperty(property, value);
+
+        // Time.year and the clock are one fact. PassYears writes both; a story that sets the year itself
+        // (the `create Time { year := 764 }` in an @start event) moves the clock at that moment, so the
+        // records, marks and schedules that follow in the same event see the year the story chose rather
+        // than 0.
+        if (property == TimeYear)
+            _ctx.Year = value.IntValue;
 
         // Maintain the in-memory bool index: track only entities currently holding `true`.
         if (_indexedBoolProps.Contains(property))
@@ -455,7 +467,7 @@ public class Database
 
             DebugHook?.OnExitFrame();
             if (success && CurrentChangeset.Changes.Count != 0)
-                History?.AddChangeset(CurrentChangeset);
+                History?.AddChangeset(CurrentChangeset, _ctx.Year);
         }
 
         // Record the event's own effect time (excludes the triggers fired below).
@@ -581,7 +593,7 @@ public class Database
                         }
                         DebugHook?.OnExitFrame();
                         if (CurrentChangeset.Changes.Count != 0)
-                            History?.AddChangeset(CurrentChangeset);
+                            History?.AddChangeset(CurrentChangeset, _ctx.Year);
                     }
                 }
 
@@ -698,10 +710,8 @@ public class Database
                 RunAction(a);
         }
 
-        var timeType = GetEntityType("Time");
-        if (_ctx.GetSingleton(timeType.Id, out var timeEntity) &&
-            timeEntity.TryGetProperty(timeType.GetPropertyId("year"), out var year))
-            _ctx.Year = year.IntValue;
+        // No catch-up from Time.year needed here: SetProperty already moved the clock when a @start event
+        // set it.
         StartYear = _ctx.Year;
     }
 

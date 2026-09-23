@@ -19,8 +19,14 @@ public class History
         Story = 1,
     }
 
-    public void AddChangeset(Changeset currentChangeset)
+    /// <summary>
+    /// Close a changeset and add it to the log, stamped with the year it closed in. Outside Init an action
+    /// never spans two years, so that is the year it opened in too; inside Init the @start event that
+    /// creates Time opens at year 0 and closes at the year the story set.
+    /// </summary>
+    public void AddChangeset(Changeset currentChangeset, long year)
     {
+        currentChangeset.Year = year;
         currentChangeset.CloseChangeset();
         _changesets.Add(currentChangeset);
     }
@@ -36,7 +42,7 @@ public struct Changeset(int id, string actionName, long year)
     }
     public readonly int Id = id;
     public readonly string ActionName = actionName;
-    public readonly long Year = year;
+    public long Year { get; internal set; } = year;
     private List<Changed>? _changes;
     public IReadOnlyCollection<Changed> Changes => _changes as IReadOnlyCollection<Changed> ?? ArraySegment<Changed>.Empty;
 

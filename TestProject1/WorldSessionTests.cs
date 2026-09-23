@@ -172,6 +172,19 @@ public class WorldSessionTests
     }
 
     [Test]
+    public void StartEventsAreStampedWithTheYearTheStorySets()
+    {
+        // w.sg's @start event creates Time with year 764 and then creates the countries and gods. The
+        // clock follows Time.year, so those records and changesets belong to 764, not year 0.
+        var db = Session().Database;
+
+        Assert.That(db.StartYear, Is.EqualTo(764));
+        Assert.That(db.Records, Is.Not.Empty);
+        Assert.That(db.Records.Select(r => r.Year), Is.All.EqualTo(db.StartYear));
+        Assert.That(db.History!.Changesets.Select(c => c.Year), Is.All.EqualTo(db.StartYear));
+    }
+
+    [Test]
     public void BiographyInterleavesRecordsAndChangesInCausalOrder()
     {
         var s = Session();
@@ -430,8 +443,10 @@ public class WorldSessionTests
         var before = s.GetChangesetsCount();
 
         // Which events can run standalone depends on the story, so drive them all rather than naming one:
-        // the contract is that RunAction changes the world without moving the clock.
-        foreach (var action in s.Database.Actions)
+        // the contract is that RunAction changes the world without moving the clock. @start events are
+        // left out because they are where a story sets the year -- w.sg's create_time builds a fresh Time
+        // at 764, and the clock follows Time.year, so re-running it rewinds the world on purpose.
+        foreach (var action in s.Database.Actions.Where(a => a.Filter is not FilterAtStart))
             s.RunAction(action.Id);
 
         Assert.That(s.Year, Is.EqualTo(year), "running events out of schedule does not pass a year");
