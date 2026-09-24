@@ -154,9 +154,13 @@
     to overflow, and body's `overflow: hidden` silently clips it. min-h-0 on the row items is the other
     half -- a grid item's default min-height:auto refuses to shrink below its content, which would push
     the row back to content height.
+
+    grid-cols-[minmax(0,1fr)] is the same trap sideways: the implicit column is `auto`, which grows to
+    the widest page's content, so a wide family chart made body itself scroll sideways, and the first
+    scrollIntoView slid the whole app, sidebar and all, out of view.
   -->
   <div
-    class="grid grid-rows-[auto_auto_1fr] h-full w-full bg-white"
+    class="grid grid-rows-[auto_auto_1fr] grid-cols-[minmax(0,1fr)] h-full w-full bg-white"
     use:shortcut={{ control: true, code: 'KeyG', callback: gotoLine }}
     use:shortcut={{ control: true, code: 'KeyD', callback: switchTab }}
   >

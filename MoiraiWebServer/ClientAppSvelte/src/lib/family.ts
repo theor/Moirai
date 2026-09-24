@@ -74,8 +74,8 @@ export type ChartGroup = { key: number; label: string; branches: ChartBranch[] }
 /** A card and everything below it. `descendants` counts the cards a collapse would hide. */
 export type ChartBranch = Couple & { groups: ChartGroup[]; descendants: number };
 
-/** A couple of parents and, further left, the couples that were their parents. */
-export type Ancestry = { couple: Couple; above: Ancestry[] };
+/** The couple that were `of`'s parents and, further left, the couples that were theirs. */
+export type Ancestry = { of: number; couple: Couple; above: Ancestry[] };
 
 function nameWithYears(n: FamilyTreeNode): string {
   const years = lifespan(n);
@@ -164,6 +164,7 @@ export function ancestry(
     .filter((p): p is FamilyTreeNode => !!p);
   if (parents.length === 0) return undefined;
   return {
+    of: id,
     couple: { node: parents[0], spouse: parents[1] },
     above: parents.map((p) => ancestry(p.id, map, depth - 1)).filter((a): a is Ancestry => !!a),
   };
@@ -242,4 +243,81 @@ export function generationName(g: number): string {
   if (n === 2) return two;
   const two_ = two.toLowerCase();
   return n === 3 ? `Great-${two_}` : n === 4 ? `Great-great-${two_}` : `${n - 2}× great-${two_}`;
+}
+
+/**
+ * What every card of one chart shares: who it is centred on, which branches are folded, who is drawn
+ * more than once, and which of those the pointer is on, so all their cards can light up together.
+ */
+export type ChartView = {
+  focus: number;
+  collapsed: Set<number>;
+  repeats: Map<number, Repeat>;
+  hover: { id: number };
+};
+
+/** Someone the chart draws more than once: `slot` picks their colour, `count` is how many cards. */
+export type Repeat = { slot: number; count: number };
+
+/**
+ * The people a chart draws in more than one place because the family loops back on itself: two
+ * descendants who married, each drawn as their own card and again as the other's spouse, and an
+ * ancestor shared by both sides.
+ *
+ * What is drawn twice only because a parent was is left out. The children of two relatives who
+ * married hang under both of them, and everything below those children repeats too, but marking all
+ * of it would bury the marriage the loop runs through. So a person counts only when their cards hang
+ * from different places, and a child's place is its pair of parents, not the card it is under.
+ * Slots go in the order the chart first draws each person, so colours stay put, and a couple who
+ * are both repeated share one.
+ */
+export function repeatedPeople(
+  up: Ancestry | undefined,
+  column: ChartGroup[],
+  columnFrom: number,
+): Map<number, Repeat> {
+  const seen = new Map<number, { count: number; from: Set<string> }>();
+  const order: number[] = [];
+
+  const record = (id: number, from: string) => {
+    let s = seen.get(id);
+    if (!s) seen.set(id, (s = { count: 0, from: new Set() }));
+    if (s.count === 0) order.push(id);
+    s.count++;
+    s.from.add(from);
+  };
+  const spouses = new Map<number, number>();
+  const couple = (c: Couple, from: string) => {
+    record(c.node.id, from);
+    if (c.spouse) {
+      record(c.spouse.id, `${from}&`);
+      spouses.set(c.node.id, c.spouse.id);
+      spouses.set(c.spouse.id, c.node.id);
+    }
+  };
+  const ancestors = (a: Ancestry) => {
+    couple(a.couple, `a${a.of}`);
+    a.above.forEach(ancestors);
+  };
+  // A child hangs from both its parents, so two cards for the same two parents are one place.
+  const parentsOf = (n: FamilyTreeNode) => `d${[n.p1, n.p2].sort((a, b) => a - b).join(',')}`;
+  const branch = (b: ChartBranch, from: string) => {
+    couple(b, from);
+    for (const g of b.groups) for (const kid of g.branches) branch(kid, parentsOf(kid.node));
+  };
+
+  if (up) ancestors(up);
+  for (const g of column) for (const b of g.branches) branch(b, `c${columnFrom}`);
+
+  // Two relatives who married are one loop, so they share a colour: both their cards then read as
+  // the same couple drawn twice, rather than as two unrelated repeats side by side.
+  const repeats = new Map<number, Repeat>();
+  let slots = 0;
+  for (const id of order) {
+    const s = seen.get(id)!;
+    if (s.from.size <= 1) continue;
+    const partner = repeats.get(spouses.get(id) ?? 0);
+    repeats.set(id, { slot: partner ? partner.slot : slots++, count: s.count });
+  }
+  return repeats;
 }

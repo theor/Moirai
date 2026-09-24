@@ -9,6 +9,7 @@ import {
   descendantDepth,
   generationName,
   lifespan,
+  repeatedPeople,
   siblingGroups,
   siblingsOf,
 } from './family';
@@ -226,5 +227,50 @@ describe('generationName', () => {
       'Great-great-grandchildren',
       '3× great-grandchildren',
     ]);
+  });
+});
+
+describe('repeatedPeople', () => {
+  const column = (nodes: FamilyTreeNode[], id: number) => [
+    { key: 0, label: '', branches: [descendantChart(id, byId(nodes), childIndex(nodes))!] },
+  ];
+
+  it('marks two descendants who married, but not the children drawn under both', () => {
+    // 2 and 3 are cousins through 1; they married and had 4, who had 5.
+    const family = [
+      node(1, 'Root'),
+      node(10, 'X', 1),
+      node(11, 'Y', 1),
+      node(2, 'A', 10, 0, { partner: 3 }),
+      node(3, 'B', 11, 0, { partner: 2 }),
+      node(4, 'C', 2, 3),
+      node(5, 'D', 4),
+    ];
+    const repeats = repeatedPeople(undefined, column(family, 1), 0);
+    expect([...repeats.keys()]).toEqual([2, 3]);
+    // One marriage, one colour.
+    expect(repeats.get(2)).toEqual({ slot: 0, count: 2 });
+    expect(repeats.get(3)).toEqual({ slot: 0, count: 2 });
+  });
+
+  it('marks an ancestor shared by both sides', () => {
+    // 3 and 4 are siblings through 1 + 2; their children 5 and 6 married and had 7.
+    const family = [
+      node(1, 'G1'),
+      node(2, 'G2'),
+      node(3, 'A', 1, 2),
+      node(4, 'B', 1, 2),
+      node(5, 'Father', 3),
+      node(6, 'Mother', 4),
+      node(7, 'Me', 5, 6),
+    ];
+    const repeats = repeatedPeople(ancestry(7, byId(family)), [], 0);
+    expect([...repeats.keys()]).toEqual([1, 2]);
+    expect(repeats.get(1)?.count).toBe(2);
+  });
+
+  it('marks nobody in a family that never loops', () => {
+    expect(repeatedPeople(undefined, column(tree, 1), 0).size).toBe(0);
+    expect(repeatedPeople(ancestry(6, byId(tree)), [], 0).size).toBe(0);
   });
 });

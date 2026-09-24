@@ -8,9 +8,11 @@
     descendantChart,
     descendantDepth,
     generationName,
+    repeatedPeople,
     siblingGroups,
   } from '$lib/family';
   import type { FamilyTreeNode } from '$lib/types';
+  import type { ChartView } from '$lib/family';
   import { SvelteSet } from 'svelte/reactivity';
   import { notable } from '$lib/notable';
   import { page } from '$app/stores';
@@ -36,6 +38,8 @@
   // Folded branches, by id. Kept here rather than in each branch because the tree is refetched, and
   // every card rebuilt, whenever the year settles.
   const collapsed = new SvelteSet<number>();
+  // Who the pointer is on, so every card for someone drawn more than once lights up at once.
+  const hover = $state({ id: 0 });
 
   /**
    * Lay the tree out as columns of generations: the parents' ancestry to the left, then the column of
@@ -53,7 +57,10 @@
     const columns = [];
     for (let g = -ancestryDepth(up); g <= down; g++)
       columns.push(g === 0 && alone ? (map.get(id)?.name ?? '') : generationName(g));
-    return { ancestry: up, siblings, self, columns };
+    const column = up ? siblings : self ? [{ key: 0, label: '', branches: [self] }] : [];
+    const repeats = repeatedPeople(up, column, up ? up.couple.node.id : 0);
+    const view: ChartView = { focus: id, collapsed, repeats, hover };
+    return { ancestry: up, siblings, self, columns, view };
   }
 
   // Only types with parents have a tree, so only they are worth suggesting.
@@ -87,6 +94,16 @@
       {:else}
         {@const chart = chartFor(list, selected)}
         <div class="fchart" style:--cols={chart.columns.length}>
+          {#if chart.view.repeats.size > 0}
+            <p class="frepeat">
+              {chart.view.repeats.size === 1
+                ? 'One person appears'
+                : `${chart.view.repeats.size} people appear`}
+              in more than one place, because the family loops back on itself: relatives who married,
+              or an ancestor shared by both sides. A couple shares a colour; hover a name to light up
+              all its cards, or click the count to jump to the next.
+            </p>
+          {/if}
           <div class="fgens" aria-hidden="true">
             {#each chart.columns as name, i (i)}
               <div class="fgen">{name}</div>
@@ -94,10 +111,10 @@
           </div>
           <div class="fbranch">
             {#if chart.ancestry}
-              <ChartAncestry ancestry={chart.ancestry} />
-              <ChartGroups groups={chart.siblings} focus={selected} {collapsed} />
+              <ChartAncestry ancestry={chart.ancestry} view={chart.view} />
+              <ChartGroups groups={chart.siblings} view={chart.view} />
             {:else if chart.self}
-              <ChartBranch branch={chart.self} focus={selected} {collapsed} />
+              <ChartBranch branch={chart.self} view={chart.view} />
             {/if}
           </div>
         </div>
@@ -132,6 +149,12 @@
     --line: var(--color-surface-400);
     width: max-content;
     padding: 0 1rem 2rem;
+  }
+  .frepeat {
+    max-width: 48rem;
+    margin: 0.75rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--color-surface-700);
   }
   .fgens {
     position: sticky;
