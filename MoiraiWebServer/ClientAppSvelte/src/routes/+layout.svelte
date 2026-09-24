@@ -29,6 +29,8 @@
   // The WebAssembly backend has a runtime to start and possibly a world to rebuild, so "connecting" lasts
   // seconds rather than milliseconds — long enough to click Reset before there is anything to reset.
   const connecting = $derived($moiraiStore.conn === undefined);
+  // Read once the backend exists; an apply that succeeds clears it on the next store update.
+  const bootNotice = $derived($moiraiStore.conn?.bootNotice ?? null);
 
   function gotoLine() {
     yearInput?.focus();
@@ -331,6 +333,23 @@
         title="Show the event list: run an event now, or hide its records (Ctrl+D)"
         ><ListChecks />Events</button
       >
+      {#if bootNotice}
+        <!--
+          Inside the toolbar row, as a full-width wrap item, so the layout's three rows stay three. Only
+          set when the in-browser engine could not build the story it was asked for (see WasmApi.boot).
+        -->
+        <p class="basis-full text-sm text-warning-900 flex items-baseline gap-3" role="status">
+          <span>{bootNotice}</span>
+          <button
+            type="button"
+            class="btn btn-sm hover:preset-tonal"
+            onclick={() =>
+              // Resolved; the rule only recognises a bare resolve() argument (see the nav tabs).
+              // eslint-disable-next-line svelte/no-navigation-without-resolve
+              goto(`${resolve('/story')}${currentSearch()}`)}>Open the story</button
+          >
+        </p>
+      {/if}
     </div>
 
     <div class="flex min-h-0">

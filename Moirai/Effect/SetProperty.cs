@@ -29,7 +29,12 @@ public class SetProperty : IInstruction
         EntityId eid;
         if (PropertySet.Mode == PropertyPath.PropertyPathMode.Singleton)
         {
-            eid = ctx.GetSingletonId(PropertySet.TypeId.ToEntityType());
+            // #Type also addresses the first entity of a plain type, so only a declared singleton that
+            // does not exist yet is brought into being by the write.
+            var type = PropertySet.TypeId.ToEntityType();
+            eid = ctx.GetSingletonId(type);
+            if (eid.IsNull && ctx.Database.GetEntityType(type).IsSingleton)
+                eid = ctx.Database.EnsureSingleton(type);
         }
         else
         {

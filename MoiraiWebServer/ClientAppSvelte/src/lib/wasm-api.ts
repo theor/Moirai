@@ -22,7 +22,13 @@ import type {
   TimeSeries,
   WorldOverview,
 } from './types';
-import { storedStory, storeStory } from './story-storage';
+import {
+  clearStoredStory,
+  storedDraft,
+  storeDraft,
+  storedStory,
+  storeStory,
+} from './story-storage';
 import { base } from '$app/paths';
 
 /** How often the engine is asked for new records. Matches the server's feed cadence. */
@@ -114,6 +120,9 @@ export class WasmApi implements MoiraiApi {
    */
   private shippedStory = '';
 
+  /** Set when the story asked for could not be booted and the shipped one was built instead. */
+  bootNotice: string | null = null;
+
   private constructor(engine: MoiraiEngine) {
     this.engine = engine;
   }
@@ -139,7 +148,11 @@ export class WasmApi implements MoiraiApi {
       if (result.applied) {
         // A fresh world with no records in it, so the feed has to start from the beginning again.
         this.cursor = 0;
-        storeStory(text);
+        // Storing the shipped story verbatim would pin this browser to today's w.sg; clearing means the
+        // next boot takes whatever the build ships then.
+        if (text === this.shippedStory) clearStoredStory();
+        else storeStory(text);
+        this.bootNotice = null;
       }
       return result;
     },
@@ -192,14 +205,83 @@ export class WasmApi implements MoiraiApi {
     // the draft this browser has been editing, then the one the build ships. Getting this order wrong
     // is silent — you would look at a world that is not the one you were sent.
     const story = request.story ?? storedStory() ?? shipped;
-    if (request.story !== undefined) storeStory(request.story);
-    engine.Load(story, request.seed ?? '42');
+    const api = await WasmApi.boot(engine, {
+      story,
+      shipped,
+      seed: request.seed ?? '42',
+      year: request.year ?? null,
+      fromLink: request.story !== undefined,
+    });
+
+    return { api, clientData: api.invoke<ClientData>('GetClientData'), connected: true };
+  }
+
+  /**
+   * Build the world from `story`, or from `shipped` if that one cannot be built.
+   *
+   * A page load must always end in a world. The story it is handed is one the engine accepted before or
+   * one a link carried, but either can fail now — a link from an older build, a story that throws on its
+   * way up — and a boot that fails leaves the app on "Starting the engine…" with every control disabled,
+   * including the Story page that could fix it. So a story with errors, or one that throws while the
+   * world is opened, is set aside for the shipped one, and `bootNotice` says so. The applied story is
+   * forgotten, so the next load does not trip over it again, and becomes the draft unless one is already in
+   * progress, so the Story page opens on the thing to fix.
+   *
+   * Separate from {@link make} so it can be tested: everything else in `make` is behind a runtime the
+   * tests cannot boot.
+   */
+  static async boot(
+    engine: MoiraiEngine,
+    opts: { story: string; shipped: string; seed: string; year: number | null; fromLink: boolean },
+  ): Promise<WasmApi> {
+    const { story, shipped, seed, year } = opts;
+    const source = opts.fromLink ? 'story in this link' : 'story you last applied';
+    const setAside = (why: string) => `The ${source} ${why}, so this is the story the site ships.`;
+    const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+    let notice: string | null = null;
+
+    // Load runs the story's @start events, and a story that parses clean can still throw there (a path
+    // through a null reference, say) -- or throw under this seed when it did not under the one it was
+    // applied with. Nothing is shipped to recover with if the shipped story is the one failing.
+    try {
+      engine.Load(story, seed);
+    } catch (err) {
+      if (story === shipped) throw err;
+      notice = setAside(`stopped the world from starting (${message(err)})`);
+    }
+    if (notice === null && story !== shipped) {
+      const diagnostics = JSON.parse(
+        engine.Invoke('ValidateStory', JSON.stringify([story])),
+      ) as StoryDiagnostic[];
+      const errors = diagnostics.filter((d) => d.severity === 'Error');
+      if (errors.length > 0)
+        notice = setAside(`does not parse (line ${errors[0].line}: ${errors[0].message})`);
+    }
+    if (notice !== null) engine.Load(shipped, seed);
 
     const api = WasmApi.fromEngine(engine);
     api.shippedStory = shipped;
-    await api.openTo(request.year ?? null);
+    try {
+      await api.openTo(year);
+      // Kept only once it has built a world: a link's story becomes this browser's story.
+      if (notice === null && opts.fromLink) storeStory(story);
+    } catch (err) {
+      if (notice !== null || story === shipped) throw err;
+      notice = setAside(`stopped the world from starting (${message(err)})`);
+      engine.Load(shipped, seed);
+      api.cursor = 0;
+      await api.openTo(year);
+    }
 
-    return { api, clientData: api.invoke<ClientData>('GetClientData'), connected: true };
+    if (notice !== null) {
+      console.warn(notice);
+      if (!opts.fromLink) clearStoredStory();
+      // "Open the story" has to show the story that failed, or there is nothing to fix. An edit already
+      // in progress wins: it is newer than whatever failed.
+      if (storedDraft() === null) storeDraft(story);
+    }
+    api.bootNotice = notice;
+    return api;
   }
 
   /**

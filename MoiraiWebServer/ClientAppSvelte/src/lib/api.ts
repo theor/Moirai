@@ -78,6 +78,13 @@ export interface MoiraiApi {
    */
   readonly worldInPage: boolean;
 
+  /**
+   * Why the world on screen is not the one that was asked for, or null. The in-browser engine sets it
+   * when a stored or linked story could not be built and it fell back to the shipped one; the server
+   * builds its one world from its own file and never does.
+   */
+  readonly bootNotice: string | null;
+
   /** Rebuild the world from the story. Returns the year of the fresh world. */
   reset(): Promise<number>;
   /** Rebuild from a different seed. The simulation is deterministic per seed. */

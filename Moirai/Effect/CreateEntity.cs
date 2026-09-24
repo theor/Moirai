@@ -265,7 +265,17 @@ public class CreateEntity : IValueCall
             name = ctx.Database.Printer.Format(Name, ctx.Database);
         }
 
-        var entity = ctx.Database.AllocateEntity(Type, name);
+        // A singleton has at most one instance, so creating one that already exists -- because a write
+        // brought it into being first -- binds the existing one instead of making a second.
+        EntityId entity;
+        if (ctx.Database.GetEntityType(Type).IsSingleton && ctx.Database.TryGetSingleton(Type, out var existing))
+        {
+            entity = existing;
+            if (name != null)
+                ctx.Database.SetProperty(entity, Database.PropName, name);
+        }
+        else
+            entity = ctx.Database.AllocateEntity(Type, name);
         ctx.SetArgument(VariableIndex, entity);
         if (Init != null)
             foreach (var instruction in Init)

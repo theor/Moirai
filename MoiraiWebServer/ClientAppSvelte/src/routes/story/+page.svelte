@@ -1,7 +1,7 @@
 <script lang="ts">
   import { moiraiStore } from '$lib/connection';
   import { errorCount } from '$lib/diagnostics';
-  import { clearStoredStory, storeStory } from '$lib/story-storage';
+  import { clearDraft, storedDraft, storeDraft } from '$lib/story-storage';
   import type { StoryDiagnostic } from '$lib/types';
   import type { EditorView } from '@codemirror/view';
 
@@ -30,7 +30,8 @@
   const errors = $derived(errorCount(diagnostics));
   const warnings = $derived(diagnostics.length - errors);
   const passRunning = $derived($moiraiStore.passYearsPercent !== undefined);
-  let shipped = '';
+  // The story the world was built from. The draft is only worth keeping while it differs from this.
+  let worldStory = '';
 
   // Mounted once, when a backend that can edit turns up. The whole editor — CodeMirror and the mode —
   // is imported here rather than at the top of the module, so it lands in this route's chunk and a
@@ -48,22 +49,23 @@
     let disposed = false;
     void (async () => {
       try {
-        const [{ createStoryEditor }, doc, original] = await Promise.all([
+        const [{ createStoryEditor }, doc] = await Promise.all([
           import('$lib/story-editor'),
           editor.get(),
-          editor.original(),
         ]);
         if (disposed) return;
-        shipped = original;
+        worldStory = doc;
         live = createStoryEditor({
           parent,
-          doc,
+          // An unapplied draft wins over the world's story: it is the edit you were in the middle of.
+          doc: storedDraft() ?? doc,
           validate: (text) => editor.validate(text),
           onDiagnostics: (d) => (diagnostics = d),
           // The draft is kept as you type, which is why there is no "unsaved changes" prompt: leaving
-          // the page, or reloading it, costs nothing. Storing the shipped story verbatim would be a
-          // draft that says "no edit", so that case clears instead.
-          onChange: (text) => (text === shipped ? clearStoredStory() : storeStory(text)),
+          // the page, or reloading it, costs nothing. It is only a draft, though — a page load builds
+          // the story last applied, never this (see $lib/story-storage). A draft identical to the
+          // world's story says "no edit", so that case clears instead.
+          onChange: (text) => (text === worldStory ? clearDraft() : storeDraft(text)),
         });
         view = live;
       } catch (err) {
@@ -85,8 +87,12 @@
     try {
       const result = await moiraiStore.applyStory(view.state.doc.toString());
       if (!result) status = 'This backend does not edit stories.';
-      else if (result.applied) status = `Applied. A new world at year ${result.year}.`;
-      else status = `Not applied — the story does not parse. The world is still at ${result.year}.`;
+      else if (result.applied) {
+        worldStory = view.state.doc.toString();
+        clearDraft();
+        status = `Applied. A new world at year ${result.year}.`;
+      } else
+        status = `Not applied — the story does not parse. The world is still at ${result.year}.`;
     } catch (err) {
       status = String(err);
     } finally {
@@ -121,7 +127,7 @@
       type="button"
       class="btn preset-tonal"
       disabled={!view || busy}
-      onclick={() => void revert()}>Revert to w.sg</button
+      onclick={() => void revert()}>Revert to the shipped story</button
     >
     <button
       type="button"

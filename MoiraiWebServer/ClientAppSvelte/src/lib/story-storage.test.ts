@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { clearStoredStory, storedStory, storeStory } from './story-storage';
+import {
+  clearDraft,
+  clearStoredStory,
+  storedDraft,
+  storeDraft,
+  storedStory,
+  storeStory,
+} from './story-storage';
 
 // `window` is faked rather than pulling in a DOM environment, as backend.test.ts does: the surface here
 // is three localStorage calls, and stubbing them exactly says what the module depends on.
@@ -50,6 +57,25 @@ describe('story storage', () => {
     withStorage(true);
     expect(() => storeStory('event a {}')).not.toThrow();
     expect(() => clearStoredStory()).not.toThrow();
+    expect(storedStory()).toBeNull();
+  });
+
+  it('keeps the draft apart from the story a page load builds', () => {
+    // A half-typed draft must never be what the next boot builds: that is what locked the app.
+    withStorage();
+    storeStory('event applied {}');
+    storeDraft('event half {');
+    expect(storedStory()).toBe('event applied {}');
+    expect(storedDraft()).toBe('event half {');
+    clearDraft();
+    expect(storedStory()).toBe('event applied {}');
+    expect(storedDraft()).toBeNull();
+  });
+
+  it('reads a draft saved before the split as a draft, not as the story to boot', () => {
+    withStorage();
+    store.set('moirai.story', 'event old_draft {');
+    expect(storedDraft()).toBe('event old_draft {');
     expect(storedStory()).toBeNull();
   });
 });

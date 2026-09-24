@@ -193,9 +193,11 @@ public class ExecuteContext
     {
         Stopwatch sw = Stopwatch.StartNew();
         Database.ExecProfiler = Database.ProfilingEnabled ? new ExecutionProfiler() : null;
+        // Before the pass's own scratch changeset: EnsureTime records the clock's creation in a changeset
+        // of its own, and the pass's Time.year writes must not land in that closed one.
+        var timeId = Database.EnsureTime();
         Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue);
         var timeType = Database.GetEntityType("Time");
-        var timeId = this.GetSingletonId(timeType.Id);
         var yearsProp = timeType.GetPropertyId("year");
         if (!Database.TryGetEntity(timeId, out var time))
             throw new NotImplementedException("missing Time entity");

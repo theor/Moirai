@@ -21,8 +21,15 @@ class FakeEngine implements MoiraiEngine {
   readonly cursors: number[] = [];
   /** Whether SetStory reports the story as having parsed. */
   storyApplies = true;
+  /** Stories ValidateStory reports an error for. */
+  readonly broken = new Set<string>();
+  /** Stories whose @start events throw, so building the world fails. */
+  readonly throwsOnLoad = new Set<string>();
+  /** Stories whose world throws when it is first passed. */
+  readonly throwsOnPass = new Set<string>();
 
   Load(story: string, seed: string) {
+    if (this.throwsOnLoad.has(story)) throw new Error('path link is not a ref');
     this.loadedWith = { story, seed };
     this.seed = Number(seed);
   }
@@ -32,7 +39,22 @@ class FakeEngine implements MoiraiEngine {
     this.calls.push(`${method}(${args.join(',')})`);
     if (method === 'GetSeed') return JSON.stringify(this.seed);
     if (method === 'GetStory') return JSON.stringify('event a {}');
-    if (method === 'ValidateStory') return JSON.stringify([]);
+    if (method === 'ValidateStory')
+      return JSON.stringify(
+        this.broken.has(String(args[0]))
+          ? [
+              {
+                severity: 'Error',
+                code: 'Parser',
+                line: 3,
+                col: 0,
+                lineEnd: 3,
+                colEnd: 1,
+                message: 'oops',
+              },
+            ]
+          : [],
+      );
     if (method === 'SetStory')
       return JSON.stringify({ applied: this.storyApplies, year: 764, diagnostics: [] });
     if (method === 'Reset') {
@@ -49,6 +71,8 @@ class FakeEngine implements MoiraiEngine {
 
   PassYears(years: number): string {
     if (this.passYearsThrows) throw new Error('engine threw');
+    if (this.loadedWith && this.throwsOnPass.has(this.loadedWith.story))
+      throw new Error('missing Time entity');
     this.chunks.push(years);
     this.year += years;
     return JSON.stringify(this.year);
@@ -406,7 +430,7 @@ describe('editing the story', () => {
     const { start } = make();
     await start().story.apply('event edited {}');
 
-    expect(local.get('moirai.story')).toBe('event edited {}');
+    expect(local.get('moirai.story.applied')).toBe('event edited {}');
   });
 
   it('keeps nothing when the story did not parse', async () => {
@@ -418,8 +442,96 @@ describe('editing the story', () => {
     const result = await api.story.apply('event broken {');
 
     expect(result.applied).toBe(false);
-    expect(local.has('moirai.story')).toBe(false);
+    expect(local.has('moirai.story.applied')).toBe(false);
     // The world is untouched: no records were thrown away, so the feed cursor must not have moved.
     expect(engine.cursors.at(-1)).toBeGreaterThan(0);
+  });
+});
+
+describe('WasmApi.boot', () => {
+  const opts = (story: string, fromLink = false) => ({
+    story,
+    shipped: 'event shipped {}',
+    seed: '42',
+    year: 800,
+    fromLink,
+  });
+
+  it('builds the story it is given when it is sound', async () => {
+    const engine = new FakeEngine();
+    const api = await WasmApi.boot(engine, opts('event mine {}'));
+
+    expect(engine.loadedWith?.story).toBe('event mine {}');
+    expect(api.bootNotice).toBeNull();
+  });
+
+  it('falls back to the shipped story when the stored one does not parse, and forgets it', async () => {
+    const engine = new FakeEngine();
+    engine.broken.add('event half {');
+    local.set('moirai.story.applied', 'event half {');
+    local.set('moirai.story', 'event newer_edit {');
+
+    const api = await WasmApi.boot(engine, opts('event half {'));
+
+    expect(engine.loadedWith?.story).toBe('event shipped {}');
+    expect(api.bootNotice).toMatch(/story you last applied does not parse \(line 3: oops\)/);
+    // The next load must not trip over it again, but the edit is still there to fix.
+    expect(local.has('moirai.story.applied')).toBe(false);
+    // An edit already in progress is newer than what failed, so it stays.
+    expect(local.get('moirai.story')).toBe('event newer_edit {');
+  });
+
+  it('makes the failed story the draft when there is none, so there is something to fix', async () => {
+    const engine = new FakeEngine();
+    engine.broken.add('event half {');
+
+    await WasmApi.boot(engine, opts('event half {'));
+
+    expect(local.get('moirai.story')).toBe('event half {');
+  });
+
+  it('falls back when the world throws on its way up, and still opens at the year asked for', async () => {
+    const engine = new FakeEngine();
+    engine.throwsOnPass.add('event no_clock {}');
+
+    const api = await WasmApi.boot(engine, opts('event no_clock {}'));
+
+    expect(engine.loadedWith?.story).toBe('event shipped {}');
+    expect(api.bootNotice).toMatch(/stopped the world from starting \(missing Time entity\)/);
+    expect(engine.year).toBe(800);
+  });
+
+  it('falls back when the story throws while it is built, before anything is passed', async () => {
+    const engine = new FakeEngine();
+    engine.throwsOnLoad.add('event null_path {}');
+
+    const api = await WasmApi.boot(engine, opts('event null_path {}', true));
+
+    expect(engine.loadedWith?.story).toBe('event shipped {}');
+    expect(api.bootNotice).toMatch(
+      /story in this link stopped the world from starting \(path link/,
+    );
+    expect(local.get('moirai.story')).toBe('event null_path {}');
+  });
+
+  it('keeps a linked story only once it has built a world', async () => {
+    const good = new FakeEngine();
+    await WasmApi.boot(good, opts('event linked {}', true));
+    expect(local.get('moirai.story.applied')).toBe('event linked {}');
+
+    local.clear();
+    const bad = new FakeEngine();
+    bad.broken.add('event linked_broken {');
+    const api = await WasmApi.boot(bad, opts('event linked_broken {', true));
+    expect(api.bootNotice).toMatch(/story in this link/);
+    expect(local.has('moirai.story.applied')).toBe(false);
+  });
+
+  it('lets a failure of the shipped story itself surface, since there is nothing to fall back to', async () => {
+    const engine = new FakeEngine();
+    engine.throwsOnPass.add('event shipped {}');
+    await expect(WasmApi.boot(engine, opts('event shipped {}'))).rejects.toThrow(
+      'missing Time entity',
+    );
   });
 });

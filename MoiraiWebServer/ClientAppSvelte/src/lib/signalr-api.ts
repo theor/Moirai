@@ -32,6 +32,7 @@ export class SignalRApi implements MoiraiApi {
 
   /** One shared world on a machine; its year is the server's business, not the URL's. */
   readonly worldInPage = false;
+  readonly bootNotice = null;
 
   private constructor(connection: HubConnection) {
     this.connection = connection;

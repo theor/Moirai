@@ -162,6 +162,31 @@ public class Database
 
     public bool TryGetSingleton(EntityTypeId type, out EntityId id) => _singletons.TryGetValue(type.Id, out id);
 
+    /// <summary>
+    /// The instance of a <c>singleton</c> type, created on the spot if the story has not made one yet. A
+    /// singleton is one fact about the world, so writing to it (<c>set #Time.year = 764</c>) is enough to
+    /// bring it into being; nobody should have to <c>create</c> the clock before they can set it.
+    /// </summary>
+    public EntityId EnsureSingleton(EntityTypeId type) =>
+        TryGetSingleton(type, out var id) ? id : AllocateEntity(type, GetEntityType(type).Name.ToLowerInvariant());
+
+    /// <summary>
+    /// The clock, which a pass cannot run without. A story that never creates or sets Time gets one at
+    /// year 0, in a changeset of its own so the history still says where it came from. Made on the first
+    /// pass rather than in <see cref="Init"/>: until then nothing needs it, and a story that only runs its
+    /// events directly (most unit tests) keeps exactly the entities it made.
+    /// </summary>
+    public EntityId EnsureTime()
+    {
+        var time = new EntityTypeId(TimeTypeId);
+        if (TryGetSingleton(time, out var id))
+            return id;
+        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, "time", _ctx.Year);
+        id = EnsureSingleton(time);
+        History?.AddChangeset(CurrentChangeset, _ctx.Year);
+        return id;
+    }
+
     public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
     {
         var type = GetEntityType(entityType);
