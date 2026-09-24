@@ -25,6 +25,15 @@ public class BinaryOperator : IValueSql
     }
     public PropertyValue Compute(ExecuteContext ctx)
     {
+        // `and`/`or` stop at the first side that settles the answer. Evaluating both always made every
+        // pick pay for its most expensive clause on every candidate — the dead, the wrong place, the
+        // wrong age included — and a story orders its clauses expecting the cheap ones to filter first.
+        // (The dedicated And class already did this.)
+        if (Op == Operator.And)
+            return Left.Compute(ctx).BoolValue && Right.Compute(ctx).BoolValue;
+        if (Op == Operator.Or)
+            return Left.Compute(ctx).BoolValue || Right.Compute(ctx).BoolValue;
+
         var left = Left.Compute(ctx);
         Profiler.Value(left.Type.BaseType);
         var right = Right.Compute(ctx);
@@ -63,10 +72,6 @@ public class BinaryOperator : IValueSql
                     return left.FloatValue >= right.FloatValue;
                 case Operator.Le:
                     return left.FloatValue <= right.FloatValue;
-                case Operator.And:
-                    return left.BoolValue && right.BoolValue;
-                case Operator.Or:
-                    return left.BoolValue || right.BoolValue;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
