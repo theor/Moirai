@@ -80,6 +80,7 @@ public static partial class MoiraiInterop
             "GetFamilyTree" => Json(Session.GetFamilyTree((uint)Int(0), (int)Int(1))),
             "GetEntityTypes" => Json(Session.GetEntityTypes()),
             "GetNotable" => Json(Session.GetNotable((int)Int(0))),
+            "GetChronicle" => Json(Session.GetChronicle((int)Int(0))),
             "GetEntityAt" => Json(Session.GetEntityAt((uint)Int(0), Int(1))),
             "GetEntityDetails" => Json(Session.GetEntityDetails((uint)Int(0))),
             "GetChangesetsCount" => Json(Session.GetChangesetsCount()),

@@ -212,6 +212,84 @@ public class WorldSessionTests
     }
 
     [Test]
+    public void ChronicleTurningPointsAreTheHeaviestRecordsInTimeOrder()
+    {
+        var s = Session();
+        s.PassYears(200);
+
+        var c = s.GetChronicle(8);
+
+        Assert.That(c.Weighted, Is.True, "w.sg weighs its records");
+        Assert.That(c.TurningPoints, Has.Length.EqualTo(8));
+        Assert.That(c.TurningPoints.Select(t => (t.Year, t.ChangesetId)), Is.Ordered);
+        Assert.That(c.TurningPoints.Select(t => t.Weight), Has.All.GreaterThan(Database.Record.DefaultWeight));
+        // Slots are shared between kinds of record, so a frequent heavy rule cannot fill the card: w.sg has
+        // more than eight kinds above the default weight, so every turning point is a different one.
+        var kinds = s.Database.Records.Where(r => r.Weight > Database.Record.DefaultWeight)
+            .Select(r => (r.ActionId, r.Weight)).Distinct().Count();
+        Assert.That(kinds, Is.GreaterThan(8));
+        Assert.That(c.TurningPoints.Select(t => t.Text.Split('<')[0] + t.Weight).Distinct().Count(),
+            Is.GreaterThan(4), "the card mixes kinds of event");
+        // The heaviest kind in the world is always represented.
+        var heaviest = s.Database.Records.Max(r => r.Weight);
+        Assert.That(c.TurningPoints.Select(t => t.Weight), Has.Some.EqualTo(heaviest));
+        Assert.That(c.Tags.Select(t => t.Tag), Has.None.Contains("'"), "tags lose the parser's quotes");
+        Assert.That(c.TurningPoints.Select(t => t.Year), Has.All.InRange(c.StartYear, c.Year));
+    }
+
+    [Test]
+    public void ChronicleErasTileTheWorldAndThePresentOneIsOpen()
+    {
+        var s = Session();
+        s.PassYears(200);
+
+        var eras = s.GetChronicle(5).Eras;
+
+        // w.sg: the Founding Age at 764, then one turn somewhere in each 90-year window (EveryXYear). 200
+        // years hold two whole windows and part of a third, so two or three turns; seed 42 gives two.
+        Assert.That(eras, Has.Length.EqualTo(3));
+        Assert.That(eras[0].Name, Is.EqualTo("The Founding Age"));
+        Assert.That(eras[0].Start, Is.EqualTo(s.Database.StartYear));
+        for (int i = 1; i < eras.Length; i++)
+            Assert.That(eras[i].Start, Is.EqualTo(eras[i - 1].End), "each era begins where the last ended");
+        Assert.That(eras.Select(e => e.Open), Is.EqualTo(new[] { false, false, true }));
+        Assert.That(eras[^1].End, Is.EqualTo(s.Year));
+    }
+
+    [Test]
+    public void ChroniclePopulationIsTheLivingCountOfTheLargestMortalType()
+    {
+        var s = Session();
+        s.PassYears(100);
+
+        var pop = s.GetChronicle(5).Population;
+
+        Assert.That(pop.Label, Is.EqualTo("Person alive"));
+        var alive = s.Database.GetEntityType(s.Database.Types.First(t => t.Name == "Person").Id)
+            .GetPropertyId("alive");
+        var living = s.Database.Entities.Count(e => e.TryGetProperty(alive, out var v) && v.BoolValue);
+        Assert.That(pop.Values[^1], Is.EqualTo(living));
+    }
+
+    [Test]
+    public void WeightsChangeNothingButTheRecordsWeight()
+    {
+        // Weights draw no random numbers and gate nothing, so stripping them must leave the same world.
+        var weighted = Wsg();
+        var plain = System.Text.RegularExpressions.Regex.Replace(weighted, @"(record\('(?:[^']|'[^,)])*'), \d+\)", "$1)");
+        Assert.That(plain, Is.Not.EqualTo(weighted), "the pattern should find w.sg's weights");
+
+        var a = new WorldSession(weighted, Seed);
+        var b = new WorldSession(plain, Seed);
+        a.PassYears(120);
+        b.PassYears(120);
+
+        Assert.That(b.Database.Records.Select(r => (r.Year, r.Text)),
+            Is.EqualTo(a.Database.Records.Select(r => (r.Year, r.Text))));
+        Assert.That(b.Database.Records.Select(r => r.Weight).Distinct(), Is.EqualTo(new[] { Database.Record.DefaultWeight }));
+    }
+
+    [Test]
     public void AnEntityInThePastIsItsLastChangesetBeforeThatYear()
     {
         var s = Session();
@@ -793,6 +871,7 @@ public class WorldSessionTests
         // MessageType must be a string union, not a number.
         Assert.That(feed, Does.Contain("\"type\":\"Reset\""));
         Assert.That(feed, Does.Contain("\"type\":\"Year\""));
+        Assert.That(feed, Does.Contain("\"weight\":"), "Record.Weight is a field");
 
         var changes = JsonSerializer.Serialize(s.GetChangesets(0, 1), MoiraiWireJson.Options);
         // EntityId collapses to a bare number rather than an object wrapping its field.
@@ -802,5 +881,9 @@ public class WorldSessionTests
             MoiraiWireJson.Options);
         Assert.That(bio, Does.Contain("\"timeline\""));
         Assert.That(bio, Does.Contain("\"hasFamily\""));
+
+        var chronicle = JsonSerializer.Serialize(s.GetChronicle(5), MoiraiWireJson.Options);
+        Assert.That(chronicle, Does.Contain("\"turningPoints\""));
+        Assert.That(chronicle, Does.Contain("\"startYear\""));
     }
 }

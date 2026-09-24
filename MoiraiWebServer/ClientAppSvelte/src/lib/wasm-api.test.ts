@@ -68,7 +68,7 @@ class FakeEngine implements MoiraiEngine {
 
 const record = (text: string): Message => ({
   type: MessageType.Record,
-  record: { text, changesetId: 1, actionId: 1, year: 800, participants: [], tags: null },
+  record: { text, changesetId: 1, actionId: 1, year: 800, participants: [], tags: null, weight: 1 },
   year: 0,
 });
 

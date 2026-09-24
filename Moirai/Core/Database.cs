@@ -885,9 +885,17 @@ public class Database
         public readonly EntityId[] Participants;
         // Tags of the event/trigger that emitted this record (from @tag(...)), for chronicle grouping.
         public readonly string[]? Tags;
+        // How much this record matters to the story, from record('...', weight). Ordinary records weigh
+        // DefaultWeight; 0 is background noise ("grew old") and anything above the default is a turning
+        // point the chronicle can surface. Relative, not absolute: only the ordering means anything.
+        public readonly int Weight;
 
-        public Record(string text, long year, int changesetId, int actionId, EntityId[] participants, string[]? tags)
+        public const int DefaultWeight = 1;
+
+        public Record(string text, long year, int changesetId, int actionId, EntityId[] participants, string[]? tags,
+            int weight = DefaultWeight)
         {
+            Weight = weight;
             Text = text;
             Year = year;
             ChangesetId = changesetId;
@@ -902,11 +910,12 @@ public class Database
     // The event/trigger currently executing, captured so AppendRecord can stamp records with its tags.
     private EventTrigger? _currentAction;
 
-    public void AppendRecord(string text, long year, IReadOnlyCollection<EntityId>? participants = null)
+    public void AppendRecord(string text, long year, IReadOnlyCollection<EntityId>? participants = null,
+        int weight = Record.DefaultWeight)
     {
         Records.Add(new(text, year, CurrentChangeset.Id, _currentActionId,
             participants?.ToArray() ?? Array.Empty<EntityId>(),
-            _currentAction?.Tags?.ToArray()));
+            _currentAction?.Tags?.ToArray(), weight));
         DebugHook?.OnRecord(text, year);
     }
 

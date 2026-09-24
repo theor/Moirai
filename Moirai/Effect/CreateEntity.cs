@@ -212,17 +212,22 @@ public class SinceLast(IValue Entity, int EventIndex) : IValueCall, IValueSql
 public class Record : IValueCall
 {
     public InterpolatedString String;
+    // record('...', weight): any number expression, so a story can weigh a record by what happened
+    // (a king's death more than a farmer's). Null means Database.Record.DefaultWeight.
+    public IValue? Weight;
 
-    public Record(InterpolatedString str)
+    public Record(InterpolatedString str, IValue? weight = null)
     {
         String = str;
+        Weight = weight;
     }
 
     public PropertyValue Compute(ExecuteContext ctx)
     {
         var participants = new List<EntityId>();
         var text = ctx.Database.Printer.Format(String, ctx.Database, true, participants);
-        ctx.Database.AppendRecord(text, ctx.Year, participants);
+        var weight = Weight?.Compute(ctx).IntValue ?? Database.Record.DefaultWeight;
+        ctx.Database.AppendRecord(text, ctx.Year, participants, weight);
         return true;
     }
 
@@ -230,6 +235,8 @@ public class Record : IValueCall
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
         yield return String;
+        if (Weight != null)
+            yield return Weight;
     }
 }
 

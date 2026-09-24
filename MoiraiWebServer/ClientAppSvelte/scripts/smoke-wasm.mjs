@@ -118,6 +118,17 @@ check(
     notableGroups[0].top[0].mentions >= notableGroups[0].top.at(-1).mentions,
   `${notableGroups.length} groups, first ${notableGroups[0]?.typeName}`,
 );
+const chronicle = call('GetChronicle', 8);
+check(
+  'GetChronicle: weighted turning points, eras and a population series',
+  chronicle.weighted === true &&
+    chronicle.turningPoints.length > 0 &&
+    chronicle.turningPoints.length <= 8 &&
+    chronicle.turningPoints.every((t) => t.weight > 1 && typeof t.text === 'string') &&
+    chronicle.eras.length > 0 &&
+    chronicle.population.values.length > 0,
+  `${chronicle.turningPoints.length} turning points, ${chronicle.eras.length} eras`,
+);
 const pastYear = call('GetWorldOverview').year - 60;
 const past = call('GetEntityAt', eid, pastYear);
 check(

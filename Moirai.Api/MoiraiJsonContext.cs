@@ -32,6 +32,7 @@ namespace Moirai.Api;
 [JsonSerializable(typeof(TimeSeries))]
 [JsonSerializable(typeof(RuleCoverageReport))]
 [JsonSerializable(typeof(NotableGroup[]))]
+[JsonSerializable(typeof(Chronicle))]
 [JsonSerializable(typeof(QueryResult))]
 [JsonSerializable(typeof(StoryApplyResult))]
 [JsonSerializable(typeof(StoryDiagnostic[]))]

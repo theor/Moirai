@@ -7,6 +7,8 @@ export interface Record {
   year: number;
   participants: number[];
   tags: string[] | null;
+  /** How much the record matters, from `record('…', weight)`: 1 by default, 0 for noise, more for a turning point. */
+  weight: number;
 }
 
 export interface Message {
@@ -205,4 +207,41 @@ export interface NotableGroup {
   /** The type declares parent1/parent2, so its entities have a family tree. */
   hasFamily: boolean;
   top: NotableEntity[];
+}
+
+// --- the chronicle: the world on one card --------------------------------------------------------
+// These mirror Moirai.Api's Chronicle / ChronicleEra / ChronicleEntry / ChronicleTag.
+
+/** A named period: an entity whose type declares start_year and end_year. The open one is the present. */
+export interface ChronicleEra {
+  id: number;
+  name: string;
+  start: number;
+  end: number;
+  open: boolean;
+}
+
+export interface ChronicleEntry {
+  year: number;
+  changesetId: number;
+  text: string;
+  weight: number;
+  tags: string[];
+}
+
+export interface ChronicleTag {
+  tag: string;
+  records: number;
+}
+
+export interface Chronicle {
+  startYear: number;
+  year: number;
+  records: number;
+  population: TimeSeries;
+  eras: ChronicleEra[];
+  turningPoints: ChronicleEntry[];
+  tags: ChronicleTag[];
+  /** The story weighs its records. When false, the turning points are only an even sample. */
+  weighted: boolean;
 }

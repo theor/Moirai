@@ -129,6 +129,34 @@ public record NotableEntity(uint Id, string Name, int Mentions, long FirstYear, 
 /// </summary>
 public record NotableGroup(int TypeId, string TypeName, bool HasFamily, NotableEntity[] Top);
 
+/// <summary>
+/// A named period of the world's history: an entity whose type declares number <c>start_year</c> and
+/// <c>end_year</c> (w.sg's <c>Era</c>). <c>End</c> is the present year for the open period, whose
+/// <c>end_year</c> is still 0.
+/// </summary>
+public record ChronicleEra(uint Id, string Name, long Start, long End, bool Open);
+
+/// <summary>A record chosen for the chronicle because of its weight (see <see cref="Database.Record.Weight"/>).</summary>
+public record ChronicleEntry(long Year, int ChangesetId, string Text, int Weight, string[] Tags);
+
+/// <summary>How many records carry a tag: what the world has mostly been about.</summary>
+public record ChronicleTag(string Tag, int Records);
+
+/// <summary>
+/// The whole world on one card: its span, how its population moved, its eras and its turning points.
+/// <c>Weighted</c> says whether the story weighs its records at all; when it does not, the turning
+/// points are only an even sample across time, and the viewer can say so.
+/// </summary>
+public record Chronicle(
+    long StartYear,
+    long Year,
+    int Records,
+    TimeSeries Population,
+    ChronicleEra[] Eras,
+    ChronicleEntry[] TurningPoints,
+    ChronicleTag[] Tags,
+    bool Weighted);
+
 public struct Result
 {
     public EntityId Eid;

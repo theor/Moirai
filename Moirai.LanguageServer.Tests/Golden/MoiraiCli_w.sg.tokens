@@ -69,6 +69,7 @@
 1011:44-1011:48 property
 1011:49-1011:62 string
 1011:62-1011:63 string
+1011:65-1011:66 number
 1011:8-1011:14 function
 1012:6-1012:10 keyword
 1013:12-1013:16 function
@@ -207,6 +208,7 @@
 1035:80-1035:81 operator
 1035:81-1035:85 property
 1035:86-1035:87 string
+1035:89-1035:90 number
 1037:12-1037:18 function
 1037:19-1037:25 type
 1037:26-1037:28 variable
@@ -250,6 +252,7 @@
 1043:58-1043:62 property
 1043:63-1043:82 string
 1043:82-1043:83 string
+1043:85-1043:86 number
 1045:8-1045:9 property
 1046:12-1046:15 keyword
 1046:16-1046:18 variable
@@ -273,6 +276,7 @@
 1047:69-1047:70 operator
 1047:70-1047:74 property
 1047:75-1047:76 string
+1047:78-1047:79 number
 104:0-104:85 comment
 105:0-105:6 keyword
 105:7-105:10 type
@@ -654,6 +658,7 @@
 219:72-219:73 operator
 219:73-219:77 property
 219:78-219:79 string
+219:81-219:82 number
 21:14-21:17 enum
 21:4-21:8 keyword
 21:9-21:12 property
@@ -780,6 +785,7 @@
 248:51-248:55 property
 248:56-248:77 string
 248:77-248:78 string
+248:80-248:81 number
 249:20-249:23 keyword
 249:24-249:26 variable
 249:26-249:27 operator
@@ -809,6 +815,7 @@
 254:58-254:62 property
 254:63-254:91 string
 254:91-254:92 string
+254:94-254:95 number
 255:12-255:23 comment
 25:21-25:31 type
 25:4-25:8 keyword
@@ -921,6 +928,7 @@
 277:70-277:71 operator
 277:71-277:75 property
 277:76-277:77 string
+277:79-277:80 number
 27:0-27:1 decorator
 27:1-27:8 decorator
 27:104-27:105 operator
@@ -1025,6 +1033,7 @@
 290:75-290:76 operator
 290:76-290:80 property
 290:81-290:82 string
+290:84-290:85 number
 291:27-291:29 variable
 291:31-291:37 variable
 291:4-291:8 function
@@ -1139,6 +1148,7 @@
 313:39-313:43 property
 313:44-313:62 string
 313:62-313:63 string
+313:65-313:66 number
 315:22-315:23 operator
 315:23-315:27 enumMember
 315:8-315:22 enum
@@ -1168,6 +1178,7 @@
 318:36-318:40 property
 318:41-318:59 string
 318:59-318:60 string
+318:62-318:63 number
 31:16-31:22 type
 31:4-31:8 keyword
 31:9-31:14 property
@@ -1233,6 +1244,7 @@
 331:34-331:64 string
 331:4-331:10 function
 331:64-331:65 string
+331:67-331:68 number
 334:0-334:1 decorator
 334:1-334:4 decorator
 334:11-334:12 string
@@ -1582,6 +1594,7 @@
 409:102-409:103 operator
 409:103-409:107 property
 409:108-409:109 string
+409:111-409:112 number
 409:12-409:18 function
 409:19-409:20 string
 409:21-409:26 variable
@@ -1618,6 +1631,7 @@
 412:87-412:88 operator
 412:88-412:92 property
 412:93-412:94 string
+412:96-412:97 number
 417:0-417:96 comment
 418:0-418:30 comment
 419:0-419:1 decorator
@@ -1671,6 +1685,7 @@
 426:64-426:65 operator
 426:65-426:69 property
 426:70-426:71 string
+426:73-426:74 number
 426:8-426:14 function
 430:0-430:7 keyword
 430:8-430:12 class [definition]
@@ -1895,6 +1910,7 @@
 466:49-466:50 operator
 466:50-466:53 property
 466:54-466:55 string
+466:57-466:58 number
 469:13-469:17 variable
 469:19-469:23 variable
 469:23-469:24 operator
@@ -1998,6 +2014,7 @@
 484:31-484:35 property
 484:36-484:45 string
 484:45-484:46 string
+484:48-484:49 number
 485:16-485:106 comment
 486:16-486:107 comment
 487:16-487:110 comment
@@ -2435,6 +2452,7 @@
 573:44-573:45 operator
 573:45-573:49 property
 573:50-573:51 string
+573:53-573:54 number
 576:0-576:94 comment
 577:0-577:88 comment
 578:0-578:1 decorator
@@ -2639,6 +2657,7 @@
 612:78-612:82 property
 612:8-612:14 function
 612:83-612:84 string
+612:86-612:87 number
 616:0-616:51 comment
 617:0-617:1 decorator
 617:1-617:10 decorator
@@ -2683,6 +2702,7 @@
 623:44-623:48 property
 623:49-623:71 string
 623:71-623:72 string
+623:74-623:75 number
 625:0-625:1 decorator
 625:1-625:10 decorator
 625:11-625:12 number
@@ -2917,6 +2937,7 @@
 652:39-652:43 property
 652:4-652:10 function
 652:44-652:45 string
+652:47-652:48 number
 654:0-654:1 decorator
 654:1-654:10 decorator
 654:11-654:12 number
@@ -3061,6 +3082,7 @@
 673:35-673:39 property
 673:4-673:10 function
 673:40-673:41 string
+673:43-673:44 number
 675:0-675:1 decorator
 675:1-675:10 decorator
 675:11-675:12 number
@@ -3120,6 +3142,7 @@
 683:35-683:47 string
 683:4-683:10 function
 683:47-683:48 string
+683:50-683:51 number
 684:10-684:11 operator
 684:11-684:21 property
 684:22-684:23 operator
@@ -3315,6 +3338,7 @@
 735:35-735:71 string
 735:4-735:10 function
 735:71-735:72 string
+735:74-735:75 number
 736:10-736:11 operator
 736:11-736:21 property
 736:22-736:23 operator
@@ -3386,6 +3410,7 @@
 746:46-746:47 operator
 746:47-746:51 property
 746:52-746:53 string
+746:55-746:56 number
 748:10-748:11 operator
 748:11-748:21 property
 748:22-748:23 operator
@@ -3461,6 +3486,7 @@
 762:25-762:26 operator
 762:26-762:30 property
 762:31-762:32 string
+762:34-762:35 number
 762:4-762:10 function
 764:0-764:1 decorator
 764:1-764:10 decorator
@@ -3908,6 +3934,7 @@
 830:24-830:28 property
 830:29-830:69 string
 830:69-830:70 string
+830:72-830:73 number
 835:0-835:97 comment
 836:0-836:100 comment
 837:0-837:1 decorator
@@ -3998,6 +4025,7 @@
 851:74-851:79 property
 851:8-851:14 function
 851:80-851:81 string
+851:83-851:84 number
 852:6-852:10 keyword
 853:15-853:16 string
 853:17-853:19 variable
@@ -4013,6 +4041,7 @@
 853:77-853:82 property
 853:8-853:14 function
 853:83-853:84 string
+853:86-853:87 number
 857:0-857:102 comment
 858:0-858:1 decorator
 858:1-858:10 decorator
@@ -4086,6 +4115,7 @@
 865:4-865:7 keyword
 865:8-865:10 variable
 866:102-866:103 string
+866:105-866:106 number
 866:11-866:12 string
 866:12-866:24 string
 866:25-866:27 variable
@@ -4496,6 +4526,7 @@
 931:56-931:57 operator
 931:57-931:61 property
 931:62-931:63 string
+931:65-931:66 number
 933:11-933:12 operator
 933:12-933:19 enumMember
 933:8-933:11 enum
@@ -4517,6 +4548,7 @@
 935:59-935:60 operator
 935:60-935:64 property
 935:65-935:66 string
+935:68-935:69 number
 937:11-937:12 operator
 937:12-937:18 enumMember
 937:8-937:11 enum
@@ -4538,6 +4570,7 @@
 939:58-939:59 operator
 939:59-939:63 property
 939:64-939:65 string
+939:67-939:68 number
 941:11-941:12 operator
 941:12-941:20 enumMember
 941:8-941:11 enum
@@ -4559,6 +4592,7 @@
 943:60-943:61 operator
 943:61-943:65 property
 943:66-943:67 string
+943:69-943:70 number
 945:8-945:9 property
 946:12-946:15 keyword
 946:16-946:18 variable
@@ -4586,6 +4620,7 @@
 948:49-948:50 operator
 948:50-948:54 property
 948:55-948:56 string
+948:58-948:59 number
 94:0-94:99 comment
 951:10-951:11 operator
 951:11-951:18 property
@@ -4676,6 +4711,7 @@
 964:39-964:40 operator
 964:40-964:44 property
 964:45-964:46 string
+964:48-964:49 number
 964:8-964:14 function
 967:0-967:101 comment
 968:0-968:1 decorator
@@ -4849,6 +4885,7 @@
 994:50-994:51 operator
 994:51-994:55 property
 994:56-994:57 string
+994:59-994:60 number
 995:13-995:17 type
 995:18-995:20 variable
 995:23-995:32 property

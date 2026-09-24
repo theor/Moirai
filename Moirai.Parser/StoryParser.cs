@@ -147,10 +147,22 @@ public static class StoryParser
         "related($a, $b, n): true when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way (parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4). Parents are the type's parent1/parent2."),
         new("record", false, ctx =>
         {
+            ctx.ExpectArgcount(2, isMaxCount: true);
             var interpolatedString = (InterpolatedString) ctx.ParseArgument(0);
-            return (new Record(interpolatedString), PropertyValue.ValueType.Null);
+            IValue? weight = null;
+            // Only the () form can carry a weight: the bare `record '...'` form has a single argument, and
+            // asking it for a second reports "convert to () syntax".
+            if (ctx.ArgCount > 1)
+            {
+                weight = ctx.ParseArgument(1, out var weightType);
+                if (weightType.BaseType is not (PropertyValue.ValueBaseType.Number or PropertyValue.ValueBaseType.Float))
+                    ctx.Visitor.AddError(ErrorCode.InvalidArgument, ctx.GetArgumentToken(1)?.Span ?? ctx.CallContext.Span,
+                        "record() weight must be a number");
+            }
+
+            return (new Record(interpolatedString, weight), PropertyValue.ValueType.Null);
         },
-        "Records a string into the world history"),
+        "record('text', weight?): records a string into the world history. The optional weight says how much it matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces."),
         new("link", false, ctx =>
         {
             var linkValue = ctx.ParseArgument(0);

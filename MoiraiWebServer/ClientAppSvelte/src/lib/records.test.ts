@@ -9,6 +9,7 @@ const rec = (over: Partial<StoryRecord> = {}): StoryRecord => ({
   year: 800,
   participants: [],
   tags: null,
+  weight: 1,
   ...over,
 });
 

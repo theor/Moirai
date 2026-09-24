@@ -5,6 +5,9 @@
   import Check from 'virtual:icons/mdi/check';
   import { notable } from '$lib/notable';
   import NotableList from '../components/NotableList.svelte';
+  import ChronicleCard from '../components/ChronicleCard.svelte';
+  import type { Chronicle } from '$lib/types';
+  import { get } from 'svelte/store';
 
   /**
    * The landing view: which world you are looking at, and a link to it.
@@ -17,6 +20,27 @@
   const connecting = $derived($moiraiStore.conn === undefined);
   const shareable = $derived($moiraiStore.conn?.worldInPage === true);
   const seed = $derived($moiraiStore.clientData?.seed);
+
+  const TURNING_POINTS = 8;
+
+  // Refetched on the settled year, like the notable list: it scans every record, and a pass would
+  // otherwise ask for it on every tick. The connection is read with get(), not $moiraiStore, because
+  // the store changes with every batch of records and the effect would re-run on each one. The ticket
+  // drops a slow answer to an older question.
+  let chronicle: Chronicle | null = $state(null);
+  let asked = 0;
+  $effect(() => {
+    void $settledYear;
+    const conn = get(moiraiStore).conn;
+    if (!conn) return;
+    const ticket = ++asked;
+    conn.getChronicle(TURNING_POINTS).then(
+      (c) => {
+        if (ticket === asked && c) chronicle = c;
+      },
+      (err: unknown) => console.error('getChronicle failed', err),
+    );
+  });
 
   let copied = $state(false);
   let link = $state('');
@@ -56,15 +80,12 @@
       </p>
       {#if connecting}
         <p class="mt-3">Starting the engine…</p>
-      {:else}
-        <p class="mt-3 text-lg">
-          Year <strong class="tabular-nums">{$moiraiStore.year}</strong>, grown from seed
-          <strong class="tabular-nums">{seed}</strong>, with
-          <strong class="tabular-nums">{$moiraiStore.records.length.toLocaleString()}</strong>
-          records so far.
-        </p>
       {/if}
     </header>
+
+    {#if !connecting && chronicle}
+      <ChronicleCard {chronicle} {seed} />
+    {/if}
 
     {#if $notable.length > 0}
       <section>

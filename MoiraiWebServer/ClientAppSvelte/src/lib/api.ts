@@ -1,5 +1,6 @@
 import type {
   Biography,
+  Chronicle,
   ClientData,
   EntityChangeDisplay,
   EntityPropertyDisplay,
@@ -103,6 +104,8 @@ export interface MoiraiApi {
   getEntityDetails(entityId: number): Promise<EntityPropertyDisplay[]>;
   /** The entities mentioned in the most records, `perType` of each type, most-mentioned type first. */
   getNotable(perType: number): Promise<NotableGroup[]>;
+  /** The world on one card: its span, population, eras and up to `turningPoints` weightiest records. */
+  getChronicle(turningPoints: number): Promise<Chronicle | null>;
   /** An entity's properties at the end of `year`: empty before it existed, live details from now on. */
   getEntityAt(entityId: number, year: number): Promise<EntityPropertyDisplay[]>;
   getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]>;

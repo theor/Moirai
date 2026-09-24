@@ -374,6 +374,147 @@ public sealed class WorldSession
     }
 
     /// <summary>
+    /// The world at a glance, for the card a shared link opens on: its span, its population over time, its
+    /// named eras and up to <paramref name="turningPoints"/> of its weightiest records.
+    ///
+    /// <para><b>Turning points</b> are shared out between <i>kinds</i> of record — one sentence at one weight —
+    /// a slot at a time, heaviest kind first, and each kind's share is spread evenly across the years it
+    /// happened in. Taking the heaviest records outright fills the card with whichever weighty thing is
+    /// also frequent (eight vacant thrones); sharing gives eight different kinds of turning point, which
+    /// is what a reader needs to see the shape of a history. Only records above
+    /// <see cref="Database.Record.DefaultWeight"/> qualify, unless the story weighs nothing, in which case
+    /// every ordinary record does.</para>
+    ///
+    /// <para><b>Population</b> is the type with the most entities among those declaring a bool
+    /// <c>alive</c>, counted where it is true — the same convention the family tree reads death by. A
+    /// story with no such type gets the cumulative count of its largest type instead.</para>
+    ///
+    /// <para><b>Tags</b> lose their quotes here: the parser keeps a @tag's literal text, quotes and all
+    /// (see <c>AstVisitor</c>), and a card is the wrong place to show that.</para>
+    /// </summary>
+    public Chronicle GetChronicle(int turningPoints)
+    {
+        long Begins(long year) => Math.Max(year, _db.StartYear);
+        static string[] Tags(string[]? tags) => tags?.Select(t => t.Trim('\'')).ToArray() ?? Array.Empty<string>();
+
+        var weighted = _db.Records.Any(r => r.Weight != Database.Record.DefaultWeight);
+        var threshold = weighted ? Database.Record.DefaultWeight + 1 : Database.Record.DefaultWeight;
+
+        // Records are appended in time order, so each kind's list is already chronological; the stable
+        // OrderBy keeps kinds of equal weight in the order they first happened.
+        var kinds = _db.Records.Where(r => r.Weight >= threshold)
+            .GroupBy(r => (Template(r.Text), r.Weight))
+            .Select(g => g.ToList())
+            .OrderByDescending(k => k[0].Weight)
+            .ToList();
+        var quota = new int[kinds.Count];
+        for (int left = turningPoints, given = -1; left > 0 && given != 0;)
+        {
+            given = 0;
+            for (int k = 0; k < kinds.Count && left > 0; k++)
+                if (quota[k] < kinds[k].Count)
+                {
+                    quota[k]++;
+                    left--;
+                    given++;
+                }
+        }
+
+        var chosen = new List<Database.Record>();
+        for (int k = 0; k < kinds.Count; k++)
+            for (int i = 0; i < quota[k]; i++)
+                chosen.Add(kinds[k][(int)((i + 0.5) * kinds[k].Count / quota[k])]);
+
+        var entries = chosen
+            .OrderBy(r => r.Year).ThenBy(r => r.ChangesetId)
+            .Select(r => new ChronicleEntry(Begins(r.Year), r.ChangesetId, r.Text, r.Weight, Tags(r.Tags)))
+            .ToArray();
+
+        var tags = _db.Records
+            .SelectMany(r => Tags(r.Tags))
+            .GroupBy(t => t)
+            .Select(g => new ChronicleTag(g.Key, g.Count()))
+            .OrderByDescending(t => t.Records).ThenBy(t => t.Tag, StringComparer.Ordinal)
+            .ToArray();
+
+        return new Chronicle(_db.StartYear, Math.Max(0, _db.Ctx.Year), _db.Records.Count, Population(),
+            Eras(), entries, tags, weighted);
+    }
+
+    // A record's sentence with its entity links and numbers blanked: what one record() call site writes
+    // whatever it is about. The rule is no key for this: a trigger's records carry the id of the event
+    // that set it off (RunTriggers does not replace Database._currentActionId), so one succession
+    // trigger would count as a different kind for every way a ruler can die.
+    private static string Template(string text)
+    {
+        var sb = new System.Text.StringBuilder(text.Length);
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (text[i] == '<' && i + 1 < text.Length && text[i + 1] == '#'
+                && text.IndexOf("</>", i, StringComparison.Ordinal) is var close and >= 0)
+            {
+                sb.Append('_');
+                i = close + 2;
+            }
+            else if (char.IsAsciiDigit(text[i]))
+            {
+                if (sb.Length == 0 || sb[^1] != '#') sb.Append('#');
+            }
+            else
+                sb.Append(text[i]);
+        }
+        return sb.ToString();
+    }
+
+    private TimeSeries Population()
+    {
+        if (_db.History == null)
+            return TimeSeries.Empty;
+
+        int Count(EntityType t) => _db.Entities.Count(e => e.Type == t.Id);
+        var types = WorldSeries.StoryTypes(_db).Where(t => !t.IsSingleton).ToList();
+        var living = types
+            .Where(t => t.GetPropertyType("alive").BaseType == PropertyValue.ValueBaseType.Bool)
+            .OrderByDescending(Count).FirstOrDefault();
+        if (living != null)
+            return WorldSeries.PropertyOverTime(_db, living, "alive") with { Label = $"{living.Name} alive" };
+
+        var largest = types.OrderByDescending(Count).FirstOrDefault();
+        return largest != null && WorldSeries.EntitiesOfType(_db, largest) is { } s
+            ? s with { Label = $"{largest.Name} ever" }
+            : TimeSeries.Empty;
+    }
+
+    // Every entity of a type declaring number start_year and end_year and no references, in order. An
+    // end_year of 0 is the open, present era. The no-reference rule is what tells a period from a spell
+    // of something: w.sg's ItemOwnership has the same two years, but it is who held what, not an age.
+    private static readonly int BuiltinProperties = Database.DefaultProperties().Count;
+
+    private ChronicleEra[] Eras()
+    {
+        static bool IsNumber(EntityType t, string prop) =>
+            t.GetPropertyType(prop).BaseType is PropertyValue.ValueBaseType.Number or PropertyValue.ValueBaseType.Float;
+        static bool IsPeriod(EntityType t) =>
+            IsNumber(t, "start_year") && IsNumber(t, "end_year") && !t.Properties.Skip(BuiltinProperties).Any(p => p.Type.IsRefType);
+
+        var now = Math.Max(0, _db.Ctx.Year);
+        var eras = new List<ChronicleEra>();
+        foreach (var type in _db.Types.Where(IsPeriod))
+        {
+            var start = type.GetPropertyId("start_year");
+            var end = type.GetPropertyId("end_year");
+            foreach (var e in _db.Entities.Where(e => e.Type == type.Id))
+            {
+                var s = e.TryGetProperty(start, out var sv) ? sv.IntValue : 0;
+                var f = e.TryGetProperty(end, out var ev) ? ev.IntValue : 0;
+                eras.Add(new ChronicleEra(e.Id.Id, NameOf(e), s, f == 0 ? now : f, f == 0));
+            }
+        }
+
+        return eras.OrderBy(e => e.Start).ThenBy(e => e.Id).ToArray();
+    }
+
+    /// <summary>
     /// An entity's properties as they stood at the end of <paramref name="year"/>. Empty if it did not
     /// exist yet; its live details if <paramref name="year"/> is the present or later.
     ///

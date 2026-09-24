@@ -360,6 +360,21 @@ public class ChatHub : Hub
         }
     }
 
+    // A read like GetNotable, so the same short wait: an empty card beats queueing behind a pass.
+    public Chronicle? GetChronicle(int turningPoints)
+    {
+        if (!Mutex.Wait(500))
+            return null;
+        try
+        {
+            return _session!.GetChronicle(turningPoints);
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
     public IList<EntityPropertyDisplay> GetEntityAt(uint eid, long year)
     {
         if (!Mutex.Wait(500))

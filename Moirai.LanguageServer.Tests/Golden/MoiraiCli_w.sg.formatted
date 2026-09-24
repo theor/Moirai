@@ -217,7 +217,7 @@ event advance_age {
     create Era $next: ('{roll(AgeName)}') {
         start_year := #Time.year
     }
-    record('The {$cur.name} ends; {$next.name} begins in the year {#Time.year}')
+    record('The {$cur.name} ends; {$next.name} begins in the year {#Time.year}', 5)
 }
 
 // Wire up the map once at start: give each realm a couple of bordering neighbors (links are mutual).
@@ -246,13 +246,13 @@ event update_country_health {
 
             false, CountryHealth.Disarray => random_weighted 100 {
                 3 => {
-                    record('The governement of {$c.name} disappears in a coup')
+                    record('The governement of {$c.name} disappears in a coup', 4)
                     set $c.health = CountryHealth.Neutral
                     set $c.prosperity = 50%
                 }
             }
             // true, CountryHealth.Disarray => record('{$c.name} enters an era or disarray')
-            true, CountryHealth.Prosperous => record('{$c.name} enters an era of prosperity')
+            true, CountryHealth.Prosperous => record('{$c.name} enters an era of prosperity', 2)
             //  _ => {}
         }
     }
@@ -275,7 +275,7 @@ event found_settlement ($founder: Person, $realm: Country) {
         status := SettlementStatus.Thriving
         prosperity := 40%
     }
-    record('{$founder.name} founds the village of {$s.name} in {$realm.name}')
+    record('{$founder.name} founds the village of {$s.name} in {$realm.name}', 2)
 }
 
 // Raise a ruler over any country whose throne is empty (a newly founded realm, or one left vacant by
@@ -288,7 +288,7 @@ event crown_monarch {
     set $realm.ruler = $p
     set $p.title = Title.King
     set $p.prestige = $p.prestige + 30%
-    record('{$p.name} of House {$p.family_name} is crowned ruler of {$realm.name}')
+    record('{$p.name} of House {$p.family_name} is crowned ruler of {$realm.name}', 3)
     call(found_settlement, $p, $realm)
 }
 
@@ -311,12 +311,12 @@ event settlement_grows {
         SettlementKind.Village => {
             set $s.kind = SettlementKind.Town
             set $s.prosperity = $s.prosperity + 10%
-            record('The village of {$s.name} grows into a town')
+            record('The village of {$s.name} grows into a town', 2)
         }
         SettlementKind.Town => {
             set $s.kind = SettlementKind.City
             set $s.prosperity = $s.prosperity + 10%
-            record('The town of {$s.name} grows into a city')
+            record('The town of {$s.name} grows into a city', 3)
         }
     }
 }
@@ -329,7 +329,7 @@ event settlement_sacked {
     pick Settlement $s: (country = $c and status != SettlementStatus.Ruined)
     set $s.status = SettlementStatus.Ruined
     set $s.prosperity = 0%
-    record('{$s.name} in {$c.name} is sacked and falls into ruin')
+    record('{$s.name} in {$c.name} is sacked and falls into ruin', 3)
 }
 
 @tag('items')
@@ -407,10 +407,10 @@ trigger succession {
             set $realm.ruler = $heir
             set $heir.title = Title.King
             set $heir.prestige = $heir.prestige + 20%
-            record('{$heir.name} of House {$heir.family_name} succeeds {$new.name} as ruler of {$realm.name}')
+            record('{$heir.name} of House {$heir.family_name} succeeds {$new.name} as ruler of {$realm.name}', 3)
         } else {
             set $realm.ruler = null
-            record('The throne of {$realm.name} is left vacant after the death of {$new.name}')
+            record('The throne of {$realm.name} is left vacant after the death of {$new.name}', 4)
         }
     }
 }
@@ -424,7 +424,7 @@ trigger canonize_saint {
     // Only a rare few of the deeply devout are remembered as saints, so the title stays meaningful.
     if random(100) < 8 {
         set $new.is_saint = true
-        record('{$new.name} is canonized as a saint of {$new.god.name}')
+        record('{$new.name} is canonized as a saint of {$new.god.name}', 2)
     }
 }
 
@@ -464,7 +464,7 @@ trigger born {
                 _ => set $self.job = Job.Farmer
             }
             set $self.mastery = Mastery.Novice
-            record('{$self.name} becomes a {$self.job}')
+            record('{$self.name} becomes a {$self.job}', 0)
         }
     }
     schedule($new, $new.birthdate + 40) {
@@ -482,7 +482,7 @@ trigger born {
                     _ => record('{$self.name} dies in an accident at {#Time.year - $self.birthdate} in {#Time.year}')
                 }
             } else {
-                record('{$self.name} grew old')
+                record('{$self.name} grew old', 0)
                 // Draw the natural death year ONCE and schedule it, instead of re-rolling every year past
                 // 80 (this replaces the olds_dies poll). #Time.year here is birthdate+60, so the death age
                 // is 80..94. `if $self.alive` skips anyone who died of other causes (war, murder, ...) first.
@@ -571,7 +571,7 @@ event char_joins_faith {
     pick God $g
     set $x.god = $g
     set $x.devotion = 30%
-    record('{$x.name} takes the faith of {$g.name}')
+    record('{$x.name} takes the faith of {$g.name}', 0)
 }
 
 // Believers deepen their faith over the years. Applies to every believer so devotion actually
@@ -610,7 +610,7 @@ event prophet_rises {
             founded := #Time.year
         }
         set $p.prestige = $p.prestige + 20%
-        record('{$p.name}, a prophet of {$g.name}, raises a temple in {$realm.name}')
+        record('{$p.name}, a prophet of {$g.name}, raises a temple in {$realm.name}', 3)
     }
 }
 
@@ -621,7 +621,7 @@ event divine_wrath {
     pick God $g
     pick Country $c: (prosperity > 20%)
     set $c.prosperity = $c.prosperity - 20%
-    record('{$g.name} visits wrath upon {$c.name}, and the land withers')
+    record('{$g.name} visits wrath upon {$c.name}, and the land withers', 3)
 }
 @frequency(1, PerXYear, 2)
 event wedding {
@@ -650,7 +650,7 @@ event murder {
     pick Person $y: (alive = true, id != $x, place = $x.place)
     set $y.alive = false
     set $y.killer = $x
-    record('{$x.name} murders {$y} {$y.name}')
+    record('{$x.name} murders {$y} {$y.name}', 2)
 }
 @frequency(1, PerXYear, 15)
 event bandits_attack_town {
@@ -671,7 +671,7 @@ event char_migrates {
     // Move to a bordering realm rather than teleporting anywhere on the map.
     pick Country $c: (id != $here and contains($here.neighbors, $c))
     set $p.place = $c
-    record('{$p.name} moves to {$c.name}')
+    record('{$p.name} moves to {$c.name}', 0)
 }
 @frequency(1, PerXYear, 25)
 @tag('war')
@@ -681,7 +681,7 @@ event country_war_start {
     pick Country $y: (id != $x, war_with = null, contains($x.neighbors, $y))
     set $x.war_with = $y
     set $y.war_with = $x
-    record('{$x.name} and {$y.name} start a war')
+    record('{$x.name} and {$y.name} start a war', 2)
     set $x.prosperity = $x.prosperity - 10%
     set $y.prosperity = $y.prosperity - 10%
 }
@@ -733,7 +733,7 @@ event country_war_peace {
     var $y: $x.war_with
     set $x.war_with = null
     set $y.war_with = null
-    record('{$x.name} and {$y.name} sign a peace treaty, ending the war')
+    record('{$x.name} and {$y.name} sign a peace treaty, ending the war', 2)
     set $x.prosperity = $x.prosperity + 10%
     set $y.prosperity = $y.prosperity + 10%
 }
@@ -744,7 +744,7 @@ event country_war_win {
     var $y: $x.war_with
     set $x.war_with = null
     set $y.war_with = null
-    record('{$x.name} wins the war against {$y.name}')
+    record('{$x.name} wins the war against {$y.name}', 3)
 
     set $x.prosperity = $x.prosperity + 30%
     set $y.prosperity = $y.prosperity - 10%
@@ -760,7 +760,7 @@ event country_natural_disaster {
         _ => 'An earthquake'
     }
     set $c.prosperity = $c.prosperity - 30%
-    record('{$d} hits {$c.name}')
+    record('{$d} hits {$c.name}', 2)
 }
 @frequency(2, PerXYear, 1)
 event couple_has_child {
@@ -828,7 +828,7 @@ event wizard_studies {
         Mastery.Master => {
             set $w.mastery = Mastery.Legendary
             set $w.prestige = $w.prestige + 30%
-            record('{$w.name} attains legendary mastery of the arcane')
+            record('{$w.name} attains legendary mastery of the arcane', 2)
         }
     }
 }
@@ -849,9 +849,9 @@ event artifact_forged {
         curse := random(100) < 20
     }
     if $i.curse {
-        record('{$w.name} forges the cursed {$i.name}, an artifact of {$i.power}')
+        record('{$w.name} forges the cursed {$i.name}, an artifact of {$i.power}', 3)
     } else {
-        record('{$w.name} forges the enchanted {$i.name}, an artifact of {$i.power}')
+        record('{$w.name} forges the enchanted {$i.name}, an artifact of {$i.power}', 3)
     }
 }
 
@@ -864,7 +864,7 @@ event arcane_catastrophe {
     pick Settlement $s: (country = $realm and status != SettlementStatus.Ruined)
     set $s.status = SettlementStatus.Ruined
     set $s.prosperity = 0%
-    record('A ritual by {$w.name} goes catastrophically wrong; {$s.name} is consumed and left in ruins')
+    record('A ritual by {$w.name} goes catastrophically wrong; {$s.name} is consumed and left in ruins', 4)
 }
 
 @frequency(1, PerXYear, 8)
@@ -929,24 +929,24 @@ event create_faction {
     match $p.job {
         Job.Wizard => {
             set $f.kind = FactionKind.MageCircle
-            record('{$p.name} founds the mage circle {$f.name}')
+            record('{$p.name} founds the mage circle {$f.name}', 2)
         }
         Job.Soldier => {
             set $f.kind = FactionKind.KnightlyOrder
-            record('{$p.name} founds the knightly order {$f.name}')
+            record('{$p.name} founds the knightly order {$f.name}', 2)
         }
         Job.Bandit => {
             set $f.kind = FactionKind.ThievesGuild
-            record('{$p.name} founds the thieves guild {$f.name}')
+            record('{$p.name} founds the thieves guild {$f.name}', 2)
         }
         Job.Merchant => {
             set $f.kind = FactionKind.MerchantLeague
-            record('{$p.name} founds the merchant league {$f.name}')
+            record('{$p.name} founds the merchant league {$f.name}', 2)
         }
         _ => {
             set $f.kind = FactionKind.Cult
             set $f.patron = $p.god
-            record('{$p.name} founds the cult {$f.name}')
+            record('{$p.name} founds the cult {$f.name}', 2)
         }
     }
     set $p.faction = $f
@@ -962,7 +962,7 @@ event char_joins_faction {
         set $p.god = $f.patron
         record('{$p.name} joins the cult {$f.name}, devoted to {$f.patron.name}')
     } else {
-        record('{$p.name} joins the {$f.name}')
+        record('{$p.name} joins the {$f.name}', 0)
     }
 }
 // Knightly orders and thieves guilds are sworn enemies; a feud claims a life (and seeds a vendetta).
@@ -992,7 +992,7 @@ event monster_emerges {
         power := random(40, 90)
         alive := true
     }
-    record('{$m.name}, a {$m.kind}, awakens in {$c.name}')
+    record('{$m.name}, a {$m.kind}, awakens in {$c.name}', 3)
     if (pick Item $i: (enchanted and owner != null)) {
         set $m.hoard = $i
         set $i.owner = null
@@ -1009,7 +1009,7 @@ event monster_raids {
     if (pick Settlement $s: (country = $c and status != SettlementStatus.Ruined)) {
         set $s.status = SettlementStatus.Ruined
         set $s.prosperity = 0%
-        record('{$m.name} descends upon {$s.name} and razes it')
+        record('{$m.name} descends upon {$s.name} and razes it', 3)
     } else {
         if (pick Person $v: (alive and place = $c)) {
             set $v.alive = false
@@ -1033,7 +1033,7 @@ event hero_quest {
             if $m.hoard {
                 var $art: $m.hoard
                 set $art.owner = $h
-                record('{$h.name} recovers the {$art.name} from the hoard of {$m.name}')
+                record('{$h.name} recovers the {$art.name} from the hoard of {$m.name}', 2)
             }
             create Legend $l: ('The Slaying of {$m.name}') {
                 hero := $h
@@ -1041,11 +1041,11 @@ event hero_quest {
                 place := $m.lair
                 year := #Time.year
             }
-            record('{$h.name} slays {$m.name} in {$m.lair.name} — a legend is born')
+            record('{$h.name} slays {$m.name} in {$m.lair.name} — a legend is born', 5)
         }
         _ => {
             set $h.alive = false
-            record('{$h.name} falls confronting {$m.name} in {$m.lair.name}')
+            record('{$h.name} falls confronting {$m.name} in {$m.lair.name}', 2)
         }
     }
 }
