@@ -108,10 +108,6 @@ function is_child_of($ch: Person, $parent: Person): bool {
     (($0.parent1 = $1) or ($0.parent2 = $1))
 }
 
-function shares_parent($a: Person, $b: Person): bool {
-    ((($0.parent1 != null) and (($0.parent1 = $1.parent1) or ($0.parent1 = $1.parent2))) or (($0.parent2 != null) and (($0.parent2 = $1.parent1) or ($0.parent2 = $1.parent2))))
-}
-
 function has_parent($p: Person): bool {
     (($0.parent1 != null) or ($0.parent2 != null))
 }
@@ -360,7 +356,7 @@ event divine_wrath {
 @frequency(1, Frequency.PerXYear, 2)
 event wedding {
     pick Person $0: ((((($0.alive = true) and ($0.partner = null)) and ($0.age > Age.Child)) and ($0.age < Age.Old)))
-    pick Person $1: (((((((((($1.alive = true) and ($1.partner = null)) and ($1.age > Age.Child)) and ($1.age < Age.Old)) and ($1.id != $0)) and ($1.place = $0.place)) and not (is_child_of($1,     $0))) and not (is_child_of($0,     $1))) and not (shares_parent($0,     $1))))
+    pick Person $1: (((((((($1.alive = true) and ($1.partner = null)) and ($1.age > Age.Child)) and ($1.age < Age.Old)) and ($1.id != $0)) and ($1.place = $0.place)) and not (related ($0, $1, 4))))
     set $0.partner = $1
     set $1.partner = $0
     set $0.prosperity = ($0.prosperity + 20%)

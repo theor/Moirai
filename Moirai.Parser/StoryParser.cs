@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using Moirai.Parser.Ast;
 using Superpower.Model;
 
@@ -112,6 +112,39 @@ public static class StoryParser
             var e = ctx.ParseArgument(0);
             return (new SinceLast(e, ctx.Visitor.CurrentEventTrigger!.Id), PropertyValue.TypeNumber);
         }),
+        new("related", false, ctx =>
+        {
+            ctx.ExpectArgcount(3);
+            var a = ctx.ParseArgument(0, out var aType);
+            var b = ctx.ParseArgument(1);
+            var degreeArg = ctx.ParseArgument(2);
+            var span = ctx.CallContext.Span;
+
+            if (degreeArg is not Literal { Value.Type.BaseType: PropertyValue.ValueBaseType.Number } degreeLit
+                || degreeLit.Value.IntValue < 0 || degreeLit.Value.IntValue > Related.MaxDegree)
+            {
+                ctx.Visitor.AddError(ErrorCode.InvalidArgument, ctx.GetArgumentToken(2)?.Span ?? span,
+                    $"related() takes a degree from 0 to {Related.MaxDegree} as a number literal");
+                return (null!, PropertyValue.TypeBool);
+            }
+
+            // Parents are resolved here, once, from the first argument's type: any type declaring
+            // parent1/parent2 has kin, the same convention the viewer's family tree uses.
+            var type = aType.IsRefType && aType.Index != 0
+                ? ctx.Visitor.Database.GetEntityType(new EntityTypeId(aType.Index))
+                : null;
+            var p1 = type?.GetPropertyId("parent1") ?? default;
+            var p2 = type?.GetPropertyId("parent2") ?? default;
+            if (!p1.IsValid || !p2.IsValid)
+            {
+                ctx.Visitor.AddError(ErrorCode.UnknownProperty, ctx.GetArgumentToken(0)?.Span ?? span,
+                    "related() needs an entity whose type declares parent1 and parent2");
+                return (null!, PropertyValue.TypeBool);
+            }
+
+            return (new Related(a, b, degreeLit.Value.IntValue, p1, p2), PropertyValue.TypeBool);
+        },
+        "related($a, $b, n): true when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way (parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4). Parents are the type's parent1/parent2."),
         new("record", false, ctx =>
         {
             var interpolatedString = (InterpolatedString) ctx.ParseArgument(0);
@@ -335,6 +368,7 @@ public static class StoryParser
         FunctionInlinedToSql,
         DuplicateDefinition,
         UnknownTable,
+        InvalidArgument,
     }
 
     /// <summary>How a <see cref="Error"/> should be surfaced. Defaults to <see cref="Error"/> (value 0)

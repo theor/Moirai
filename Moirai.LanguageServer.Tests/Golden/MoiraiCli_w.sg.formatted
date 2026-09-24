@@ -166,12 +166,6 @@ enum GodTypes {
 function is_child_of($ch: Person, $parent: Person): bool {
     $ch.parent1 = $parent or $ch.parent2 = $parent
 }
-// Siblings, whole or half. The null checks are what keep two founders with no recorded parents from
-// counting as siblings: null = null.
-function shares_parent($a: Person, $b: Person): bool {
-    ($a.parent1 != null and ($a.parent1 = $b.parent1 or $a.parent1 = $b.parent2)) or 
-    ($a.parent2 != null and ($a.parent2 = $b.parent1 or $a.parent2 = $b.parent2))
-}
 function has_parent($p: Person): bool {
     $p.parent1 != null or $p.parent2 != null
 }
@@ -632,7 +626,7 @@ event divine_wrath {
 @frequency(1, PerXYear, 2)
 event wedding {
     pick Person $x: (alive = true and partner = null and age > Age.Child and age < Age.Old)
-    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place and not(is_child_of($y, $x)) and not(is_child_of($x, $y)) and not(shares_parent($x, $y)))
+    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place and not(related($x, $y, 4)))
     set $x.partner = $y
     set $y.partner = $x
     set $x.prosperity = $x.prosperity + 20%

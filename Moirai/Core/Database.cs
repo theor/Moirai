@@ -206,9 +206,16 @@ public class Database
         return entity.TryGetProperty(property, out value);
     }
 
+    /// <summary>
+    /// Bumped on every property write. Lets a predicate remember something it derived from the world —
+    /// <see cref="Related"/> keeps one side's ancestors across a whole pick — and know when to forget it.
+    /// </summary>
+    public long WriteVersion { get; private set; }
+
     public bool SetProperty(EntityId entityId, PropertyId property, PropertyValue value = default)
     {
         Profiler.Set(property);
+        WriteVersion++;
 
         if (!TryGetEntity(entityId, out var entity))
             return false;
