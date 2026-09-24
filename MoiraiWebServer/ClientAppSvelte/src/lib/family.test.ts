@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { byId, childrenByCoParent, childrenOf, lifespan, siblingsOf } from './family';
+import {
+  ancestry,
+  ancestryDepth,
+  byId,
+  childIndex,
+  childrenOf,
+  descendantChart,
+  descendantDepth,
+  generationName,
+  lifespan,
+  siblingGroups,
+  siblingsOf,
+} from './family';
 import type { FamilyTreeNode } from './types';
 
 const node = (
@@ -67,37 +79,6 @@ describe('lifespan', () => {
   });
 });
 
-describe('childrenByCoParent', () => {
-  // 1 had children with 2 (first marriage) and 5 (current partner), and one with nobody known.
-  const family = [
-    node(1, 'Parent', 0, 0, { partner: 5 }),
-    node(10, 'First', 1, 2, { born: 800 }),
-    node(11, 'Second', 2, 1, { born: 803 }),
-    node(12, 'Late', 1, 5, { born: 820 }),
-    node(13, 'Early', 5, 1, { born: 815 }),
-    node(14, 'Foundling', 1, 0, { born: 810 }),
-  ];
-
-  it('groups by the other parent, whichever slot either parent is in', () => {
-    const broods = childrenByCoParent(family, 1, 5);
-    const withTwo = broods.find((b) => b.coParent === 2)!;
-    expect(withTwo.children.map((c) => c.name)).toEqual(['First', 'Second']);
-  });
-
-  it('puts the current partner first, then the rest in the order they began', () => {
-    expect(childrenByCoParent(family, 1, 5).map((b) => b.coParent)).toEqual([5, 2, 0]);
-  });
-
-  it('orders each brood eldest first', () => {
-    const current = childrenByCoParent(family, 1, 5)[0];
-    expect(current.children.map((c) => c.name)).toEqual(['Early', 'Late']);
-  });
-
-  it('is empty for someone with no children', () => {
-    expect(childrenByCoParent(family, 10)).toEqual([]);
-  });
-});
-
 describe('siblingsOf', () => {
   // 1 + 2 -> 10, 11;  1 + 3 -> 12;  4 has no known parents, nor does 5.
   const family = [
@@ -120,5 +101,130 @@ describe('siblingsOf', () => {
 
   it('does not treat two people with no parents as siblings', () => {
     expect(siblingsOf(family, 4)).toEqual([]);
+  });
+});
+
+describe('descendantChart', () => {
+  const chart = (nodes: FamilyTreeNode[], id: number) =>
+    descendantChart(id, byId(nodes), childIndex(nodes))!;
+
+  it('walks every generation and counts what a collapse hides', () => {
+    const b = chart(tree, 1);
+    expect(b.groups.map((g) => g.branches.map((x) => x.node.name))).toEqual([['Evander', 'Rhian']]);
+    expect(b.groups[0].branches[0].groups[0].branches[0].node.name).toBe('Rosabelle');
+    expect(b.descendants).toBe(3);
+    expect(descendantDepth(b)).toBe(2);
+  });
+
+  it('shows the only co-parent as the spouse, and then needs no label', () => {
+    // Arwen has no partner on record, but every child is Aislinn's too.
+    const b = chart(tree, 1);
+    expect(b.spouse?.name).toBe('Aislinn');
+    expect(b.groups[0].label).toBe('');
+  });
+
+  it('labels every group when there was more than one other parent', () => {
+    const family = [
+      node(1, 'Arwen', 0, 0, { partner: 5 }),
+      node(2, 'Aislinn'),
+      node(5, 'Corinda'),
+      node(3, 'Evander', 1, 2, { born: 800 }),
+      node(4, 'Rhian', 1, 5, { born: 810 }),
+      node(6, 'Orla', 1, 0, { born: 820 }),
+    ];
+    const b = chart(family, 1);
+    expect(b.spouse?.name).toBe('Corinda');
+    // The partner's children first, then the rest in the order they began.
+    expect(b.groups.map((g) => g.label)).toEqual([
+      'with Corinda',
+      'with Aislinn',
+      'other parent unknown',
+    ]);
+  });
+
+  it('labels a single group whose other parent is not the spouse on the card', () => {
+    const family = [
+      node(1, 'Arwen', 0, 0, { partner: 5 }),
+      node(2, 'Aislinn'),
+      node(5, 'Corinda'),
+      node(3, 'Evander', 1, 2),
+    ];
+    expect(chart(family, 1).groups[0].label).toBe('with Aislinn');
+  });
+
+  it('ignores a partner the tree does not contain', () => {
+    const family = [node(1, 'Arwen', 0, 0, { partner: 99 })];
+    expect(chart(family, 1).spouse).toBeUndefined();
+  });
+
+  it('draws a child of two descendants under both, and stays bounded', () => {
+    // 2 and 3 are both children of 1, and 4 is their child: reachable along two paths.
+    const family = [node(1, 'Root'), node(2, 'A', 1), node(3, 'B', 1), node(4, 'C', 2, 3)];
+    const b = chart(family, 1);
+    const grandchildren = b.groups.flatMap((g) => g.branches).flatMap((x) => x.groups);
+    expect(grandchildren.flatMap((g) => g.branches.map((x) => x.node.id))).toEqual([4, 4]);
+    expect(descendantChart(1, byId(family), childIndex(family), 1)!.descendants).toBe(2);
+  });
+});
+
+describe('ancestry', () => {
+  it('pairs the parents and climbs through both', () => {
+    const family = [
+      node(1, 'GrandA'),
+      node(2, 'GrandB'),
+      node(3, 'Father', 1, 2),
+      node(4, 'Mother'),
+      node(5, 'Me', 3, 4),
+    ];
+    const a = ancestry(5, byId(family))!;
+    expect([a.couple.node.name, a.couple.spouse?.name]).toEqual(['Father', 'Mother']);
+    expect(a.above.map((x) => [x.couple.node.name, x.couple.spouse?.name])).toEqual([
+      ['GrandA', 'GrandB'],
+    ]);
+    expect(ancestryDepth(a)).toBe(2);
+  });
+
+  it('is undefined for someone with no known parents', () => {
+    expect(ancestry(1, byId(tree))).toBeUndefined();
+    expect(ancestryDepth(undefined)).toBe(0);
+  });
+});
+
+describe('siblingGroups', () => {
+  it('puts the full siblings first and labels the half ones by the parent shared', () => {
+    const family = [
+      node(1, 'Father'),
+      node(2, 'Mother'),
+      node(5, 'Stepmother'),
+      node(3, 'Me', 1, 2, { born: 800 }),
+      node(4, 'Brother', 1, 2, { born: 790 }),
+      node(6, 'Half', 1, 5, { born: 810 }),
+    ];
+    const groups = siblingGroups(3, byId(family), childIndex(family));
+    expect(groups.map((g) => g.label)).toEqual(['full', 'half, through Father']);
+    expect(groups[0].branches.map((b) => b.node.name)).toEqual(['Brother', 'Me']);
+  });
+
+  it('leaves an only group unlabelled', () => {
+    const groups = siblingGroups(3, byId(tree), childIndex(tree));
+    expect(groups.map((g) => g.label)).toEqual(['']);
+    // Only the person the chart is centred on carries their descendants.
+    expect(groups[0].branches.map((b) => b.descendants)).toEqual([1, 0]);
+  });
+});
+
+describe('generationName', () => {
+  it('names the columns around the centre', () => {
+    expect([-3, -2, -1, 0, 1, 2, 3, 4, 5].map(generationName)).toEqual([
+      'Great-grandparents',
+      'Grandparents',
+      'Parents',
+      'Siblings',
+      'Children',
+      'Grandchildren',
+      'Great-grandchildren',
+      'Great-great-grandchildren',
+      '3× great-grandchildren',
+    ]);
   });
 });
