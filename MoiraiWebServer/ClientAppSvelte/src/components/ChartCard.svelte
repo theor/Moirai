@@ -1,37 +1,39 @@
 <script lang="ts">
-  import type { ChartView, Couple } from '$lib/family';
+  import type { Placed } from '$lib/family-chart';
   import { lifespan } from '$lib/family';
   import { selectedEntity } from '$lib/utils';
   import { page } from '$app/stores';
 
   /**
-   * One card of the family chart: a person, the spouse shown with them, and when there is anything
-   * below it, the handle that folds it away. Either name re-centres the chart on that person.
+   * One card of the family chart: a couple, or one person, each on a row of fixed height, because the
+   * lines are drawn to computed positions and a row that grew would leave them pointing at nothing.
+   * Either name re-centres the chart on that person.
    *
-   * Every card is the same width, which is what lines the generations up in columns.
-   *
-   * Someone drawn in more than one place gets a colour of their own on every card, a count that
-   * jumps to their next card, and lights up everywhere at once under the pointer.
+   * `shared` marks a card drawn once where a tree would have drawn it several times; `repeat` a
+   * person who is still on more than one card (someone who married twice, into the family both
+   * times). Both carry a hue.
    */
   let {
-    couple,
-    view,
-    below = 0,
-    collapsed = false,
+    placed,
+    focus,
+    collapsed,
+    shared,
+    repeat,
+    hot,
     ontoggle,
+    onhover,
   }: {
-    couple: Couple;
-    view: ChartView;
-    below?: number;
-    collapsed?: boolean;
-    ontoggle?: () => void;
+    placed: Placed;
+    focus: number;
+    collapsed: boolean;
+    shared?: { hue: number; lines: number };
+    repeat: (id: number) => { hue: number; count: number } | undefined;
+    hot: boolean;
+    ontoggle: () => void;
+    onhover: (on: boolean) => void;
   } = $props();
 
-  const people = $derived(couple.spouse ? [couple.node, couple.spouse] : [couple.node]);
-
-  // Far enough apart on the wheel to tell ten couples apart; an eleventh reuses the first hue, and
-  // hovering tells the two apart.
-  const hues = [25, 150, 265, 80, 330, 200, 110, 295, 55, 235];
+  const foldable = $derived(placed.below > 0 && placed.col >= 0);
 
   /** Scroll to the next card for the same person, round to the first after the last. */
   function jump(e: MouseEvent, id: number) {
@@ -51,22 +53,20 @@
   }
 </script>
 
-<div class="fcard">
-  {#each people as p, i (p.id)}
+<div
+  class="fcard"
+  class:shared
+  class:hot
+  style:--hue={shared?.hue}
+  role="presentation"
+  onmouseenter={() => onhover(true)}
+  onmouseleave={() => onhover(false)}
+>
+  {#each placed.card.rows as p, i (p.id)}
     {@const years = lifespan(p)}
-    {@const rep = view.repeats.get(p.id)}
-    <div
-      class="row"
-      class:rep
-      class:hot={rep && view.hover.id === p.id}
-      class:spouse={i > 0}
-      data-pid={p.id}
-      style:--rep-h={rep ? hues[rep.slot % hues.length] : undefined}
-      role="presentation"
-      onmouseenter={() => rep && (view.hover.id = p.id)}
-      onmouseleave={() => view.hover.id === p.id && (view.hover.id = 0)}
-    >
-      {#if p.id === view.focus}
+    {@const rep = repeat(p.id)}
+    <div class="row" class:rep data-pid={p.id} style:--rep-hue={rep?.hue}>
+      {#if p.id === focus}
         <button type="button" class="who focus" class:dead={p.dead} title={`#${p.id}`} use:reveal>
           {@render person(p.name, years, i > 0)}
         </button>
@@ -84,25 +84,34 @@
       {#if rep}
         <button
           type="button"
-          class="again"
-          title={`${p.name} appears ${rep.count} times in this chart · go to the next`}
+          class="badge again"
+          title={`${p.name} is on ${rep.count} cards, one per partner · go to the next`}
           onclick={(e) => jump(e, p.id)}
         >
           ×{rep.count}
         </button>
+      {:else if shared && i === 0}
+        <span
+          class="badge"
+          title={placed.col < 0
+            ? `An ancestor ${shared.lines} times over: drawn once, with a line to each descendant`
+            : `Descended from this chart along ${shared.lines} lines: drawn once, with a line from each`}
+        >
+          {shared.lines} lines
+        </span>
       {/if}
     </div>
   {/each}
-  {#if below > 0 && ontoggle}
+  {#if foldable}
     <button
       type="button"
       class="fold"
       class:collapsed
-      title={collapsed ? `Show ${below} descendants` : `Hide ${below} descendants`}
+      title={`${placed.below} cards descend from here; ${collapsed ? 'show' : 'fold'} them (any also reached through another line stays)`}
       aria-expanded={!collapsed}
       onclick={ontoggle}
     >
-      {collapsed ? `+${below}` : '−'}
+      {collapsed ? `+${placed.below}` : '−'}
     </button>
   {/if}
 </div>
@@ -123,56 +132,46 @@
     background: white;
     text-align: left;
   }
+  /* Drawn once where a tree would have drawn it twice: the loop lines share this hue. */
+  .fcard.shared {
+    border-color: oklch(0.62 0.16 var(--hue));
+    box-shadow: inset 4px 0 0 oklch(0.62 0.16 var(--hue));
+  }
+  .fcard.shared.hot {
+    box-shadow:
+      inset 4px 0 0 oklch(0.62 0.16 var(--hue)),
+      0 0 0 2px oklch(0.62 0.16 var(--hue));
+  }
+  .row {
+    position: relative;
+    height: var(--row-h);
+    overflow: hidden;
+  }
+  .row + .row {
+    border-top: 1px solid var(--color-surface-200);
+  }
+  .row.rep {
+    background: oklch(0.95 0.04 var(--rep-hue));
+  }
   .who {
     display: block;
     width: 100%;
+    height: 100%;
     padding: 0.25rem 0.5rem;
-    border-radius: 0.3rem;
     text-align: left;
     cursor: pointer;
   }
   .who:hover {
     background: var(--color-surface-100);
   }
-  .row {
-    position: relative;
-    border-radius: 0.3rem;
-  }
-  .row.spouse {
-    border-top: 1px solid var(--color-surface-200);
-    border-radius: 0 0 0.3rem 0.3rem;
-  }
-  /* Someone drawn more than once: their own hue, as a tint and a bar down the side. */
-  .row.rep {
-    background: oklch(0.95 0.04 var(--rep-h));
-    box-shadow: inset 4px 0 0 oklch(0.62 0.16 var(--rep-h));
-  }
-  .row.rep .who {
-    padding-right: 2rem;
-  }
-  .row.hot {
-    background: oklch(0.88 0.09 var(--rep-h));
-    outline: 2px solid oklch(0.55 0.18 var(--rep-h));
-    outline-offset: -1px;
-  }
-  .again {
-    position: absolute;
-    top: 0.3rem;
-    right: 0.3rem;
-    padding: 0 0.3rem;
-    border-radius: 999px;
-    background: oklch(0.62 0.16 var(--rep-h));
-    color: white;
-    font-size: 0.7rem;
-    font-weight: 600;
-    line-height: 1rem;
-    font-variant-numeric: tabular-nums;
-    cursor: pointer;
-  }
   .who.focus {
     cursor: default;
     background: var(--color-primary-50);
     box-shadow: inset 3px 0 0 var(--color-primary-500);
+  }
+  .shared .row:first-child .who,
+  .rep .who {
+    padding-right: 3.25rem;
   }
   .name {
     display: block;
@@ -183,7 +182,7 @@
     line-height: 1.25rem;
     font-weight: 500;
   }
-  .row.spouse .name {
+  .row + .row .name {
     font-weight: 400;
   }
   .amp {
@@ -202,11 +201,29 @@
     content: ' · living';
     color: var(--color-success-700);
   }
+  .badge {
+    position: absolute;
+    top: 0.3rem;
+    right: 0.3rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: oklch(0.62 0.16 var(--hue));
+    color: white;
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .badge.again {
+    background: oklch(0.55 0.16 var(--rep-hue));
+    cursor: pointer;
+  }
   /* Sits where the line to the children leaves the card. */
   .fold {
     position: absolute;
     right: -0.7rem;
-    top: calc(var(--stub-y) - 0.6rem);
+    top: calc(var(--stub) - 0.6rem);
     z-index: 1;
     min-width: 1.2rem;
     height: 1.2rem;

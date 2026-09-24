@@ -1,25 +1,10 @@
 <script lang="ts">
   import { moiraiStore, settledYear } from '$lib/connection';
-  import {
-    ancestry,
-    ancestryDepth,
-    byId,
-    childIndex,
-    descendantChart,
-    descendantDepth,
-    generationName,
-    repeatedPeople,
-    siblingGroups,
-  } from '$lib/family';
-  import type { FamilyTreeNode } from '$lib/types';
-  import type { ChartView } from '$lib/family';
   import { SvelteSet } from 'svelte/reactivity';
   import { notable } from '$lib/notable';
   import { page } from '$app/stores';
   import { selectedEntity } from '$lib/utils';
-  import ChartAncestry from '../../components/ChartAncestry.svelte';
-  import ChartBranch from '../../components/ChartBranch.svelte';
-  import ChartGroups from '../../components/ChartGroups.svelte';
+  import FamilyChart from '../../components/FamilyChart.svelte';
   import NotableList from '../../components/NotableList.svelte';
 
   const maxDepth = 5;
@@ -35,33 +20,29 @@
     return sel > 0 ? $moiraiStore.conn?.getFamilyTree(sel, maxDepth) : undefined;
   }
 
-  // Folded branches, by id. Kept here rather than in each branch because the tree is refetched, and
-  // every card rebuilt, whenever the year settles.
-  const collapsed = new SvelteSet<number>();
-  // Who the pointer is on, so every card for someone drawn more than once lights up at once.
-  const hover = $state({ id: 0 });
+  // Folded cards, by card key. Kept here rather than in the chart because the tree is refetched, and
+  // the chart rebuilt, whenever the year settles.
+  const collapsed = new SvelteSet<string>();
 
-  /**
-   * Lay the tree out as columns of generations: the parents' ancestry to the left, then the column of
-   * the person and their brothers and sisters, then one column per generation of descendants.
-   */
-  function chartFor(list: FamilyTreeNode[], id: number) {
-    const map = byId(list);
-    const index = childIndex(list);
-    const up = ancestry(id, map);
-    const siblings = up ? siblingGroups(id, map, index) : [];
-    const self = up ? undefined : descendantChart(id, map, index);
-    const branches = up ? siblings.flatMap((g) => g.branches) : self ? [self] : [];
-    const down = Math.max(0, ...branches.map(descendantDepth));
-    const alone = branches.length <= 1;
-    const columns = [];
-    for (let g = -ancestryDepth(up); g <= down; g++)
-      columns.push(g === 0 && alone ? (map.get(id)?.name ?? '') : generationName(g));
-    const column = up ? siblings : self ? [{ key: 0, label: '', branches: [self] }] : [];
-    const repeats = repeatedPeople(up, column, up ? up.couple.node.id : 0);
-    const view: ChartView = { focus: id, collapsed, repeats, hover };
-    return { ancestry: up, siblings, self, columns, view };
+  // Whether loops in the family are coloured in. A viewer's preference, not the world's, so it is
+  // remembered in this browser; storage can be missing or refuse (private windows), and then the
+  // switch simply starts off.
+  const LOOPS_KEY = 'moirai.family.highlightLoops';
+  let highlightLoops = $state(readLoops());
+  function readLoops() {
+    try {
+      return localStorage.getItem(LOOPS_KEY) === '1';
+    } catch {
+      return false;
+    }
   }
+  $effect(() => {
+    try {
+      localStorage.setItem(LOOPS_KEY, highlightLoops ? '1' : '0');
+    } catch {
+      // Not remembered; nothing else depends on it.
+    }
+  });
 
   // Only types with parents have a tree, so only they are worth suggesting.
   const withFamily = $derived($notable.filter((g) => g.hasFamily));
@@ -92,32 +73,7 @@
           #{selected} has no family tree: its type declares no parent1/parent2.
         </p>
       {:else}
-        {@const chart = chartFor(list, selected)}
-        <div class="fchart" style:--cols={chart.columns.length}>
-          {#if chart.view.repeats.size > 0}
-            <p class="frepeat">
-              {chart.view.repeats.size === 1
-                ? 'One person appears'
-                : `${chart.view.repeats.size} people appear`}
-              in more than one place, because the family loops back on itself: relatives who married,
-              or an ancestor shared by both sides. A couple shares a colour; hover a name to light up
-              all its cards, or click the count to jump to the next.
-            </p>
-          {/if}
-          <div class="fgens" aria-hidden="true">
-            {#each chart.columns as name, i (i)}
-              <div class="fgen">{name}</div>
-            {/each}
-          </div>
-          <div class="fbranch">
-            {#if chart.ancestry}
-              <ChartAncestry ancestry={chart.ancestry} view={chart.view} />
-              <ChartGroups groups={chart.siblings} view={chart.view} />
-            {:else if chart.self}
-              <ChartBranch branch={chart.self} view={chart.view} />
-            {/if}
-          </div>
-        </div>
+        <FamilyChart {list} focus={selected} {collapsed} bind:highlight={highlightLoops} />
       {/if}
     {:catch error}
       <div class="p-4">
@@ -132,136 +88,3 @@
     {/await}
   {/if}
 </div>
-
-<style>
-  /*
-   * The chart is nested flex rows, one card and then the column of whatever hangs off it, so every
-   * card being the same width is what makes the generations line up. The connectors are borders on
-   * the items of each column: a stub into each card and a spine joining them, both at --stub-y, the
-   * height of a card's first name, so a line runs straight from a parent to its eldest child.
-   */
-  .fchart {
-    --card-w: 11.75rem;
-    --out: 0.75rem;
-    --stub: 0.875rem;
-    --stub-y: 1.4rem;
-    --pitch: calc(var(--card-w) + var(--out) + var(--stub));
-    --line: var(--color-surface-400);
-    width: max-content;
-    padding: 0 1rem 2rem;
-  }
-  .frepeat {
-    max-width: 48rem;
-    margin: 0.75rem 0 0;
-    font-size: 0.8125rem;
-    color: var(--color-surface-700);
-  }
-  .fgens {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    display: flex;
-    margin-bottom: 0.75rem;
-    padding: 0.75rem 0 0.375rem;
-    background: var(--color-surface-50);
-    border-bottom: 1px solid var(--color-surface-200);
-  }
-  .fgen {
-    width: var(--pitch);
-    flex: none;
-    padding-left: 0.125rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    color: var(--color-surface-600);
-  }
-  .fchart :global(.fbranch) {
-    display: flex;
-    align-items: flex-start;
-  }
-  .fchart :global(.fkids) {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    padding-left: var(--out);
-  }
-  /* The line out of the parent's card, to the spine. */
-  .fchart :global(.fkids::before) {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: var(--stub-y);
-    width: var(--out);
-    border-top: 1px solid var(--line);
-  }
-  .fchart :global(.fitem) {
-    position: relative;
-    padding: 0 0 0.5rem var(--stub);
-  }
-  .fchart :global(.fitem:last-child) {
-    padding-bottom: 0;
-  }
-  /* The stub into this card. */
-  .fchart :global(.fitem:not(.flabel)::before) {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: var(--stub-y);
-    width: var(--stub);
-    border-top: 1px solid var(--line);
-  }
-  /* The spine: from the first stub to the last, through everything between. */
-  .fchart :global(.fitem::after) {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    border-left: 1px solid var(--line);
-  }
-  .fchart :global(.fitem:first-child::after) {
-    top: var(--stub-y);
-  }
-  .fchart :global(.fitem:last-child::after) {
-    bottom: auto;
-    height: var(--stub-y);
-  }
-  .fchart :global(.fitem:first-child:last-child::after) {
-    display: none;
-  }
-  .fchart :global(.flabel) {
-    min-height: calc(var(--stub-y) + 0.25rem);
-    padding-top: 0.5rem;
-    padding-bottom: 0.25rem;
-    font-size: 0.75rem;
-    font-style: italic;
-    color: var(--color-surface-600);
-  }
-  .fchart :global(.flabel:first-child) {
-    padding-top: 0;
-  }
-
-  /* Ancestry is the same chart mirrored: the columns grow leftwards and right-align on the card. */
-  .fchart :global(.fup) {
-    align-items: flex-end;
-    padding-left: 0;
-    padding-right: var(--out);
-  }
-  .fchart :global(.fup::before) {
-    left: auto;
-    right: 0;
-  }
-  .fchart :global(.fup > .fitem) {
-    padding-left: 0;
-    padding-right: var(--stub);
-  }
-  .fchart :global(.fup > .fitem::before) {
-    left: auto;
-    right: 0;
-  }
-  .fchart :global(.fup > .fitem::after) {
-    left: auto;
-    right: 0;
-  }
-</style>
