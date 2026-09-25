@@ -17,7 +17,7 @@ namespace Moirai.Core;
 public class History
 {
     public readonly HistoryMode Mode;
-    private readonly List<Changeset> _changesets = new();
+    private readonly ChunkedList<Changeset> _changesets = new();
     public IReadOnlyList<Changeset> Changesets => _changesets;
 
     public History(HistoryMode mode = HistoryMode.Default)
@@ -144,16 +144,16 @@ public class History
     /// <summary>The entity as it stood when the changeset holding record <paramref name="index"/> closed.</summary>
     internal Entity Materialize(int index)
     {
-        ref var change = ref Entities[index];
+        ref readonly var change = ref Entities[index];
         var e = new Entity(Db!.GetEntityType(change.Type)) { Id = change.Id };
         var props = e.RawProperties;
         // Newest first, so the first value found for a slot is the one it held at close.
         for (int i = index + 1; i != 0; i = Entities[i - 1].Previous)
         {
-            ref var c = ref Entities[i - 1];
+            ref readonly var c = ref Entities[i - 1];
             for (int p = c.PropStart; p < c.PropStart + c.PropCount; p++)
             {
-                ref var rec = ref Props[p];
+                ref readonly var rec = ref Props[p];
                 if (!props[rec.Prop.Id].Id.IsValid)
                     e.SetProperty(rec.Prop, rec.Next);
             }
@@ -164,7 +164,7 @@ public class History
 
     internal Entity MaterializePrev(int index)
     {
-        ref var change = ref Entities[index];
+        ref readonly var change = ref Entities[index];
         if (change.Created)
             return default;
         var e = new Entity(Db!.GetEntityType(change.Type)) { Id = change.Id };
@@ -175,9 +175,13 @@ public class History
     }
 }
 
-/// <summary>An append-only list in fixed-size chunks: it never copies what it holds, and no chunk is big
-/// enough for the large object heap.</summary>
-internal sealed class ChunkedList<T>
+/// <summary>
+/// An append-only list in fixed-size chunks. It never copies what it holds -- a <see cref="List{T}"/> that
+/// doubles copies everything it has into a new array, garbage the moment it is done -- and no chunk is
+/// big enough for the large object heap. Growing costs one chunk every <c>1024</c> items and nothing in
+/// between, which is what lets a simulated year allocate nothing.
+/// </summary>
+public sealed class ChunkedList<T> : IReadOnlyList<T>
 {
     private const int Bits = 10, Size = 1 << Bits, Mask = Size - 1;
     private readonly List<T[]> _chunks = new();
@@ -191,7 +195,31 @@ internal sealed class ChunkedList<T>
         Count++;
     }
 
-    public ref T this[int i] => ref _chunks[i >> Bits][i & Mask];
+    public ref readonly T this[int i]
+    {
+        get
+        {
+            if ((uint)i >= (uint)Count)
+                throw new ArgumentOutOfRangeException(nameof(i));
+            return ref _chunks[i >> Bits][i & Mask];
+        }
+    }
+
+    T IReadOnlyList<T>.this[int i] => this[i];
+
+    public Enumerator GetEnumerator() => new(this);
+    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+
+    public struct Enumerator(ChunkedList<T> list) : IEnumerator<T>
+    {
+        private int _i = -1;
+        public T Current => list[_i];
+        object? System.Collections.IEnumerator.Current => Current;
+        public bool MoveNext() => ++_i < list.Count;
+        public void Reset() => _i = -1;
+        public void Dispose() { }
+    }
 }
 
 /// <summary>
@@ -402,7 +430,7 @@ public struct Changeset(int id, string actionName, long year)
         /// </summary>
         public bool TryGetNext(PropertyId property, out PropertyValue value)
         {
-            ref var c = ref _history!.Entities[_index];
+            ref readonly var c = ref _history!.Entities[_index];
             for (int p = c.PropStart; p < c.PropStart + c.PropCount; p++)
                 if (_history.Props[p].Prop.Id == property.Id)
                 {

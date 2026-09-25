@@ -14,7 +14,7 @@ public class Database
     private const uint TimeTypeId = 1;
     // The year as the built-in Time type actually declares it. PropertyId equality includes the type, so
     // PropYear itself (type 0) never matches a real write.
-    private static readonly PropertyId TimeYear = new(PropYear.Id, new EntityTypeId(TimeTypeId));
+    internal static readonly PropertyId TimeYear = new(PropYear.Id, new EntityTypeId(TimeTypeId));
 
     public static Database Instance = null!;
 
@@ -617,6 +617,17 @@ public class Database
     // trigger's once every trigger for that changeset has run. Nothing in the history points at one --
     // closing a changeset copies what it needs out -- so a returned buffer is free to be refilled.
     private readonly Stack<ChangeBuffer> _buffers = new();
+    private ChangeBuffer? _timeBuffer;
+
+    /// <summary>
+    /// The scratch changeset a pass writes Time.year into between actions. Never logged -- the history
+    /// catches the clock up from the entity itself -- so its buffer is kept and emptied, not remade.
+    /// </summary>
+    internal Changeset TimeChangeset()
+    {
+        (_timeBuffer ??= new ChangeBuffer(this)).Reset();
+        return new Changeset(-1, "time", Int64.MaxValue) { Buffer = _timeBuffer };
+    }
     private readonly List<ChangeBuffer> _triggerBuffers = new();
 
     private ChangeBuffer AcquireBuffer() => _buffers.TryPop(out var b) ? b : new ChangeBuffer(this);
@@ -1275,7 +1286,7 @@ public class Database
     /// </summary>
     public readonly record struct Firing(int Serial, EventTrigger Rule, int Parent, long Year, EntityId Cause, bool CauseCreated);
 
-    private readonly List<Firing> _firings = new();
+    private readonly ChunkedList<Firing> _firings = new();
 
     public IReadOnlyList<Firing> Firings => _firings;
 
@@ -1333,7 +1344,7 @@ public class Database
         }
     }
 
-    public List<Record> Records = new();
+    public readonly ChunkedList<Record> Records = new();
     private int _currentActionId;
     // The event/trigger currently executing, captured so AppendRecord can stamp records with its tags.
     private EventTrigger? _currentAction;

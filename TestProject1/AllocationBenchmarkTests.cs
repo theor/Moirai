@@ -218,4 +218,36 @@ public class AllocationBenchmarkTests
             base.Dispose();
         }
     }
+
+    /// <summary>
+    /// The proof the allocation work is aiming at: exactly what each simulated year allocates. A world that
+    /// grows cannot allocate nothing in total, but a year can allocate nothing at all, with only the odd
+    /// year paying when a store fills its chunk and takes the next. Passing one year at a time is the same
+    /// world as one long pass (WorldSessionTests.ManySmallPassesAreIdenticalToOneLongPass).
+    /// </summary>
+    [TestCase(1000)]
+    public void BytesPerYear(int years)
+    {
+        var story = File.ReadAllText(FindWsg());
+        var db = StoryParser.Parse(story, out _);
+        db.SetSeed(Seeds[0]);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(1, true); // the first pass makes the clock and warms every path's JIT
+        var perYear = new long[years];
+        for (int y = 0; y < years; y++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            db.Ctx.PassYears(1, true);
+            perYear[y] = GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        int zero = perYear.Count(b => b == 0);
+        var sorted = perYear.OrderBy(b => b).ToArray();
+        TestContext.Out.WriteLine(
+            $"{years} years: {zero} allocated nothing ({100.0 * zero / years:F1}%), total {perYear.Sum() / 1048576.0:F2} MB, " +
+            $"median {sorted[years / 2]} B, p90 {sorted[years * 9 / 10]} B, p99 {sorted[years * 99 / 100]} B, max {sorted[^1]} B");
+        foreach (var (lo, hi) in new[] { (1L, 1024L), (1024L, 16384L), (16384L, 131072L), (131072L, long.MaxValue) })
+            TestContext.Out.WriteLine($"  {lo,7}..{(hi == long.MaxValue ? "" : hi.ToString()),-7} B: {perYear.Count(b => b >= lo && b < hi)} years");
+    }
 }

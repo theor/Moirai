@@ -191,15 +191,15 @@ public class ExecuteContext
     public void PassYears(int years, bool offset) => PassYears(years, CancellationToken.None, null, offset);
     public void PassYears(long years, CancellationToken token, IProgress<int>? progress, bool offset)
     {
-        Stopwatch sw = Stopwatch.StartNew();
+        // Nothing here allocates per pass: the browser passes years in small chunks, each one a call.
+        long started = Stopwatch.GetTimestamp();
         long allocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
         Database.ExecProfiler = Database.ProfilingEnabled ? new ExecutionProfiler() : null;
         // Before the pass's own scratch changeset: EnsureTime records the clock's creation in a changeset
         // of its own, and the pass's Time.year writes must not land in that closed one.
         var timeId = Database.EnsureTime();
-        Database.CurrentChangeset = new Changeset(-1, "time", Int64.MaxValue);
-        var timeType = Database.GetEntityType("Time");
-        var yearsProp = timeType.GetPropertyId("year");
+        Database.CurrentChangeset = Database.TimeChangeset();
+        var yearsProp = Database.TimeYear;
         if (!Database.TryGetEntity(timeId, out var time))
             throw new NotImplementedException("missing Time entity");
 
@@ -233,13 +233,14 @@ public class ExecuteContext
             }
         }
 
-        Database.Log("PassYears " + years + " took " + sw.ElapsedMilliseconds + "ms");
         Profiler.Dump();
 
         if (Database.ExecProfiler != null)
         {
+            long elapsed = Stopwatch.GetTimestamp() - started;
+            Database.Log("PassYears " + years + " took " + elapsed * 1000 / Stopwatch.Frequency + "ms");
             Database.ExecProfiler.Years = howMany;
-            Database.ExecProfiler.ElapsedTicks = sw.ElapsedTicks;
+            Database.ExecProfiler.ElapsedTicks = elapsed;
             Database.ExecProfiler.AllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedAtStart;
             Database.Log(Database.ExecProfiler.Report());
         }
