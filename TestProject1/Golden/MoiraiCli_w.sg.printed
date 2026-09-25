@@ -356,7 +356,7 @@ event divine_wrath {
 @frequency(1, Frequency.PerXYear, 2)
 event wedding {
     pick Person $0: ((((($0.alive = true) and ($0.partner = null)) and ($0.age > Age.Child)) and ($0.age < Age.Old)))
-    pick Person $1: (((((((($1.alive = true) and ($1.partner = null)) and ($1.age > Age.Child)) and ($1.age < Age.Old)) and ($1.id != $0)) and ($1.place = $0.place)) and not (related ($0, $1, 4))))
+    pick Person $1: (((((((($1.alive = true) and ($1.partner = null)) and ($1.age > Age.Child)) and ($1.age < Age.Old)) and ($1.id != $0)) and ($1.place = $0.place)) and not (related ($0, $1, 6))))
     set $0.partner = $1
     set $1.partner = $0
     set $0.prosperity = ($0.prosperity + 20%)
