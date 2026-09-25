@@ -29,6 +29,96 @@ public class AstVisitor : StoryParser.IVisitor
 
     AttributeNode[] _currentAttribute;
 
+    // The role attributes a type can carry, and what each needs: how many properties, and of what kind.
+    // Parents and partner must point at the annotated type itself -- a family tree reads them through
+    // that type's property ids, and another type's would be garbage.
+    private static readonly Dictionary<string, (EntityRole[] Roles, string Kind)> RoleAttributes = new()
+    {
+        ["parents"] = ([EntityRole.Parent1, EntityRole.Parent2], "self"),
+        ["partner"] = ([EntityRole.Partner], "self"),
+        ["born"] = ([EntityRole.Birth], "number"),
+        ["died"] = ([EntityRole.Death], "number"),
+        ["alive"] = ([EntityRole.Alive], "bool"),
+        ["dead"] = ([EntityRole.Dead], "bool"),
+        ["period"] = ([EntityRole.PeriodStart, EntityRole.PeriodEnd], "number"),
+    };
+
+    /// <summary>
+    /// Lowers one of the role attributes (@parents, @partner, @born, @died, @alive, @dead, @period,
+    /// @population) onto its type. Returns false for any other attribute, which the @display pass then
+    /// handles or reports. Every mistake is an error with a position, because the alternative -- the old
+    /// naming convention -- failed by quietly showing nothing.
+    /// </summary>
+    private bool VisitRoleAttribute(EntityType type, AttributeNode attr, ref bool populationDeclared)
+    {
+        var name = attr.Name.Text;
+        if (name == "population")
+        {
+            if (attr.Args.Length != 0)
+                AddError(StoryParser.ErrorCode.InvalidArgument, attr.Span, "@population takes no arguments");
+            if (populationDeclared)
+                AddError(StoryParser.ErrorCode.InvalidArgument, attr.Span, "only one type can be the @population");
+            populationDeclared = true;
+            type.IsPopulation = true;
+            return true;
+        }
+
+        if (!RoleAttributes.TryGetValue(name, out var spec))
+            return false;
+
+        if (attr.Args.Length != spec.Roles.Length)
+        {
+            AddError(StoryParser.ErrorCode.MissingArgument, attr.Span,
+                $"@{name} expects {spec.Roles.Length} propert{(spec.Roles.Length == 1 ? "y" : "ies")} of {type.Name}");
+            return true;
+        }
+
+        var ids = new PropertyId[spec.Roles.Length];
+        for (int i = 0; i < ids.Length; i++)
+        {
+            var arg = attr.Args[i];
+            var propName = GetText(arg.Span).Trim();
+            if (arg.Value?.Path == null || propName.Length == 0 || !propName.All(c => char.IsLetterOrDigit(c) || c == '_'))
+            {
+                AddError(StoryParser.ErrorCode.InvalidArgument, arg.Span, $"@{name} expects a property name of {type.Name}");
+                return true;
+            }
+
+            var def = type.Properties.FirstOrDefault(p => p.Name == propName);
+            if (def.Name == null || !def.PropertyId.IsValid)
+            {
+                AddError(StoryParser.ErrorCode.UnknownProperty, arg.Span, $"{type.Name} has no property '{propName}'");
+                return true;
+            }
+            Linker?.LinkProperty(new FileRange(arg.Span), def.PropertyId);
+
+            var ok = spec.Kind switch
+            {
+                "self" => !def.IsCollection && def.Type.BaseType == PropertyValue.ValueBaseType.Ref && def.Type.Index == type.Id.Id,
+                "number" => !def.IsCollection && def.Type.BaseType is PropertyValue.ValueBaseType.Number or PropertyValue.ValueBaseType.Float,
+                _ => !def.IsCollection && def.Type.BaseType == PropertyValue.ValueBaseType.Bool,
+            };
+            if (!ok)
+            {
+                var want = spec.Kind == "self" ? $"a {type.Name}" : $"a {spec.Kind}";
+                AddError(StoryParser.ErrorCode.InvalidArgument, arg.Span, $"@{name} needs {want} property; '{propName}' is not one");
+                return true;
+            }
+            ids[i] = def.PropertyId;
+        }
+
+        var other = name == "alive" ? EntityRole.Dead : name == "dead" ? EntityRole.Alive : (EntityRole?)null;
+        if (other is { } o && type.IsDeclared(o))
+        {
+            AddError(StoryParser.ErrorCode.InvalidArgument, attr.Span, "@alive and @dead say the same thing; use one");
+            return true;
+        }
+
+        for (int i = 0; i < ids.Length; i++)
+            type.DeclareRole(spec.Roles[i], ids[i]);
+        return true;
+    }
+
     public void VisitR(RNode context)
     {
         // enum_definition first (types/tables may reference enums).
@@ -38,6 +128,7 @@ public class AstVisitor : StoryParser.IVisitor
 
         List<(EntityType Id, TypeDefinitionNode Node)> typesContexts = new();
         List<(EntityType Id, AttributeNode Attr)> deferredTypeAttributes = new();
+        HashSet<AttributeNode> roleAttributes = new();
 
         foreach (var def in context.Defs)
         {
@@ -83,9 +174,21 @@ public class AstVisitor : StoryParser.IVisitor
                     propertyDefinition.PropertyId, isDeclaration: true);
             }
 
+        }
+
+        // Roles before any body is parsed -- a type's own methods included -- because related() reads
+        // a type's parents while it is being parsed. Declared roles first; the conventional names then
+        // fill whatever a story did not declare.
+        bool populationDeclared = false;
+        foreach (var (type, attr) in deferredTypeAttributes)
+            if (VisitRoleAttribute(type, attr, ref populationDeclared))
+                roleAttributes.Add(attr);
+        foreach (var (type, _) in typesContexts)
+            type.InferRoles(Database.DefaultProperties().Count);
+
+        foreach (var (type, typeDefinitionContext) in typesContexts)
             foreach (var functionDefinitionContext in typeDefinitionContext.FunctionDefinitions)
                 ParseFunctionDefinition(functionDefinitionContext, type);
-        }
 
         // Tables can reference enums and entity types, so register them after both are declared
         // but before functions/events (whose bodies may call roll(...)).
@@ -95,6 +198,8 @@ public class AstVisitor : StoryParser.IVisitor
 
         foreach (var (tid, attr) in deferredTypeAttributes)
         {
+            if (roleAttributes.Contains(attr))
+                continue;
             if (attr.Name.Text != "display")
             {
                 AddError(StoryParser.ErrorCode.UnknownAttribute, attr.Name.Span, attr.Name.Text);

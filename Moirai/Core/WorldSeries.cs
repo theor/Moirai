@@ -120,6 +120,49 @@ public static class WorldSeries
     }
 
     /// <summary>
+    /// How many entities of <paramref name="type"/> were alive at each year, read through its life role:
+    /// with an <c>alive</c> flag, those holding it true; with a <c>dead</c> flag, every entity created so
+    /// far that does not hold it true (unset means alive -- nobody is born dead). One replay rather than
+    /// "created minus dead", because two separately downsampled series need not share their buckets.
+    /// Empty when the type has neither role.
+    /// </summary>
+    public static TimeSeries LivingOverTime(Database db, EntityType type, int maxPoints = DefaultMaxPoints)
+    {
+        var alive = type.Role(EntityRole.Alive);
+        var dead = type.Role(EntityRole.Dead);
+        if (db.History == null || (!alive.IsValid && !dead.IsValid))
+            return TimeSeries.Empty;
+
+        var domain = Domain(db);
+        var perYear = new double[domain.End - domain.Start + 1];
+        var living = new Dictionary<uint, bool>();
+        double count = 0;
+        long cursor = 0;
+
+        foreach (var cs in db.History.Changesets)
+        {
+            long year = Math.Clamp(cs.Year, domain.Start, domain.End) - domain.Start;
+            while (cursor < year)
+                perYear[cursor++] = count;
+            foreach (var ch in cs.Changes)
+            {
+                if (ch.New.Type != type.Id)
+                    continue;
+                bool now = alive.IsValid
+                    ? ch.New.TryGetProperty(alive, out var a) && a.BoolValue
+                    : !(ch.New.TryGetProperty(dead, out var d) && d.BoolValue);
+                var was = living.TryGetValue(ch.New.Id.Id, out var w) && w;
+                count += (now ? 1 : 0) - (was ? 1 : 0);
+                living[ch.New.Id.Id] = now;
+            }
+        }
+
+        while (cursor < perYear.Length)
+            perYear[cursor++] = count;
+        return Bucket($"{type.Name} alive", Kind.Level, perYear, domain, maxPoints);
+    }
+
+    /// <summary>
     /// The (type, property) pairs worth plotting. Refs, strings and enums are excluded: neither a mean
     /// nor a count-of-true says anything true about them.
     /// </summary>

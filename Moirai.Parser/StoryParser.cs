@@ -128,23 +128,23 @@ public static class StoryParser
                 return (null!, PropertyValue.TypeBool);
             }
 
-            // Parents are resolved here, once, from the first argument's type: any type declaring
-            // parent1/parent2 has kin, the same convention the viewer's family tree uses.
+            // Parents are resolved here, once, from the first argument's type's parent roles
+            // (@parents, or parent1/parent2 by default) -- the same ones the viewer's family tree reads.
             var type = aType.IsRefType && aType.Index != 0
                 ? ctx.Visitor.Database.GetEntityType(new EntityTypeId(aType.Index))
                 : null;
-            var p1 = type?.GetPropertyId("parent1") ?? default;
-            var p2 = type?.GetPropertyId("parent2") ?? default;
+            var p1 = type?.Role(EntityRole.Parent1) ?? default;
+            var p2 = type?.Role(EntityRole.Parent2) ?? default;
             if (!p1.IsValid || !p2.IsValid)
             {
                 ctx.Visitor.AddError(ErrorCode.UnknownProperty, ctx.GetArgumentToken(0)?.Span ?? span,
-                    "related() needs an entity whose type declares parent1 and parent2");
+                    "related() needs an entity whose type has parents: declare parent1 and parent2, or name them with @parents(a, b)");
                 return (null!, PropertyValue.TypeBool);
             }
 
             return (new Related(a, b, degreeLit.Value.IntValue, p1, p2), PropertyValue.TypeBool);
         },
-        "related($a, $b, n): true when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way (parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4). Parents are the type's parent1/parent2."),
+        "related($a, $b, n): true when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way (parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4). Parents are the type's @parents (parent1/parent2 by default)."),
         new("record", false, ctx =>
         {
             ctx.ExpectArgcount(2, isMaxCount: true);

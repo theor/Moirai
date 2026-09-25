@@ -471,38 +471,31 @@ public sealed class WorldSession
         if (_db.History == null)
             return TimeSeries.Empty;
 
+        // The story's @population if it named one; otherwise the largest type that can die (an alive or
+        // dead role); otherwise the largest type, counted as everyone who ever lived.
         int Count(EntityType t) => _db.Entities.Count(e => e.Type == t.Id);
         var types = WorldSeries.StoryTypes(_db).Where(t => !t.IsSingleton).ToList();
-        var living = types
-            .Where(t => t.GetPropertyType("alive").BaseType == PropertyValue.ValueBaseType.Bool)
-            .OrderByDescending(Count).FirstOrDefault();
-        if (living != null)
-            return WorldSeries.PropertyOverTime(_db, living, "alive") with { Label = $"{living.Name} alive" };
-
-        var largest = types.OrderByDescending(Count).FirstOrDefault();
-        return largest != null && WorldSeries.EntitiesOfType(_db, largest) is { } s
-            ? s with { Label = $"{largest.Name} ever" }
-            : TimeSeries.Empty;
+        static bool Mortal(EntityType t) => t.Role(EntityRole.Alive).IsValid || t.Role(EntityRole.Dead).IsValid;
+        var chosen = types.FirstOrDefault(t => t.IsPopulation)
+                     ?? types.Where(Mortal).OrderByDescending(Count).FirstOrDefault()
+                     ?? types.OrderByDescending(Count).FirstOrDefault();
+        if (chosen == null)
+            return TimeSeries.Empty;
+        if (Mortal(chosen))
+            return WorldSeries.LivingOverTime(_db, chosen);
+        return WorldSeries.EntitiesOfType(_db, chosen) is { } s ? s with { Label = $"{chosen.Name} ever" } : TimeSeries.Empty;
     }
 
-    // Every entity of a type declaring number start_year and end_year and no references, in order. An
-    // end_year of 0 is the open, present era. The no-reference rule is what tells a period from a spell
-    // of something: w.sg's ItemOwnership has the same two years, but it is who held what, not an age.
-    private static readonly int BuiltinProperties = Database.DefaultProperties().Count;
-
+    // Every entity of a period type (@period, or start_year/end_year on a type with no references), in
+    // order. An end of 0 is the open, present era.
     private ChronicleEra[] Eras()
     {
-        static bool IsNumber(EntityType t, string prop) =>
-            t.GetPropertyType(prop).BaseType is PropertyValue.ValueBaseType.Number or PropertyValue.ValueBaseType.Float;
-        static bool IsPeriod(EntityType t) =>
-            IsNumber(t, "start_year") && IsNumber(t, "end_year") && !t.Properties.Skip(BuiltinProperties).Any(p => p.Type.IsRefType);
-
         var now = Math.Max(0, _db.Ctx.Year);
         var eras = new List<ChronicleEra>();
-        foreach (var type in _db.Types.Where(IsPeriod))
+        foreach (var type in _db.Types.Where(t => t.IsPeriod))
         {
-            var start = type.GetPropertyId("start_year");
-            var end = type.GetPropertyId("end_year");
+            var start = type.Role(EntityRole.PeriodStart);
+            var end = type.Role(EntityRole.PeriodEnd);
             foreach (var e in _db.Entities.Where(e => e.Type == type.Id))
             {
                 var s = e.TryGetProperty(start, out var sv) ? sv.IntValue : 0;
@@ -687,8 +680,8 @@ public sealed class WorldSession
         if (!_db.TryGetEntity(new EntityId(eid), out var root))
             return new List<FamilyTreeNode>();
         var rootType = _db.GetEntityType(root.Type);
-        var prop1 = rootType.GetPropertyId("parent1");
-        var prop2 = rootType.GetPropertyId("parent2");
+        var prop1 = rootType.Role(EntityRole.Parent1);
+        var prop2 = rootType.Role(EntityRole.Parent2);
         if (!prop1.IsValid || !prop2.IsValid)
             return new List<FamilyTreeNode>();
 
@@ -780,8 +773,7 @@ public sealed class WorldSession
             ? r.Participants.Any(p => p.Id == eid)
             : r.Text.Contains($"<#{eid}>", StringComparison.Ordinal);
 
-    private static bool HasParents(EntityType type) =>
-        type.GetPropertyId("parent1").IsValid && type.GetPropertyId("parent2").IsValid;
+    private static bool HasParents(EntityType type) => type.HasParents;
 
     private string ActionName(int actionId) =>
         _db.Actions.FirstOrDefault(a => a.Id == actionId)?.Name
@@ -806,16 +798,18 @@ public sealed class WorldSession
     }
 
     /// <summary>
-    /// Birth, death and partner for a family tree, read by the same convention the tree already uses for
-    /// <c>parent1</c>/<c>parent2</c>: a type that declares <c>birthdate</c>, <c>deathdate</c>,
-    /// <c>alive</c> or <c>partner</c> gets them shown, one that does not simply shows less.
+    /// Birth, death and partner for a family tree, read through the type's roles like its parents are:
+    /// <c>@born</c>, <c>@died</c>, <c>@alive</c> or <c>@dead</c>, <c>@partner</c> -- or, by default,
+    /// <c>birthdate</c>, <c>deathdate</c>, <c>alive</c> and <c>partner</c>. A type without them simply
+    /// shows less.
     /// </summary>
     private sealed class LifeFacts(WorldSession s, EntityType type)
     {
-        private readonly PropertyId _birth = type.GetPropertyId("birthdate");
-        private readonly PropertyId _death = type.GetPropertyId("deathdate");
-        private readonly PropertyId _alive = type.GetPropertyId("alive");
-        private readonly PropertyId _partner = type.GetPropertyId("partner");
+        private readonly PropertyId _birth = type.Role(EntityRole.Birth);
+        private readonly PropertyId _death = type.Role(EntityRole.Death);
+        private readonly PropertyId _alive = type.Role(EntityRole.Alive);
+        private readonly PropertyId _dead = type.Role(EntityRole.Dead);
+        private readonly PropertyId _partner = type.Role(EntityRole.Partner);
         private Dictionary<uint, long>? _created;
 
         public FamilyTreeNode Node(Entity e, uint p1, uint p2)
@@ -823,7 +817,9 @@ public sealed class WorldSession
             var born = Number(e, _birth);
             if (born == 0) born = Created(e.Id.Id);
             var died = Number(e, _death);
-            var dead = died != 0 || (_alive.IsValid && e.TryGetProperty(_alive, out var a) && !a.BoolValue);
+            var dead = died != 0
+                       || (_alive.IsValid && e.TryGetProperty(_alive, out var a) && !a.BoolValue)
+                       || (_dead.IsValid && e.TryGetProperty(_dead, out var d) && d.BoolValue);
             var partner = _partner.IsValid && e.TryGetProperty(_partner, out var p) ? p.Id.Id : 0;
             return new FamilyTreeNode(e.Id.Id, NameOf(e), p1, p2)
             {

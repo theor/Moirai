@@ -96,6 +96,24 @@ public partial class StoryPrinter
 
     public void PrintType(StringBuilder sb, EntityType type)
     {
+        // Only the roles the story declared: an inferred one is the absence of an attribute, and printing
+        // it would turn every conventional name into an annotation the source never had.
+        string Name(EntityRole r) => _database.GetPropertyName(type.Role(r));
+        void Role(string attribute, params EntityRole[] roles)
+        {
+            if (type.IsDeclared(roles[0]))
+                sb.AppendLine($"@{attribute}({string.Join(", ", roles.Select(Name))})");
+        }
+        Role("parents", EntityRole.Parent1, EntityRole.Parent2);
+        Role("partner", EntityRole.Partner);
+        Role("born", EntityRole.Birth);
+        Role("died", EntityRole.Death);
+        Role("alive", EntityRole.Alive);
+        Role("dead", EntityRole.Dead);
+        Role("period", EntityRole.PeriodStart, EntityRole.PeriodEnd);
+        if (type.IsPopulation)
+            sb.AppendLine("@population");
+
         sb.AppendLine(@$"{(type.IsSingleton ? "singleton" : "entity")} {type.Name} {{");
         foreach (var property in type.Properties.Skip(Database.DefaultProperties().Count))
         {
@@ -585,8 +603,8 @@ public partial class StoryPrinter
     }
 
     /// <summary>
-    /// Render the record stream as a readable markdown chronicle, chaptered by the story's `Era`
-    /// entities (a contiguous timeline) when present, else by century. Entity-link markup is reduced
+    /// Render the record stream as a readable markdown chronicle, chaptered by the story's period
+    /// entities (w.sg's `Era`, a contiguous timeline) when present, else by century. Entity-link markup is reduced
     /// to plain names. This is the "hand me the lore document" export.
     /// </summary>
     public string ExportChronicle()
@@ -596,11 +614,13 @@ public partial class StoryPrinter
         sb.AppendLine();
 
         var eras = new List<(string name, long start, long end)>();
-        var eraType = _database.Types.FirstOrDefault(t => t.Name == "Era");
+        // The story's period type: @period(from, to), or start_year/end_year by default -- the same ages
+        // the web viewer's chronicle card draws.
+        var eraType = _database.Types.FirstOrDefault(t => t.IsPeriod);
         if (eraType != null)
         {
-            var startP = eraType.GetPropertyId("start_year");
-            var endP = eraType.GetPropertyId("end_year");
+            var startP = eraType.Role(EntityRole.PeriodStart);
+            var endP = eraType.Role(EntityRole.PeriodEnd);
             foreach (var e in _database.Entities)
             {
                 if (e.Type != eraType.Id) continue;

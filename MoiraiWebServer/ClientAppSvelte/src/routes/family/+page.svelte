@@ -70,7 +70,8 @@
     {:then list}
       {#if !list || list.length === 0}
         <p class="text-surface-600 p-4">
-          #{selected} has no family tree: its type declares no parent1/parent2.
+          #{selected} has no family tree: its type has no parents. Name them with
+          <code class="code">@parents(a, b)</code> on the type, or call them parent1 and parent2.
         </p>
       {:else}
         <FamilyChart {list} focus={selected} {collapsed} bind:highlight={highlightLoops} />

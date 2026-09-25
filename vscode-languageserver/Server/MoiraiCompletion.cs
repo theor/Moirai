@@ -307,7 +307,8 @@ public static class MoiraiCompletion
                     break;
 
                 case Context.AttributeName:
-                    Keywords("tag", "display", "start", "frequency");
+                    Keywords("tag", "display", "start", "frequency",
+                        "parents", "partner", "born", "died", "alive", "dead", "period", "population");
                     break;
 
                 case Context.TypeName:
