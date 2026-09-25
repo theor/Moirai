@@ -847,7 +847,7 @@ public class Database
 
     public void Init()
     {
-        _plans.Clear();
+        _plans = new();
         _singletons.Clear();
         _collections.Clear();
         _boolIndex.Clear();
@@ -990,14 +990,18 @@ public class Database
         public readonly NarrowPlan? Narrow = narrow;
     }
 
-    private readonly Dictionary<object, QueryPlan> _plans = new(ReferenceEqualityComparer.Instance);
+    // Keyed weakly: the Query page parses a fresh expression per query, and a plain dictionary would keep
+    // every one of them alive for as long as the world.
+    private System.Runtime.CompilerServices.ConditionalWeakTable<object, QueryPlan> _plans = new();
 
     private QueryPlan PlanFor(IValueSql predicate, int varIdx)
     {
         if (_plans.TryGetValue(predicate, out var plan) && plan.VarIdx == varIdx)
             return plan;
         PropertyId? boolProp = TryFindIndexedTrueProp(predicate, varIdx, out var prop) ? prop : null;
-        return _plans[predicate] = new QueryPlan(varIdx, boolProp, CompileNarrow(predicate, varIdx, null));
+        plan = new QueryPlan(varIdx, boolProp, CompileNarrow(predicate, varIdx, null));
+        _plans.AddOrUpdate(predicate, plan);
+        return plan;
     }
 
     // Walks conjunctions — both the dedicated And class and BinaryOperator.And, since either may appear —
