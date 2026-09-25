@@ -48,13 +48,18 @@
       );
   });
 
+  // Following a line leaves the page; it does not close the "why?". The page keeps it in its URL
+  // (see $lib/why), and closing here would erase it from the very history entry Back returns to. The
+  // dialog goes away with the page, and its close event, if the browser fires one, is ignored.
+  let leaving = false;
+
   function openLine(line: number) {
     // Keep the rest of the query -- the world's seed and year above all -- and replace any old line.
     const kept = window.location.search
       .replace(/^\?/, '')
       .split('&')
-      .filter((p) => p !== '' && !p.startsWith('line='));
-    onclose();
+      .filter((p) => p !== '' && !p.startsWith('line=') && !p.startsWith('why='));
+    leaving = true;
     // Resolved; the rule only recognises a bare resolve() argument (see the nav tabs).
     // eslint-disable-next-line svelte/no-navigation-without-resolve
     void goto(`${resolve('/story')}?${[...kept, `line=${line}`].join('&')}`);
@@ -65,7 +70,9 @@
   bind:this={dialog}
   class="cause card p-0 m-auto w-[min(40rem,calc(100vw-2rem))] max-h-[80vh] overflow-hidden"
   aria-labelledby="cause-title"
-  {onclose}
+  onclose={() => {
+    if (!leaving) onclose();
+  }}
 >
   <div class="flex items-center justify-between px-5 py-3 border-b border-surface-200">
     <h2 id="cause-title" class="h5">Why did this happen?</h2>

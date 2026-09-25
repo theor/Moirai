@@ -11,14 +11,38 @@
   import FamilyNode from '../../components/FamilyNode.svelte';
   import EntityChip from '../../components/EntityChip.svelte';
   import CauseDialog from '../../components/CauseDialog.svelte';
+  import { readWhy } from '$lib/why';
+  import { rememberWhy } from '$lib/why-history';
+  import { tick } from 'svelte';
   import { humanLabel, unquote } from '$lib/format';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
 
   const MAX_DEPTH = 4;
 
-  // The record whose "why?" is open, by its firing.
-  let why: number | null = $state(null);
+  // The record whose "why?" is open, by its firing. It starts from the URL, which is how Back from a
+  // story line finds it again ($lib/why).
+  let why: number | null = $state(readWhy(window.location.search));
+  // The record to bring into view once the life has loaded: the one a Back returned to.
+  let reveal: number | null = readWhy(window.location.search);
+
+  function showWhy(firing: number | null) {
+    why = firing;
+    rememberWhy(firing);
+  }
+
+  // A plain variable, not $state, so this settles when the record is on the page rather than re-running
+  // on its own write. `bio` is read so it runs again once the life has loaded.
+  $effect(() => {
+    if (reveal === null || !bio) return;
+    const target = reveal;
+    void tick().then(() => {
+      const el = document.querySelector(`[data-firing="${target}"]`);
+      if (!el) return;
+      reveal = null;
+      el.scrollIntoView({ block: 'center' });
+    });
+  });
 
   const selected = $derived(selectedEntity($page).getNumber());
 
@@ -127,7 +151,7 @@
   const children = $derived(childrenOf(family, selected));
 </script>
 
-<CauseDialog firing={why} onclose={() => (why = null)} />
+<CauseDialog firing={why} onclose={() => showWhy(null)} />
 
 <div class="h-full overflow-auto pr-2">
   {#if selected <= 0}
@@ -179,7 +203,11 @@
               <div class="grow min-w-0 border-l border-surface-200 pl-3">
                 {#each group.entries as e, i (i)}
                   {#if e.kind === 'record'}
-                    <p class="record py-0.5 leading-7">
+                    <p
+                      class="record py-0.5 leading-7"
+                      class:asked={why !== null && e.firing === why}
+                      data-firing={e.firing || undefined}
+                    >
                       <MoiraiText text={e.text} {selected} />
                       {#each e.tags as tag (tag)}
                         <span class="tag ml-1">{unquote(tag)}</span>
@@ -189,7 +217,7 @@
                           type="button"
                           class="why ml-1 text-xs text-surface-500 hover:text-primary-700 hover:underline"
                           title="Why did this happen? ({e.actionName})"
-                          onclick={() => (why = e.firing)}>why?</button
+                          onclick={() => showWhy(e.firing)}>why?</button
                         >
                       {/if}
                     </p>
@@ -272,6 +300,11 @@
 <style>
   /* "why?" on every line of a life is noise; it appears where the reader is looking -- the hovered line,
    * or wherever keyboard focus is -- and stays visible where there is no hover at all (touch). */
+  /* The record whose "why?" is open, so it is easy to find again behind the dialog and after a Back. */
+  .record.asked {
+    background: var(--color-primary-50);
+    border-radius: 0.25rem;
+  }
   @media (hover: hover) {
     .record .why {
       opacity: 0;

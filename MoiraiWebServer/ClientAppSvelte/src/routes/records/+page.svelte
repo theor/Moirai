@@ -13,6 +13,8 @@
   import MoiraiText from '../../components/MoiraiText.svelte';
   import RuleCell from '../../components/RuleCell.svelte';
   import CauseDialog from '../../components/CauseDialog.svelte';
+  import { readWhy } from '$lib/why';
+  import { rememberWhy } from '$lib/why-history';
   import { page } from '$app/stores';
   import type { Record } from '$lib/types';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
@@ -28,8 +30,16 @@
   // Union of all tags seen across loaded records, for the chronicle filter bar.
   const tags = $derived(allTags($moiraiStore.records));
 
-  // The record whose "why?" is open, by its firing. One dialog for the page: rows are reused as it scrolls.
-  let why: number | null = $state(null);
+  // The record whose "why?" is open, by its firing. One dialog for the page: rows are reused as it
+  // scrolls. It starts from the URL, which is how Back from a story line finds it again ($lib/why).
+  let why: number | null = $state(readWhy(window.location.search));
+  // The record to bring into view once the rows exist: the one a Back returned to.
+  let reveal: number | null = readWhy(window.location.search);
+
+  function showWhy(firing: number | null) {
+    why = firing;
+    rememberWhy(firing);
+  }
 
   function toggleTag(tag: string) {
     const param = filteredTag($page);
@@ -70,7 +80,7 @@
         const r = info.row.original;
         const rule =
           r.rule ?? $moiraiStore.clientData?.actions.find((a) => a.id === r.actionId)?.name ?? '';
-        return renderComponent(RuleCell, { rule, firing: r.firing, onwhy: (f) => (why = f) });
+        return renderComponent(RuleCell, { rule, firing: r.firing, onwhy: showWhy });
       },
     },
   ];
@@ -118,6 +128,17 @@
     });
   });
 
+  // Back from a story line: scroll the asked-about record into the middle once its row exists. Records
+  // arrive through the feed, so the first run may be too early; `reveal` is plain, not $state, so this
+  // settles when the row turns up instead of re-running on its own write.
+  $effect(() => {
+    if (reveal === null) return;
+    const index = rows.findIndex((r) => r.original.firing === reveal);
+    if (index < 0) return;
+    reveal = null;
+    $virtualizer.scrollToIndex(index, { align: 'center' });
+  });
+
   $effect(() => {
     if ($moiraiViewStore.gotoYear) {
       const index = binarysearch(
@@ -132,7 +153,7 @@
   });
 </script>
 
-<CauseDialog firing={why} onclose={() => (why = null)} />
+<CauseDialog firing={why} onclose={() => showWhy(null)} />
 
 <div class="h-full flex flex-col min-h-0">
   {#if tags.length > 0}
@@ -181,6 +202,7 @@
         <tbody>
           {#each $virtualizer.getVirtualItems() as row, idx (row.index)}
             <tr
+              class:asked={why !== null && rows[row.index].original.firing === why}
               style="height: {row.size + 1}px; transform: translateY({row.start -
                 idx * row.size}px);"
             >
@@ -213,6 +235,10 @@
   }
   .table tbody tr:hover {
     background: var(--color-surface-50);
+  }
+  /* The record whose "why?" is open, so it is easy to find again behind the dialog and after a Back. */
+  .table tbody tr.asked {
+    background: var(--color-primary-50);
   }
   .table td {
     vertical-align: baseline;
