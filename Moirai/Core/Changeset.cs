@@ -39,8 +39,9 @@ public class History
 
     // Per entity id: the index + 1 of its latest record in Entities (0 = none), and its properties as the
     // log last recorded them.
-    private int[] _last = Array.Empty<int>();
-    private Shadow[] _shadow = Array.Empty<Shadow>();
+    // Chunked, indexed by entity id: they grow with the world and, like its other stores, never copy.
+    private readonly ChunkedList<int> _last = new();
+    private readonly ChunkedList<Shadow> _shadow = new();
     private readonly Slab<Property> _shadowSlab = new();
 
     // An entity's properties as the log last recorded them: a stretch of a shared slab, not an array each.
@@ -107,7 +108,7 @@ public class History
             }
 
             EnsureCapacity(id);
-            ref var shadowSlot = ref _shadow[id];
+            ref var shadowSlot = ref _shadow.RefAt((int)id);
             bool hasShadow = shadowSlot.Array != null && shadowSlot.Count == props.Length;
             var shadow = shadowSlot.Span;
             for (int slot = 0; slot < props.Length; slot++)
@@ -130,9 +131,9 @@ public class History
             Entities.Add(new EntityChange
             {
                 Id = open.Id, Type = open.Type, Created = open.Created,
-                PropStart = propStart, PropCount = Props.Count - propStart, Previous = _last[id],
+                PropStart = propStart, PropCount = Props.Count - propStart, Previous = _last[(int)id],
             });
-            _last[id] = Entities.Count;
+            _last.RefAt((int)id) = Entities.Count;
         }
 
         cs.Buffer = null;
@@ -143,11 +144,11 @@ public class History
 
     private void EnsureCapacity(uint id)
     {
-        if (id < _last.Length)
-            return;
-        int size = Math.Max((int)id + 1, _last.Length * 2);
-        Array.Resize(ref _last, size);
-        Array.Resize(ref _shadow, size);
+        while (_last.Count <= id)
+        {
+            _last.Add(0);
+            _shadow.Add(default);
+        }
     }
 
     private static bool Same(in Property a, in Property b) =>

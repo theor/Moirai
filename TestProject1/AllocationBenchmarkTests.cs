@@ -248,6 +248,10 @@ public class AllocationBenchmarkTests
         }
 
         int clean = other.Count(b => b == 0);
+        // Whether what is left is warm-up (pooled buffers and queues reaching their working size) or steady.
+        TestContext.Out.WriteLine("  besides chunks, per century: " + string.Join(" | ", Enumerable.Range(0, (years + 99) / 100)
+            .Select(c => other.Skip(c * 100).Take(100).ToArray())
+            .Select(o => $"{o.Count(b => b != 0)} yrs {o.Sum() / 1024.0:F1} KB")));
         TestContext.Out.WriteLine("  most common besides chunks: " + string.Join(", ",
             other.Where(b => b != 0).GroupBy(b => b).OrderByDescending(g => g.Count()).Take(8).Select(g => $"{g.Key} B x{g.Count()}")));
         TestContext.Out.WriteLine(

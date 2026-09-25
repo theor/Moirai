@@ -112,8 +112,14 @@ public class Database
     // because that is what `=` compares for a reference or an enum (PropertyValue.Equals: Value, null for
     // both, and IntValue). An unset property reads as IntValue 0, so a lookup for 0 cannot be answered
     // from the buckets and falls back to the scan.
-    private readonly HashSet<PropertyId> _indexedEqProps = new();
-    private readonly Dictionary<(PropertyId, int), IdSet> _eqIndex = new();
+    // Per indexed property, its buckets by value: a reference's value is an entity id and an enum's a small
+    // index, both dense from 0, so a chunked array does what a dictionary keyed by (property, value) did
+    // without ever rehashing. A value outside [0, MaxIndexedValue) is not indexed, and a lookup for one
+    // says "cannot say" -- the scan, which is always right.
+    private readonly Dictionary<PropertyId, ChunkedList<IdSet>> _eqIndex = new();
+    private const int MaxIndexedValue = 1 << 22;
+
+    private static bool Indexable(in PropertyValue v) => !v.HasText && v.IntValue >= 0 && v.IntValue < MaxIndexedValue;
     // Where every index bucket keeps its ids (see IdSet).
     private readonly Slab<uint> _idSlab = new();
 
@@ -338,19 +344,18 @@ public class Database
         if (property == TimeYear)
             _ctx.Year = value.IntValue;
 
-        if (_indexedEqProps.Contains(property))
+        if (_eqIndex.TryGetValue(property, out var buckets))
         {
-            // The buckets are structs inside the dictionary: written through a ref to the entry.
-            if (!prev.HasText)
-            {
-                ref var was = ref CollectionsMarshal.GetValueRefOrNullRef(_eqIndex, (property, prev.IntValue));
-                if (!Unsafe.IsNullRef(ref was))
-                    was.Remove(entityId.Id);
-            }
+            // The buckets are structs inside the chunked array: written through a ref to the slot.
+            if (Indexable(prev) && prev.IntValue < buckets.Count)
+                buckets.RefAt(prev.IntValue).Remove(entityId.Id);
 
-            if (!value.HasText)
-                CollectionsMarshal.GetValueRefOrAddDefault(_eqIndex, (property, value.IntValue), out _)
-                    .Add(entityId.Id, _idSlab);
+            if (Indexable(value))
+            {
+                while (buckets.Count <= value.IntValue)
+                    buckets.Add(default);
+                buckets.RefAt(value.IntValue).Add(entityId.Id, _idSlab);
+            }
         }
 
         // Maintain the in-memory bool index: track only entities currently holding `true`.
@@ -882,7 +887,6 @@ public class Database
         _collections.Clear();
         _boolIndex.Clear();
         _eqIndex.Clear();
-        _indexedEqProps.Clear();
         _indexedBoolProps.Clear();
         _perTypeEntities = new IdSet[Types.Count];
         for (int i = 0; i < _perTypeEntities.Length; i++)
@@ -894,7 +898,7 @@ public class Database
                     _indexedBoolProps.Add(p.PropertyId);
                 else if (!p.IsCollection && p.Type.BaseType is PropertyValue.ValueBaseType.Ref
                              or PropertyValue.ValueBaseType.Enum)
-                    _indexedEqProps.Add(p.PropertyId);
+                    _eqIndex[p.PropertyId] = new ChunkedList<IdSet>();
 
         Profiler.Init(this);
         foreach (EventTrigger a in Actions)
@@ -1179,9 +1183,10 @@ public class Database
         }
 
         // An unset property reads as 0 too, and the buckets only hold values that were set.
-        if (side.Props.Count != 1 || !_indexedEqProps.Contains(side.Props[0]) || value.IntValue == 0)
+        if (side.Props.Count != 1 || !_eqIndex.TryGetValue(side.Props[0], out var buckets) || value.IntValue == 0
+            || !Indexable(value))
             return null;
-        return _eqIndex.TryGetValue((side.Props[0], value.IntValue), out var set) ? set.Ids : Ids.Empty;
+        return value.IntValue < buckets.Count ? buckets[value.IntValue].Ids : Ids.Empty;
     }
 
     // A function body's parameters, bound to the calling expressions (which live in the scope outside).
