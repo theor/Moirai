@@ -129,10 +129,23 @@ public static class MoiraiSymbol
 
         public override void GetHoverText(List<MarkedString> markedStrings)
         {
-            // TODO params
-            markedStrings.Add(new MarkedString($"{Data.FuncName}()"));
-            if (Data.Documentation != null)
+            markedStrings.Add(new MarkedString("moirai", Signature(Data)));
+            if (!string.IsNullOrEmpty(Data.Documentation))
                 markedStrings.Add(new MarkedString(Data.Documentation));
+        }
+
+        /// `name($a: T, $b: U): R` for a story's own function -- a method leaves out the `$self` it is called
+        /// on -- and `name()` for a builtin, whose documentation spells out its arguments instead.
+        public static string Signature(IFunctionDescriptor descriptor)
+        {
+            if (descriptor is not UserFunctionDescriptor { Definition: var d })
+                return $"{descriptor.FuncName}()";
+
+            var printer = Database.Instance.Printer;
+            var parameters = d.Parameters.Skip(d.IsInstanceMethod ? 1 : 0)
+                .Select(p => $"{p.ParamName}: {printer.Print(p.ParamType)}");
+            var returns = d.ReturnType == PropertyValue.ValueType.Null ? "" : $": {printer.Print(d.ReturnType)}";
+            return $"{d.Name}({string.Join(", ", parameters)}){returns}";
         }
     }
 }

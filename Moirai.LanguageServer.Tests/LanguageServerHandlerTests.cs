@@ -379,6 +379,63 @@ event start {
     }
 
     [Test]
+    public async Task HoverHandler_shows_the_doc_comment_above_a_definition()
+    {
+        var (cache, uri, content) = await OpenAsync(@"/// Someone who lives and dies.
+/// Has an age.
+entity Person {
+    prop age: number
+    prop partner: Person
+}
+");
+        var handler = new MyHoverHandler(new FakeLogger<MyHoverHandler>(), cache);
+
+        var hover = await handler.Handle(new HoverParams
+        {
+            TextDocument = new TextDocumentIdentifier(uri),
+            Position = PositionInside(content, "Person", occurrence: 2),
+        }, default);
+
+        Assert.That(hover!.Contents.MarkedStrings!.Select(m => m.Value),
+            Has.Member("Someone who lives and dies.\nHas an age."));
+    }
+
+    [Test]
+    public async Task HoverHandler_shows_a_functions_parameters()
+    {
+        var (cache, uri, content) = await OpenAsync(@"entity Person {
+    prop age: number
+}
+function older($a: Person, $years: number): number {
+    $a.age + $years
+}
+@start
+event start {
+    create Person $p: ('p')
+    var $n: older($p, 2)
+}
+");
+        var handler = new MyHoverHandler(new FakeLogger<MyHoverHandler>(), cache);
+
+        var hover = await handler.Handle(new HoverParams
+        {
+            TextDocument = new TextDocumentIdentifier(uri),
+            Position = PositionInside(content, "older", occurrence: 2),
+        }, default);
+
+        Assert.That(hover!.Contents.MarkedStrings!.Select(m => m.Value),
+            Has.Member("older($a: Person, $years: number): number"));
+    }
+
+    [Test]
+    public void DocComments_skip_attributes_and_stop_at_ordinary_lines()
+    {
+        const string text = "// not doc\n/// the doc\n@tag('x')\nevent e {\n}\n";
+        Assert.That(MoiraiDocComments.Above(text, 3), Is.EqualTo("the doc"));
+        Assert.That(MoiraiDocComments.Above("// plain\nevent e {\n}\n", 1), Is.Null);
+    }
+
+    [Test]
     public async Task HoverHandler_returns_null_on_blank_position()
     {
         var (cache, uri, _) = await OpenAsync(Source);

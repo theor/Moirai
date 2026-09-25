@@ -336,6 +336,10 @@ public class MoiraiCache
         return null;
     }
 
+    /// The `///` doc comment written above the definition that starts on <paramref name="line"/>, or null.
+    public string? GetDocComment(DocumentUri uri, int line) =>
+        _cache.TryGetValue(uri, out var doc) ? MoiraiDocComments.Above(doc.Content, line) : null;
+
     public string GetRange(DocumentUri uri, Range locationRange)
     {
         if (_cache.TryGetValue(uri, out var doc))

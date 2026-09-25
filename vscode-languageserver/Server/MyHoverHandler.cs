@@ -38,6 +38,9 @@ public class MyHoverHandler : HoverHandlerBase
                     _moiraiCache.GetRange(request.TextDocument.Uri, res.FullDefinition)));
             
             res.GetHoverText(markedStrings);
+            if (res.FullDefinition != null &&
+                _moiraiCache.GetDocComment(request.TextDocument.Uri, res.FullDefinition.Start.Line) is { } doc)
+                markedStrings.Add(new MarkedString(doc));
             return new Hover
             {
                 Range = res.FullDefinition,
