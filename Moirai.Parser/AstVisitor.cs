@@ -679,6 +679,11 @@ public class AstVisitor : StoryParser.IVisitor
         return new SetProperty(path, right, false, isInit: true);
     }
 
+    /// Whether a value of type <paramref name="from"/> can go where <paramref name="to"/> is expected --
+    /// an argument into a parameter, by the same implicit conversions `set` allows (a number into a
+    /// percentage, `null` into a reference).
+    internal static bool Accepts(PropertyValue.ValueType to, PropertyValue.ValueType from) => to == Cast(to, from);
+
     static PropertyValue.ValueType Cast(PropertyValue.ValueType to, PropertyValue.ValueType from)
     {
         if (to == from)
@@ -956,7 +961,6 @@ public class AstVisitor : StoryParser.IVisitor
     {
         var definition = ctx.Definition!.Value;
         UserFunctionCall call = new(definition,
-            // TODO check arg/param type
             definition.Parameters
                 // .Skip(definition.IsInstanceMethod ? 1 : 0)
                 .Select((p,i) =>
@@ -966,7 +970,7 @@ public class AstVisitor : StoryParser.IVisitor
                 if(argument == null)
                     AddError(StoryParser.ErrorCode.MissingArgument, ctx.CallContext.Span,
                         $"Missing argument {i}: {p.ParamName}: {astVisitor.Database.Printer.Print(p.ParamType)}");
-                else if (type != p.ParamType)
+                else if (!Accepts(p.ParamType, type))
                     AddError(StoryParser.ErrorCode.MismatchedAssignmentTypes,
                         ctx.GetArgumentToken(i)?.Span ?? ctx.CallContext.Span,
                         $"Expected {astVisitor.Database.Printer.Print(p.ParamType)} got {astVisitor.Database.Printer.Print(type)}");

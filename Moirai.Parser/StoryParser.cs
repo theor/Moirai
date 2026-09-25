@@ -217,7 +217,7 @@ public static class StoryParser
                         }
 
                         var av = ctx.ParseArgument(i + 1, out var at);
-                        if (at != pars[i].ParamType)
+                        if (!AstVisitor.Accepts(pars[i].ParamType, at))
                             ctx.Visitor.AddError(ErrorCode.MismatchedAssignmentTypes,
                                 ctx.GetArgumentToken(i + 1)?.Span ?? ctx.CallContext.Span,
                                 $"Expected {ctx.Visitor.Database.Printer.Print(pars[i].ParamType)} got {ctx.Visitor.Database.Printer.Print(at)}");
@@ -680,7 +680,9 @@ public static class StoryParser
                 return;
             }
 
-            type = owningType.GetPropertyType(propertyName);
+            // `id` is declared once for every type as an untyped ref; read through a type, it is a
+            // reference to that type, so it can be passed where a `Person` is expected.
+            type = propertyId == Database.PropId ? owningType.RefType : owningType.GetPropertyType(propertyName);
             astVisitor.Linker?.LinkProperty(new FileRange(rootProp.Span), propertyId);
             path.AddProperty(propertyId);
         }
