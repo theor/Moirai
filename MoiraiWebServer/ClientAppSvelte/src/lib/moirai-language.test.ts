@@ -54,6 +54,32 @@ describe('the Moirai mode', () => {
     expect(tokens('set $x = 1 // and the rest').at(-1)).toEqual(['// and the rest', 'lineComment']);
   });
 
+  it('colours a block comment, and code after its close', () => {
+    expect(tokens('set $x = /* note */ 1')).toContainEqual(['/* note */', 'blockComment']);
+    expect(styleOf('set $x = /* note */ 1', '1')).toBe('number');
+  });
+
+  it('carries an open block comment onto the next line', () => {
+    const parser = moiraiStreamParser;
+    const state = parser.startState!(2);
+    const run = (line: string) => {
+      const out: [string, string | null][] = [];
+      const stream = new StringStream(line, 2, 2, 0);
+      while (!stream.eol()) {
+        const style = parser.token(stream, state);
+        out.push([stream.current(), style]);
+        stream.start = stream.pos;
+      }
+      return out;
+    };
+    expect(run('/* starts here')).toEqual([['/* starts here', 'blockComment']]);
+    expect(run('ends */ set')).toEqual([
+      ['ends */', 'blockComment'],
+      [' ', null],
+      ['set', 'keyword'],
+    ]);
+  });
+
   it('keeps an interpolated expression out of the string around it', () => {
     // '...{$p}...' is a string containing an expression, and the expression is the part that can be
     // wrong — painting the whole line as a string is what loses it.

@@ -31,7 +31,7 @@ public sealed class MoiraiTokenizerResult
 /// is what makes arbitrary-depth nested interpolation work, matching moirai_lexer.g4's mode rules.
 public static class MoiraiTokenizer
 {
-    enum LexMode { Default, InString }
+    enum LexMode { Default, InString, InBlockComment }
 
     /// The language's reserved words, exposed because it is the authoritative answer to "what is a
     /// keyword" -- the LSP's syntax-highlighting drift test asserts every entry here gets
@@ -130,8 +130,60 @@ public static class MoiraiTokenizer
                 RecordError($"Unbalanced '{context}' — nothing to close", at);
         }
 
-        public Token<MoiraiTokenKind>? ScanNext() =>
-            _modes.Peek() == LexMode.Default ? ScanDefault() : ScanInString();
+        public Token<MoiraiTokenKind>? ScanNext() => _modes.Peek() switch
+        {
+            LexMode.Default => ScanDefault(),
+            LexMode.InString => ScanInString(),
+            _ => ScanBlockComment(),
+        };
+
+        /// Where the open block comment started, for the error an unterminated one reports.
+        Position _blockCommentStart;
+
+        /// The rest of a `/* ... */` comment, one line at a time. A line break inside the comment is
+        /// the ordinary LineBreak token, not part of the comment: line breaks end statements, and a
+        /// comment spanning lines ends the one before it exactly as the lines themselves would. It
+        /// also hands every consumer a comment that never crosses a line, which is all an editor's
+        /// highlighter can colour.
+        Token<MoiraiTokenKind>? ScanBlockComment()
+        {
+            if (AtEnd)
+            {
+                _modes.Pop();
+                RecordError("Unterminated block comment -- '/*' has no closing '*/'", _blockCommentStart);
+                return null;
+            }
+
+            var start = _pos;
+            if (Current is '\r' or '\n')
+            {
+                if (Current == '\r') Advance();
+                if (!AtEnd && Current == '\n') Advance();
+                return Emit(MoiraiTokenKind.LineBreak, start);
+            }
+
+            return ScanBlockCommentLine(start);
+        }
+
+        /// One line's worth of an open block comment, from `start`: up to the line break, or through the
+        /// closing `*/`, which leaves the comment.
+        Token<MoiraiTokenKind> ScanBlockCommentLine(Position start)
+        {
+            while (!AtEnd && Current is not ('\r' or '\n'))
+            {
+                if (Current == '*' && Peek(1) == '/')
+                {
+                    Advance();
+                    Advance();
+                    _modes.Pop();
+                    break;
+                }
+
+                Advance();
+            }
+
+            return Emit(MoiraiTokenKind.Comment, start);
+        }
 
         Token<MoiraiTokenKind> Emit(MoiraiTokenKind kind, Position start) =>
             new(kind, new TextSpan(_source, start, _index - start.Absolute));
@@ -210,6 +262,15 @@ public static class MoiraiTokenizer
                         Advance();
                         while (!AtEnd && Current is not ('\r' or '\n')) Advance();
                         return Emit(MoiraiTokenKind.Comment, start);
+                    }
+
+                    if (Peek(1) == '*')
+                    {
+                        Advance();
+                        Advance();
+                        _blockCommentStart = start;
+                        _modes.Push(LexMode.InBlockComment);
+                        return ScanBlockCommentLine(start);
                     }
 
                     Advance();

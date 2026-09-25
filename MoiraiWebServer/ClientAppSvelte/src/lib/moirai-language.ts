@@ -1,4 +1,4 @@
-import { StreamLanguage, type StreamParser } from '@codemirror/language';
+import { StreamLanguage, type StreamParser, type StringStream } from '@codemirror/language';
 
 /**
  * Colouring for `.sg`, as a CodeMirror stream parser.
@@ -41,12 +41,27 @@ export const KEYWORDS = new Set([
  * one part of it that can be wrong.
  */
 interface StoryState {
-  stack: ('code' | 'string')[];
+  stack: ('code' | 'string' | 'comment')[];
 }
 
 const WORD = /^[A-Za-z_]\w*/;
 const NUMBER = /^\d+(\.\d+)?%?/;
 const OPERATOR = /^(==|!=|>=|<=|=>|\?\?|:=|[-+*/%<>=.,:!?])/;
+
+/**
+ * The inside of a `/* ... *\/`, which may run over several lines: up to the closing `*\/`, or the end of
+ * the line, where the comment stays open for the next one.
+ */
+function blockComment(stream: StringStream, state: StoryState): string {
+  while (!stream.eol()) {
+    if (stream.match('*/')) {
+      state.stack.pop();
+      break;
+    }
+    stream.next();
+  }
+  return 'blockComment';
+}
 
 /** Exported for the drift test, which runs it over a line without standing up an editor. */
 export const moiraiStreamParser: StreamParser<StoryState> = {
@@ -57,7 +72,11 @@ export const moiraiStreamParser: StreamParser<StoryState> = {
   copyState: (state) => ({ stack: [...state.stack] }),
 
   token(stream, state) {
-    const inString = state.stack[state.stack.length - 1] === 'string';
+    const top = state.stack[state.stack.length - 1];
+
+    if (top === 'comment') return blockComment(stream, state);
+
+    const inString = top === 'string';
 
     if (inString) {
       if (stream.eat("'")) {
@@ -80,6 +99,11 @@ export const moiraiStreamParser: StreamParser<StoryState> = {
     if (stream.match('//')) {
       stream.skipToEnd();
       return 'lineComment';
+    }
+
+    if (stream.match('/*')) {
+      state.stack.push('comment');
+      return blockComment(stream, state);
     }
 
     if (stream.eat("'")) {
@@ -125,7 +149,7 @@ export const moiraiStreamParser: StreamParser<StoryState> = {
   },
 
   languageData: {
-    commentTokens: { line: '//' },
+    commentTokens: { line: '//', block: { open: '/*', close: '*/' } },
     closeBrackets: { brackets: ['(', '[', '{', "'"] },
   },
 };

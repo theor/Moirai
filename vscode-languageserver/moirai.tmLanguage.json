@@ -115,6 +115,11 @@
         {
           "match": "(//.*)",
           "name": "comment.moirai"
+        },
+        {
+          "begin": "/\\*",
+          "end": "\\*/",
+          "name": "comment.block.moirai"
         }
       ]
     },
