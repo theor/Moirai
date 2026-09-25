@@ -319,7 +319,7 @@ public sealed class WorldSession
         if (_db.History != null)
             foreach (var cs in _db.History.Changesets)
             foreach (var change in cs.Changes)
-                if (change.New.Id.Id == eid)
+                if (change.Id.Id == eid)
                     entries.Add(new BiographyEntry(Begins(cs.Year), cs.Id, "change", "", cs.ActionName,
                         GetChangeDetails(change), Array.Empty<string>()));
 
@@ -559,7 +559,7 @@ public sealed class WorldSession
             {
                 if (cs.Firing != f.Parent) continue;
                 foreach (var change in cs.Changes)
-                    if (change.New.Id.Id == f.Cause.Id)
+                    if (change.Id.Id == f.Cause.Id)
                     {
                         var what = GetChangeDetails(change).Where(d => d.Label != "name")
                             .Select(d => $"{d.Label} {d.Value}");
@@ -586,16 +586,16 @@ public sealed class WorldSession
         if (year >= _db.Ctx.Year || _db.History == null)
             return EntityPropertyDisplays(eid);
 
-        Entity? then = null;
+        Changeset.Changed? then = null;
         foreach (var cs in _db.History.Changesets)
         {
             if (cs.Year > year) break;
             foreach (var change in cs.Changes)
-                if (change.New.Id.Id == eid)
-                    then = change.New;
+                if (change.Id.Id == eid)
+                    then = change;
         }
 
-        return then is { } e ? PropertyRows(e) : new List<EntityPropertyDisplay>();
+        return then is { } c ? PropertyRows(c.New) : new List<EntityPropertyDisplay>();
     }
 
     /// <summary>
@@ -721,8 +721,8 @@ public sealed class WorldSession
             return new List<EntityChangeDisplay>();
         return _db.History.Changesets
             .SelectMany(cs => cs.Changes
-                .Where(x => x.New.Id.Id == eid)
-                .Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x))))
+                .Where(x => x.Id.Id == eid)
+                .Select(x => new EntityChangeDisplay(x.Id, cs.Year, cs.ActionName, GetChangeDetails(x))))
             .ToList();
     }
 
@@ -903,8 +903,8 @@ public sealed class WorldSession
                 if (s._db.History != null)
                     foreach (var cs in s._db.History.Changesets)
                     foreach (var c in cs.Changes)
-                        if (c.Prev.Id.IsNull)
-                            _created.TryAdd(c.New.Id.Id, cs.Year);
+                        if (c.Created)
+                            _created.TryAdd(c.Id.Id, cs.Year);
             }
 
             return _created.GetValueOrDefault(id);
@@ -912,12 +912,12 @@ public sealed class WorldSession
     }
 
     private IList<EntityChangeDisplay> GetChangesetDetails(Changeset cs) =>
-        cs.Changes.Select(x => new EntityChangeDisplay(x.New.Id, cs.Year, cs.ActionName, GetChangeDetails(x)))
+        cs.Changes.Select(x => new EntityChangeDisplay(x.Id, cs.Year, cs.ActionName, GetChangeDetails(x)))
             .ToList();
 
     private IList<EntityPropertyDisplay> GetChangeDetails(Changeset.Changed c)
     {
-        if (c.Prev.Id.IsNull) // new entity
+        if (c.Created)
         {
             return c.New.Properties.Where(p => p.Id.IsValid)
                 .Select(p => new EntityPropertyDisplay(_db.GetPropertyName(p.Id), PrintValue(p.Id, p.Value)))
@@ -927,7 +927,7 @@ public sealed class WorldSession
         return c.Prev.Properties.Where(p => p.Id.IsValid)
             .Select(p =>
             {
-                var p1 = c.New.GetProperty(p.Id);
+                c.TryGetNext(p.Id, out var p1); // every property the change wrote is recorded
                 return new EntityPropertyDisplay(_db.GetPropertyName(p.Id),
                     PrintValue(p.Id, p.Value) + " -> " + PrintValue(p.Id, p1));
             }).ToList();

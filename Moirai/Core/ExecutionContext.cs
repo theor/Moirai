@@ -245,7 +245,7 @@ public class ExecuteContext
         }
     }
 
-    public Entity PrevEntity;
+    public PrevView PrevEntity;
     internal PropertyValue GetPrevEntityProperty(PropertyId property)
     {
         if (!property.IsValid)

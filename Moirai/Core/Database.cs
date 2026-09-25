@@ -211,7 +211,7 @@ public class Database
         if (type.IsSingleton)
             _singletons[entityType.Id] = e.Id;
         _perTypeEntities[(int)entityType.Id].Add(e.Id);
-        CurrentChangeset.RecordCreate(e);
+        CurrentChangeset.RecordCreate(this, e.Id, entityType);
         return e.Id;
     }
 
@@ -308,8 +308,7 @@ public class Database
             else set.Remove(entityId.Id);
         }
 
-        // TODO CS
-        CurrentChangeset.RecordSet(entity, property, prev);
+        CurrentChangeset.RecordSet(this, entityId, entity.Type, property, prev);
         // CurrentChangeset.Changes.Add(Change.Set(entityId, property, prev, value));
         // for (var index = 0; index < entity.Properties.Count; index++)
         // {
@@ -508,7 +507,8 @@ public class Database
     {
         // Console.WriteLine($"[{action.Name}]");
         CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year)
-            { Firing = _currentFiring };
+            { Firing = _currentFiring, Buffer = AcquireBuffer() };
+        var buffer = CurrentChangeset.Buffer;
         _currentActionId = eventTrigger.Id;
         _currentAction = eventTrigger;
         // _ctx.Values.Clear();
@@ -560,7 +560,10 @@ public class Database
             eventTrigger.Successes++;
 
         if (!success)
+        {
+            ReleaseBuffer(buffer);
             return false;
+        }
         // _taggedEntities.Clear();
         // CurrentChangeset.GetTaggedEntities(_taggedEntities);
 
@@ -570,8 +573,25 @@ public class Database
         // needs to be computed or is part of a query
         // eg pick Item $2: ($2.owner = ...) owner might be computed instead of a sql var
         RunTriggers(CurrentChangeset);
+        ReleaseBuffer(buffer);
 
         return true;
+    }
+
+    // Open changesets' buffers, reused: an event's goes back once its triggers have replayed it, a
+    // trigger's once every trigger for that changeset has run. Nothing in the history points at one --
+    // closing a changeset copies what it needs out -- so a returned buffer is free to be refilled.
+    private readonly Stack<ChangeBuffer> _buffers = new();
+    private readonly List<ChangeBuffer> _triggerBuffers = new();
+
+    private ChangeBuffer AcquireBuffer() => _buffers.TryPop(out var b) ? b : new ChangeBuffer(this);
+
+    private void ReleaseBuffer(ChangeBuffer? buffer)
+    {
+        if (buffer == null)
+            return;
+        buffer.Reset();
+        _buffers.Push(buffer);
     }
 
     internal static readonly EntityId ChangePrevEntityId = new EntityId(uint.MaxValue - 1);
@@ -606,16 +626,24 @@ public class Database
     private void RunTriggers(Changeset cs)
     {
         var prof = ExecProfiler;
-        foreach (Changeset.Changed changed in cs.Changes)
+        var buffer = cs.Buffer;
+        if (buffer == null)
+            return;
+        // The triggers' own changesets, handed back when every trigger has run (see ReleaseBuffer). A
+        // trigger that calls an event nests another RunTriggers, which stacks its buffers above these.
+        int usedFrom = _triggerBuffers.Count;
+        for (int ci = 0; ci < buffer.EntityCount; ci++)
         {
-            _ctx.PrevEntity = changed.Prev;
+            var changed = buffer.Entities[ci];
+            var prev = new PrevView(buffer, ci);
+            _ctx.PrevEntity = prev;
 
             // Only triggers registered for this change's entity type AND when-type can match; look
-            // them up rather than scanning every trigger (a null-Prev change = create, else change).
-            var whenType = changed.Prev.Id.IsNull
+            // them up rather than scanning every trigger (a created entity = create, else change).
+            var whenType = changed.Created
                 ? EventTrigger.WhenType.Created
                 : EventTrigger.WhenType.Changed;
-            var triggers = TriggersFor(changed.New.Type, whenType);
+            var triggers = TriggersFor(changed.Type, whenType);
             if (triggers == null)
                 continue;
 
@@ -638,7 +666,7 @@ public class Database
                     {
                         bool relevant = false;
                         for (int gi = 0; gi < gp.Length; gi++)
-                            if (changed.Prev.TryGetProperty(gp[gi], out _)) { relevant = true; break; }
+                            if (prev.Wrote(gp[gi])) { relevant = true; break; }
                         if (!relevant)
                             continue;
                     }
@@ -659,7 +687,7 @@ public class Database
                     if (trigger.When.Item1 == EventTrigger.WhenType.Changed)
                         _ctx.SetArgument(varIdx++, ChangePrevEntityId);
                     // $new value
-                    _ctx.SetArgument(varIdx, changed.New.Id);
+                    _ctx.SetArgument(varIdx, changed.Id);
 
                     if (trigger.When.Item3 == null || trigger.When.Item3.IsTrue(_ctx))
                     {
@@ -669,9 +697,11 @@ public class Database
                         // The trigger's own firing, caused by this change in the changeset it is replaying,
                         // and its records attributed to it (tags included) rather than to the event.
                         var (savedAction, savedFiring) = (_currentAction, _currentFiring);
-                        _currentFiring = LogFiring(trigger, cs.Firing, changed.New.Id, changed.Prev.Id.IsNull);
+                        _currentFiring = LogFiring(trigger, cs.Firing, changed.Id, changed.Created);
                         _currentAction = trigger;
-                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year) { Firing = _currentFiring };
+                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year)
+                            { Firing = _currentFiring, Buffer = AcquireBuffer() };
+                        _triggerBuffers.Add(CurrentChangeset.Buffer!);
                         DebugHook?.OnEnterFrame(DebugFrameKind.Trigger, trigger.Name, trigger.DebugScopeRoot, _ctx.ValueOffset);
                         foreach (var e in trigger.Effects)
                         {
@@ -692,6 +722,9 @@ public class Database
         }
 
         _ctx.PrevEntity = default;
+        for (int i = usedFrom; i < _triggerBuffers.Count; i++)
+            ReleaseBuffer(_triggerBuffers[i]);
+        _triggerBuffers.RemoveRange(usedFrom, _triggerBuffers.Count - usedFrom);
     }
 
     /// <summary>

@@ -13,6 +13,8 @@ public struct Entity
     public PropertyValue _type;
     public IReadOnlyCollection<Property> Properties => _properties;
     private Property[] _properties;
+    // The slots themselves, indexed by PropertyId.Id, for the history to diff and copy without boxing.
+    internal readonly Property[] RawProperties => _properties;
 
     public Entity(EntityType type) : this()
     {

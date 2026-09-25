@@ -62,7 +62,7 @@ public static class WorldSeries
     {
         var domain = Domain(db);
         var creations = db.History?.Changesets.SelectMany(cs => cs.Changes
-                            .Where(ch => ch.Prev.Id.IsNull && ch.New.Type == type.Id)
+                            .Where(ch => ch.Created && ch.Type == type.Id)
                             .Select(_ => cs.Year))
                         ?? Enumerable.Empty<long>();
         var perYear = Histogram(domain, creations);
@@ -102,11 +102,13 @@ public static class WorldSeries
                 perYear[cursor++] = Level();
             foreach (var ch in cs.Changes)
             {
-                if (ch.New.Type != type.Id || !ch.New.TryGetProperty(pid, out var v))
+                // A value the change did not record is the one the entity last appeared with (or unset,
+                // on its first appearance), which adds nothing to the running sum.
+                if (ch.Type != type.Id || !ch.TryGetNext(pid, out var v))
                     continue;
                 double value = isBool ? (v.BoolValue ? 1 : 0) : v.FloatValue;
-                sum += latest.TryGetValue(ch.New.Id.Id, out var previous) ? value - previous : value;
-                latest[ch.New.Id.Id] = value;
+                sum += latest.TryGetValue(ch.Id.Id, out var previous) ? value - previous : value;
+                latest[ch.Id.Id] = value;
             }
         }
 
@@ -146,14 +148,16 @@ public static class WorldSeries
                 perYear[cursor++] = count;
             foreach (var ch in cs.Changes)
             {
-                if (ch.New.Type != type.Id)
+                if (ch.Type != type.Id)
                     continue;
+                var id = ch.Id.Id;
+                var seen = living.TryGetValue(id, out var was);
+                // Unrecorded means unchanged since the entity last appeared -- or unset, the first time.
                 bool now = alive.IsValid
-                    ? ch.New.TryGetProperty(alive, out var a) && a.BoolValue
-                    : !(ch.New.TryGetProperty(dead, out var d) && d.BoolValue);
-                var was = living.TryGetValue(ch.New.Id.Id, out var w) && w;
-                count += (now ? 1 : 0) - (was ? 1 : 0);
-                living[ch.New.Id.Id] = now;
+                    ? ch.TryGetNext(alive, out var a) ? a.BoolValue : seen && was
+                    : ch.TryGetNext(dead, out var d) ? !d.BoolValue : !seen || was;
+                count += (now ? 1 : 0) - (seen && was ? 1 : 0);
+                living[id] = now;
             }
         }
 
