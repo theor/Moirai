@@ -46,6 +46,10 @@ public struct Changeset(int id, string actionName, long year)
     /// <summary>The firing that made these changes (see <c>Database.Firing</c>), 0 if none.</summary>
     public int Firing { get; init; }
     private List<Changed>? _changes;
+    // Where each touched entity's entry is in _changes, so the next write to it finds it in O(1). An event
+    // that sets one property on every believer (w.sg's deepen_faith) used to search the whole list for
+    // each write -- quadratic in the number of entities it touched.
+    private Dictionary<uint, int>? _indexOf;
     public IReadOnlyCollection<Changed> Changes => _changes as IReadOnlyCollection<Changed> ?? ArraySegment<Changed>.Empty;
 
     /// <summary>
@@ -62,15 +66,14 @@ public struct Changeset(int id, string actionName, long year)
     }
     public void RecordSet(Entity modifiedEntity, PropertyId property, PropertyValue prev)
     {
-        var i = -1; 
-        if (_changes != null)
-            i = _changes.FindIndex(c => c.New.Id.Id == modifiedEntity.Id.Id);
         _changes ??= new();
-        if (i == -1)
+        _indexOf ??= new();
+        if (!_indexOf.TryGetValue(modifiedEntity.Id.Id, out var i))
         {
             // TODO remove db singleton
             var prevEntity = new Entity(Database.Instance.GetEntityType(modifiedEntity.Type)){Id = modifiedEntity.Id};
             prevEntity.SetProperty(property, prev);
+            _indexOf[modifiedEntity.Id.Id] = _changes.Count;
             _changes.Add(new Changed(prevEntity, modifiedEntity));
         }
         else
@@ -83,6 +86,9 @@ public struct Changeset(int id, string actionName, long year)
     public void RecordCreate(Entity @new)
     {
         _changes ??= new List<Changed>();
+        _indexOf ??= new();
+        // First entry wins, as FindIndex did: a later write to a created entity lands on its creation.
+        _indexOf.TryAdd(@new.Id.Id, _changes.Count);
         _changes.Add(new Changed(default, @new));
     }
 }

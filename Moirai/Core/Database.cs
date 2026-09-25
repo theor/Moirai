@@ -95,6 +95,15 @@ public class Database
     // still re-checked per candidate, so the index only narrows what is visited, never the result.
     private readonly HashSet<PropertyId> _indexedBoolProps = new();
     private readonly Dictionary<PropertyId, SortedSet<uint>> _boolIndex = new();
+
+    // Equality index over reference and enum properties: (property, value) -> the ids holding it, in
+    // ascending order. A pick or each whose predicate pins one of them -- `place = $c`, `owner = $new`,
+    // `job = Job.Soldier` -- then visits only that bucket instead of the whole type. Keyed by IntValue,
+    // because that is what `=` compares for a reference or an enum (PropertyValue.Equals: Value, null for
+    // both, and IntValue). An unset property reads as IntValue 0, so a lookup for 0 cannot be answered
+    // from the buckets and falls back to the scan.
+    private readonly HashSet<PropertyId> _indexedEqProps = new();
+    private readonly Dictionary<(PropertyId, int), SortedSet<uint>> _eqIndex = new();
     private static readonly SortedSet<uint> EmptyUintSet = new();
 
     public ExecuteContext Ctx
@@ -277,6 +286,18 @@ public class Database
         // than 0.
         if (property == TimeYear)
             _ctx.Year = value.IntValue;
+
+        if (_indexedEqProps.Contains(property))
+        {
+            if (prev.Value == null && _eqIndex.TryGetValue((property, prev.IntValue), out var was))
+                was.Remove(entityId.Id);
+            if (value.Value == null)
+            {
+                if (!_eqIndex.TryGetValue((property, value.IntValue), out var now))
+                    _eqIndex[(property, value.IntValue)] = now = new SortedSet<uint>();
+                now.Add(entityId.Id);
+            }
+        }
 
         // Maintain the in-memory bool index: track only entities currently holding `true`.
         if (_indexedBoolProps.Contains(property))
@@ -761,6 +782,8 @@ public class Database
         _singletons.Clear();
         _collections.Clear();
         _boolIndex.Clear();
+        _eqIndex.Clear();
+        _indexedEqProps.Clear();
         _indexedBoolProps.Clear();
         _perTypeEntities = new List<EntityId>[Types.Count];
         for (int i = 0; i < _perTypeEntities.Length; i++)
@@ -770,6 +793,9 @@ public class Database
             foreach (var p in t.Properties.Skip(4))
                 if (!p.IsCollection && p.Type.BaseType == PropertyValue.ValueBaseType.Bool)
                     _indexedBoolProps.Add(p.PropertyId);
+                else if (!p.IsCollection && p.Type.BaseType is PropertyValue.ValueBaseType.Ref
+                             or PropertyValue.ValueBaseType.Enum)
+                    _indexedEqProps.Add(p.PropertyId);
 
         Profiler.Init(this);
         foreach (EventTrigger a in Actions)
@@ -851,6 +877,10 @@ public class Database
     private IEnumerable<EntityId> Candidates(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx)
     {
         var indexed = TryGetBoolIndexCandidates(predicate, varIdx);
+        if (predicate != null
+            && Narrow(predicate, varIdx, entityTypeId, null) is { } narrowed
+            && (indexed == null || narrowed.Count < indexed.Count))
+            indexed = narrowed;
         if (indexed != null)
         {
             foreach (var raw in indexed)
@@ -890,6 +920,160 @@ public class Database
             default:
                 return TryMatchTrueBoolConjunct(node, varIdx, out prop);
         }
+    }
+
+    // ---- narrowing a scan -----------------------------------------------------------------------------
+    //
+    // Narrow() returns a set of ids, ascending, guaranteed to contain every entity of the type for which the
+    // predicate can be true -- or null when it cannot say. The caller still checks the full predicate on
+    // each one, so a narrower set changes how many rows are visited and nothing else: the matches, their
+    // order, and therefore the RNG draws a pick makes over them, are exactly what a full scan gives.
+    //
+    //   a and b        the smaller of what a and b allow (either alone is already a superset)
+    //   a or b         the union, when both sides are known
+    //   $v.p = x       the equality index's bucket for (p, x), for a reference or enum p
+    //   $v = x         just x, if it is an entity of the scanned type
+    //   f(args)        f's body, when it is one expression, read with its parameters bound to args --
+    //                  which is how is_child_of($child, $new) becomes "the children of $new"
+    //
+    // where x is anything that does not depend on the scanned variable: a literal, a singleton, or a path
+    // from another variable, evaluated once, up front. If it cannot be evaluated (a path through a null the
+    // predicate would itself have short-circuited) that part is simply unknown.
+
+    private SortedSet<uint>? Narrow(IValue node, int varIdx, EntityTypeId type, ArgScope? scope)
+    {
+        switch (node)
+        {
+            case And and:
+            {
+                SortedSet<uint>? best = null;
+                foreach (var p in and.Predicates)
+                    if (Narrow(p, varIdx, type, scope) is { } b && (best == null || b.Count < best.Count))
+                        best = b;
+                return best;
+            }
+            case BinaryOperator { Op: BinaryOperator.Operator.And } a:
+            {
+                var l = Narrow(a.Left, varIdx, type, scope);
+                var r = Narrow(a.Right, varIdx, type, scope);
+                return l == null ? r : r == null ? l : l.Count <= r.Count ? l : r;
+            }
+            case BinaryOperator { Op: BinaryOperator.Operator.Or } o:
+            {
+                if (Narrow(o.Left, varIdx, type, scope) is not { } l) return null;
+                if (Narrow(o.Right, varIdx, type, scope) is not { } r) return null;
+                if (l.Count == 0) return r;
+                if (r.Count == 0) return l;
+                var union = new SortedSet<uint>(l);
+                union.UnionWith(r);
+                return union;
+            }
+            case BinaryOperator { Op: BinaryOperator.Operator.Equals } eq:
+                return NarrowEquals(Resolve(eq.Left, varIdx, scope), Resolve(eq.Right, varIdx, scope), type)
+                       ?? NarrowEquals(Resolve(eq.Right, varIdx, scope), Resolve(eq.Left, varIdx, scope), type);
+            case UserFunctionCall call
+                when !call.Definition.IsInstanceMethod
+                     && call.Definition.Instructions is [CallInstruction { Value: { } body }]
+                     && call.Arguments.Length == call.Definition.Parameters.Length:
+            {
+                var args = new Dictionary<int, IValue>();
+                for (int i = 0; i < call.Arguments.Length; i++)
+                    args[call.Definition.Parameters[i].ParamIndex] = call.Arguments[i];
+                return Narrow(body, varIdx, type, new ArgScope(args, scope));
+            }
+            default:
+                return null;
+        }
+    }
+
+    private SortedSet<uint>? NarrowEquals(Resolved side, Resolved other, EntityTypeId type)
+    {
+        if (side.Kind != ResolvedKind.QueryVar || other.Kind != ResolvedKind.Independent)
+            return null;
+        if (!TryComputeIndependent(other, out var value) || value.Value != null)
+            return null;
+
+        if (side.Props.Count == 0)
+        {
+            // The scanned entity itself: it can only be x.
+            var only = new SortedSet<uint>();
+            if (TryGetEntity(value.Id, out var e) && e.Type == type)
+                only.Add(value.Id.Id);
+            return only;
+        }
+
+        // An unset property reads as 0 too, and the buckets only hold values that were set.
+        if (side.Props.Count != 1 || !_indexedEqProps.Contains(side.Props[0]) || value.IntValue == 0)
+            return null;
+        return _eqIndex.TryGetValue((side.Props[0], value.IntValue), out var set) ? set : EmptyUintSet;
+    }
+
+    // A function body's parameters, bound to the calling expressions (which live in the scope outside).
+    private sealed record ArgScope(Dictionary<int, IValue> Args, ArgScope? Outer);
+
+    private enum ResolvedKind { Unknown, QueryVar, Independent }
+
+    // What a value is, seen from the scan: the scanned variable followed by properties (QueryVar), or a
+    // root the scan cannot change followed by properties (Independent) -- or something else (Unknown).
+    private readonly record struct Resolved(ResolvedKind Kind, IValue? Root, List<PropertyId> Props);
+
+    private static Resolved Unknown => new(ResolvedKind.Unknown, null, new List<PropertyId>());
+
+    private Resolved Resolve(IValue v, int varIdx, ArgScope? scope)
+    {
+        switch (v)
+        {
+            case Literal:
+                return new Resolved(ResolvedKind.Independent, v, new List<PropertyId>());
+            case PropertyPath pp when pp.Segments == null || pp.Segments.All(seg => seg.Call == null):
+            {
+                var props = pp.Segments?.Select(seg => seg.Property).ToList() ?? new List<PropertyId>();
+                if (pp.Mode == PropertyPath.PropertyPathMode.Singleton)
+                    return scope == null && props.Count > 0
+                        ? new Resolved(ResolvedKind.Independent, pp, new List<PropertyId>())
+                        : Unknown;
+                if (pp.Mode != PropertyPath.PropertyPathMode.Variable)
+                    return Unknown;
+                if (scope == null)
+                    return pp.VariableIndex == varIdx
+                        ? new Resolved(ResolvedKind.QueryVar, null, props)
+                        : new Resolved(ResolvedKind.Independent, pp, new List<PropertyId>());
+
+                // Inside a function: a parameter stands for the argument it was called with.
+                if (!scope.Args.TryGetValue(pp.VariableIndex, out var arg))
+                    return Unknown;
+                var outer = Resolve(arg, varIdx, scope.Outer);
+                if (outer.Kind == ResolvedKind.Unknown)
+                    return outer;
+                var chain = new List<PropertyId>(outer.Props);
+                chain.AddRange(props);
+                return outer with { Props = chain };
+            }
+            default:
+                return Unknown;
+        }
+    }
+
+    private bool TryComputeIndependent(Resolved r, out PropertyValue value)
+    {
+        value = default;
+        try
+        {
+            value = r.Root!.Compute(_ctx);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+
+        foreach (var prop in r.Props)
+        {
+            if (value.Value != null || value.IntValue == 0)
+                return false;
+            GetProperty(value.Id, prop, out value);
+        }
+
+        return true;
     }
 
     private bool TryMatchTrueBoolConjunct(IValue conjunct, int varIdx, out PropertyId prop)
