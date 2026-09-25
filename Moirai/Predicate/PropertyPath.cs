@@ -123,20 +123,28 @@ public struct  PropertyPath : IValueSql
 
     public readonly PropertyValue Compute(ExecuteContext ctx)
     {
+        PropertyValue varValue;
+        Entity e = default;
         if (Mode == PropertyPathMode.Singleton)
         {
-            // TODO #Singleton.method()
-            if (!ctx.GetSingleton(Segments[0].Property.TypeId, out var entity))
+            // The instance stands where a variable's entity would; the segments after it -- `#World.capital.size`
+            // -- are walked below exactly as a variable's are. (A method, `#World.f()`, never gets here: the
+            // parser makes it a call taking `#World` as its receiver.)
+            // The singleton's type is the first segment's owner: a path rebased onto this one when a function
+            // is inlined keeps the mode but carries the parameter's type.
+            var singletonType = Segments is { Count: > 0 } ? Segments[0].TypeId : TypeId.ToEntityType();
+            if (!ctx.GetSingleton(singletonType, out e))
                 return default;
-            if (Segments[0].Property.Id == 0)
-                return entity.Id;
-
-            return entity.GetProperty(Segments[0].Property);
+            varValue = e.Id;
+            if (Segments == null || Segments.Count == 0 || Segments[0].Property.Id == 0 && Segments[0].Call == null)
+                return varValue;
+        }
+        else
+        {
+            varValue = VariableIndex != -1 ? ctx.Argument(VariableIndex) : default;
         }
 
-        PropertyValue varValue = VariableIndex != -1 ? ctx.Argument(VariableIndex) : default;
-        Entity e = default;
-        if (varValue.Type == PropertyValue.TypeRef)
+        if (Mode != PropertyPathMode.Singleton && varValue.Type == PropertyValue.TypeRef)
             if (!ctx.Database.TryGetEntity(varValue.Id, out e))
             {
                 if (varValue.Id.Id == Database.ChangePrevEntityId.Id)

@@ -1195,9 +1195,12 @@ public class AstVisitor : StoryParser.IVisitor
 
             Linker?.LinkType(new FileRange(singletonId.Span), singletonType.Id);
 
-            // TODO chained singleton #Time.x.y
+            // Chains (`#World.capital.size`) and methods (`#World.f()`) are read the same way as a variable's.
             var path = new PropertyPath(singletonType.Id);
             ParseProperty(ref path, context, singletonType, out type);
+            // `#World` alone is the instance itself.
+            if (context.PropertyId == null && context.DotProperties.Length == 0)
+                type = singletonType.RefType;
             return path;
         }
 

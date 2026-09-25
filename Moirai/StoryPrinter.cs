@@ -234,6 +234,9 @@ public partial class StoryPrinter
     {
         if (path.Segments == null)
         {
+            // `#World` alone -- the receiver of a method called on a singleton.
+            if (path.Mode == PropertyPath.PropertyPathMode.Singleton)
+                return $"#{_database.GetEntityTypeName(path.TypeId.ToEntityType())}";
             Debug.Assert(path.VariableIndex != -1, "-1 varindex");
             return $"${path.VariableIndex}";
         }
