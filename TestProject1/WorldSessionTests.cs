@@ -872,6 +872,25 @@ public class WorldSessionTests
     // ---- the wire format --------------------------------------------------
 
     [Test]
+    public void AskingAgainForAnUnchangedWorldIsFreeAndAPassRefreshesTheAnswer()
+    {
+        // Home and World re-ask on every tab switch; the answers are kept until the world moves.
+        var s = Session();
+        s.PassYears(50);
+        var overview = s.GetWorldOverview();
+        var chronicle = s.GetChronicle(8);
+        Assert.That(s.GetWorldOverview(), Is.SameAs(overview));
+        Assert.That(s.GetChronicle(8), Is.SameAs(chronicle));
+        Assert.That(s.GetChronicle(3), Is.Not.SameAs(chronicle), "another argument is another answer");
+
+        s.PassYears(10);
+        var after = s.GetWorldOverview();
+        Assert.That(after, Is.Not.SameAs(overview));
+        Assert.That(after.Year, Is.EqualTo(overview.Year + 10));
+        Assert.That(after.Records, Is.GreaterThanOrEqualTo(overview.Records));
+    }
+
+    [Test]
     public void TheWireFormatIsCamelCaseWithFieldsAndStringEnums()
     {
         // The Svelte client's types are written by hand against this shape (src/lib/types.ts), and both

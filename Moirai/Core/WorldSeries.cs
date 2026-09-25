@@ -54,6 +54,48 @@ public static class WorldSeries
     }
 
     /// <summary>
+    /// <see cref="EntitiesOfType"/> for every story type at once, in the order <see cref="StoryTypes"/>
+    /// gives, skipping types that never appear: one pass over the log rather than one per type. The World
+    /// page asks for all of them, and a pass per type was most of its cost -- ~750 ms of the browser's
+    /// main thread at 700 years of w.sg, every time the page opened.
+    /// </summary>
+    public static List<TimeSeries> EntitiesOfEveryType(Database db, int maxPoints = DefaultMaxPoints)
+    {
+        var domain = Domain(db);
+        var types = StoryTypes(db).ToList();
+        var slot = new int[db.Types.Count];
+        Array.Fill(slot, -1);
+        for (int i = 0; i < types.Count; i++)
+            slot[types[i].Id.Id] = i;
+
+        var perYear = new double[types.Count][];
+        if (db.History != null)
+            foreach (var cs in db.History.Changesets)
+            {
+                long year = Math.Clamp(cs.Year, domain.Start, domain.End) - domain.Start;
+                foreach (var ch in cs.Changes)
+                {
+                    if (!ch.Created || ch.Type.Id >= slot.Length || slot[ch.Type.Id] is var t && t < 0)
+                        continue;
+                    (perYear[t] ??= new double[domain.End - domain.Start + 1])[year]++;
+                }
+            }
+
+        var series = new List<TimeSeries>();
+        for (int i = 0; i < types.Count; i++)
+        {
+            if (perYear[i] is not { } counts)
+                continue;
+            double running = 0;
+            for (int y = 0; y < counts.Length; y++)
+                counts[y] = running += counts[y];
+            series.Add(Bucket(types[i].Name, Kind.Level, counts, domain, maxPoints));
+        }
+
+        return series;
+    }
+
+    /// <summary>
     /// How many entities of <paramref name="type"/> had been created by each year. Entities are never
     /// deleted, so this is "how many have ever existed"; for "how many are alive now", plot the type's
     /// own bool property with <see cref="PropertyOverTime"/>. Null when the type never appears.

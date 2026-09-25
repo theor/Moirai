@@ -341,20 +341,33 @@ public sealed class WorldSession
     ///
     /// <para>Singletons (Time) are left out: they are the world's furniture, not its characters.</para>
     /// </summary>
-    public NotableGroup[] GetNotable(int perType)
+    public NotableGroup[] GetNotable(int perType) => Memo(nameof(GetNotable), perType, () => ComputeNotable(perType));
+
+    private NotableGroup[] ComputeNotable(int perType)
     {
         var tally = new Dictionary<uint, (int Count, long First, long Last)>();
         var seen = new HashSet<uint>();
+        void Tally(uint id, long year)
+        {
+            if (!seen.Add(id)) return;
+            tally[id] = tally.TryGetValue(id, out var t) ? (t.Count + 1, t.First, year) : (1, year, year);
+        }
+
         foreach (var r in _db.Records)
         {
             seen.Clear();
-            foreach (var id in Mentioned(r))
+            // Mentioned's rule, with the participants read in place: building every record's array (and an
+            // iterator per record) was most of what opening Home cost.
+            var participants = r.ParticipantSpan();
+            if (participants.Length > 0)
             {
-                if (!seen.Add(id)) continue;
-                tally[id] = tally.TryGetValue(id, out var t)
-                    ? (t.Count + 1, t.First, r.Year)
-                    : (1, r.Year, r.Year);
+                foreach (var p in participants)
+                    if (!p.IsNull)
+                        Tally(p.Id, r.Year);
             }
+            else
+                foreach (var id in Mentioned(r))
+                    Tally(id, r.Year);
         }
 
         return tally
@@ -392,7 +405,10 @@ public sealed class WorldSession
     /// <para><b>Tags</b> lose their quotes here: the parser keeps a @tag's literal text, quotes and all
     /// (see <c>AstVisitor</c>), and a card is the wrong place to show that.</para>
     /// </summary>
-    public Chronicle GetChronicle(int turningPoints)
+    public Chronicle GetChronicle(int turningPoints) =>
+        Memo(nameof(GetChronicle), turningPoints, () => ComputeChronicle(turningPoints));
+
+    private Chronicle ComputeChronicle(int turningPoints)
     {
         long Begins(long year) => Math.Max(year, _db.StartYear);
         static string[] Tags(string[]? tags) => tags?.Select(t => t.Trim('\'')).ToArray() ?? Array.Empty<string>();
@@ -430,10 +446,21 @@ public sealed class WorldSession
             .Select(r => new ChronicleEntry(Begins(r.Year), r.ChangesetId, r.Text, r.Weight, Tags(r.Tags)))
             .ToArray();
 
-        var tags = _db.Records
-            .SelectMany(r => Tags(r.Tags))
-            .GroupBy(t => t)
-            .Select(g => new ChronicleTag(g.Key, g.Count()))
+        // Counted per tag as the rules declare them (one array per rule, shared by its records), then merged
+        // by the quote-trimmed name the card shows -- not a trimmed copy of every record's tags.
+        var perRawTag = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var r in _db.Records)
+            if (r.Tags != null)
+                foreach (var t in r.Tags)
+                    perRawTag[t] = perRawTag.GetValueOrDefault(t) + 1;
+        var perTag = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (t, n) in perRawTag)
+        {
+            var name = t.Trim('\'');
+            perTag[name] = perTag.GetValueOrDefault(name) + n;
+        }
+        var tags = perTag
+            .Select(kv => new ChronicleTag(kv.Key, kv.Value))
             .OrderByDescending(t => t.Records).ThenBy(t => t.Tag, StringComparer.Ordinal)
             .ToArray();
 
@@ -603,7 +630,9 @@ public sealed class WorldSession
     /// cumulative entity count per type. All of it is replayed from the changeset log by
     /// <see cref="WorldSeries"/>, so the simulation pays nothing for it.
     /// </summary>
-    public WorldOverview GetWorldOverview()
+    public WorldOverview GetWorldOverview() => Memo(nameof(GetWorldOverview), null, ComputeWorldOverview);
+
+    private WorldOverview ComputeWorldOverview()
     {
         if (_db.History == null)
             return new WorldOverview(0, 0, 0, 0, Array.Empty<TimeSeries>(), Array.Empty<ChartableProperty>());
@@ -613,9 +642,7 @@ public sealed class WorldSession
             WorldSeries.RecordsPerYear(_db),
             WorldSeries.ChangesPerYear(_db),
         };
-        foreach (var type in WorldSeries.StoryTypes(_db))
-            if (WorldSeries.EntitiesOfType(_db, type) is { } s)
-                series.Add(s);
+        series.AddRange(WorldSeries.EntitiesOfEveryType(_db));
 
         var properties = WorldSeries.Chartable(_db)
             .Select(c => new ChartableProperty((int)c.Type.Id.Id, c.Type.Name, c.Property.Name,
@@ -627,11 +654,32 @@ public sealed class WorldSession
     }
 
     /// <summary>One property's history, replayed from the changeset log. See <see cref="WorldSeries.PropertyOverTime"/>.</summary>
-    public TimeSeries GetPropertySeries(int typeId, string propertyName)
+    public TimeSeries GetPropertySeries(int typeId, string propertyName) =>
+        Memo(nameof(GetPropertySeries), (typeId, propertyName), () => _db.History == null
+            ? TimeSeries.Empty
+            : WorldSeries.PropertyOverTime(_db, _db.GetEntityType(new EntityTypeId((uint)typeId)), propertyName));
+
+    // What Home and World show only changes when the world does, and every tab switch asks again: opening
+    // World replayed the whole history each time (~750 ms of the browser's main thread at 700 years of
+    // w.sg), and Home counted every record. Answers are kept until the world moves -- another world, any
+    // property write, record, changeset or year -- and are immutable DTOs, so handing one out twice is safe.
+    private (Database Db, long Writes, int Records, int Changesets, long Year) _memoWorld;
+    private readonly Dictionary<(string Method, object? Arg), object> _memo = new();
+
+    private T Memo<T>(string method, object? arg, Func<T> compute) where T : notnull
     {
-        if (_db.History == null)
-            return TimeSeries.Empty;
-        return WorldSeries.PropertyOverTime(_db, _db.GetEntityType(new EntityTypeId((uint)typeId)), propertyName);
+        var world = (_db, _db.WriteVersion, _db.Records.Count, _db.History?.Changesets.Count ?? 0, _db.Ctx.Year);
+        if (world != _memoWorld)
+        {
+            _memo.Clear();
+            _memoWorld = world;
+        }
+
+        if (_memo.TryGetValue((method, arg), out var known))
+            return (T)known;
+        var answer = compute();
+        _memo[(method, arg)] = answer;
+        return answer;
     }
 
     /// <summary>

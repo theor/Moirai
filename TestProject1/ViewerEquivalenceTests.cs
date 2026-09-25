@@ -7,8 +7,8 @@ namespace TestProject1;
 
 /// <summary>
 /// What a viewer is shown of a world, hashed: the overview and every chartable series, the whole changeset
-/// log as the Changesets page lists it, entities' past states, biographies and change lists, the chronicle
-/// and some family trees -- all serialized the way they go over the wire. Explicit: it exists to compare
+/// log as the Changesets page lists it, entities' past states, biographies and change lists, the chronicle, the
+/// notable entities, and some family trees -- all serialized the way they go over the wire. Explicit: it exists to compare
 /// two builds of the engine (run it on each, in Release, and compare the hashes), which is how the
 /// changeset log's move from entity copies to deltas was shown to change nothing a page can see.
 /// </summary>
@@ -50,6 +50,7 @@ public class ViewerEquivalenceTests
             parts.Add(($"series {p.TypeName}.{p.PropertyName}", s.GetPropertySeries(p.TypeId, p.PropertyName)));
         parts.Add(("changesets", s.GetChangesets(0, s.GetChangesetsCount())));
         parts.Add(("chronicle", s.GetChronicle(12)));
+        parts.Add(("notable", s.GetNotable(5)));
 
         var years4 = new[] { start + 1, start + (end - start) / 3, start + 2 * (end - start) / 3, end - 1 };
         for (uint eid = 1; eid <= entities; eid += 7)
