@@ -11,7 +11,7 @@
   import { selectedEntity } from '$lib/utils';
   import { moiraiViewStore } from '$lib';
   import { shortcut } from '$lib/shortcut';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { goto, replaceState } from '$app/navigation';
   import { asset, resolve } from '$app/paths';
   import type { Pathname } from '$app/types';
@@ -51,8 +51,8 @@
    * The Life page leaves details out, because its own State column already shows them.
    */
   let eventsOpen = $state(false);
-  const selected = $derived(selectedEntity($page).getNumber());
-  const onLife = $derived($page.url.pathname.endsWith('/life'));
+  const selected = $derived(selectedEntity(page).getNumber());
+  const onLife = $derived(page.url.pathname.endsWith('/life'));
   const showDetails = $derived(selected > 0 && !onLife);
   const panelOpen = $derived(eventsOpen || showDetails);
   $effect(() => {
@@ -93,7 +93,7 @@
    * Keep the query string — the selected entity, the filters, and the world's seed and year — when
    * switching tabs.
    *
-   * Read from the live URL at the moment of the click, not from `$page.url`. Shallow routing updates the
+   * Read from the live URL at the moment of the click, not from `page.url`. Shallow routing updates the
    * browser's URL and deliberately leaves `page.url` pointing at the last real navigation, so a derived
    * from it goes stale the moment the year is written below — and a tab click would then navigate to a
    * year the world had already passed, sending you backwards in time.
@@ -111,8 +111,8 @@
    * Driven by the settled year rather than the live one, because a pass changes the year continuously
    * and rewriting the URL per feed tick would be pointless churn. replaceState, not goto: this is the
    * same page, and it must not fill the back button with one entry per century. It is SvelteKit's
-   * replaceState rather than the browser's so that `$page.url` follows — the nav tabs carry
-   * `$page.url.search` across a navigation, and a stale one there would send you back in time.
+   * replaceState rather than the browser's so the router's history entry stays in step — but `page.url`
+   * does not follow it, which is why the tabs read the live URL (`currentSearch` above).
    */
   $effect(() => {
     const seed = $moiraiStore.clientData?.seed;
@@ -159,7 +159,7 @@
    * (`/Moirai/records`), which no trigger's value matches.
    */
   let pendingTab = $state<string | null>(null);
-  const selectedTab = $derived(pendingTab ?? $page.route.id ?? '');
+  const selectedTab = $derived(pendingTab ?? page.route.id ?? '');
 
   async function openTab(href: Pathname) {
     pendingTab = href;

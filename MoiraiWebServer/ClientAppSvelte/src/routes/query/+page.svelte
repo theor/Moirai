@@ -5,13 +5,13 @@
   import { moiraiStore, type QueryResult } from '$lib/connection';
   import MoiraiText from '../../components/MoiraiText.svelte';
   import { selectedEntity } from '$lib/utils';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { Accordion } from '@skeletonlabs/skeleton-svelte';
   import ChevronDown from 'virtual:icons/mdi/chevron-down';
 
   let query = $state('pick Person $p');
   let results = $state<Promise<QueryResult>>(new Promise(() => {}));
-  let selected = selectedEntity($page);
+  let selected = selectedEntity(page);
 
   class Debouncer {
     private timeout: ReturnType<typeof setTimeout> | undefined;

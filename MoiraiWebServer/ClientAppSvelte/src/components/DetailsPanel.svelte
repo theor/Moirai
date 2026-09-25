@@ -1,6 +1,6 @@
 <script lang="ts">
   import { filteredEntity, groupByLabel, selectedEntity } from '$lib/utils';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { moiraiStore, settledYear } from '$lib/connection';
   import MoiraiText from './MoiraiText.svelte';
   import { humanLabel } from '$lib/format';
@@ -8,9 +8,9 @@
   import { Switch } from '@skeletonlabs/skeleton-svelte';
   import { SvelteSet } from 'svelte/reactivity';
 
-  const selected = $derived(selectedEntity($page).getNumber());
+  const selected = $derived(selectedEntity(page).getNumber());
   // Writable: the switch sets it at once rather than waiting for the URL to come back round.
-  let filter = $derived(filteredEntity($page).getNumber() > 0);
+  let filter = $derived(filteredEntity(page).getNumber() > 0);
 
   // The connection alone, not the store: the store changes on every feed tick, and a query that read
   // it directly would re-run on each one. A derived stops there, because the connection is the same.
@@ -50,12 +50,12 @@
   }
 
   function close() {
-    selectedEntity($page).setNumber(-1);
+    selectedEntity(page).setNumber(-1);
   }
 
   function setFilter(checked: boolean) {
     filter = checked;
-    let filterParam = filteredEntity($page);
+    let filterParam = filteredEntity(page);
     filterParam.setNumber(filter ? selected : -1);
   }
 </script>

@@ -2,7 +2,7 @@
   import type { Placed } from '$lib/family-chart';
   import { lifespan } from '$lib/family';
   import { selectedEntity } from '$lib/utils';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
 
   /**
    * One card of the family chart: a couple, or one person, each on a row of fixed height, because the
@@ -76,7 +76,7 @@
           class="who"
           class:dead={p.dead}
           title={`#${p.id} · click to centre the chart here`}
-          onclick={() => selectedEntity($page).setNumber(p.id)}
+          onclick={() => selectedEntity(page).setNumber(p.id)}
         >
           {@render person(p.name, years, i > 0)}
         </button>

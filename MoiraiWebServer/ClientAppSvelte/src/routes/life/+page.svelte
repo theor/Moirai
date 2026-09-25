@@ -6,7 +6,7 @@
   import { notable } from '$lib/notable';
   import NotableList from '../../components/NotableList.svelte';
   import { groupByLabel, selectedEntity } from '$lib/utils';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import MoiraiText from '../../components/MoiraiText.svelte';
   import FamilyNode from '../../components/FamilyNode.svelte';
   import EntityChip from '../../components/EntityChip.svelte';
@@ -44,7 +44,7 @@
     });
   });
 
-  const selected = $derived(selectedEntity($page).getNumber());
+  const selected = $derived(selectedEntity(page).getNumber());
 
   let bio: Biography | undefined = $state();
   let family: FamilyTreeNode[] = $state([]);

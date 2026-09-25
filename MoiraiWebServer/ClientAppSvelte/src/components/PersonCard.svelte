@@ -2,7 +2,7 @@
   import type { FamilyTreeNode } from '$lib/types';
   import { lifespan } from '$lib/family';
   import { selectedEntity } from '$lib/utils';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
 
   /** One person in a family tree: name, years, and whether they are still alive. Click to re-root. */
   let {
@@ -20,7 +20,7 @@
   class:focus
   class:dead={node.dead}
   title={`#${node.id} · click to centre the tree here`}
-  onclick={() => selectedEntity($page).setNumber(node.id)}
+  onclick={() => selectedEntity(page).setNumber(node.id)}
 >
   <span class="block font-medium leading-tight whitespace-nowrap">{node.name}</span>
   {#if years || note}

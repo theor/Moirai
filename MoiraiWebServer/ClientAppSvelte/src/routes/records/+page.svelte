@@ -15,7 +15,7 @@
   import CauseDialog from '../../components/CauseDialog.svelte';
   import { readWhy } from '$lib/why';
   import { rememberWhy } from '$lib/why-history';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import type { Record } from '$lib/types';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
   import { filteredEntity, filteredTag, selectedEntity } from '$lib/utils';
@@ -23,9 +23,9 @@
   import { unquote } from '$lib/format';
   import binarysearch from 'binary-search';
 
-  const selected = $derived(selectedEntity($page).getNumber());
-  const filtered = $derived(filteredEntity($page).getNumber());
-  const tagFilter = $derived(filteredTag($page).get() ?? '');
+  const selected = $derived(selectedEntity(page).getNumber());
+  const filtered = $derived(filteredEntity(page).getNumber());
+  const tagFilter = $derived(filteredTag(page).get() ?? '');
 
   // Union of all tags seen across loaded records, for the chronicle filter bar.
   const tags = $derived(allTags($moiraiStore.records));
@@ -42,7 +42,7 @@
   }
 
   function toggleTag(tag: string) {
-    const param = filteredTag($page);
+    const param = filteredTag(page);
     param.set(tagFilter === tag ? '' : tag);
   }
 

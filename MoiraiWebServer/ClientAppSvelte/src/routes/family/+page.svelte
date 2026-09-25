@@ -2,14 +2,14 @@
   import { moiraiStore, settledYear } from '$lib/connection';
   import { SvelteSet } from 'svelte/reactivity';
   import { notable } from '$lib/notable';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
   import { selectedEntity } from '$lib/utils';
   import FamilyChart from '../../components/FamilyChart.svelte';
   import NotableList from '../../components/NotableList.svelte';
 
   const maxDepth = 5;
 
-  const selected = $derived(selectedEntity($page).getNumber());
+  const selected = $derived(selectedEntity(page).getNumber());
 
   // Refetch when the selection or the settled year changes (new people may have been born), and when
   // `attempt` is bumped by the retry button in the error branch. The settled year rather than the raw

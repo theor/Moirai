@@ -3,7 +3,7 @@
   import { moiraiStore } from '$lib/connection';
   import { entityTypes } from '$lib/entity-types';
   import { slotOf } from '$lib/entity-style';
-  import { page } from '$app/stores';
+  import { page } from '$app/state';
 
   let { id, label, active }: { id: number; label: string; active: boolean } = $props();
 
@@ -16,10 +16,10 @@
   function onClick(e: MouseEvent) {
     // Shift+click filters the records to this entity; a plain click selects it.
     if (e.shiftKey) {
-      const filter = filteredEntity($page);
+      const filter = filteredEntity(page);
       filter.setNumber(filter.getNumber() === id ? -1 : id);
     } else {
-      selectedEntity($page).setNumber(id);
+      selectedEntity(page).setNumber(id);
     }
   }
 </script>
