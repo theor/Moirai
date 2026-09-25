@@ -146,6 +146,35 @@
       ? [...NAV_TABS, { href: '/story' as Pathname, label: 'Story' }]
       : NAV_TABS,
   );
+
+  /**
+   * The tab a click asked for, until its page has arrived.
+   *
+   * `goto` resolves only once the new page has mounted, and with the in-browser engine a page's first
+   * queries run synchronously on the thread that paints — 700 ms for Query's default `pick Person`. Driven
+   * by the route alone, the tab bar sat unchanged for all of that, which read as a click that did not
+   * land. So the click selects the tab at once, waits for that to paint, and only then starts the page.
+   *
+   * The route id rather than the pathname: the pathname carries the base path on GitHub Pages
+   * (`/Moirai/records`), which no trigger's value matches.
+   */
+  let pendingTab = $state<string | null>(null);
+  const selectedTab = $derived(pendingTab ?? $page.route.id ?? '');
+
+  async function openTab(href: Pathname) {
+    pendingTab = href;
+    // One frame to paint the selection, then a task so the navigation's work lands after that paint.
+    await new Promise((r) => requestAnimationFrame(() => setTimeout(r)));
+    try {
+      // The href is already resolved; the rule only recognises a literal resolve() call as the
+      // argument, which a template literal is not.
+      // eslint-disable-next-line svelte/no-navigation-without-resolve
+      await goto(`${resolve(href)}${currentSearch()}`);
+    } finally {
+      // A later click owns the selection now; leave it be.
+      if (pendingTab === href) pendingTab = null;
+    }
+  }
 </script>
 
 <!-- App Shell -->
@@ -173,10 +202,14 @@
         <strong class="text-lg font-serif">Moirai</strong>
       </div>
       <nav class="min-w-0 overflow-x-auto">
-        <Tabs value={$page.url.pathname} class="w-auto">
+        <Tabs value={selectedTab} class="w-auto">
           <Tabs.List class="mb-0 pb-0 border-b-0 gap-0">
             {#each tabs as tab (tab.href)}
-              <Tabs.Trigger value={tab.href} class="px-3 py-1 text-sm">
+              <!-- Skeleton marks the selected trigger only through Tabs.Indicator; this is simpler. -->
+              <Tabs.Trigger
+                value={tab.href}
+                class="px-3 py-1 text-sm data-[selected]:preset-filled-primary-500"
+              >
                 {#snippet element(attributes)}
                   <!--
                   A button, not an <a>, and that is load-bearing rather than a style choice.
@@ -200,10 +233,7 @@
                     type="button"
                     onclick={(e) => {
                       attributes.onclick?.(e);
-                      // The href is already resolved; the rule only recognises a literal resolve()
-                      // call as the argument, which a template literal is not.
-                      // eslint-disable-next-line svelte/no-navigation-without-resolve
-                      goto(`${resolve(tab.href)}${currentSearch()}`);
+                      openTab(tab.href);
                     }}>{tab.label}</button
                   >
                 {/snippet}

@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
   import Search from 'virtual:icons/mdi/search';
   import DatabaseSearch from 'virtual:icons/mdi/database-search';
   import PineTree from 'virtual:icons/mdi/pine-tree';
@@ -9,8 +9,8 @@
   import { Accordion } from '@skeletonlabs/skeleton-svelte';
   import ChevronDown from 'virtual:icons/mdi/chevron-down';
 
-  let query: string = 'pick Person $p';
-  let results: Promise<QueryResult> = new Promise(() => [] as QueryResult[]);
+  let query = $state('pick Person $p');
+  let results = $state<Promise<QueryResult>>(new Promise(() => {}));
   let selected = selectedEntity($page);
 
   class Debouncer {
@@ -31,25 +31,54 @@
     }
   }
 
+  /**
+   * Rows are revealed a few per frame, not all at once. The default query lists every Person, and at a
+   * few centuries that is ~16k nodes — the better part of a second on the main thread, which held the
+   * tab switch that opened this page for as long. In runes mode, too: legacy mode re-rendered every row
+   * already shown on each step, so the steps grew from 100 ms to nearly 400.
+   */
+  const ROWS_PER_FRAME = 20;
+  let shown = $state(ROWS_PER_FRAME);
+  let revealRun = 0;
+
   function runQuery() {
-    if ($moiraiStore.conn) results = $moiraiStore.conn.query(query);
+    if (!$moiraiStore.conn) return;
+    const run = ++revealRun;
+    shown = ROWS_PER_FRAME;
+    results = $moiraiStore.conn.query(query);
+    results.then(
+      (r) => {
+        const grow = () => {
+          if (run !== revealRun || shown >= (r.results?.length ?? 0)) return;
+          shown += ROWS_PER_FRAME;
+          requestAnimationFrame(grow);
+        };
+        requestAnimationFrame(grow);
+      },
+      () => {},
+    );
   }
   let debouncer = new Debouncer(runQuery, 500);
 
   // Run the initial query once the SignalR connection is ready (on a fresh page
   // load the connection often isn't up yet when the component first mounts).
   let ranInitial = false;
-  $: if ($moiraiStore.conn && !ranInitial) {
-    // Read again on the next run of this reactive block, which the rule's
-    // single-pass flow analysis cannot see.
-    // eslint-disable-next-line no-useless-assignment
+  $effect(() => {
+    if (!$moiraiStore.conn || ranInitial) return;
     ranInitial = true;
-    runQuery();
-  }
+    // After the page's first paint, so arriving here is not held up by the query.
+    setTimeout(runQuery);
+  });
 </script>
 
 <div class="h-full overflow-auto space-y-4">
-  <form class="field-group grid-cols-[auto_1fr_auto]" on:submit|preventDefault={runQuery}>
+  <form
+    class="field-group grid-cols-[auto_1fr_auto]"
+    onsubmit={(e) => {
+      e.preventDefault();
+      runQuery();
+    }}
+  >
     <label class="label" for="query">
       <Search />
     </label>
@@ -57,7 +86,7 @@
       id="query"
       class="input"
       bind:value={query}
-      on:input={() => debouncer.debounce()}
+      oninput={() => debouncer.debounce()}
       type="search"
       name="query"
       aria-label="Query"
@@ -109,7 +138,7 @@
       <div class="table-wrap overflow-auto">
         <table class="table table-fixed overflow-auto" style="display: block">
           <tbody>
-            {#each results.results as result, ri (ri)}
+            {#each results.results.slice(0, shown) as result, ri (ri)}
               <tr>
                 <td>{result.eid}</td>
                 {#each result.properties as prop, pi (pi)}
