@@ -28,21 +28,30 @@ follow-ups surfaced:
 - ~~No void/effect functions~~ ✅ A function with no declared return type is now a **procedure**: its
   body is effects (create/set/record/call) and any trailing value is ignored. See `event` keyword below.
 
-### 🟡 Aggregates over a query
-`count` exists (for collections), but there's no `sum` / `avg` / `min` / `max` over a `pick`/`each`
-result set. E.g. "country prosperity = average of its citizens' prosperity" is inexpressible. Maps
-directly onto the SQL backend (`SELECT AVG(...)`). **High leverage — genuinely new modeling power.**
+### ✅ Aggregates over a query
+`count T $v: (pred...)` and `sum|avg|min|max T $v: (pred..., value)` fold a query into a number. The
+arguments before the value are the predicate, joined by `and` like a pick's, and it is narrowed the same way
+(`Database.Aggregate` scans `Candidates`); `$v` exists only inside the call. So "a country's prosperity is
+the mean of its citizens'" is `avg Person $p: (alive, place = $c, $p.prosperity)`. Result types: count is a
+number; avg of whole numbers is a float; a sum of percentages is a float (it runs past 100); otherwise the
+value's own type. Over no matches every kind gives 0 -- use `count` to tell "none" from "zero". An aggregate
+draws no random numbers of its own (its value expression could), and may sit inside another query's
+predicate (`pick Place $pl: (count Person $p: (place = $pl) > 3)`). `count($e.coll)` still counts a collection. Pinned by `DslFeatureTests`.
 
-### ⬜ Optional `pick` with explicit failure
-`pick` abort-vs-continue is implicit; the one site needing a fallback uses `if(pick …){}else{}`
-(`inherit`). A first-class `pick T $v: (…) else { … }` would make the decision visible at every pick
-and remove a footgun.
+### ✅ Optional `pick` with explicit failure
+`pick T $v: (...) else { ... }` runs the block when nothing matches, then stops the rule, exactly as a bare
+failed pick would -- a guard clause, so the rule's own flow stays flat. It is written on the pick's line
+and only at statement level, so an `if`'s `else` is never taken for one; the block cannot see `$v`. A rule
+that takes it still counts as *not completed* on the Rules page. `if (pick ...) { } else { }` still works
+for a fallback that should carry on.
 
-### ⬜ `random_weighted` total is manual / fragile
-`random_weighted 100 { 3 => … }` requires hand-syncing the literal total with the branch weights, and
-`_` silently absorbs the remainder. Infer the total from the branches, or add a `chance(3%) { … }`
-sugar for the common single-branch case (`char_prestige_update`'s suicide check is exactly this written
-the long way).
+### ✅ `random_weighted` total is manual / fragile
+`random_weighted { 3 => ...  1 => ... }` with no total draws from the sum of the weights (the printer
+leaves it out again). `_` is an error there, since the remainder is always zero. `chance(p)` is the
+single-branch sugar: `if chance(3%) { ... }`, or as a statement `chance(3%) { ... }`, which carries on
+when it misses. It always draws exactly once, and is an error inside a pick/each predicate (narrowing
+decides which candidates a predicate sees, so a draw there would make the world depend on the index).
+w.sg keeps its explicit totals: rewriting one to `chance` changes its draws, and so the world.
 
 ### ✅ Declared singletons
 Added a `singleton` type keyword (`singleton World { prop turn: number }`) that marks a type as a
@@ -55,11 +64,10 @@ Not yet done: hard uniqueness *enforcement* (creating a second instance currentl
 cache, last-wins, rather than erroring). Deferred to avoid edge cases around reload/deserialize; easy
 follow-up if desired.
 
-### ⬜ Parametrized / unified events
-`call(create_country, 10)` can only repeat an event N times — no arguments. Bridging events and
-functions (events that take args, or schedulable rules) would let setup code share helpers.
-
----
+### ✅ Parametrized / unified events
+`event name($a: T, ...)` takes parameters, passed by `call(name, $x, ...)` (`EventParamTests`); the count
+form `call(name, n)` remains for events without parameters. Arguments accept the same conversions `set` does
+(a number into a percentage, `null` into a reference) for events and functions alike.
 
 ## Clarity / consistency
 
@@ -71,9 +79,8 @@ Pick a canonical form (lint the other) or at least document that comma ≡ `and`
 Both call forms (`record(…)` and `record …`) and both empty-pick spellings (`pick T $v` and
 `pick T $v: ()`) appear. A formatter rule could normalize.
 
-### ⬜ Redundant `type = T` inside a typed `each`
-`each Person $p: (type = Person, …)` (`youngs_grow`) restates the type the `each Person` already pins —
-leftover from the old untyped syntax. The visitor could warn.
+### ✅ Redundant `type = T` inside a typed `each`
+Warned by the visitor (`RedundantTypeFilter`), which the language server shows faded as unnecessary.
 
 ### ✅ Implicit set-target after `create`
 Was: `create Country $c` then bare `set prosperity = …` targeted the *last declared variable*
@@ -93,10 +100,9 @@ create Country $c: '{random(CountryName)} {random(Name)}' {
 last-variable fallback still exists for back-compat; making it an error outside init/each/pick scopes
 is a possible follow-up.)
 
-### ⬜ Entity identity via the `id` pseudo-property
-`id != $x`, `id != $x.parent1` leak an implicit `id`. Allowing direct ref comparison (`$y != $x`) reads
-better. Flip side seen in practice: `id` is typed generic `ref`, not the entity type, so it can't be
-passed to a typed function parameter — the typed query variable (`$y`/`$p`) must be used instead.
+### ✅ Entity identity via the `id` pseudo-property
+References compare directly (`$y != $x`), and `id` read through a type is a reference to that type, so
+`$a.id` can be passed where a `Person` is expected.
 
 ### ⬜ Implicit `$new` in `when`
 In triggers, a bare property means `$new.<prop>` while `$old.<prop>` is explicit
@@ -115,10 +121,12 @@ inline in the caller's changeset) or directly as `name()`. w.sg's call-only `cre
 (`update_country_health`). Clever, but reads as a type error. A named helper or explicit cast syntax
 would make it legible.
 
-### ⬜ Comments
-Only `//` line comments. No block (`/* */`) or doc comments (which could also feed LSP hovers).
-
----
+### ✅ Comments
+`/* ... */` block comments, over as many lines as they like. A line break inside one is still a line
+break -- statements end at newlines, and a comment crossing lines ends the statement before it just as
+the lines would -- and each line of the comment is its own token, which is what editors can colour. An
+unclosed `/*` is a lexer error. `///` lines directly above a definition (attributes may sit between) are its
+doc comment, which the language server's hover shows; to the engine they are ordinary comments.
 
 ## Resolved separately
 
@@ -131,6 +139,6 @@ uses the function-style attribute forms the grammar supports — `@frequency(1, 
 
 ## Suggested priority
 
-1. **Aggregates** (`avg`/`sum`/`min`/`max` over a query) — most new expressive power, fits the SQL backend.
-2. **Optional `pick … else`** — removes a real control-flow footgun.
-3. **Effect / void functions** — would let helpers factor out duplicated *effect* blocks, not just predicates.
+What is left is clarity rather than power: one spelling of `and` in predicates, a formatter rule for the
+`record`/empty-pick spellings, an explicit number→enum cast, and documenting the bare-property-is-`$new`
+rule in `when`.
