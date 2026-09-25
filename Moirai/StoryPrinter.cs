@@ -632,6 +632,14 @@ public partial class StoryPrinter
             return text;
         }
 
+        return FormatComposite(formatAction, database, injectIdTags, participants);
+    }
+
+    // Kept out of Format: a lambda that captures parameters makes the compiler allocate its closure on
+    // entry to the method, so living in Format it cost every record a closure the fast path never used.
+    private string FormatComposite(InterpolatedString formatAction, Database database, bool injectIdTags,
+        ICollection<EntityId>? participants)
+    {
         var propertyValues = formatAction.Arguments.Select(v =>
         {
             var print = Print(v.Compute(database.Ctx), History.HistoryMode.Story);

@@ -1,6 +1,8 @@
 ﻿using System.Globalization;
 
-public struct EntityId
+// IEquatable, not just the default struct equality: a dictionary or set keyed on an EntityId (or a tuple
+// holding one, as the since_last marks are) otherwise boxes both sides of every comparison.
+public struct EntityId : IEquatable<EntityId>
 {
     public static readonly EntityId Null = default;
     public readonly bool IsNull => Id == 0;
@@ -9,6 +11,10 @@ public struct EntityId
     {
         Id = id;
     }
+
+    public readonly bool Equals(EntityId other) => Id == other.Id;
+    public override readonly bool Equals(object? obj) => obj is EntityId other && Equals(other);
+    public override readonly int GetHashCode() => (int)Id;
 
     public override string ToString()
     {

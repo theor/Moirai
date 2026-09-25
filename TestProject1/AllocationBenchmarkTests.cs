@@ -155,4 +155,67 @@ public class AllocationBenchmarkTests
         db.Ctx.PassYears(1000, true);
         TestContext.Out.WriteLine(db.ExecProfiler!.Report());
     }
+
+    /// <summary>
+    /// What the allocations of a 1000-year pass are, by type: the runtime's allocation-tick events, one
+    /// sample per ~100 KB allocated, each naming the type that crossed the threshold.
+    /// </summary>
+    [Test]
+    public void AllocationsByType()
+    {
+        var story = File.ReadAllText(FindWsg());
+        Run(story, Seeds[0], 100); // warm up
+        var db = StoryParser.Parse(story, out _);
+        db.SetSeed(Seeds[0]);
+        db.History = new();
+        db.Init();
+        using var listener = new AllocationListener(OperatingSystem.IsWindows() ? GetCurrentThreadId() : 0);
+        db.Ctx.PassYears(1000, true);
+        listener.Dispose();
+        // A closure's type name says nothing about where it is: name the classes that declare one.
+        var generated = typeof(Database).Assembly.GetTypes().Concat(typeof(Moirai.Api.WorldSession).Assembly.GetTypes())
+            .Where(t => t.Name.StartsWith("<>c__DisplayClass"))
+            .ToLookup(t => t.Name, t => t.DeclaringType?.FullName);
+        foreach (var (type, bytes) in listener.ByType.OrderByDescending(kv => kv.Value).Take(30))
+        {
+            var owners = generated[type].ToList();
+            TestContext.Out.WriteLine($"{bytes / 1048576.0,8:F2} MB  {type}" +
+                                      (owners.Count > 0 ? $"  (in {string.Join(" or ", owners)})" : ""));
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    // Only the simulating thread's samples (when its OS id is known): the test host allocates on its own.
+    private sealed class AllocationListener(long thread) : System.Diagnostics.Tracing.EventListener
+    {
+        public readonly Dictionary<string, long> ByType = new();
+        private bool _on = true;
+
+        protected override void OnEventSourceCreated(System.Diagnostics.Tracing.EventSource source)
+        {
+            if (source.Name == "Microsoft-Windows-DotNETRuntime")
+                EnableEvents(source, System.Diagnostics.Tracing.EventLevel.Verbose, (System.Diagnostics.Tracing.EventKeywords)0x1);
+        }
+
+        protected override void OnEventWritten(System.Diagnostics.Tracing.EventWrittenEventArgs e)
+        {
+            if (!_on || e.EventName == null || !e.EventName.StartsWith("GCAllocationTick") || e.Payload == null)
+                return;
+            if (thread != 0 && e.OSThreadId != thread)
+                return;
+            var names = e.PayloadNames!;
+            var type = (string?)e.Payload[names.IndexOf("TypeName")] ?? "?";
+            var amount = Convert.ToInt64(e.Payload[names.IndexOf("AllocationAmount64")]);
+            lock (ByType)
+                ByType[type] = ByType.GetValueOrDefault(type) + amount;
+        }
+
+        public override void Dispose()
+        {
+            _on = false;
+            base.Dispose();
+        }
+    }
 }
