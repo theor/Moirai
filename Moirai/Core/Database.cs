@@ -85,7 +85,7 @@ public class Database
 
     /// <summary>Entity ids bucketed by type, in allocation (== id) order. Append-only (dead entities are
     /// flagged, never removed). Lets a pick/each visit only the candidate type instead of all entities.</summary>
-    private List<EntityId>[] _perTypeEntities = System.Array.Empty<List<EntityId>>();
+    private IdSet[] _perTypeEntities = System.Array.Empty<IdSet>();
 
     // Lightweight index for the dominant query shape: for each indexed bool property, the set of entity ids
     // currently holding `true`, kept in ascending id order. Without it a pick/each over a type scans every
@@ -94,7 +94,7 @@ public class Database
     // and is simply absent, so the set is always exact without create-time seeding. The full predicate is
     // still re-checked per candidate, so the index only narrows what is visited, never the result.
     private readonly HashSet<PropertyId> _indexedBoolProps = new();
-    private readonly Dictionary<PropertyId, SortedSet<uint>> _boolIndex = new();
+    private readonly Dictionary<PropertyId, IdSet> _boolIndex = new();
 
     // Equality index over reference and enum properties: (property, value) -> the ids holding it, in
     // ascending order. A pick or each whose predicate pins one of them -- `place = $c`, `owner = $new`,
@@ -103,8 +103,43 @@ public class Database
     // both, and IntValue). An unset property reads as IntValue 0, so a lookup for 0 cannot be answered
     // from the buckets and falls back to the scan.
     private readonly HashSet<PropertyId> _indexedEqProps = new();
-    private readonly Dictionary<(PropertyId, int), SortedSet<uint>> _eqIndex = new();
-    private static readonly SortedSet<uint> EmptyUintSet = new();
+    private readonly Dictionary<(PropertyId, int), IdSet> _eqIndex = new();
+
+    // Where a scan's own id lists live -- the single id of `$v = x`, the union of an `or` -- stacked, and
+    // released when the scan ends. Growing it leaves an outer scan reading the old array, which is intact.
+    private uint[] _scratch = new uint[64];
+    private int _scratchTop;
+
+    private Ids Scratch(ReadOnlySpan<uint> a, ReadOnlySpan<uint> b)
+    {
+        if (_scratchTop + a.Length + b.Length > _scratch.Length)
+        {
+            var grown = new uint[Math.Max(_scratch.Length * 2, _scratchTop + a.Length + b.Length)];
+            Array.Copy(_scratch, grown, _scratchTop);
+            _scratch = grown;
+        }
+
+        // A sorted merge without duplicates: the union of two ascending id lists, still ascending.
+        int start = _scratchTop, n = start, i = 0, j = 0;
+        while (i < a.Length || j < b.Length)
+        {
+            uint next;
+            if (j == b.Length || (i < a.Length && a[i] < b[j]))
+                next = a[i++];
+            else if (i == a.Length || b[j] < a[i])
+                next = b[j++];
+            else
+            {
+                next = a[i++];
+                j++;
+            }
+
+            _scratch[n++] = next;
+        }
+
+        _scratchTop = n;
+        return new Ids(_scratch, start, n - start);
+    }
 
     public ExecuteContext Ctx
     {
@@ -210,7 +245,7 @@ public class Database
         _entities.Add(e);
         if (type.IsSingleton)
             _singletons[entityType.Id] = e.Id;
-        _perTypeEntities[(int)entityType.Id].Add(e.Id);
+        _perTypeEntities[(int)entityType.Id].Add(e.Id.Id);
         CurrentChangeset.RecordCreate(this, e.Id, entityType);
         return e.Id;
     }
@@ -294,7 +329,7 @@ public class Database
             if (value.Value == null)
             {
                 if (!_eqIndex.TryGetValue((property, value.IntValue), out var now))
-                    _eqIndex[(property, value.IntValue)] = now = new SortedSet<uint>();
+                    _eqIndex[(property, value.IntValue)] = now = new IdSet();
                 now.Add(entityId.Id);
             }
         }
@@ -303,7 +338,7 @@ public class Database
         if (_indexedBoolProps.Contains(property))
         {
             if (!_boolIndex.TryGetValue(property, out var set))
-                _boolIndex[property] = set = new SortedSet<uint>();
+                _boolIndex[property] = set = new IdSet();
             if (value.BoolValue) set.Add(entityId.Id);
             else set.Remove(entityId.Id);
         }
@@ -818,9 +853,9 @@ public class Database
         _eqIndex.Clear();
         _indexedEqProps.Clear();
         _indexedBoolProps.Clear();
-        _perTypeEntities = new List<EntityId>[Types.Count];
+        _perTypeEntities = new IdSet[Types.Count];
         for (int i = 0; i < _perTypeEntities.Length; i++)
-            _perTypeEntities[i] = new List<EntityId>();
+            _perTypeEntities[i] = new IdSet();
         // Index the non-collection bool properties of user types (the dominant pick/each discriminants).
         foreach (var t in Types.Skip(1))
             foreach (var p in t.Properties.Skip(4))
@@ -859,8 +894,12 @@ public class Database
             return false;
 
         uint count = 0;
-        foreach (var candidate in Candidates(entityTypeId, predicate, varIdx))
+        int mark = _scratchTop;
+        try
         {
+        foreach (var raw in Candidates(entityTypeId, predicate, varIdx).Span)
+        {
+            var candidate = new EntityId(raw);
             if (predicate != null)
             {
                 _ctx.SetArgument(varIdx, candidate);
@@ -871,6 +910,11 @@ public class Database
             count++;
             if (count == 1 || _ctx.Rnd.GenerateNext(count) == 0)
                 id = candidate;
+        }
+        }
+        finally
+        {
+            _scratchTop = mark;
         }
 
         return count > 0;
@@ -888,50 +932,52 @@ public class Database
         if (predicate == null && !entityTypeId.IsValid)
             return false;
 
-        foreach (var candidate in Candidates(entityTypeId, predicate, varIdx))
+        int mark = _scratchTop;
+        try
         {
-            if (predicate != null)
+            foreach (var raw in Candidates(entityTypeId, predicate, varIdx).Span)
             {
-                _ctx.SetArgument(varIdx, candidate);
-                if (!predicate.IsTrue(_ctx))
-                    continue;
-            }
+                var candidate = new EntityId(raw);
+                if (predicate != null)
+                {
+                    _ctx.SetArgument(varIdx, candidate);
+                    if (!predicate.IsTrue(_ctx))
+                        continue;
+                }
 
-            results.Add(candidate);
+                results.Add(candidate);
+            }
+        }
+        finally
+        {
+            _scratchTop = mark;
         }
 
         return true;
     }
 
-    // Candidate stream for a scan. When the predicate constrains an indexed bool property of the query
-    // variable to `true`, yields just that index bucket (skipping the accumulating false/dead rows);
-    // otherwise yields every entity of the type. Both are in ascending id order, and the caller re-checks
+    // The ids a scan visits. When the predicate constrains an indexed bool property of the query variable
+    // to `true`, just that index bucket (skipping the accumulating false/dead rows), or whatever Narrow
+    // finds smaller; otherwise every entity of the type. All in ascending id order, and the caller re-checks
     // the full predicate per candidate — so this only changes which rows are visited, never the result.
-    private IEnumerable<EntityId> Candidates(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx)
+    // Anything it builds lives in the scratch stack, which the caller releases.
+    private Ids Candidates(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx)
     {
         var indexed = TryGetBoolIndexCandidates(predicate, varIdx);
         if (predicate != null
             && Narrow(predicate, varIdx, entityTypeId, null) is { } narrowed
-            && (indexed == null || narrowed.Count < indexed.Count))
+            && (indexed == null || narrowed.Count < indexed.Value.Count))
             indexed = narrowed;
-        if (indexed != null)
-        {
-            foreach (var raw in indexed)
-                yield return new EntityId(raw);
-            yield break;
-        }
-
-        foreach (var id in _perTypeEntities[(int)entityTypeId.Id])
-            yield return id;
+        return indexed ?? _perTypeEntities[(int)entityTypeId.Id].Ids;
     }
 
     // Returns the id-ordered bucket for the first `<queryVar>.<indexedBool>` (= true) constraint found in
     // the predicate (an empty set if the prop is indexed but nothing is currently true), or null if the
     // predicate offers no usable indexed constraint (→ full type scan).
-    private SortedSet<uint>? TryGetBoolIndexCandidates(IValueSql? predicate, int varIdx)
+    private Ids? TryGetBoolIndexCandidates(IValueSql? predicate, int varIdx)
     {
         if (predicate != null && TryFindIndexedTrueProp(predicate, varIdx, out var prop))
-            return _boolIndex.TryGetValue(prop, out var s) ? s : EmptyUintSet;
+            return _boolIndex.TryGetValue(prop, out var s) ? s.Ids : Ids.Empty;
         return null;
     }
 
@@ -973,15 +1019,15 @@ public class Database
     // from another variable, evaluated once, up front. If it cannot be evaluated (a path through a null the
     // predicate would itself have short-circuited) that part is simply unknown.
 
-    private SortedSet<uint>? Narrow(IValue node, int varIdx, EntityTypeId type, ArgScope? scope)
+    private Ids? Narrow(IValue node, int varIdx, EntityTypeId type, ArgScope? scope)
     {
         switch (node)
         {
             case And and:
             {
-                SortedSet<uint>? best = null;
+                Ids? best = null;
                 foreach (var p in and.Predicates)
-                    if (Narrow(p, varIdx, type, scope) is { } b && (best == null || b.Count < best.Count))
+                    if (Narrow(p, varIdx, type, scope) is { } b && (best == null || b.Count < best.Value.Count))
                         best = b;
                 return best;
             }
@@ -989,7 +1035,7 @@ public class Database
             {
                 var l = Narrow(a.Left, varIdx, type, scope);
                 var r = Narrow(a.Right, varIdx, type, scope);
-                return l == null ? r : r == null ? l : l.Count <= r.Count ? l : r;
+                return l == null ? r : r == null ? l : l.Value.Count <= r.Value.Count ? l : r;
             }
             case BinaryOperator { Op: BinaryOperator.Operator.Or } o:
             {
@@ -997,9 +1043,7 @@ public class Database
                 if (Narrow(o.Right, varIdx, type, scope) is not { } r) return null;
                 if (l.Count == 0) return r;
                 if (r.Count == 0) return l;
-                var union = new SortedSet<uint>(l);
-                union.UnionWith(r);
-                return union;
+                return Scratch(l.Span, r.Span);
             }
             case BinaryOperator { Op: BinaryOperator.Operator.Equals } eq:
                 return NarrowEquals(Resolve(eq.Left, varIdx, scope), Resolve(eq.Right, varIdx, scope), type)
@@ -1019,7 +1063,7 @@ public class Database
         }
     }
 
-    private SortedSet<uint>? NarrowEquals(Resolved side, Resolved other, EntityTypeId type)
+    private Ids? NarrowEquals(Resolved side, Resolved other, EntityTypeId type)
     {
         if (side.Kind != ResolvedKind.QueryVar || other.Kind != ResolvedKind.Independent)
             return null;
@@ -1029,16 +1073,16 @@ public class Database
         if (side.Props.Count == 0)
         {
             // The scanned entity itself: it can only be x.
-            var only = new SortedSet<uint>();
-            if (TryGetEntity(value.Id, out var e) && e.Type == type)
-                only.Add(value.Id.Id);
-            return only;
+            var only = value.Id.Id;
+            return TryGetEntity(value.Id, out var e) && e.Type == type
+                ? Scratch(new ReadOnlySpan<uint>(ref only), default)
+                : Ids.Empty;
         }
 
         // An unset property reads as 0 too, and the buckets only hold values that were set.
         if (side.Props.Count != 1 || !_indexedEqProps.Contains(side.Props[0]) || value.IntValue == 0)
             return null;
-        return _eqIndex.TryGetValue((side.Props[0], value.IntValue), out var set) ? set : EmptyUintSet;
+        return _eqIndex.TryGetValue((side.Props[0], value.IntValue), out var set) ? set.Ids : Ids.Empty;
     }
 
     // A function body's parameters, bound to the calling expressions (which live in the scope outside).
