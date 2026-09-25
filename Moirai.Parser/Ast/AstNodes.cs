@@ -55,14 +55,17 @@ public sealed record InitNode(Ident PropertyId, ExprNode Expr, TextSpan Span);
 
 public sealed record VarNode(Ident VarId, ExprNode Expr, TextSpan Span);
 
-/// The parenthesized call form: `fun_id (type VAR_ID COLON)? PAREN_OPEN (expr (COMMA expr)*)? PAREN_CLOSE scope?`.
+/// The parenthesized call form: `fun_id (type VAR_ID COLON)? PAREN_OPEN (expr (COMMA expr)*)? PAREN_CLOSE
+/// (scope | ELSE scope)?`. `Else` is the fallback of `pick T $v: (...) else { ... }`, only parsed at
+/// statement level (where a trailing scope may attach) and only on a call with no scope of its own.
 public sealed record CallNode(
     Ident FunId,
     TypeNode? DeclType,
     Ident? VarId,
     ExprNode[] Args,
     ScopeNode? Scope,
-    TextSpan Span);
+    TextSpan Span,
+    ScopeNode? Else = null);
 
 /// The bare/paren-less call form: `fun_id ((type VAR_ID (COLON value)?) | value) scope?`.
 public sealed record RawCallNode(

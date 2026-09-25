@@ -385,6 +385,10 @@ internal sealed class MoiraiFormatter
     void Call(CallNode call)
     {
         int from = Start(call.Span), to = End(call.Span);
+        // A pick's `else { ... }` is inside the call's span; its parentheses are not the call's.
+        var elseKw = call.Else is { } e ? FindLast(MoiraiTokenKind.Else, from, Start(e.Span)) : null;
+        if (elseKw is { } k)
+            to = _starts[k];
         var open = Find(MoiraiTokenKind.ParenOpen, from, to);
         var close = FindLast(MoiraiTokenKind.ParenClose, from, to);
 
@@ -406,5 +410,10 @@ internal sealed class MoiraiFormatter
             Expr(arg);
         if (call.Scope is { } scope)
             Scope(scope);
+        if (call.Else is { } orElse)
+        {
+            EnsureSpaces(elseKw, 1, 1);
+            Scope(orElse);
+        }
     }
 }

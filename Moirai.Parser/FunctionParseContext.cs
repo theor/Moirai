@@ -107,6 +107,9 @@ public record FunctionParseContext(AstVisitor Visitor, CallOrRawCall CallContext
 
     public ScopeNode? GetScopeContext() => CallContext.Call?.Scope ?? CallContext.RawCall?.Scope;
 
+    /// The `else { ... }` of `pick T $v: (...) else { ... }`, if the call has one.
+    public ScopeNode? GetElseContext() => CallContext.Call?.Else;
+
     public void ExpectArgcount(int i, bool isMaxCount = false)
     {
         if (isMaxCount ? ArgCount > i : ArgCount != i)

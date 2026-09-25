@@ -142,10 +142,24 @@ public static partial class MoiraiGrammar
         if (!scopeResult.HasValue)
             return TokenListParserResult.CastEmpty<MoiraiTokenKind, ScopeNode?, CallNode>(scopeResult);
 
-        var endSpan = scopeResult.Value?.Span ?? close.Value.Span;
+        // `pick T $v: (...) else { ... }` -- on the call's own line, and only where a trailing scope could
+        // attach, so an `if`'s `else` is never taken for one.
+        ScopeNode? elseScope = null;
+        var end = scopeResult.Remainder;
+        if (allowTrailingScope && scopeResult.Value == null && PeekKind(end) == MoiraiTokenKind.Else)
+        {
+            var elseTok = end.ConsumeToken();
+            var elseResult = Scope(elseTok.Remainder);
+            if (!elseResult.HasValue)
+                return TokenListParserResult.CastEmpty<MoiraiTokenKind, ScopeNode, CallNode>(elseResult);
+            elseScope = elseResult.Value;
+            end = elseResult.Remainder;
+        }
+
+        var endSpan = elseScope?.Span ?? scopeResult.Value?.Span ?? close.Value.Span;
         var node = new CallNode(funId, declType, declVarId, args.ToArray(), scopeResult.Value,
-            Combine(funId.Span, endSpan));
-        return TokenListParserResult.Value(node, original, scopeResult.Remainder);
+            Combine(funId.Span, endSpan), elseScope);
+        return TokenListParserResult.Value(node, original, end);
     }
 
     /// Dispatches the ID-leading alternatives of `value` (raw_call | call | path — the three

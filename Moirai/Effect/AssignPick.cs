@@ -8,14 +8,19 @@ public struct AssignPick : IValueCall
     public readonly IValueSql Value;
     public readonly CallType CallType;
     public readonly IInstruction[]? ScopeEffects;
+    /// A pick's `else { ... }`: what runs when nothing matches, before the rule stops as a failed pick
+    /// always does -- so the rule still counts as not completed on the Rules page.
+    public readonly IInstruction[]? ElseEffects;
     private List<EntityId>? _pool;
-    public AssignPick(EntityTypeId entityType, int variableIndex, IValueSql value, CallType callType, IInstruction[]? scopeEffects = null)
+    public AssignPick(EntityTypeId entityType, int variableIndex, IValueSql value, CallType callType,
+        IInstruction[]? scopeEffects = null, IInstruction[]? elseEffects = null)
     {
         EntityType = entityType;
         VariableIndex = variableIndex;
         Value = value;
         CallType = callType;
         ScopeEffects = scopeEffects;
+        ElseEffects = elseEffects;
         _pool = null;
     }
 
@@ -29,6 +34,15 @@ public struct AssignPick : IValueCall
                 // Console.WriteLine($"PICK {ctx.Database.Printer.Print(Value)}");
                 bool res = ctx.PickRandom(EntityType, Value, VariableIndex, out var val);
                 ctx.SetArgument(VariableIndex, val);
+                if (!res && ElseEffects != null)
+                {
+                    foreach (var e in ElseEffects)
+                    {
+                        ctx.Database.DebugHook?.OnStatement(e, ctx);
+                        if (!e.Execute(ctx).BoolValue)
+                            break;
+                    }
+                }
                 // Console.WriteLine($"ENDPICK {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                 return res;
             }
@@ -82,6 +96,13 @@ public struct AssignPick : IValueCall
     {
         
         var b = new StringBuilder(FunctionDescriptor?.Print(printer, this));
+        if (ElseEffects != null)
+        {
+            b.AppendLine(" else {");
+            foreach (var effect in ElseEffects)
+                printer.PrintEffect(effect, b, indent + 1);
+            b.Append(StoryPrinter.IndentStr(indent) + "}");
+        }
         if (ScopeEffects != null)
         {
             b.AppendLine(" {");

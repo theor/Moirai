@@ -43,11 +43,19 @@ public static class StoryParser
         new("pick", true,
             ctx =>
             {
+                // The fallback is parsed before $v is declared: it runs exactly when there is no $v.
+                IInstruction[]? orElse = null;
+                if (ctx.GetElseContext() is { } elseContext)
+                {
+                    using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, elseContext.Span);
+                    orElse = ctx.Visitor.ParseRawScope(elseContext, out _);
+                }
+
                 var variableIndex = ctx.ParseVariable(out var etid, out _);
                 return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
-                        CallType.Pick),
+                        CallType.Pick, elseEffects: orElse),
                     PropertyValue.TypeTypedRef(etid));
-            }),
+            }, "pick T $v: (predicate) picks one matching entity at random. When none matches the rule stops there; with pick T $v: (predicate) else { ... } it runs the else block first, then stops."),
 
         new("schedule", false, ctx =>
         {

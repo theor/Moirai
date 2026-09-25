@@ -943,6 +943,10 @@ public class AstVisitor : StoryParser.IVisitor
     private IValue ParseCall(CallNode context, out PropertyValue.ValueType returnType)
     {
         var funcName = context.FunId.Text;
+        // The grammar lets any statement-level call carry `else { ... }`; only a pick has a failure to handle.
+        if (context.Else != null && funcName != "pick")
+            AddError(StoryParser.ErrorCode.InvalidArgument, context.Else.Span,
+                $"only a pick can have an else block; '{funcName}' cannot fail over to one");
         if (Database.GetFunctionDefinition(funcName, out var fd))
         {
             var ctx = new FunctionParseContext(this, context, fd.Value);

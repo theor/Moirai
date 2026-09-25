@@ -435,6 +435,8 @@ public static class MoiraiSemanticTokens
                 Expr(arg);
             if (call.Scope is { } s)
                 Scope(s);
+            if (call.Else is { } orElse)
+                Scope(orElse);
         }
 
         // `$var` and `#Singleton` roots are coloured lexically; the dotted tail is not.
