@@ -550,6 +550,7 @@ public class AstVisitor : StoryParser.IVisitor
     private IValue ParseMatch(MatchNode match, out PropertyValue.ValueType valueType)
     {
         bool weight = match.IsWeight;
+        bool inferredTotal = weight && match.Exprs.Length == 0;
         var values = match.Exprs.Select(ParseExpr).ToArray();
         (int, IInstruction[])[] weights = default;
         (IValue?[], IInstruction[])[] cases = default;
@@ -592,7 +593,11 @@ public class AstVisitor : StoryParser.IVisitor
                 int w;
                 if (caseValues[0] is MatchAnyValue)
                 {
-                    if (i != match.Cases.Length - 1)
+                    // With no total the remainder is always zero, so `_` could never be drawn.
+                    if (inferredTotal)
+                        AddError(StoryParser.ErrorCode.MatchNullWeight, caseCtx.Values[0].Span,
+                            "'_' takes the rest of an explicit total; give random_weighted a total, or give this case a weight");
+                    else if (i != match.Cases.Length - 1)
                         AddError(StoryParser.ErrorCode.MatchAnyValueMustBeLast, caseCtx.Values[0].Span,
                             GetText(caseCtx.Values[0].Span));
                     weights[i] = (-1, instrs);
@@ -612,7 +617,9 @@ public class AstVisitor : StoryParser.IVisitor
         }
 
         if (weight)
-            return new MatchWeight(values[0], weights);
+            return inferredTotal
+                ? new MatchWeight(new Literal(accWeight), weights, inferredTotal: true)
+                : new MatchWeight(values[0], weights);
 
         return new Match(values, cases);
     }

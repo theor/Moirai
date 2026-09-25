@@ -183,7 +183,7 @@ public static partial class MoiraiGrammar
         return TokenListParserResult.Value(new IfNode(cond.Value, then.Value, elseScope, span), input, remainder);
     }
 
-    // match: (MATCH|MATCH_WEIGHT) expr (COMMA expr)* SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE LINE_BREAK*;
+    // match: (MATCH expr (COMMA expr)* | MATCH_WEIGHT expr?) SCOPE_OPEN LINE_BREAK* match_case+ SCOPE_CLOSE LINE_BREAK*;
     static TokenListParserResult<MoiraiTokenKind, MatchNode> MatchRule(TokenList<MoiraiTokenKind> input)
     {
         var kw = input.ConsumeToken();
@@ -192,12 +192,18 @@ public static partial class MoiraiGrammar
         bool isWeight = kw.Value.Kind == MoiraiTokenKind.MatchWeight;
 
         var exprs = new List<ExprNode>();
-        var first = Expr(kw.Remainder);
-        if (!first.HasValue)
-            return TokenListParserResult.CastEmpty<MoiraiTokenKind, ExprNode, MatchNode>(first);
-        exprs.Add(first.Value);
-        var remainder = first.Remainder;
-        while (PeekKind(remainder) == MoiraiTokenKind.Comma)
+        var remainder = kw.Remainder;
+        // `random_weighted { ... }` with no total: the total is the sum of the case weights.
+        if (!(isWeight && PeekKind(remainder) == MoiraiTokenKind.ScopeOpen))
+        {
+            var first = Expr(remainder);
+            if (!first.HasValue)
+                return TokenListParserResult.CastEmpty<MoiraiTokenKind, ExprNode, MatchNode>(first);
+            exprs.Add(first.Value);
+            remainder = first.Remainder;
+        }
+
+        while (exprs.Count > 0 && PeekKind(remainder) == MoiraiTokenKind.Comma)
         {
             var comma = remainder.ConsumeToken();
             var next = Expr(comma.Remainder);

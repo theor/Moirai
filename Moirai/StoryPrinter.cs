@@ -454,7 +454,9 @@ public partial class StoryPrinter
             }
             case MatchWeight match:
             {
-                sb.AppendLine($"{indentStr}random_weighted {Print(match.Value)} {{");
+                sb.AppendLine(match.InferredTotal
+                    ? $"{indentStr}random_weighted {{"
+                    : $"{indentStr}random_weighted {Print(match.Value)} {{");
                 var caseIndent = MakeIndent(indent + 1);
                 int accWeight = 0;
                 foreach (var matchCase in match.CumulativeWeights)

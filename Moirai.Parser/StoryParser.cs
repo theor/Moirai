@@ -271,6 +271,30 @@ public static class StoryParser
             return (null!, PropertyValue.ValueType.Null);
         },
             ""),
+        new("chance", false, ctx =>
+        {
+            ctx.ExpectArgcount(1);
+            var span = ctx.GetArgumentToken(0)?.Span ?? ctx.CallContext.Span;
+            // A query's narrowing decides which candidates its predicate is evaluated on, so a draw
+            // inside one would make the world depend on the index -- pick first, then roll.
+            if (ctx.Visitor.InSqlPredicate)
+                ctx.Visitor.AddError(ErrorCode.InvalidArgument, ctx.CallContext.Span,
+                    "chance() cannot be part of a pick/each predicate; pick first, then test chance()");
+            var p = ctx.ParseArgument(0, out var pType);
+            if (pType.BaseType is not (PropertyValue.ValueBaseType.Percentage or PropertyValue.ValueBaseType.Number
+                or PropertyValue.ValueBaseType.Float))
+                ctx.Visitor.AddError(ErrorCode.InvalidArgument, span, "chance() takes a percentage, e.g. chance(3%)");
+
+            var scopeContext = ctx.GetScopeContext();
+            IInstruction[]? body = null;
+            if (scopeContext != null)
+            {
+                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext.Span);
+                body = ctx.Visitor.ParseRawScope(scopeContext, out _);
+            }
+
+            return (new Chance(p, body), body == null ? PropertyValue.TypeBool : PropertyValue.ValueType.Null);
+        }, "chance(p): true with probability p, a percentage: chance(3%). As a statement with a body, chance(3%) { ... } runs the body when it hits and carries on either way."),
         new("roll", false, ctx =>
         {
             // roll(TableName) — sample a named weighted table. The arg is a bare table name (a

@@ -107,11 +107,15 @@ public class MatchWeight : IValue
 {
     public readonly IValue Value;
     public readonly (int,IInstruction[])[] CumulativeWeights;
+    /// The story wrote no total (`random_weighted { ... }`), so <see cref="Value"/> is the sum of the
+    /// weights; the printer leaves it out again.
+    public readonly bool InferredTotal;
 
-    public MatchWeight(IValue value, (int, IInstruction[])[] cumulativeWeights)
+    public MatchWeight(IValue value, (int, IInstruction[])[] cumulativeWeights, bool inferredTotal = false)
     {
         Value = value;
         CumulativeWeights = cumulativeWeights;
+        InferredTotal = inferredTotal;
     }
 
     public PropertyValue Compute(ExecuteContext ctx)
