@@ -847,6 +847,7 @@ public class Database
 
     public void Init()
     {
+        _plans.Clear();
         _singletons.Clear();
         _collections.Clear();
         _boolIndex.Clear();
@@ -963,22 +964,40 @@ public class Database
     // Anything it builds lives in the scratch stack, which the caller releases.
     private Ids Candidates(EntityTypeId entityTypeId, IValueSql? predicate, int varIdx)
     {
-        var indexed = TryGetBoolIndexCandidates(predicate, varIdx);
-        if (predicate != null
-            && Narrow(predicate, varIdx, entityTypeId, null) is { } narrowed
+        if (predicate == null)
+            return _perTypeEntities[(int)entityTypeId.Id].Ids;
+
+        var plan = PlanFor(predicate, varIdx);
+        // The id-ordered bucket for the first `<queryVar>.<indexedBool>` (= true) constraint in the
+        // predicate (empty if the prop is indexed but nothing is currently true).
+        Ids? indexed = plan.BoolProp is { } prop
+            ? _boolIndex.TryGetValue(prop, out var set) ? set.Ids : Ids.Empty
+            : null;
+        if (Narrow(plan.Narrow, entityTypeId) is { } narrowed
             && (indexed == null || narrowed.Count < indexed.Value.Count))
             indexed = narrowed;
         return indexed ?? _perTypeEntities[(int)entityTypeId.Id].Ids;
     }
 
-    // Returns the id-ordered bucket for the first `<queryVar>.<indexedBool>` (= true) constraint found in
-    // the predicate (an empty set if the prop is indexed but nothing is currently true), or null if the
-    // predicate offers no usable indexed constraint (→ full type scan).
-    private Ids? TryGetBoolIndexCandidates(IValueSql? predicate, int varIdx)
+    // What a predicate's shape says about narrowing its scan, worked out once per predicate: which bool
+    // index it can use, and the tree of lookups Narrow evaluates. Only the values those lookups compare
+    // against are computed per scan -- the resolving of paths and function arguments that used to be
+    // redone, with a list per path and a dictionary per function call, on every pick.
+    private sealed class QueryPlan(int varIdx, PropertyId? boolProp, NarrowPlan? narrow)
     {
-        if (predicate != null && TryFindIndexedTrueProp(predicate, varIdx, out var prop))
-            return _boolIndex.TryGetValue(prop, out var s) ? s.Ids : Ids.Empty;
-        return null;
+        public readonly int VarIdx = varIdx;
+        public readonly PropertyId? BoolProp = boolProp;
+        public readonly NarrowPlan? Narrow = narrow;
+    }
+
+    private readonly Dictionary<object, QueryPlan> _plans = new(ReferenceEqualityComparer.Instance);
+
+    private QueryPlan PlanFor(IValueSql predicate, int varIdx)
+    {
+        if (_plans.TryGetValue(predicate, out var plan) && plan.VarIdx == varIdx)
+            return plan;
+        PropertyId? boolProp = TryFindIndexedTrueProp(predicate, varIdx, out var prop) ? prop : null;
+        return _plans[predicate] = new QueryPlan(varIdx, boolProp, CompileNarrow(predicate, varIdx, null));
     }
 
     // Walks conjunctions — both the dedicated And class and BinaryOperator.And, since either may appear —
@@ -1019,35 +1038,47 @@ public class Database
     // from another variable, evaluated once, up front. If it cannot be evaluated (a path through a null the
     // predicate would itself have short-circuited) that part is simply unknown.
 
-    private Ids? Narrow(IValue node, int varIdx, EntityTypeId type, ArgScope? scope)
+    // A node of a compiled narrowing; null stands for "cannot say", everywhere.
+    private abstract class NarrowPlan;
+
+    // `and`: the smallest of what its parts allow, the first of equals (each alone is a superset).
+    private sealed class AllPlan(NarrowPlan[] parts) : NarrowPlan
+    {
+        public readonly NarrowPlan[] Parts = parts;
+    }
+
+    // `or`: the union, when both sides are known.
+    private sealed class AnyPlan(NarrowPlan left, NarrowPlan right) : NarrowPlan
+    {
+        public readonly NarrowPlan Left = left, Right = right;
+    }
+
+    // `=`: a lookup of one side's value, tried both ways round.
+    private sealed class EqualsPlan(Resolved left, Resolved right) : NarrowPlan
+    {
+        public readonly Resolved Left = left, Right = right;
+    }
+
+    private NarrowPlan? CompileNarrow(IValue node, int varIdx, ArgScope? scope)
     {
         switch (node)
         {
             case And and:
-            {
-                Ids? best = null;
-                foreach (var p in and.Predicates)
-                    if (Narrow(p, varIdx, type, scope) is { } b && (best == null || b.Count < best.Value.Count))
-                        best = b;
-                return best;
-            }
+                return All(and.Predicates.Select(p => CompileNarrow(p, varIdx, scope)));
             case BinaryOperator { Op: BinaryOperator.Operator.And } a:
-            {
-                var l = Narrow(a.Left, varIdx, type, scope);
-                var r = Narrow(a.Right, varIdx, type, scope);
-                return l == null ? r : r == null ? l : l.Value.Count <= r.Value.Count ? l : r;
-            }
+                return All(new[] { CompileNarrow(a.Left, varIdx, scope), CompileNarrow(a.Right, varIdx, scope) });
             case BinaryOperator { Op: BinaryOperator.Operator.Or } o:
-            {
-                if (Narrow(o.Left, varIdx, type, scope) is not { } l) return null;
-                if (Narrow(o.Right, varIdx, type, scope) is not { } r) return null;
-                if (l.Count == 0) return r;
-                if (r.Count == 0) return l;
-                return Scratch(l.Span, r.Span);
-            }
+                return CompileNarrow(o.Left, varIdx, scope) is { } left && CompileNarrow(o.Right, varIdx, scope) is { } right
+                    ? new AnyPlan(left, right)
+                    : null;
             case BinaryOperator { Op: BinaryOperator.Operator.Equals } eq:
-                return NarrowEquals(Resolve(eq.Left, varIdx, scope), Resolve(eq.Right, varIdx, scope), type)
-                       ?? NarrowEquals(Resolve(eq.Right, varIdx, scope), Resolve(eq.Left, varIdx, scope), type);
+            {
+                var l = Resolve(eq.Left, varIdx, scope);
+                var r = Resolve(eq.Right, varIdx, scope);
+                bool usable = (l.Kind == ResolvedKind.QueryVar && r.Kind == ResolvedKind.Independent)
+                              || (r.Kind == ResolvedKind.QueryVar && l.Kind == ResolvedKind.Independent);
+                return usable ? new EqualsPlan(l, r) : null;
+            }
             case UserFunctionCall call
                 when !call.Definition.IsInstanceMethod
                      && call.Definition.Instructions is [CallInstruction { Value: { } body }]
@@ -1056,8 +1087,42 @@ public class Database
                 var args = new Dictionary<int, IValue>();
                 for (int i = 0; i < call.Arguments.Length; i++)
                     args[call.Definition.Parameters[i].ParamIndex] = call.Arguments[i];
-                return Narrow(body, varIdx, type, new ArgScope(args, scope));
+                return CompileNarrow(body, varIdx, new ArgScope(args, scope));
             }
+            default:
+                return null;
+        }
+
+        // A part that can never say anything is skipped at run time anyway, so it is dropped here.
+        static NarrowPlan? All(IEnumerable<NarrowPlan?> parts)
+        {
+            var known = parts.OfType<NarrowPlan>().ToArray();
+            return known.Length == 0 ? null : known.Length == 1 ? known[0] : new AllPlan(known);
+        }
+    }
+
+    private Ids? Narrow(NarrowPlan? plan, EntityTypeId type)
+    {
+        switch (plan)
+        {
+            case AllPlan all:
+            {
+                Ids? best = null;
+                foreach (var p in all.Parts)
+                    if (Narrow(p, type) is { } b && (best == null || b.Count < best.Value.Count))
+                        best = b;
+                return best;
+            }
+            case AnyPlan any:
+            {
+                if (Narrow(any.Left, type) is not { } l) return null;
+                if (Narrow(any.Right, type) is not { } r) return null;
+                if (l.Count == 0) return r;
+                if (r.Count == 0) return l;
+                return Scratch(l.Span, r.Span);
+            }
+            case EqualsPlan eq:
+                return NarrowEquals(eq.Left, eq.Right, type) ?? NarrowEquals(eq.Right, eq.Left, type);
             default:
                 return null;
         }
