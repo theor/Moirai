@@ -15,9 +15,11 @@ public class FilterExactlyXEveryYYears : IFilter
     public readonly int Years;
     public readonly int EventId;
 
-    private long _lastYearPlanned;
+    // Before any year, so the first one is planned even when it is year 0.
+    private long _lastYearPlanned = long.MinValue;
 
-    private List<(long year, int count)> _planning = new();
+    // The years this window's occurrences fall on, ascending.
+    private readonly List<long> _planning = new();
 
     public FilterExactlyXEveryYYears(int count, int years, int eventId)
     {
@@ -28,7 +30,9 @@ public class FilterExactlyXEveryYYears : IFilter
             throw new InvalidDataException("Years < 1");
     }
 
-    // TODO only works for "1 every 1 year..."
+    // Exactly Count occurrences in each window of Years years, starting with the first year it is asked
+    // about. Each one lands on a year of the window drawn uniformly, independently of the others (so two
+    // can share a year); for Count = 1 that is the one draw the schedule has always made.
     public int Compute(ExecuteContext ctx, long currentYear)
     {
         if (Years == 1)
@@ -41,25 +45,20 @@ public class FilterExactlyXEveryYYears : IFilter
 
             return 0;
         }
+
         if (_lastYearPlanned <= currentYear)
         {
             _lastYearPlanned = currentYear + Years;
-            var prevYear = currentYear;
             for (int i = 0; i < Count; i++)
-            {
-                var y = prevYear + ctx.Rnd.GenerateNext((uint)((uint)(Years)/(Math.Max(1, Count - i - 1))));
-                prevYear = y;
-                _planning.Add((Math.Min(y, currentYear + Years - 1), 1 ));
-            }
+                _planning.Add(currentYear + ctx.Rnd.GenerateNext((uint)Years));
+            _planning.Sort();
         }
 
+        // Everything due by now: a year the schedule was not asked about must not strand its occurrences.
         int count = 0;
-        while (_planning.Any() && _planning.FirstOrDefault().year == currentYear)
-        {
-            var p = _planning.First();
-            _planning.RemoveAt(0);
+        while (count < _planning.Count && _planning[count] <= currentYear)
             count++;
-        }
+        _planning.RemoveRange(0, count);
         return count;
     }
 }
