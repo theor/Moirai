@@ -36,7 +36,7 @@ public class InterpolatedString : IValue
 
     public PropertyValue Compute(ExecuteContext ctx)
     {
-        return ctx.Database.Printer.Format(this, ctx.Database) ?? "";
+        return ctx.Database.Printer.FormatValue(this, ctx.Database);
     }
 
     private string[]? _literals;
@@ -345,10 +345,10 @@ public class CreateEntity : IValueCall
     public PropertyValue Compute(ExecuteContext ctx)
     {
         // if (!ctx.Database.EntityExists(ctx.EntityId))
-        string? name = null;
+        PropertyValue? name = null;
         if (Name != null)
         {
-            name = ctx.Database.Printer.Format(Name, ctx.Database);
+            name = ctx.Database.Printer.FormatValue(Name, ctx.Database);
         }
 
         // A singleton has at most one instance, so creating one that already exists -- because a write
@@ -357,11 +357,11 @@ public class CreateEntity : IValueCall
         if (ctx.Database.GetEntityType(Type).IsSingleton && ctx.Database.TryGetSingleton(Type, out var existing))
         {
             entity = existing;
-            if (name != null)
-                ctx.Database.SetProperty(entity, Database.PropName, name);
+            if (name is { } n)
+                ctx.Database.SetProperty(entity, Database.PropName, n);
         }
         else
-            entity = ctx.Database.AllocateEntity(Type, name);
+            entity = ctx.Database.AllocateEntity(Type, name ?? default);
         ctx.SetArgument(VariableIndex, entity);
         if (Init != null)
             foreach (var instruction in Init)

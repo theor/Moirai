@@ -267,8 +267,13 @@ public partial class StoryPrinter
     /// text, without a string per number.</summary>
     private void AppendValue(StringBuilder sb, PropertyValue value, History.HistoryMode storyMode)
     {
-        if (value.Value == null)
-            switch (value.Type.BaseType)
+        if (value.HasText)
+        {
+            sb.Append(value.TextSpan);
+            return;
+        }
+
+        switch (value.Type.BaseType)
             {
                 case PropertyValue.ValueBaseType.Number:
                     sb.Append(value.IntValue);
@@ -627,6 +632,43 @@ public partial class StoryPrinter
         }
     }
 
+    /// <summary>
+    /// <see cref="Format"/> as the engine uses it, for a name or a <c>var</c>: a string value. A literal, or
+    /// a single value that already is text, comes back as it is; anything else is formatted into the world's
+    /// string slab, so it costs no allocation either.
+    /// </summary>
+    internal PropertyValue FormatValue(InterpolatedString formatAction, Database database)
+    {
+        if (formatAction.Literals is not { } literals)
+            return FormatComposite(formatAction, database, false, null);
+        if (formatAction.Arguments.Length == 0)
+            return literals[0];
+
+        var sb = RentBuilder();
+        try
+        {
+            if (formatAction.Arguments.Length == 1 && literals[0].Length == 0 && literals[1].Length == 0)
+            {
+                // Computed once, as Format would: the text is that value's own if it has one.
+                var value = formatAction.Arguments[0].Compute(database.Ctx);
+                if (value.HasText)
+                    return value;
+                if (value.Type.BaseType == PropertyValue.ValueBaseType.Enum)
+                    return Print(value, History.HistoryMode.Story); // an existing string
+                AppendValue(sb, value, History.HistoryMode.Story);
+                return database.StringOf(sb);
+            }
+
+            return AppendFormat(sb, formatAction, database, false, null)
+                ? database.StringOf(sb)
+                : FormatComposite(formatAction, database, false, null);
+        }
+        finally
+        {
+            ReturnBuilder(sb);
+        }
+    }
+
     /// <summary>A builder to format into, the printer's own unless a format is already using it.</summary>
     internal StringBuilder RentBuilder()
     {
@@ -650,6 +692,16 @@ public partial class StoryPrinter
             for (int i = 0; i < formatAction.Arguments.Length; i++)
             {
                 var v = formatAction.Arguments[i];
+                if (v is InterpolatedStringLink link)
+                {
+                    // What link() computes -- "<#id>text</>" -- written in place rather than made a string.
+                    var target = link.LinkValue.Compute(database.Ctx).Id;
+                    var linkText = link.LinkText.Compute(database.Ctx);
+                    sb.Append("<#").Append(target.Id).Append('>').Append(linkText.TextSpan).Append("</>");
+                    sb.Append(literals[i + 1]);
+                    continue;
+                }
+
                 var value = v.Compute(database.Ctx);
                 if (injectIdTags && v is PropertyPath path && path.Mode == PropertyPath.PropertyPathMode.Variable
                     && path.VariableIndex != -1

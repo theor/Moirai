@@ -243,12 +243,16 @@ public class Database
         return id;
     }
 
-    public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
+    public EntityId AllocateEntity(EntityTypeId entityType, string? name = null) =>
+        AllocateEntity(entityType, name == null ? default : new PropertyValue(name));
+
+    /// <summary>A new entity, named <paramref name="name"/> if that is non-empty text.</summary>
+    public EntityId AllocateEntity(EntityTypeId entityType, PropertyValue name)
     {
         var type = GetEntityType(entityType);
         Entity e = new(type, _slab);
 
-        if (!String.IsNullOrEmpty(name))
+        if (name.HasText && name.IntValue > 0)
         {
             e.SetProperty(PropName, name);
         }
@@ -337,14 +341,14 @@ public class Database
         if (_indexedEqProps.Contains(property))
         {
             // The buckets are structs inside the dictionary: written through a ref to the entry.
-            if (prev.Value == null)
+            if (!prev.HasText)
             {
                 ref var was = ref CollectionsMarshal.GetValueRefOrNullRef(_eqIndex, (property, prev.IntValue));
                 if (!Unsafe.IsNullRef(ref was))
                     was.Remove(entityId.Id);
             }
 
-            if (value.Value == null)
+            if (!value.HasText)
                 CollectionsMarshal.GetValueRefOrAddDefault(_eqIndex, (property, value.IntValue), out _)
                     .Add(entityId.Id, _idSlab);
         }
@@ -1162,7 +1166,7 @@ public class Database
     {
         if (side.Kind != ResolvedKind.QueryVar || other.Kind != ResolvedKind.Independent)
             return null;
-        if (!TryComputeIndependent(other, out var value) || value.Value != null)
+        if (!TryComputeIndependent(other, out var value) || value.HasText)
             return null;
 
         if (side.Props.Count == 0)
@@ -1240,7 +1244,7 @@ public class Database
 
         foreach (var prop in r.Props)
         {
-            if (value.Value != null || value.IntValue == 0)
+            if (value.HasText || value.IntValue == 0)
                 return false;
             GetProperty(value.Id, prop, out value);
         }
@@ -1443,6 +1447,19 @@ public class Database
     }
 
     private readonly RecordStore _recordStore = new();
+
+    // Where the strings a pass makes live -- a birth's name, a `var $x: '...'` -- when they are not a literal
+    // or some value's existing string. Referenced by the PropertyValues that hold them, so the slab lives
+    // exactly as long as the world does.
+    private readonly Slab<char> _strings = new();
+
+    /// <summary>The text in <paramref name="sb"/> as a string value held in this world's string slab.</summary>
+    internal PropertyValue StringOf(System.Text.StringBuilder sb)
+    {
+        var (chars, offset) = _strings.Take(sb.Length);
+        sb.CopyTo(0, chars.AsSpan(offset, sb.Length), sb.Length);
+        return new PropertyValue(chars, offset, sb.Length);
+    }
 
     public readonly ChunkedList<Record> Records = new();
     private int _currentActionId;

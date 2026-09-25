@@ -155,7 +155,8 @@ public class History
         && a.Value.Type == b.Value.Type
         && a.Value.IntValue == b.Value.IntValue
         && BitConverter.SingleToInt32Bits(a.Value.FloatValue) == BitConverter.SingleToInt32Bits(b.Value.FloatValue)
-        && string.Equals(a.Value.Value, b.Value.Value, StringComparison.Ordinal);
+        && a.Value.HasText == b.Value.HasText
+        && (a.Value.SameTextStorage(b.Value) || a.Value.TextSpan.SequenceEqual(b.Value.TextSpan));
 
     /// <summary>The entity as it stood when the changeset holding record <paramref name="index"/> closed.</summary>
     internal Entity Materialize(int index)
