@@ -53,6 +53,11 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
     // using constructs we don't statically analyse (function calls etc.), so we stay conservative.
     // Computed lazily and cached.
     public PropertyId[]? GatingProps;
+    // The stricter half of the gate: properties the change must ALL have written. A top-level `and` of
+    // the predicate that needs `$old.p` to be truthy is false whenever p was not written -- $old reads
+    // the default then -- so `alive = false and $old.alive and devotion > 80%` need not be evaluated on
+    // every devotion write, only on a death. Null = no such conjunct.
+    public PropertyId[]? RequiredProps;
     public bool GatingComputed;
     // Parameters for an event invoked as call(name, args...). Declared as the event scope's first
     // value-stack slots (0..n-1), which call() binds before the body runs. Null = no parameters.

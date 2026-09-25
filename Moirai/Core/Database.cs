@@ -725,11 +725,20 @@ public class Database
                 if (whenType == EventTrigger.WhenType.Changed)
                 {
                     if (!trigger.GatingComputed)
+                        ComputeGating(trigger);
+
+                    // Every property a `$old.p` conjunct needs must have been written...
+                    var rp = trigger.RequiredProps;
+                    if (rp != null)
                     {
-                        trigger.GatingProps = ComputeGatingProps(trigger);
-                        trigger.GatingComputed = true;
+                        bool all = true;
+                        for (int ri = 0; ri < rp.Length; ri++)
+                            if (!prev.Wrote(rp[ri])) { all = false; break; }
+                        if (!all)
+                            continue;
                     }
 
+                    // ...and at least one property the predicate reads.
                     var gp = trigger.GatingProps;
                     if (gp != null)
                     {
@@ -804,12 +813,60 @@ public class Database
     public PropertyId[]? GetTriggerGatingProps(EventTrigger trigger)
     {
         if (!trigger.GatingComputed)
-        {
-            trigger.GatingProps = ComputeGatingProps(trigger);
-            trigger.GatingComputed = true;
-        }
+            ComputeGating(trigger);
 
         return trigger.GatingProps;
+    }
+
+    private static void ComputeGating(EventTrigger trigger)
+    {
+        trigger.GatingProps = ComputeGatingProps(trigger);
+        // Only for a predicate the gate can read in full: one it cannot (a function call, a random draw)
+        // is always evaluated, so that skipping it can never move its trigger's RNG stream.
+        trigger.RequiredProps = trigger.GatingProps != null ? ComputeRequiredProps(trigger) : null;
+        trigger.GatingComputed = true;
+    }
+
+    // The properties a `when Changed` predicate cannot be true without the change having written: those of
+    // a top-level conjunct `$old.p` or `$old.p = <non-zero literal>`. $old of a property the change did not
+    // write reads the default (false, 0, null), which fails either test, so skipping is exact.
+    private static PropertyId[]? ComputeRequiredProps(EventTrigger trigger)
+    {
+        var acc = new List<PropertyId>();
+        Visit(trigger.When.Item3);
+        return acc.Count == 0 ? null : acc.Distinct().ToArray();
+
+        void Visit(IValue? v)
+        {
+            switch (v)
+            {
+                case And and:
+                    foreach (var p in and.Predicates)
+                        Visit(p);
+                    break;
+                case BinaryOperator { Op: BinaryOperator.Operator.And } b:
+                    Visit(b.Left);
+                    Visit(b.Right);
+                    break;
+                case BinaryOperator { Op: BinaryOperator.Operator.Equals } eq:
+                    if (OldProp(eq.Left) is { } l && eq.Right is Literal { Value.IntValue: not 0, Value.HasText: false })
+                        acc.Add(l);
+                    else if (OldProp(eq.Right) is { } r && eq.Left is Literal { Value.IntValue: not 0, Value.HasText: false })
+                        acc.Add(r);
+                    break;
+                default:
+                    if (OldProp(v) is { } bare)
+                        acc.Add(bare);
+                    break;
+            }
+        }
+
+        // `$old.p`: the value-stack slot 0 RunTriggers binds $old to, and one property of the trigger's type.
+        PropertyId? OldProp(IValue? v) =>
+            v is PropertyPath { Mode: PropertyPath.PropertyPathMode.Variable, VariableIndex: 0, Segments: [{ Call: null } seg] }
+            && seg.Property.IsValid && seg.Property.TypeId == trigger.When.Item2
+                ? seg.Property
+                : null;
     }
 
     // The set of the trigger entity-type's own properties read by a `when Changed` predicate. Returns
