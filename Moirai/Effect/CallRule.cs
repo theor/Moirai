@@ -6,12 +6,16 @@ public struct CallRule : IValueCall
     public readonly int Count;
     // Arguments for a parameterized event; null for the plain count-repeat form.
     public readonly IValue[]? Args;
+    // Reused across calls, and taken while in use, so a callee that reaches this same site again (recursion)
+    // evaluates into an array of its own.
+    private PropertyValue[]? _argv;
 
     public CallRule(int eventIndex, int count)
     {
         RuleIndex = eventIndex;
         Count = count;
         Args = null;
+        _argv = null;
     }
 
     public CallRule(int eventIndex, IValue[] args)
@@ -19,6 +23,7 @@ public struct CallRule : IValueCall
         RuleIndex = eventIndex;
         Count = 1;
         Args = args;
+        _argv = null;
     }
 
     public PropertyValue Compute(ExecuteContext ctx)
@@ -33,7 +38,8 @@ public struct CallRule : IValueCall
         {
             // Evaluate arguments in the CALLER's frame first (they reference the caller's locals),
             // then open the callee frame and write them into its parameter slots (0..n-1).
-            var argv = new PropertyValue[Args.Length];
+            var argv = _argv ?? new PropertyValue[Args.Length];
+            _argv = null;
             for (int a = 0; a < Args.Length; a++)
                 argv[a] = Args[a].Compute(ctx);
 
@@ -41,6 +47,8 @@ public struct CallRule : IValueCall
             {
                 for (int a = 0; a < argv.Length; a++)
                     ctx.SetArgument(a, argv[a]);
+                Array.Clear(argv);
+                _argv = argv;
                 res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
                 ctxLastValue = ctx.LastValue;
             }

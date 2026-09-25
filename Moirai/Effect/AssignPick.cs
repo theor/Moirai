@@ -34,19 +34,20 @@ public struct AssignPick : IValueCall
             }
             case CallType.Each:
             {
-                _pool ??= new();
+                // The site's list is taken while its bodies run and handed back after, so an each whose body
+                // reaches this same site again (a call() back into its own event) gets a list of its own
+                // instead of FindAll clearing the one being walked.
+                var pool = _pool ?? new List<EntityId>();
+                _pool = null;
                 if (ScopeEffects != null)
                 {
-                    // Console.ForegroundColor = ConsoleColor.Blue;
-                    // Console.WriteLine($"FIND ALL {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
-                    // Console.ResetColor(); 
-                    if (ctx.Database.FindAll(EntityType, Value, VariableIndex, ref _pool))
+                    if (ctx.Database.FindAll(EntityType, Value, VariableIndex, ref pool))
                     {
-                        for (var index = 0; index < _pool.Count; index++)
+                        for (var index = 0; index < pool.Count; index++)
                         {
                             using var s = ctx.RunScope(false);
                             // int valueCountIterationStart = ctx.ValueCount;
-                            var entityId = _pool[index];
+                            var entityId = pool[index];
                             ctx.SetArgument(VariableIndex, entityId);
                             // Console.WriteLine($"{index + 1} / {_pool.Count} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                             foreach (var e in ScopeEffects)
@@ -64,6 +65,9 @@ public struct AssignPick : IValueCall
                         }
                     }
                 }
+
+                pool.Clear();
+                _pool = pool;
                 return true;
             }
             default:
