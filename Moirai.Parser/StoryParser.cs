@@ -346,8 +346,19 @@ public static class StoryParser
                     ctx.ParseArgument(1)), PropertyValue.TypeBool);
             return (null!, PropertyValue.TypeBool);
         }, "Tests collection membership: contains($e.coll, $x)"),
+        new("sum", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Sum),
+            "sum T $v: (predicate, value): the total of value over every T the predicate matches, e.g. sum Person $p: (alive, $p.prosperity)"),
+        new("avg", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Avg),
+            "avg T $v: (predicate, value): the mean of value over every T the predicate matches, 0 when none does"),
+        new("min", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Min),
+            "min T $v: (predicate, value): the smallest value over every T the predicate matches, 0 when none does"),
+        new("max", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Max),
+            "max T $v: (predicate, value): the largest value over every T the predicate matches, 0 when none does"),
         new("count", false, ctx =>
         {
+            // `count T $v: (predicate)` counts a query; `count($e.coll)` a collection.
+            if ((ctx.CallContext.Call?.DeclType ?? ctx.CallContext.RawCall?.DeclType) != null)
+                return ParseAggregate(ctx, Aggregate.AggregateKind.Count);
             ctx.ExpectArgcount(1);
             if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
                 return (new CollectionQuery(CollectionQuery.QueryKind.Count, full, owner, coll, null),
@@ -369,6 +380,81 @@ public static class StoryParser
                 new DebugPrint(Enumerable.Repeat((object?) null, ctx.ArgCount).Select((_, i) => ctx.ParseArgument(i))),
                 PropertyValue.ValueType.Null))
     ];
+
+    /// `count T $v: (pred...)` and `sum|avg|min|max T $v: (pred..., value)`. Like a pick, the arguments
+    /// before the value are the predicate, joined by `and`; $v exists only inside the call.
+    static (IValueCall, PropertyValue.ValueType) ParseAggregate(FunctionParseContext ctx, Aggregate.AggregateKind kind)
+    {
+        var call = ctx.CallContext.Call;
+        // `count T $v`, with no predicate at all, is the bare form: every T.
+        if (call == null && kind == Aggregate.AggregateKind.Count && ctx.CallContext.RawCall is { DeclType: not null, Value: null } raw)
+        {
+            using var rawScope = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, raw.Span);
+            var index = ctx.ParseVariable(out var type, out _);
+            return (new Aggregate(kind, type, index, null, null, PropertyValue.TypeNumber), PropertyValue.TypeNumber);
+        }
+
+        if (call?.DeclType == null)
+        {
+            ctx.Visitor.AddError(ErrorCode.MissingVariable, ctx.CallContext.Span,
+                $"{kind.ToString().ToLowerInvariant()} needs a query: {kind.ToString().ToLowerInvariant()} T $v: (predicate{(kind == Aggregate.AggregateKind.Count ? "" : ", value")})");
+            return (null!, PropertyValue.TypeNumber);
+        }
+
+        using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, call.Span);
+        var variableIndex = ctx.ParseVariable(out var etid, out _);
+
+        int predicateCount = kind == Aggregate.AggregateKind.Count ? ctx.ArgCount : ctx.ArgCount - 1;
+        if (predicateCount < 0)
+        {
+            ctx.Visitor.AddError(ErrorCode.MissingArgument, call.Span,
+                $"{kind.ToString().ToLowerInvariant()} needs the value to add up, after the predicate: (predicate, $v.prop)");
+            return (null!, PropertyValue.TypeNumber);
+        }
+
+        IValueSql? predicate = null;
+        if (predicateCount > 0)
+        {
+            ctx.Visitor.InSqlPredicateDepth++;
+            try
+            {
+                var parts = new IValue[predicateCount];
+                for (int i = 0; i < predicateCount; i++)
+                    parts[i] = ctx.ParseArgument(i);
+                var p = predicateCount == 1 ? parts[0] : new And(parts);
+                if (p is IValueSql sql)
+                    predicate = sql;
+                else
+                    ctx.Visitor.AddError(ErrorCode.ExpectedSql, ctx.GetArgumentToken(0)?.Span ?? call.Span,
+                        "Expected a predicate");
+            }
+            finally
+            {
+                ctx.Visitor.InSqlPredicateDepth--;
+            }
+        }
+
+        if (kind == Aggregate.AggregateKind.Count)
+            return (new Aggregate(kind, etid, variableIndex, predicate, null, PropertyValue.TypeNumber),
+                PropertyValue.TypeNumber);
+
+        var value = ctx.ParseArgument(predicateCount, out var valueType);
+        if (valueType.BaseType is not (PropertyValue.ValueBaseType.Number or PropertyValue.ValueBaseType.Float
+            or PropertyValue.ValueBaseType.Percentage))
+        {
+            ctx.Visitor.AddError(ErrorCode.InvalidArgument, ctx.GetArgumentToken(predicateCount)?.Span ?? call.Span,
+                $"{kind.ToString().ToLowerInvariant()} adds up numbers; this value is {ctx.Visitor.Database.Printer.Print(valueType)}");
+            return (null!, PropertyValue.TypeNumber);
+        }
+
+        var resultType = (kind, valueType.BaseType) switch
+        {
+            (Aggregate.AggregateKind.Sum, PropertyValue.ValueBaseType.Percentage) => PropertyValue.TypeFloat,
+            (Aggregate.AggregateKind.Avg, PropertyValue.ValueBaseType.Number) => PropertyValue.TypeFloat,
+            _ => valueType,
+        };
+        return (new Aggregate(kind, etid, variableIndex, predicate, value, resultType), resultType);
+    }
 
     public interface IVisitor
     {

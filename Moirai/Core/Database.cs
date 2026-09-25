@@ -991,6 +991,53 @@ public class Database
         return true;
     }
 
+    // count/sum/avg/min/max T $v: (pred, value). The scan is FindAll's -- same candidates, same predicate
+    // check with $v bound -- folding each match's value instead of keeping a list, so nothing is allocated.
+    // A value that runs a query of its own nests on the scratch stack above this scan's.
+    public PropertyValue Aggregate(Aggregate a)
+    {
+        var predicate = a.Predicate;
+        if (!a.EntityType.IsValid)
+            return new PropertyValue(a.ResultType, 0);
+        long count = 0;
+        double acc = 0;
+        int mark = _scratchTop;
+        try
+        {
+            foreach (var raw in Candidates(a.EntityType, predicate, a.VariableIndex).Span)
+            {
+                var candidate = new EntityId(raw);
+                _ctx.SetArgument(a.VariableIndex, candidate);
+                if (predicate != null && !predicate.IsTrue(_ctx))
+                    continue;
+
+                count++;
+                if (a.Kind == global::Aggregate.AggregateKind.Count)
+                    continue;
+
+                double v = a.Value!.Compute(_ctx).FloatValue;
+                acc = a.Kind switch
+                {
+                    global::Aggregate.AggregateKind.Min => count == 1 ? v : Math.Min(acc, v),
+                    global::Aggregate.AggregateKind.Max => count == 1 ? v : Math.Max(acc, v),
+                    _ => acc + v,
+                };
+            }
+        }
+        finally
+        {
+            _scratchTop = mark;
+        }
+
+        if (a.Kind == global::Aggregate.AggregateKind.Count)
+            return new PropertyValue(PropertyValue.TypeNumber, (int)count);
+        if (a.Kind == global::Aggregate.AggregateKind.Avg && count > 0)
+            acc /= count;
+        return a.ResultType == PropertyValue.TypeNumber
+            ? new PropertyValue(PropertyValue.TypeNumber, (int)Math.Round(acc))
+            : new PropertyValue(a.ResultType, (float)acc);
+    }
+
     // The ids a scan visits. When the predicate constrains an indexed bool property of the query variable
     // to `true`, just that index bucket (skipping the accumulating false/dead rows), or whatever Narrow
     // finds smaller; otherwise every entity of the type. All in ascending id order, and the caller re-checks
