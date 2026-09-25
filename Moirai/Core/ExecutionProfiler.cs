@@ -12,6 +12,8 @@ using System.Text;
 ///                       (an event calling another event via <c>call()</c>, or a trigger's effects calling
 ///                       events, and the triggers fired after an event are all measured separately).
 ///   - <b>inclusive time</b> wall time including those nested measured scopes.
+///   - <b>self KB</b>    bytes allocated on this thread in that scope, excluding nested scopes the same way
+///                       as self time. It names the rules that make the garbage.
 ///
 /// Unlike <see cref="Profiler"/> (compile-time <c>[Conditional("DEBUG")]</c> property-hit counting), this is
 /// a plain runtime object guarded only by a null check, so it profiles Release builds too. It is the
@@ -28,6 +30,8 @@ public sealed class ExecutionProfiler
         public long Successes;
         public long SelfTicks;
         public long InclusiveTicks;
+        public long SelfBytes;
+        public long InclusiveBytes;
 
         public double SelfMs => SelfTicks * 1000.0 / Stopwatch.Frequency;
         public double InclusiveMs => InclusiveTicks * 1000.0 / Stopwatch.Frequency;
@@ -43,6 +47,9 @@ public sealed class ExecutionProfiler
 
     public double ElapsedMs => ElapsedTicks * 1000.0 / Stopwatch.Frequency;
 
+    /// <summary>Bytes allocated on this thread over the whole run, rules and scheduling alike.</summary>
+    public long AllocatedBytes;
+
     private readonly Dictionary<int, Stat> _events = new();
     private readonly Dictionary<int, Stat> _triggers = new();
 
@@ -50,6 +57,7 @@ public sealed class ExecutionProfiler
     // folds its inclusive time into this counter; an enclosing scope subtracts the delta accrued during its
     // body to obtain its own self time. Works for arbitrary nesting and sibling scopes (single-threaded).
     private long _childTicks;
+    private long _childBytes;
 
     public IReadOnlyCollection<Stat> Events => _events.Values;
     public IReadOnlyCollection<Stat> Triggers => _triggers.Values;
@@ -59,15 +67,20 @@ public sealed class ExecutionProfiler
     {
         internal readonly long StartTimestamp;
         internal readonly long ChildTicksAtStart;
+        internal readonly long StartBytes;
+        internal readonly long ChildBytesAtStart;
 
-        internal Scope(long startTimestamp, long childTicksAtStart)
+        internal Scope(long startTimestamp, long childTicksAtStart, long startBytes, long childBytesAtStart)
         {
             StartTimestamp = startTimestamp;
             ChildTicksAtStart = childTicksAtStart;
+            StartBytes = startBytes;
+            ChildBytesAtStart = childBytesAtStart;
         }
     }
 
-    public Scope Begin() => new(Stopwatch.GetTimestamp(), _childTicks);
+    public Scope Begin() =>
+        new(Stopwatch.GetTimestamp(), _childTicks, GC.GetAllocatedBytesForCurrentThread(), _childBytes);
 
     public void RecordEvent(EventTrigger e, in Scope scope, bool success) => Record(_events, e, scope, success);
     public void RecordTrigger(EventTrigger t, in Scope scope, bool success) => Record(_triggers, t, scope, success);
@@ -77,6 +90,9 @@ public sealed class ExecutionProfiler
         long inclusive = Stopwatch.GetTimestamp() - scope.StartTimestamp;
         long self = inclusive - (_childTicks - scope.ChildTicksAtStart);
         _childTicks = scope.ChildTicksAtStart + inclusive;
+        long inclusiveBytes = GC.GetAllocatedBytesForCurrentThread() - scope.StartBytes;
+        long selfBytes = inclusiveBytes - (_childBytes - scope.ChildBytesAtStart);
+        _childBytes = scope.ChildBytesAtStart + inclusiveBytes;
 
         if (!table.TryGetValue(et.Id, out var s))
             table[et.Id] = s = new Stat { Id = et.Id, Name = et.Name };
@@ -85,13 +101,15 @@ public sealed class ExecutionProfiler
             s.Successes++;
         s.SelfTicks += self;
         s.InclusiveTicks += inclusive;
+        s.SelfBytes += selfBytes;
+        s.InclusiveBytes += inclusiveBytes;
     }
 
     public string Report()
     {
         var sb = new StringBuilder();
         sb.AppendLine();
-        sb.AppendLine($"=== Execution profile: {Years} years in {ElapsedMs:F1} ms ===");
+        sb.AppendLine($"=== Execution profile: {Years} years in {ElapsedMs:F1} ms, {AllocatedBytes / (1024.0 * 1024.0):F1} MB allocated ===");
 
         AppendTable(sb, "Events (executed)", "exec", _events.Values);
         AppendTable(sb, "Triggers (attempted)", "attempts", _triggers.Values);
@@ -112,24 +130,26 @@ public sealed class ExecutionProfiler
         sb.AppendLine();
         sb.AppendLine($"{title}:");
         sb.AppendLine(
-            $"  {"name",-28} {countHeader,9} {"ok",9} {"hit%",6} {"self ms",10} {"incl ms",10} {"avg us",9}");
+            $"  {"name",-28} {countHeader,9} {"ok",9} {"hit%",6} {"self ms",10} {"incl ms",10} {"avg us",9} {"self KB",10}");
 
         long attempts = 0, ok = 0;
         double self = 0, incl = 0;
+        long bytes = 0;
         foreach (var s in rows)
         {
             sb.AppendLine(
                 $"  {Trunc(s.Name, 28),-28} {s.Attempts,9} {s.Successes,9} {s.HitRate * 100,5:F1}% " +
-                $"{s.SelfMs,10:F2} {s.InclusiveMs,10:F2} {s.AvgSelfMicros,9:F1}");
+                $"{s.SelfMs,10:F2} {s.InclusiveMs,10:F2} {s.AvgSelfMicros,9:F1} {s.SelfBytes / 1024.0,10:F1}");
             attempts += s.Attempts;
             ok += s.Successes;
             self += s.SelfMs;
             incl += s.InclusiveMs;
+            bytes += s.SelfBytes;
         }
 
         double hit = attempts == 0 ? 0 : 100.0 * ok / attempts;
         sb.AppendLine(
-            $"  {"TOTAL",-28} {attempts,9} {ok,9} {hit,5:F1}% {self,10:F2} {incl,10:F2}");
+            $"  {"TOTAL",-28} {attempts,9} {ok,9} {hit,5:F1}% {self,10:F2} {incl,10:F2} {"",9} {bytes / 1024.0,10:F1}");
     }
 
     private static string Trunc(string s, int n) => s.Length <= n ? s : s.Substring(0, n);

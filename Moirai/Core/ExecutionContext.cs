@@ -192,6 +192,7 @@ public class ExecuteContext
     public void PassYears(long years, CancellationToken token, IProgress<int>? progress, bool offset)
     {
         Stopwatch sw = Stopwatch.StartNew();
+        long allocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
         Database.ExecProfiler = Database.ProfilingEnabled ? new ExecutionProfiler() : null;
         // Before the pass's own scratch changeset: EnsureTime records the clock's creation in a changeset
         // of its own, and the pass's Time.year writes must not land in that closed one.
@@ -239,6 +240,7 @@ public class ExecuteContext
         {
             Database.ExecProfiler.Years = howMany;
             Database.ExecProfiler.ElapsedTicks = sw.ElapsedTicks;
+            Database.ExecProfiler.AllocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedAtStart;
             Database.Log(Database.ExecProfiler.Report());
         }
     }
