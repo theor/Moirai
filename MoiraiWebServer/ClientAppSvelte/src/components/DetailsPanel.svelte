@@ -1,62 +1,47 @@
 <script lang="ts">
   import { filteredEntity, groupByLabel, selectedEntity } from '$lib/utils';
   import { page } from '$app/stores';
-  import { moiraiStore, settledYear, type EntityChangeDisplay } from '$lib/connection';
+  import { moiraiStore, settledYear } from '$lib/connection';
   import MoiraiText from './MoiraiText.svelte';
   import { humanLabel } from '$lib/format';
   import Close from 'virtual:icons/mdi/close';
   import { Switch } from '@skeletonlabs/skeleton-svelte';
-  import { onMount } from 'svelte';
-  import { get } from 'svelte/store';
+  import { SvelteSet } from 'svelte/reactivity';
 
-  let selected = -1;
-  let filter = false;
-  $: {
-    let selParam = selectedEntity($page);
-    selected = selParam.getNumber();
-    let filterParam = filteredEntity($page);
-    filter = filterParam.getNumber() > 0;
-  }
-  $: details = selected > 0 ? $moiraiStore.conn?.getEntityDetails(selected) : undefined;
+  const selected = $derived(selectedEntity($page).getNumber());
+  // Writable: the switch sets it at once rather than waiting for the URL to come back round.
+  let filter = $derived(filteredEntity($page).getNumber() > 0);
+
+  // The connection alone, not the store: the store changes on every feed tick, and a query that read
+  // it directly would re-run on each one. A derived stops there, because the connection is the same.
+  const conn = $derived($moiraiStore.conn);
+
+  // Refreshed on the settled year as well as the selection, so the panel follows the world without
+  // querying it on every year of a pass. See $lib/settled-year.
+  const details = $derived.by(() => {
+    void $settledYear;
+    return selected > 0 ? conn?.getEntityDetails(selected) : undefined;
+  });
 
   // A @display field (e.g. "Members", "Settlements") yields one details row per item, all sharing a
   // label. Collapse long runs to ITEM_LIMIT with a "Show N more" toggle so the panel stays readable.
   const ITEM_LIMIT = 5;
-  // This component is in legacy (non-runes) mode, where template updates are
-  // driven by assignment invalidation. SvelteSet's fine-grained signals do not
-  // reach that machinery, so swapping it in silently stops the toggle below from
-  // re-rendering -- verified in the browser. Plain Set plus a reassign is correct
-  // here until the component is ported to runes.
-  // eslint-disable-next-line svelte/prefer-svelte-reactivity
-  let expanded: Set<string> = new Set();
   // A new selection starts fully collapsed.
-  $: expanded = collapsedFor(selected);
-  function collapsedFor(_selected: number) {
-    return new Set<string>();
-  }
+  const expanded = $derived.by(() => {
+    void selected;
+    return new SvelteSet<string>();
+  });
 
   function toggle(label: string) {
     if (expanded.has(label)) expanded.delete(label);
     else expanded.add(label);
-    expanded = expanded; // reassign to trigger Svelte reactivity
   }
 
-  // Changesets that touched the selected entity. Fetched on demand (not derived
-  // from the store) so the per-second record stream doesn't trigger refetches;
-  // we refresh on selection change and whenever the simulation year advances.
-  let changesets: Promise<EntityChangeDisplay[]> | undefined;
-  function changesetsFor(sel: number) {
-    return sel > 0 ? get(moiraiStore).conn?.getEntityChangesets(sel) : undefined;
-  }
-  $: changesets = changesetsFor(selected);
-
-  // The settled year, not every year: this scans the whole changeset log for one entity.
-  // See $lib/settled-year.
-  onMount(() =>
-    settledYear.subscribe(() => {
-      if (selected > 0) changesets = changesetsFor(selected);
-    }),
-  );
+  // Changesets that touched the selected entity. This scans the whole changeset log for one entity.
+  const changesets = $derived.by(() => {
+    void $settledYear;
+    return selected > 0 ? conn?.getEntityChangesets(selected) : undefined;
+  });
 
   // The Name and Type rows become the heading, so they are not repeated in the list under it.
   const HEADING_ROWS = new Set(['name', 'type']);
@@ -101,7 +86,7 @@
       class="btn-icon btn-icon-sm hover:preset-tonal"
       title="Close"
       aria-label="Close"
-      on:click={close}><Close /></button
+      onclick={close}><Close /></button
     >
   {/if}
 </div>
@@ -127,7 +112,7 @@
             <button
               type="button"
               class="text-xs text-primary-500 hover:underline"
-              on:click={() => toggle(g.label)}
+              onclick={() => toggle(g.label)}
             >
               {expanded.has(g.label) ? 'Show less' : `Show ${g.values.length - ITEM_LIMIT} more`}
             </button>

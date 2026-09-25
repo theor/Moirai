@@ -1,3 +1,6 @@
+<!-- Runes mode explicitly: with no state of its own yet, nothing else would put it there. -->
+<svelte:options runes />
+
 <script lang="ts">
   import { moiraiStore } from '$lib/connection';
   import ChangesetList from '../../components/ChangesetList.svelte';

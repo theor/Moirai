@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let text: string | number;
+  const { text }: { text: string | number } = $props();
 </script>
 
 <code class="code">
