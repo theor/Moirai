@@ -481,10 +481,11 @@ public class Database
         // and when it returns the caller gets back its attribution *and its changeset*. The callee opens a
         // changeset of its own, and without giving the caller's back, everything the caller did before
         // the call was never logged and no trigger ever saw it (w.sg's crown_monarch: the new king's
-        // title, the realm's ruler). Only nested runs restore it: a top-level run leaves CurrentChangeset
-        // as it always has, so a pass behaves exactly as before.
+        // title, the realm's ruler). A top-level run gives it back too: left behind, the action's changeset
+        // -- already closed and in the history -- caught the next year's Time.year write, so w.sg's history
+        // said item_created and create_faction had changed the clock, holding the live Time entity (its year
+        // drifting with the present) rather than a copy.
         var (savedId, savedAction, savedFiring) = (_currentActionId, _currentAction, _currentFiring);
-        var nested = _actionDepth > 0;
         var savedChangeset = CurrentChangeset;
         _currentFiring = LogFiring(eventTrigger, savedFiring, default, false);
         _actionDepth++;
@@ -496,8 +497,7 @@ public class Database
         {
             _actionDepth--;
             (_currentActionId, _currentAction, _currentFiring) = (savedId, savedAction, savedFiring);
-            if (nested)
-                CurrentChangeset = savedChangeset;
+            CurrentChangeset = savedChangeset;
         }
     }
 
