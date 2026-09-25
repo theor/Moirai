@@ -831,10 +831,16 @@ public sealed class WorldSession
     // Participants are collected from the record's {$var} interpolation slots. Records emitted before a
     // rule bound any variable have none, so fall back to the entity marker the printer writes into the
     // text — the same fallback the records feed uses for its per-entity filter.
-    private static bool MentionsEntity(Database.Record r, uint eid) =>
-        r.Participants is { Length: > 0 }
-            ? r.Participants.Any(p => p.Id == eid)
-            : r.Text.Contains($"<#{eid}>", StringComparison.Ordinal);
+    private static bool MentionsEntity(Database.Record r, uint eid)
+    {
+        var participants = r.ParticipantSpan();
+        if (participants.Length == 0)
+            return r.Text.Contains($"<#{eid}>", StringComparison.Ordinal);
+        foreach (var p in participants)
+            if (p.Id == eid)
+                return true;
+        return false;
+    }
 
     private static bool HasParents(EntityType type) => type.HasParents;
 

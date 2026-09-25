@@ -893,6 +893,10 @@ public class WorldSessionTests
         Assert.That(feed, Does.Contain("\"weight\":"), "Record.Weight is a field");
         Assert.That(feed, Does.Contain("\"firing\":"), "Record.Firing is a field");
         Assert.That(feed, Does.Contain("\"rule\":"), "Record.Rule is a field");
+        // Text and Participants are read-only properties (the record store builds them on first read), and
+        // the options ignore read-only properties: without [JsonInclude] a record arrives with no text.
+        Assert.That(feed, Does.Match("\"record\":\\{\"text\":\"[^\"]+\""), "Record.Text is on the wire, first");
+        Assert.That(feed, Does.Contain("\"participants\":["), "Record.Participants is on the wire");
 
         var changes = JsonSerializer.Serialize(s.GetChangesets(0, 1), MoiraiWireJson.Options);
         // EntityId collapses to a bare number rather than an object wrapping its field.

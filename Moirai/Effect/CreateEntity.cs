@@ -292,9 +292,27 @@ public class Record : IValueCall
         var participants = _participants ?? new List<EntityId>();
         _participants = null;
         participants.Clear();
-        var text = ctx.Database.Printer.Format(String, ctx.Database, true, participants);
-        var weight = Weight?.Compute(ctx).IntValue ?? Database.Record.DefaultWeight;
-        ctx.Database.AppendRecord(text, ctx.Year, participants, weight);
+        var printer = ctx.Database.Printer;
+        var sb = printer.RentBuilder();
+        try
+        {
+            if (printer.AppendFormat(sb, String, ctx.Database, true, participants))
+            {
+                var weight = Weight?.Compute(ctx).IntValue ?? Database.Record.DefaultWeight;
+                ctx.Database.AppendRecord(sb, participants, weight);
+            }
+            else
+            {
+                var text = printer.FormatComposite(String, ctx.Database, true, participants);
+                var weight = Weight?.Compute(ctx).IntValue ?? Database.Record.DefaultWeight;
+                ctx.Database.AppendRecord(text, ctx.Year, participants, weight);
+            }
+        }
+        finally
+        {
+            printer.ReturnBuilder(sb);
+        }
+
         _participants = participants;
         return true;
     }

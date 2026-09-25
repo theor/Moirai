@@ -595,18 +595,57 @@ public partial class StoryPrinter
         }
     }
 
-    // Taken while a Format is running, so a nested one (an argument that formats a string of its own)
-    // builds in a fresh builder instead of writing into the middle of this one.
-    private StringBuilder? _formatBuilder;
+    // Builders lent to formats while they run. A format can nest -- an argument that formats a string of
+    // its own -- so there is a small stack of them rather than one, each kept once it has been made.
+    private readonly Stack<StringBuilder> _builders = new();
 
     public string Format(InterpolatedString formatAction, Database database, bool injectIdTags = false,
         ICollection<EntityId>? participants = null)
     {
         if (formatAction.Literals is { } literals)
         {
-            var sb = _formatBuilder ?? new StringBuilder();
-            _formatBuilder = null;
-            sb.Clear();
+            // No argument: the text is the literal (a table of names is a table of these).
+            if (formatAction.Arguments.Length == 0)
+                return literals[0];
+            // Just one argument and no link to wrap it in: the text is that value's own, and for a string or
+            // an enum name that string already exists -- '{roll(Surname)}', '{random(Name)}'.
+            if (formatAction.Arguments.Length == 1 && literals[0].Length == 0 && literals[1].Length == 0
+                && !(injectIdTags && formatAction.Arguments[0] is PropertyPath { Mode: PropertyPath.PropertyPathMode.Variable }))
+                return Print(formatAction.Arguments[0].Compute(database.Ctx), History.HistoryMode.Story);
+        }
+
+        var sb = RentBuilder();
+        try
+        {
+            return AppendFormat(sb, formatAction, database, injectIdTags, participants)
+                ? sb.ToString()
+                : FormatComposite(formatAction, database, injectIdTags, participants);
+        }
+        finally
+        {
+            ReturnBuilder(sb);
+        }
+    }
+
+    /// <summary>A builder to format into, the printer's own unless a format is already using it.</summary>
+    internal StringBuilder RentBuilder()
+    {
+        var sb = _builders.TryPop(out var pooled) ? pooled : new StringBuilder(512);
+        sb.Clear();
+        return sb;
+    }
+
+    internal void ReturnBuilder(StringBuilder sb) => _builders.Push(sb);
+
+    /// <summary>
+    /// Formats into <paramref name="sb"/>, false (having written nothing) when the format string is not a
+    /// shape this handles, for <see cref="FormatComposite"/> to do instead.
+    /// </summary>
+    internal bool AppendFormat(StringBuilder sb, InterpolatedString formatAction, Database database,
+        bool injectIdTags, ICollection<EntityId>? participants)
+    {
+        if (formatAction.Literals is { } literals)
+        {
             sb.Append(literals[0]);
             for (int i = 0; i < formatAction.Arguments.Length; i++)
             {
@@ -627,17 +666,15 @@ public partial class StoryPrinter
                 sb.Append(literals[i + 1]);
             }
 
-            var text = sb.ToString();
-            _formatBuilder = sb;
-            return text;
+            return true;
         }
 
-        return FormatComposite(formatAction, database, injectIdTags, participants);
+        return false;
     }
 
     // Kept out of Format: a lambda that captures parameters makes the compiler allocate its closure on
     // entry to the method, so living in Format it cost every record a closure the fast path never used.
-    private string FormatComposite(InterpolatedString formatAction, Database database, bool injectIdTags,
+    internal string FormatComposite(InterpolatedString formatAction, Database database, bool injectIdTags,
         ICollection<EntityId>? participants)
     {
         var propertyValues = formatAction.Arguments.Select(v =>

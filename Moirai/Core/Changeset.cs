@@ -40,7 +40,17 @@ public class History
     // Per entity id: the index + 1 of its latest record in Entities (0 = none), and its properties as the
     // log last recorded them.
     private int[] _last = Array.Empty<int>();
-    private Property[]?[] _shadow = Array.Empty<Property[]?>();
+    private Shadow[] _shadow = Array.Empty<Shadow>();
+    private readonly Slab<Property> _shadowSlab = new();
+
+    // An entity's properties as the log last recorded them: a stretch of a shared slab, not an array each.
+    private struct Shadow
+    {
+        public Property[]? Array;
+        public int Offset;
+        public int Count;
+        public readonly Span<Property> Span => Array == null ? default : new(Array, Offset, Count);
+    }
 
     internal struct EntityChange
     {
@@ -92,24 +102,30 @@ public class History
                 ref var delta = ref buffer.Deltas[d];
                 Props.Add(new PropRecord
                 {
-                    Prop = delta.Prop, Prev = delta.Prev, Next = props[delta.Prop.Id].Value, Touched = true,
+                    Prop = delta.Prop, Prev = delta.Prev, Next = props[(int)delta.Prop.Id].Value, Touched = true,
                 });
             }
 
             EnsureCapacity(id);
-            var shadow = _shadow[id];
+            ref var shadowSlot = ref _shadow[id];
+            bool hasShadow = shadowSlot.Array != null && shadowSlot.Count == props.Length;
+            var shadow = shadowSlot.Span;
             for (int slot = 0; slot < props.Length; slot++)
             {
-                if (!props[slot].Id.IsValid || (shadow != null && Same(shadow[slot], props[slot])))
+                if (!props[slot].Id.IsValid || (hasShadow && Same(shadow[slot], props[slot])))
                     continue;
                 if (buffer.Wrote(i, (uint)slot))
                     continue;
                 Props.Add(new PropRecord { Prop = props[slot].Id, Next = props[slot].Value });
             }
 
-            if (shadow == null || shadow.Length != props.Length)
-                _shadow[id] = shadow = new Property[props.Length];
-            props.CopyTo(shadow, 0);
+            if (!hasShadow)
+            {
+                (shadowSlot.Array, shadowSlot.Offset) = _shadowSlab.Take(props.Length);
+                shadowSlot.Count = props.Length;
+            }
+
+            props.CopyTo(shadowSlot.Span);
 
             Entities.Add(new EntityChange
             {
@@ -154,7 +170,7 @@ public class History
             for (int p = c.PropStart; p < c.PropStart + c.PropCount; p++)
             {
                 ref readonly var rec = ref Props[p];
-                if (!props[rec.Prop.Id].Id.IsValid)
+                if (!props[(int)rec.Prop.Id].Id.IsValid)
                     e.SetProperty(rec.Prop, rec.Next);
             }
         }
@@ -190,7 +206,11 @@ public sealed class ChunkedList<T> : IReadOnlyList<T>
     public void Add(in T item)
     {
         if (Count >> Bits == _chunks.Count)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
             _chunks.Add(new T[Size]);
+            StorageStats.ChunkBytes += GC.GetAllocatedBytesForCurrentThread() - before;
+        }
         _chunks[Count >> Bits][Count & Mask] = item;
         Count++;
     }
@@ -206,6 +226,8 @@ public sealed class ChunkedList<T> : IReadOnlyList<T>
     }
 
     T IReadOnlyList<T>.this[int i] => this[i];
+
+    internal ref T RefAt(int i) => ref _chunks[i >> Bits][i & Mask];
 
     public Enumerator GetEnumerator() => new(this);
     IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();

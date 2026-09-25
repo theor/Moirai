@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using Moirai.Core;
 using Moirai.Parser;
 
 namespace TestProject1;
@@ -235,12 +236,23 @@ public class AllocationBenchmarkTests
         db.Init();
         db.Ctx.PassYears(1, true); // the first pass makes the clock and warms every path's JIT
         var perYear = new long[years];
+        var other = new long[years];
         for (int y = 0; y < years; y++)
         {
             long before = GC.GetAllocatedBytesForCurrentThread();
+            long chunks = StorageStats.ChunkBytes;
             db.Ctx.PassYears(1, true);
             perYear[y] = GC.GetAllocatedBytesForCurrentThread() - before;
+            // Everything but the storage chunks the world's data went into.
+            other[y] = perYear[y] - (StorageStats.ChunkBytes - chunks);
         }
+
+        int clean = other.Count(b => b == 0);
+        TestContext.Out.WriteLine("  most common besides chunks: " + string.Join(", ",
+            other.Where(b => b != 0).GroupBy(b => b).OrderByDescending(g => g.Count()).Take(8).Select(g => $"{g.Key} B x{g.Count()}")));
+        TestContext.Out.WriteLine(
+            $"{years} years: {clean} allocated nothing but storage chunks ({100.0 * clean / years:F1}%); " +
+            $"the rest allocated {other.Sum() / 1024.0:F1} KB besides, worst {other.Max()} B");
 
         int zero = perYear.Count(b => b == 0);
         var sorted = perYear.OrderBy(b => b).ToArray();

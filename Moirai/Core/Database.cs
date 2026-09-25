@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -78,7 +80,15 @@ public class Database
 
     private ExecuteContext _ctx;
 
-    private List<Entity> _entities = new() { default };
+    private ChunkedList<Entity> _entities = NewEntityList();
+    private readonly Slab<Property> _slab = new();
+
+    private static ChunkedList<Entity> NewEntityList()
+    {
+        var list = new ChunkedList<Entity>();
+        list.Add(default); // id 0 is null
+        return list;
+    }
     public IEnumerable<Entity> Entities => _entities.Skip(1);
 
     // --- In-memory query backend (world state lives only here; pick/each scan it directly) ---
@@ -104,6 +114,8 @@ public class Database
     // from the buckets and falls back to the scan.
     private readonly HashSet<PropertyId> _indexedEqProps = new();
     private readonly Dictionary<(PropertyId, int), IdSet> _eqIndex = new();
+    // Where every index bucket keeps its ids (see IdSet).
+    private readonly Slab<uint> _idSlab = new();
 
     // Where a scan's own id lists live -- the single id of `$v = x`, the union of an `or` -- stacked, and
     // released when the scan ends. Growing it leaves an outer scan reading the old array, which is intact.
@@ -234,7 +246,7 @@ public class Database
     public EntityId AllocateEntity(EntityTypeId entityType, string? name = null)
     {
         var type = GetEntityType(entityType);
-        Entity e = new(type);
+        Entity e = new(type, _slab);
 
         if (!String.IsNullOrEmpty(name))
         {
@@ -245,7 +257,7 @@ public class Database
         _entities.Add(e);
         if (type.IsSingleton)
             _singletons[entityType.Id] = e.Id;
-        _perTypeEntities[(int)entityType.Id].Add(e.Id.Id);
+        _perTypeEntities[(int)entityType.Id].Add(e.Id.Id, _idSlab);
         CurrentChangeset.RecordCreate(this, e.Id, entityType);
         return e.Id;
     }
@@ -324,22 +336,24 @@ public class Database
 
         if (_indexedEqProps.Contains(property))
         {
-            if (prev.Value == null && _eqIndex.TryGetValue((property, prev.IntValue), out var was))
-                was.Remove(entityId.Id);
-            if (value.Value == null)
+            // The buckets are structs inside the dictionary: written through a ref to the entry.
+            if (prev.Value == null)
             {
-                if (!_eqIndex.TryGetValue((property, value.IntValue), out var now))
-                    _eqIndex[(property, value.IntValue)] = now = new IdSet();
-                now.Add(entityId.Id);
+                ref var was = ref CollectionsMarshal.GetValueRefOrNullRef(_eqIndex, (property, prev.IntValue));
+                if (!Unsafe.IsNullRef(ref was))
+                    was.Remove(entityId.Id);
             }
+
+            if (value.Value == null)
+                CollectionsMarshal.GetValueRefOrAddDefault(_eqIndex, (property, value.IntValue), out _)
+                    .Add(entityId.Id, _idSlab);
         }
 
         // Maintain the in-memory bool index: track only entities currently holding `true`.
         if (_indexedBoolProps.Contains(property))
         {
-            if (!_boolIndex.TryGetValue(property, out var set))
-                _boolIndex[property] = set = new IdSet();
-            if (value.BoolValue) set.Add(entityId.Id);
+            ref var set = ref CollectionsMarshal.GetValueRefOrAddDefault(_boolIndex, property, out _);
+            if (value.BoolValue) set.Add(entityId.Id, _idSlab);
             else set.Remove(entityId.Id);
         }
 
@@ -852,8 +866,9 @@ public class Database
     {
         List<Entity> entities = JsonSerializer.Deserialize<List<Entity>>(json, JsonSerializerOptions);
 
-        _entities = new() { default };
-        _entities.AddRange(entities);
+        _entities = NewEntityList();
+        foreach (var e in entities)
+            _entities.Add(e);
     }
 
     public void Init()
@@ -1308,13 +1323,23 @@ public class Database
 
     public struct Record
     {
-        public readonly string Text;
+        /// <summary>The sentence. A record the engine wrote keeps its text in <see cref="RecordStore"/> and
+        /// makes the string the first time it is read.</summary>
+        // JsonInclude: the wire options ignore read-only properties, and without it the feed sends records
+        // with no text at all (arrays survive that setting, which is why Participants alone would not show it).
+        [JsonInclude, JsonPropertyOrder(-1)]
+        public string Text => _store != null ? _store.Text(_index) : _text!;
         public readonly int ChangesetId;
         public readonly int ActionId;
         public readonly long Year;
         // Entities referenced by this record (collected from the {$var} interpolation slots).
         // Lets the UI build per-entity biographies/filters without text-scanning the rendered string.
-        public readonly EntityId[] Participants;
+        [JsonInclude]
+        public EntityId[] Participants => _store != null ? _store.Participants(_index) : _participants!;
+
+        /// <summary><see cref="Participants"/> without making an array: for a scan over every record.</summary>
+        public ReadOnlySpan<EntityId> ParticipantSpan() =>
+            _store != null ? _store.ParticipantSpan(_index) : _participants;
         // Tags of the event/trigger that emitted this record (from @tag(...)), for chronicle grouping.
         public readonly string[]? Tags;
         // How much this record matters to the story, from record('...', weight). Ordinary records weigh
@@ -1329,20 +1354,95 @@ public class Database
         public readonly int Firing;
         public readonly string? Rule;
 
+        private readonly string? _text;
+        private readonly EntityId[]? _participants;
+        private readonly RecordStore? _store;
+        private readonly int _index;
+
         public Record(string text, long year, int changesetId, int actionId, EntityId[] participants, string[]? tags,
             int weight = DefaultWeight, int firing = 0, string? rule = null)
         {
             Weight = weight;
             Firing = firing;
             Rule = rule;
-            Text = text;
+            _text = text;
             Year = year;
             ChangesetId = changesetId;
             ActionId = actionId;
-            Participants = participants;
+            _participants = participants;
+            Tags = tags;
+        }
+
+        internal Record(RecordStore store, int index, long year, int changesetId, int actionId, string[]? tags,
+            int weight, int firing, string? rule)
+        {
+            _store = store;
+            _index = index;
+            Weight = weight;
+            Firing = firing;
+            Rule = rule;
+            Year = year;
+            ChangesetId = changesetId;
+            ActionId = actionId;
             Tags = tags;
         }
     }
+
+    /// <summary>
+    /// Where the records a pass writes keep their text and participants: stretches of shared slabs rather
+    /// than a string and an array each, so writing a record allocates nothing. The string and the array are
+    /// made when something reads them, once, and kept -- reading costs the reader, not the simulation.
+    /// </summary>
+    internal sealed class RecordStore
+    {
+        private readonly Slab<char> _chars = new();
+        private readonly Slab<EntityId> _ids = new();
+        private readonly ChunkedList<Body> _bodies = new();
+
+        private struct Body
+        {
+            public char[] Chars;
+            public int CharOffset, CharCount;
+            public EntityId[] Ids;
+            public int IdOffset, IdCount;
+            public string? Text;
+            public EntityId[]? Participants;
+        }
+
+        public int Add(System.Text.StringBuilder text, ReadOnlySpan<EntityId> participants)
+        {
+            var (chars, charOffset) = _chars.Take(text.Length);
+            text.CopyTo(0, chars.AsSpan(charOffset, text.Length), text.Length);
+            var (ids, idOffset) = _ids.Take(participants.Length);
+            participants.CopyTo(ids.AsSpan(idOffset));
+            _bodies.Add(new Body
+            {
+                Chars = chars, CharOffset = charOffset, CharCount = text.Length,
+                Ids = ids, IdOffset = idOffset, IdCount = participants.Length,
+            });
+            return _bodies.Count - 1;
+        }
+
+        public string Text(int i)
+        {
+            ref var b = ref _bodies.RefAt(i);
+            return b.Text ??= new string(b.Chars, b.CharOffset, b.CharCount);
+        }
+
+        public EntityId[] Participants(int i)
+        {
+            ref var b = ref _bodies.RefAt(i);
+            return b.Participants ??= b.IdCount == 0 ? Array.Empty<EntityId>() : ParticipantSpan(i).ToArray();
+        }
+
+        public ReadOnlySpan<EntityId> ParticipantSpan(int i)
+        {
+            ref readonly var b = ref _bodies[i];
+            return new ReadOnlySpan<EntityId>(b.Ids, b.IdOffset, b.IdCount);
+        }
+    }
+
+    private readonly RecordStore _recordStore = new();
 
     public readonly ChunkedList<Record> Records = new();
     private int _currentActionId;
@@ -1356,6 +1456,16 @@ public class Database
             participants?.ToArray() ?? Array.Empty<EntityId>(),
             _currentAction?.TagArray, weight, _currentFiring, _currentAction?.Name));
         DebugHook?.OnRecord(text, year);
+    }
+
+    // What a record() statement calls: the text is still in the printer's builder, and goes from there
+    // straight into the record store.
+    internal void AppendRecord(System.Text.StringBuilder text, List<EntityId> participants, int weight)
+    {
+        var index = _recordStore.Add(text, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(participants));
+        Records.Add(new(_recordStore, index, _ctx.Year, CurrentChangeset.Id, _currentActionId,
+            _currentAction?.TagArray, weight, _currentFiring, _currentAction?.Name));
+        DebugHook?.OnRecord(Records[Records.Count - 1].Text, _ctx.Year);
     }
 
     internal Dictionary<(EntityId, int), long> _marked = new();
