@@ -1262,11 +1262,14 @@ public class Database
         return _scheduleSites.Count - 1;
     }
 
-    // (fireYear, boundEntity, siteIndex, seq, firing). `seq` is a monotonic insertion counter giving a
-    // deterministic tiebreak when several effects fall due the same year — all randomness flows through one
-    // Pcg32, so fire order must be stable for runs to stay reproducible per seed. `firing` is the rule that
-    // scheduled it, which becomes the body's cause: a death scheduled at birth traces back to the birth.
-    private readonly List<(long year, EntityId entity, int site, long seq, int firing)> _scheduled = new();
+    // (boundEntity, siteIndex, firing), ordered by (fireYear, seq). `seq` is a monotonic insertion counter
+    // giving a deterministic tiebreak when several effects fall due the same year — all randomness flows
+    // through one Pcg32, so fire order must be stable for runs to stay reproducible per seed. `firing` is
+    // the rule that scheduled it, which becomes the body's cause: a death scheduled at birth traces back to
+    // the birth. A heap rather than a list: draining used to copy every pending entry into a new list each
+    // year, which with a scheduled death per person was a year's worth of garbage for nothing.
+    private readonly PriorityQueue<(EntityId entity, int site, int firing), (long year, long seq)> _scheduled = new();
+    private List<(EntityId entity, int site, int firing)>? _due = new();
     private long _scheduleSeq;
 
     /// <summary>Enqueues a deferred body to fire when the simulation reaches <paramref name="year"/>.</summary>
@@ -1278,7 +1281,7 @@ public class Database
         // itself) can never loop within a single year's drain.
         if (year <= _ctx.Year)
             year = _ctx.Year + 1;
-        _scheduled.Add((year, entity, site, _scheduleSeq++, _currentFiring));
+        _scheduled.Enqueue((entity, site, _currentFiring), (year, _scheduleSeq++));
     }
 
     /// <summary>
@@ -1289,28 +1292,13 @@ public class Database
     /// </summary>
     public void DrainScheduled(long upToYear)
     {
-        if (_scheduled.Count == 0)
-            return;
-
-        List<(long year, EntityId entity, int site, long seq, int firing)>? due = null;
-        var remaining = new List<(long, EntityId, int, long, int)>(_scheduled.Count);
-        foreach (var s in _scheduled)
-        {
-            if (s.year <= upToYear)
-                (due ??= new()).Add(s);
-            else
-                remaining.Add(s);
-        }
-
-        if (due == null)
-            return;
-
-        // Rebuild the queue with only the not-yet-due entries before firing, so bodies that enqueue further
-        // (strictly future) effects append cleanly without disturbing this drain pass.
-        _scheduled.Clear();
-        _scheduled.AddRange(remaining);
-
-        due.Sort((a, b) => a.year != b.year ? a.year.CompareTo(b.year) : a.seq.CompareTo(b.seq));
+        // Take everything due before firing any of it, so bodies that enqueue further (strictly future)
+        // effects cannot join this drain. A nested drain (a body that passes time) gets a list of its own.
+        var due = _due ?? new List<(EntityId, int, int)>();
+        _due = null;
+        due.Clear();
+        while (_scheduled.TryPeek(out _, out var key) && key.year <= upToYear)
+            due.Add(_scheduled.Dequeue());
 
         foreach (var d in due)
         {
@@ -1331,6 +1319,9 @@ public class Database
                 _currentFiring = outer;
             }
         }
+
+        due.Clear();
+        _due = due;
     }
 
 
