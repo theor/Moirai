@@ -9,6 +9,10 @@ export interface Record {
   tags: string[] | null;
   /** How much the record matters, from `record('…', weight)`: 1 by default, 0 for noise, more for a turning point. */
   weight: number;
+  /** The run of the rule that wrote it, for asking why (`getCause`). 0 when no rule did. */
+  firing: number;
+  /** The rule that wrote it: the trigger itself, where `actionId` is the event it belongs to. */
+  rule: string | null;
 }
 
 export interface Message {
@@ -115,6 +119,8 @@ export interface BiographyEntry {
   actionName: string;
   changes: EntityPropertyDisplay[];
   tags: string[];
+  /** For a record, the run of the rule that wrote it (see `getCause`); 0 for a change. */
+  firing: number;
 }
 
 export interface Biography {
@@ -244,4 +250,26 @@ export interface Chronicle {
   tags: ChronicleTag[];
   /** The story weighs its records. When false, the turning points are only an even sample. */
   weighted: boolean;
+}
+
+// --- why a record happened -----------------------------------------------------------------------
+// These mirror Moirai.Api's Cause / CauseStep.
+
+/** One rule that ran, on the way from a record back to the event the schedule started. */
+export interface CauseStep {
+  firing: number;
+  rule: string;
+  kind: 'event' | 'call' | 'trigger' | 'scheduled';
+  /** 1-based line of the rule in the story; 0 when unknown. */
+  line: number;
+  year: number;
+  /** What set a trigger off, in record markup: `<#12>Aldric</>: alive true -> false`. Empty otherwise. */
+  because: string;
+  /** What that rule wrote. */
+  records: string[];
+}
+
+/** Nearest first: the rule that wrote the record, then what it ran inside, back to the root. */
+export interface Cause {
+  steps: CauseStep[];
 }

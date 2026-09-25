@@ -1,5 +1,6 @@
 import type {
   Biography,
+  Cause,
   Chronicle,
   ClientData,
   EntityChangeDisplay,
@@ -113,6 +114,10 @@ export interface MoiraiApi {
   getNotable(perType: number): Promise<NotableGroup[]>;
   /** The world on one card: its span, population, eras and up to `turningPoints` weightiest records. */
   getChronicle(turningPoints: number): Promise<Chronicle | null>;
+  /** Why a record happened: the chain of rules from the one that wrote it (its `firing`) to the root. */
+  getCause(firing: number): Promise<Cause | null>;
+  /** The whole history as Markdown, chaptered by the story's ages, for the reader to keep. */
+  getChronicleMarkdown(): Promise<string>;
   /** An entity's properties at the end of `year`: empty before it existed, live details from now on. */
   getEntityAt(entityId: number, year: number): Promise<EntityPropertyDisplay[]>;
   getFamilyTree(entityId: number, maxDepth: number): Promise<FamilyTreeNode[]>;

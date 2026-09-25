@@ -10,11 +10,15 @@
   import MoiraiText from '../../components/MoiraiText.svelte';
   import FamilyNode from '../../components/FamilyNode.svelte';
   import EntityChip from '../../components/EntityChip.svelte';
+  import CauseDialog from '../../components/CauseDialog.svelte';
   import { humanLabel, unquote } from '$lib/format';
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
 
   const MAX_DEPTH = 4;
+
+  // The record whose "why?" is open, by its firing.
+  let why: number | null = $state(null);
 
   const selected = $derived(selectedEntity($page).getNumber());
 
@@ -123,6 +127,8 @@
   const children = $derived(childrenOf(family, selected));
 </script>
 
+<CauseDialog firing={why} onclose={() => (why = null)} />
+
 <div class="h-full overflow-auto pr-2">
   {#if selected <= 0}
     <div class="max-w-4xl">
@@ -173,11 +179,19 @@
               <div class="grow min-w-0 border-l border-surface-200 pl-3">
                 {#each group.entries as e, i (i)}
                   {#if e.kind === 'record'}
-                    <p class="py-0.5 leading-7">
+                    <p class="record py-0.5 leading-7">
                       <MoiraiText text={e.text} {selected} />
                       {#each e.tags as tag (tag)}
                         <span class="tag ml-1">{unquote(tag)}</span>
                       {/each}
+                      {#if e.firing > 0}
+                        <button
+                          type="button"
+                          class="why ml-1 text-xs text-surface-500 hover:text-primary-700 hover:underline"
+                          title="Why did this happen? ({e.actionName})"
+                          onclick={() => (why = e.firing)}>why?</button
+                        >
+                      {/if}
                     </p>
                   {:else}
                     <p class="text-xs text-surface-600 py-0.5 leading-6">
@@ -254,3 +268,17 @@
     </div>
   {/if}
 </div>
+
+<style>
+  /* "why?" on every line of a life is noise; it appears where the reader is looking -- the hovered line,
+   * or wherever keyboard focus is -- and stays visible where there is no hover at all (touch). */
+  @media (hover: hover) {
+    .record .why {
+      opacity: 0;
+    }
+    .record:hover .why,
+    .record .why:focus-visible {
+      opacity: 1;
+    }
+  }
+</style>

@@ -11,6 +11,8 @@
   } from '@tanstack/svelte-table';
   import type { ColumnDef } from '@tanstack/svelte-table';
   import MoiraiText from '../../components/MoiraiText.svelte';
+  import RuleCell from '../../components/RuleCell.svelte';
+  import CauseDialog from '../../components/CauseDialog.svelte';
   import { page } from '$app/stores';
   import type { Record } from '$lib/types';
   import { createVirtualizer } from '@tanstack/svelte-virtual';
@@ -25,6 +27,9 @@
 
   // Union of all tags seen across loaded records, for the chronicle filter bar.
   const tags = $derived(allTags($moiraiStore.records));
+
+  // The record whose "why?" is open, by its firing. One dialog for the page: rows are reused as it scrolls.
+  let why: number | null = $state(null);
 
   function toggleTag(tag: string) {
     const param = filteredTag($page);
@@ -55,13 +60,17 @@
         renderComponent(MoiraiText, { text: info.cell.getValue() as string, selected }),
     },
     {
-      header: 'Event',
+      // The rule that wrote the record -- the trigger itself, where actionId is the event it belongs to
+      // -- as a button that asks why it ran.
+      header: 'Rule',
       size: 180,
       id: 'actionId',
       accessorKey: 'actionId',
       cell: (info) => {
-        const actionId = info.cell.getValue<number>();
-        return $moiraiStore.clientData?.actions.find((a) => a.id === actionId)?.name ?? '';
+        const r = info.row.original;
+        const rule =
+          r.rule ?? $moiraiStore.clientData?.actions.find((a) => a.id === r.actionId)?.name ?? '';
+        return renderComponent(RuleCell, { rule, firing: r.firing, onwhy: (f) => (why = f) });
       },
     },
   ];
@@ -122,6 +131,8 @@
     }
   });
 </script>
+
+<CauseDialog firing={why} onclose={() => (why = null)} />
 
 <div class="h-full flex flex-col min-h-0">
   {#if tags.length > 0}

@@ -378,7 +378,8 @@ public class AstVisitor : StoryParser.IVisitor
 
         // Event parameters occupy the scope's first value-stack slots (0..n-1); call(name, args...)
         // writes them before the body runs (see CallRule).
-        CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f, tags: tags);
+        CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f, tags: tags)
+            { Line = context.Name.Span.Position.Line };
 
         if (context.Params.Length > 0)
         {
@@ -462,7 +463,8 @@ public class AstVisitor : StoryParser.IVisitor
     {
         string actionId = context.Name.Text;
         ParseAttributes(out var tags, out _);
-        CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, tags: tags);
+        CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, tags: tags)
+            { Line = context.Name.Span.Position.Line };
 
         using var scopeDisposable = new VariableDeclarationScopeDisposable(this, context.Scope.Span);
         var rootScope = _current;

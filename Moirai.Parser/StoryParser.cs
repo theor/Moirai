@@ -85,6 +85,8 @@ public static class StoryParser
                 $"schedule@{ctx.CallContext.Span.Position.Line}", false, null)
             {
                 DebugScopeRoot = debugScope,
+                Line = ctx.CallContext.Span.Position.Line,
+                IsScheduled = true,
             };
             site.Effects.AddRange(body);
             var siteIndex = ctx.Visitor.Database.RegisterScheduleSite(site, selfVarIndex);

@@ -129,6 +129,26 @@ check(
     chronicle.population.values.length > 0,
   `${chronicle.turningPoints.length} turning points, ${chronicle.eras.length} eras`,
 );
+// Every record carries the firing of the rule that wrote it, and asking why walks back to an event.
+const feed = JSON.parse(interop.StreamTick(0)).messages.filter((m) => m.type === 'Record');
+const traced = feed.map((m) => m.record).find((r) => r.firing > 0 && r.rule);
+const cause = traced ? call('GetCause', traced.firing) : { steps: [] };
+check(
+  'GetCause: a record traces back to an event',
+  cause.steps.length > 0 &&
+    cause.steps[0].rule === traced.rule &&
+    ['event', 'scheduled'].includes(cause.steps.at(-1).kind) &&
+    cause.steps.every((s) => typeof s.because === 'string' && Array.isArray(s.records)),
+  `${cause.steps.map((s) => `${s.kind} ${s.rule}`).join(' <- ')}`,
+);
+const markdown = call('GetChronicleMarkdown');
+check(
+  'GetChronicleMarkdown: a titled chronicle with chapters',
+  typeof markdown === 'string' &&
+    markdown.startsWith('# Chronicle of seed ') &&
+    markdown.includes('\n## '),
+  `${markdown.length} chars`,
+);
 const pastYear = call('GetWorldOverview').year - 60;
 const past = call('GetEntityAt', eid, pastYear);
 check(

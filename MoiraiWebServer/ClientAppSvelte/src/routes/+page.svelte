@@ -8,6 +8,8 @@
   import ChronicleCard from '../components/ChronicleCard.svelte';
   import type { Chronicle } from '$lib/types';
   import { get } from 'svelte/store';
+  import { chronicleFileName, downloadText } from '$lib/download';
+  import Download from 'virtual:icons/mdi/download';
 
   /**
    * The landing view: which world you are looking at, and a link to it.
@@ -41,6 +43,21 @@
       (err: unknown) => console.error('getChronicle failed', err),
     );
   });
+
+  let downloading = $state(false);
+
+  // The whole history, to keep: the engine writes it (WorldSession.GetChronicleMarkdown), the page only
+  // hands it over as a file, so this works the same on a static site as on the server.
+  async function downloadChronicle() {
+    const conn = get(moiraiStore).conn;
+    if (!conn) return;
+    downloading = true;
+    try {
+      downloadText(chronicleFileName(seed, $moiraiStore.year), await conn.getChronicleMarkdown());
+    } finally {
+      downloading = false;
+    }
+  }
 
   let copied = $state(false);
   let link = $state('');
@@ -98,6 +115,21 @@
     {/if}
 
     {#if !connecting}
+      <section class="max-w-2xl">
+        <h2 class="h5 mb-1">Keep its history</h2>
+        <p class="text-sm text-surface-600 mb-3">
+          Everything that happened, chapter by age, as a Markdown file — the turning points in bold,
+          the background noise left out. Open it in any editor, or drop it into your notes.
+        </p>
+        <button
+          type="button"
+          class="btn preset-tonal"
+          disabled={downloading}
+          onclick={() => void downloadChronicle()}
+          ><Download />{downloading ? 'Writing…' : 'Download the chronicle'}</button
+        >
+      </section>
+
       <section class="max-w-2xl">
         <h2 class="h5 mb-1">Share this world</h2>
         {#if shareable}

@@ -290,6 +290,25 @@ public class WorldSessionTests
     }
 
     [Test]
+    public void TheChronicleDownloadIsTheHistoryByAgeWithoutItsNoise()
+    {
+        var s = Session();
+        s.PassYears(200);
+
+        var md = s.GetChronicleMarkdown();
+
+        Assert.That(md, Does.StartWith($"# Chronicle of seed {Seed}, {s.Database.StartYear}–{s.Year}"));
+        Assert.That(md, Does.Contain("## The Founding Age"));
+        Assert.That(md, Does.Not.Contain("<#"), "links are reduced to names");
+        // Weight 0 is noise the story asked to be left out; turning points are set in bold.
+        Assert.That(md, Does.Not.Contain(" grew old"));
+        Assert.That(md, Does.Match(@"- \*\*\d+\*\* \*\*The throne of .+ is left vacant"));
+        var kept = s.Database.Records.Count(r => r.Weight > 0);
+        Assert.That(md.Split('\n').Count(l => l.StartsWith("- **")), Is.EqualTo(kept),
+            "every record worth keeping is in exactly one chapter");
+    }
+
+    [Test]
     public void AnEntityInThePastIsItsLastChangesetBeforeThatYear()
     {
         var s = Session();
@@ -872,6 +891,8 @@ public class WorldSessionTests
         Assert.That(feed, Does.Contain("\"type\":\"Reset\""));
         Assert.That(feed, Does.Contain("\"type\":\"Year\""));
         Assert.That(feed, Does.Contain("\"weight\":"), "Record.Weight is a field");
+        Assert.That(feed, Does.Contain("\"firing\":"), "Record.Firing is a field");
+        Assert.That(feed, Does.Contain("\"rule\":"), "Record.Rule is a field");
 
         var changes = JsonSerializer.Serialize(s.GetChangesets(0, 1), MoiraiWireJson.Options);
         // EntityId collapses to a bare number rather than an object wrapping its field.
@@ -885,5 +906,11 @@ public class WorldSessionTests
         var chronicle = JsonSerializer.Serialize(s.GetChronicle(5), MoiraiWireJson.Options);
         Assert.That(chronicle, Does.Contain("\"turningPoints\""));
         Assert.That(chronicle, Does.Contain("\"startYear\""));
+
+        var firing = s.Database.Records.First(r => r.Firing > 0).Firing;
+        var cause = JsonSerializer.Serialize(s.GetCause(firing), MoiraiWireJson.Options);
+        Assert.That(cause, Does.Contain("\"steps\""));
+        Assert.That(cause, Does.Contain("\"because\""));
+        Assert.That(cause, Does.Contain("\"kind\":\""), "kind is a string");
     }
 }

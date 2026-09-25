@@ -375,6 +375,36 @@ public class ChatHub : Hub
         }
     }
 
+    // A read, so the short wait: a cause that cannot be answered during a pass is simply asked again.
+    public Cause? GetCause(int firing)
+    {
+        if (!Mutex.Wait(500))
+            return null;
+        try
+        {
+            return _session!.GetCause(firing);
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
+    // A read, but a download the reader asked for by hand: worth waiting a pass out rather than
+    // handing back an empty file.
+    public string GetChronicleMarkdown()
+    {
+        Mutex.Wait();
+        try
+        {
+            return _session!.GetChronicleMarkdown();
+        }
+        finally
+        {
+            Mutex.Release();
+        }
+    }
+
     public IList<EntityPropertyDisplay> GetEntityAt(uint eid, long year)
     {
         if (!Mutex.Wait(500))

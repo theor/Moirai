@@ -456,8 +456,38 @@ public class Database
     // computed-vs-SQL-variable decision for $new in trigger pick/each predicates (e.g. `ruler = $new`).
     public bool RunAction(EventTrigger eventTrigger, int selfVarIndex = -1, EntityId self = default)
     {
+        // A call() from inside another rule nests: the callee's firing records its caller as its cause,
+        // and when it returns the caller gets back its attribution *and its changeset*. The callee opens a
+        // changeset of its own, and without giving the caller's back, everything the caller did before
+        // the call was never logged and no trigger ever saw it (w.sg's crown_monarch: the new king's
+        // title, the realm's ruler). Only nested runs restore it: a top-level run leaves CurrentChangeset
+        // as it always has, so a pass behaves exactly as before.
+        var (savedId, savedAction, savedFiring) = (_currentActionId, _currentAction, _currentFiring);
+        var nested = _actionDepth > 0;
+        var savedChangeset = CurrentChangeset;
+        _currentFiring = LogFiring(eventTrigger, savedFiring, default, false);
+        _actionDepth++;
+        try
+        {
+            return RunActionCore(eventTrigger, selfVarIndex, self);
+        }
+        finally
+        {
+            _actionDepth--;
+            (_currentActionId, _currentAction, _currentFiring) = (savedId, savedAction, savedFiring);
+            if (nested)
+                CurrentChangeset = savedChangeset;
+        }
+    }
+
+    // How many RunActions are on the stack: above zero, a RunAction is a call() from inside a rule.
+    private int _actionDepth;
+
+    private bool RunActionCore(EventTrigger eventTrigger, int selfVarIndex, EntityId self)
+    {
         // Console.WriteLine($"[{action.Name}]");
-        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year);
+        CurrentChangeset = new Changeset(History?.Changesets.Count ?? -1, eventTrigger.Name, _ctx.Year)
+            { Firing = _currentFiring };
         _currentActionId = eventTrigger.Id;
         _currentAction = eventTrigger;
         // _ctx.Values.Clear();
@@ -615,7 +645,12 @@ public class Database
                         matched = true;
                         EventAttemptSuccess++;
                         trigger.Successes++;
-                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year);
+                        // The trigger's own firing, caused by this change in the changeset it is replaying,
+                        // and its records attributed to it (tags included) rather than to the event.
+                        var (savedAction, savedFiring) = (_currentAction, _currentFiring);
+                        _currentFiring = LogFiring(trigger, cs.Firing, changed.New.Id, changed.Prev.Id.IsNull);
+                        _currentAction = trigger;
+                        CurrentChangeset = new(CurrentChangeset.Id, trigger.Name, _ctx.Year) { Firing = _currentFiring };
                         DebugHook?.OnEnterFrame(DebugFrameKind.Trigger, trigger.Name, trigger.DebugScopeRoot, _ctx.ValueOffset);
                         foreach (var e in trigger.Effects)
                         {
@@ -626,6 +661,7 @@ public class Database
                         DebugHook?.OnExitFrame();
                         if (CurrentChangeset.Changes.Count != 0)
                             History?.AddChangeset(CurrentChangeset, _ctx.Year);
+                        (_currentAction, _currentFiring) = (savedAction, savedFiring);
                     }
                 }
 
@@ -899,6 +935,36 @@ public class Database
         return true;
     }
     
+    /// <summary>
+    /// One rule running: an event (scheduled, or called by another rule) or a trigger whose predicate
+    /// matched. <see cref="Parent"/> is the firing it happened inside -- the event whose changeset a
+    /// trigger reacted to, or the rule that call()ed an event -- so following parents from a record's
+    /// firing answers "why did this happen". For a trigger, <see cref="Cause"/> is the entity whose
+    /// change set it off, and <see cref="CauseCreated"/> says whether that change was its creation.
+    /// Serials start at 1; 0 means "outside any rule".
+    /// </summary>
+    public readonly record struct Firing(int Serial, EventTrigger Rule, int Parent, long Year, EntityId Cause, bool CauseCreated);
+
+    private readonly List<Firing> _firings = new();
+
+    public IReadOnlyList<Firing> Firings => _firings;
+
+    public bool TryGetFiring(int serial, out Firing firing)
+    {
+        var ok = serial >= 1 && serial <= _firings.Count;
+        firing = ok ? _firings[serial - 1] : default;
+        return ok;
+    }
+
+    private int _currentFiring;
+
+    private int LogFiring(EventTrigger rule, int parent, EntityId cause, bool created)
+    {
+        var serial = _firings.Count + 1;
+        _firings.Add(new Firing(serial, rule, parent, _ctx.Year, cause, created));
+        return serial;
+    }
+
     public struct Record
     {
         public readonly string Text;
@@ -916,11 +982,18 @@ public class Database
         public readonly int Weight;
 
         public const int DefaultWeight = 1;
+        // The firing that wrote this record (see Database.Firing), 0 outside any rule. ActionId stays the
+        // *event* the record belongs to -- event and trigger ids overlap, and the viewer groups and hides
+        // records by event -- so the rule that actually wrote it is Rule, by name.
+        public readonly int Firing;
+        public readonly string? Rule;
 
         public Record(string text, long year, int changesetId, int actionId, EntityId[] participants, string[]? tags,
-            int weight = DefaultWeight)
+            int weight = DefaultWeight, int firing = 0, string? rule = null)
         {
             Weight = weight;
+            Firing = firing;
+            Rule = rule;
             Text = text;
             Year = year;
             ChangesetId = changesetId;
@@ -940,7 +1013,7 @@ public class Database
     {
         Records.Add(new(text, year, CurrentChangeset.Id, _currentActionId,
             participants?.ToArray() ?? Array.Empty<EntityId>(),
-            _currentAction?.Tags?.ToArray(), weight));
+            _currentAction?.Tags?.ToArray(), weight, _currentFiring, _currentAction?.Name));
         DebugHook?.OnRecord(text, year);
     }
 
@@ -972,10 +1045,11 @@ public class Database
         return _scheduleSites.Count - 1;
     }
 
-    // (fireYear, boundEntity, siteIndex, seq). `seq` is a monotonic insertion counter giving a deterministic
-    // tiebreak when several effects fall due the same year — all randomness flows through one Pcg32, so fire
-    // order must be stable for runs to stay reproducible per seed.
-    private readonly List<(long year, EntityId entity, int site, long seq)> _scheduled = new();
+    // (fireYear, boundEntity, siteIndex, seq, firing). `seq` is a monotonic insertion counter giving a
+    // deterministic tiebreak when several effects fall due the same year — all randomness flows through one
+    // Pcg32, so fire order must be stable for runs to stay reproducible per seed. `firing` is the rule that
+    // scheduled it, which becomes the body's cause: a death scheduled at birth traces back to the birth.
+    private readonly List<(long year, EntityId entity, int site, long seq, int firing)> _scheduled = new();
     private long _scheduleSeq;
 
     /// <summary>Enqueues a deferred body to fire when the simulation reaches <paramref name="year"/>.</summary>
@@ -987,7 +1061,7 @@ public class Database
         // itself) can never loop within a single year's drain.
         if (year <= _ctx.Year)
             year = _ctx.Year + 1;
-        _scheduled.Add((year, entity, site, _scheduleSeq++));
+        _scheduled.Add((year, entity, site, _scheduleSeq++, _currentFiring));
     }
 
     /// <summary>
@@ -1001,8 +1075,8 @@ public class Database
         if (_scheduled.Count == 0)
             return;
 
-        List<(long year, EntityId entity, int site, long seq)>? due = null;
-        var remaining = new List<(long, EntityId, int, long)>(_scheduled.Count);
+        List<(long year, EntityId entity, int site, long seq, int firing)>? due = null;
+        var remaining = new List<(long, EntityId, int, long, int)>(_scheduled.Count);
         foreach (var s in _scheduled)
         {
             if (s.year <= upToYear)
@@ -1028,7 +1102,17 @@ public class Database
             var siteDef = _scheduleSites[d.site];
             // Bind $self inside RunAction's own body scope (not an enclosing one) so it is cleared
             // before RunAction replays triggers — see the note on RunAction's selfVarIndex parameter.
-            RunAction(siteDef.Trigger, siteDef.SelfVarIndex, d.entity);
+            // Run as if inside the rule that scheduled it, so that rule is the body's parent firing.
+            var outer = _currentFiring;
+            _currentFiring = d.firing;
+            try
+            {
+                RunAction(siteDef.Trigger, siteDef.SelfVarIndex, d.entity);
+            }
+            finally
+            {
+                _currentFiring = outer;
+            }
         }
     }
 

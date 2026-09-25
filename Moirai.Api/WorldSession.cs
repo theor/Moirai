@@ -313,8 +313,8 @@ public sealed class WorldSession
         foreach (var r in _db.Records)
             if (MentionsEntity(r, eid))
                 entries.Add(new BiographyEntry(Begins(r.Year), r.ChangesetId, "record", r.Text,
-                    ActionName(r.ActionId), Array.Empty<EntityPropertyDisplay>(),
-                    r.Tags ?? Array.Empty<string>()));
+                    r.Rule ?? ActionName(r.ActionId), Array.Empty<EntityPropertyDisplay>(),
+                    r.Tags ?? Array.Empty<string>(), r.Firing));
 
         if (_db.History != null)
             foreach (var cs in _db.History.Changesets)
@@ -466,6 +466,14 @@ public sealed class WorldSession
         return sb.ToString();
     }
 
+    /// <summary>
+    /// The whole history as a Markdown document, chaptered by the story's ages, for a reader to keep: the
+    /// engine's <see cref="StoryPrinter.ExportChronicle"/>, titled with what identifies this world.
+    /// </summary>
+    public string GetChronicleMarkdown() =>
+        _db.Printer.ExportChronicle(
+            $"Chronicle of seed {_seed}, {_db.StartYear}–{Math.Max(_db.StartYear, _db.Ctx.Year)}");
+
     private TimeSeries Population()
     {
         if (_db.History == null)
@@ -505,6 +513,61 @@ public sealed class WorldSession
         }
 
         return eras.OrderBy(e => e.Start).ThenBy(e => e.Id).ToArray();
+    }
+
+    /// <summary>
+    /// Why a record happened: the rule that wrote it, then the rule that one ran inside, and so on back to
+    /// the event the schedule started. A <c>schedule(...)</c> body's parent is the rule that scheduled it,
+    /// years earlier, so a death can trace back to a birth. <paramref name="firing"/> is the record's own
+    /// (<see cref="Database.Record.Firing"/>); an unknown firing, or 0, gives an empty chain.
+    ///
+    /// <para>A trigger's "because" is read from the changeset it was replaying -- its parent firing's
+    /// -- which a closed changeset keeps a full copy of, so it says what changed as of then. Nothing here
+    /// runs the simulation or depends on it having been instrumented beyond the firing log.</para>
+    /// </summary>
+    public Cause GetCause(int firing)
+    {
+        var steps = new List<CauseStep>();
+        // Parents always have smaller serials, so this terminates; the guard is for a corrupt log.
+        for (int serial = firing, guard = 0; serial != 0 && guard < 64; guard++)
+        {
+            if (!_db.TryGetFiring(serial, out var f))
+                break;
+            var kind = f.Rule.IsTrigger ? "trigger" : f.Rule.IsScheduled ? "scheduled" : f.Parent != 0 ? "call" : "event";
+            var because = f.Rule.IsTrigger ? Because(f) : "";
+            var records = _db.Records.Where(r => r.Firing == f.Serial).Select(r => r.Text).ToArray();
+            steps.Add(new CauseStep(f.Serial, f.Rule.Name, kind, f.Rule.Line, Math.Max(f.Year, _db.StartYear),
+                because, records));
+            serial = f.Parent;
+        }
+
+        return new Cause(steps.ToArray());
+    }
+
+    // "<#12>Aldric</>: alive true -> false", or "<#12>Aldric</> was created": the change, in the changeset
+    // the trigger replayed, that matched it.
+    private string Because(Database.Firing f)
+    {
+        var who = _db.TryGetEntity(f.Cause, out var e)
+            ? $"<{f.Cause}>{NameOf(e)}</>"
+            : f.Cause.ToString();
+        if (f.CauseCreated)
+            return $"{who} was created";
+
+        if (_db.History != null)
+            foreach (var cs in _db.History.Changesets)
+            {
+                if (cs.Firing != f.Parent) continue;
+                foreach (var change in cs.Changes)
+                    if (change.New.Id.Id == f.Cause.Id)
+                    {
+                        var what = GetChangeDetails(change).Where(d => d.Label != "name")
+                            .Select(d => $"{d.Label} {d.Value}");
+                        return $"{who}: {string.Join(", ", what)}";
+                    }
+            }
+
+        return $"{who} changed";
     }
 
     /// <summary>

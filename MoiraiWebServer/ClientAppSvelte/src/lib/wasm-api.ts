@@ -14,6 +14,7 @@ import type {
   FamilyTreeNode,
   Message,
   QueryResult,
+  Cause,
   Chronicle,
   NotableGroup,
   RuleCoverageReport,
@@ -397,6 +398,14 @@ export class WasmApi implements MoiraiApi {
 
   getChronicle(turningPoints: number): Promise<Chronicle | null> {
     return this.invokeAsync<Chronicle | null>('GetChronicle', turningPoints);
+  }
+
+  getCause(firing: number): Promise<Cause | null> {
+    return this.invokeAsync<Cause | null>('GetCause', firing);
+  }
+
+  getChronicleMarkdown(): Promise<string> {
+    return this.invokeAsync<string>('GetChronicleMarkdown');
   }
 
   getEntityAt(entityId: number, year: number): Promise<EntityPropertyDisplay[]> {

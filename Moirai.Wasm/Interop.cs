@@ -81,6 +81,8 @@ public static partial class MoiraiInterop
             "GetEntityTypes" => Json(Session.GetEntityTypes()),
             "GetNotable" => Json(Session.GetNotable((int)Int(0))),
             "GetChronicle" => Json(Session.GetChronicle((int)Int(0))),
+            "GetCause" => Json(Session.GetCause((int)Int(0))),
+            "GetChronicleMarkdown" => Json(Session.GetChronicleMarkdown()),
             "GetEntityAt" => Json(Session.GetEntityAt((uint)Int(0), Int(1))),
             "GetEntityDetails" => Json(Session.GetEntityDetails((uint)Int(0))),
             "GetChangesetsCount" => Json(Session.GetChangesetsCount()),

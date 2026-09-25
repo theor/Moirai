@@ -10,6 +10,8 @@ const rec = (over: Partial<StoryRecord> = {}): StoryRecord => ({
   participants: [],
   tags: null,
   weight: 1,
+  firing: 0,
+  rule: null,
   ...over,
 });
 

@@ -607,11 +607,19 @@ public partial class StoryPrinter
     /// entities (w.sg's `Era`, a contiguous timeline) when present, else by century. Entity-link markup is reduced
     /// to plain names. This is the "hand me the lore document" export.
     /// </summary>
-    public string ExportChronicle()
+    public string ExportChronicle(string title = "Chronicle")
     {
         var sb = new StringBuilder();
-        sb.AppendLine("# Chronicle");
+        sb.AppendLine($"# {title}");
         sb.AppendLine();
+
+        // Weight 0 is the story saying "background noise" (grew old, took a job): a chronicle is the one
+        // place that should not have it. Turning points -- anything weighed above the default -- stand
+        // out in bold, so the history can be skimmed by its peaks.
+        var records = _database.Records.Where(r => r.Weight > 0).ToList();
+        string Line(Database.Record r) => r.Weight > Database.Record.DefaultWeight
+            ? $"- **{r.Year}** **{StripMarkup(r.Text)}**"
+            : $"- **{r.Year}** {StripMarkup(r.Text)}";
 
         var eras = new List<(string name, long start, long end)>();
         // The story's period type: @period(from, to), or start_year/end_year by default -- the same ages
@@ -635,28 +643,32 @@ public partial class StoryPrinter
         if (eras.Count == 0)
         {
             // Fallback: chapter by century so the export is still readable for storiers without eras.
-            foreach (var g in _database.Records.GroupBy(r => r.Year / 100 * 100).OrderBy(g => g.Key))
+            foreach (var g in records.GroupBy(r => r.Year / 100 * 100).OrderBy(g => g.Key))
             {
                 sb.AppendLine($"## The {g.Key}s");
                 sb.AppendLine();
                 foreach (var r in g)
-                    sb.AppendLine($"- **{r.Year}** {StripMarkup(r.Text)}");
+                    sb.AppendLine(Line(r));
                 sb.AppendLine();
             }
 
             return sb.ToString();
         }
 
-        foreach (var era in eras)
+        for (int i = 0; i < eras.Count; i++)
         {
+            var era = eras[i];
+            // The first age also takes anything recorded before it began (a @start event that ran before
+            // the story set its year), which would otherwise fall out of the chronicle altogether.
+            long start = i == 0 ? long.MinValue : era.start;
             long end = era.end == 0 ? long.MaxValue : era.end;
             var span = era.end == 0 ? $"{era.start}–present" : $"{era.start}–{era.end}";
             sb.AppendLine($"## {era.name} ({span})");
             sb.AppendLine();
             // [start, end) so contiguous eras never double-count a year.
-            foreach (var r in _database.Records)
-                if (r.Year >= era.start && r.Year < end)
-                    sb.AppendLine($"- **{r.Year}** {StripMarkup(r.Text)}");
+            foreach (var r in records)
+                if (r.Year >= start && r.Year < end)
+                    sb.AppendLine(Line(r));
             sb.AppendLine();
         }
 

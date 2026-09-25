@@ -27,6 +27,10 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
         }
     }
     public readonly bool IsTrigger = isEvent;
+    /// <summary>The 1-based line of the rule's name in the story, 0 when it has none (a schedule site).</summary>
+    public int Line;
+    /// <summary>A <c>schedule(entity, year) { ... }</c> body, run later by the scheduler rather than by name.</summary>
+    public bool IsScheduled;
     public bool Skip = skip;
 
     // Cumulative firing counters for the whole life of this world (events: invocations and completions;

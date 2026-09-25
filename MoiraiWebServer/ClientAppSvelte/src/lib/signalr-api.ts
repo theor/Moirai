@@ -9,6 +9,7 @@ import type {
   FamilyTreeNode,
   Message,
   QueryResult,
+  Cause,
   Chronicle,
   NotableGroup,
   RuleCoverageReport,
@@ -128,6 +129,14 @@ export class SignalRApi implements MoiraiApi {
 
   getChronicle(turningPoints: number): Promise<Chronicle | null> {
     return this.connection.invoke<Chronicle | null>('GetChronicle', turningPoints);
+  }
+
+  getCause(firing: number): Promise<Cause | null> {
+    return this.connection.invoke<Cause | null>('GetCause', firing);
+  }
+
+  getChronicleMarkdown(): Promise<string> {
+    return this.connection.invoke<string>('GetChronicleMarkdown');
   }
 
   getEntityAt(entityId: number, year: number): Promise<EntityPropertyDisplay[]> {

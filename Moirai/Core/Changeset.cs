@@ -43,6 +43,8 @@ public struct Changeset(int id, string actionName, long year)
     public readonly int Id = id;
     public readonly string ActionName = actionName;
     public long Year { get; internal set; } = year;
+    /// <summary>The firing that made these changes (see <c>Database.Firing</c>), 0 if none.</summary>
+    public int Firing { get; init; }
     private List<Changed>? _changes;
     public IReadOnlyCollection<Changed> Changes => _changes as IReadOnlyCollection<Changed> ?? ArraySegment<Changed>.Empty;
 

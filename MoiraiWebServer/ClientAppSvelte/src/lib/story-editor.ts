@@ -111,3 +111,17 @@ export function createStoryEditor(options: StoryEditorOptions): EditorView {
 export function setStoryText(view: EditorView, text: string) {
   view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
 }
+
+/**
+ * Select a 1-based line and bring it to the top of the view, with a little of what comes before it
+ * showing, e.g. to open the story at the rule a "why?" chain named. Clamps, like $lib/diagnostics:
+ * the line comes from the world's story and the document may be shorter.
+ */
+export function revealLine(view: EditorView, line: number) {
+  const target = view.state.doc.line(Math.min(Math.max(line, 1), view.state.doc.lines));
+  view.dispatch({
+    selection: { anchor: target.from, head: target.to },
+    effects: EditorView.scrollIntoView(target.from, { y: 'start', yMargin: 48 }),
+  });
+  view.focus();
+}

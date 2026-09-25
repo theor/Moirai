@@ -49,12 +49,14 @@
     let disposed = false;
     void (async () => {
       try {
-        const [{ createStoryEditor }, doc] = await Promise.all([
+        const [{ createStoryEditor, revealLine }, doc] = await Promise.all([
           import('$lib/story-editor'),
           editor.get(),
         ]);
         if (disposed) return;
-        worldStory = doc;
+        // CodeMirror joins its lines with LF whatever the file used, and w.sg ships with CRLF, so the
+        // world's story is compared in the editor's own spelling -- otherwise no text ever equals it.
+        worldStory = doc.replace(/\r\n?/g, '\n');
         live = createStoryEditor({
           parent,
           // An unapplied draft wins over the world's story: it is the edit you were in the middle of.
@@ -68,6 +70,18 @@
           onChange: (text) => (text === worldStory ? clearDraft() : storeDraft(text)),
         });
         view = live;
+
+        // ?line=N, from a "why?" chain: put the caret on that rule. Read from the live URL once, at
+        // mount, so this effect gains no dependency on the page. The line numbers the world's story;
+        // with an unapplied draft open it may point somewhere else, so say that instead of guessing.
+        const line = Number(new URLSearchParams(window.location.search).get('line'));
+        if (line > 0) {
+          if (live.state.doc.toString() === worldStory) {
+            revealLine(live, line);
+          } else {
+            status = `Line ${line} is in the story the world was built from; your unapplied draft is open, so it may have moved.`;
+          }
+        }
       } catch (err) {
         loadError = String(err);
       }
