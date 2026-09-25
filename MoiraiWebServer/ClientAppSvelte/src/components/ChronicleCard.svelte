@@ -24,7 +24,7 @@
 <section class="card preset-outlined-surface-200-800 p-5 space-y-6 viz-root">
   <header class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
     <h2 class="h4 font-serif">
-      The world of seed <span class="tabular-nums">{seed ?? '…'}</span>
+      Major events
     </h2>
     <p class="text-sm text-surface-600 tabular-nums">
       {describeSpan(chronicle.startYear, chronicle.year)} · {chronicle.records.toLocaleString()} records
