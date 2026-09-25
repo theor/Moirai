@@ -1230,7 +1230,7 @@ public class Database
     {
         Records.Add(new(text, year, CurrentChangeset.Id, _currentActionId,
             participants?.ToArray() ?? Array.Empty<EntityId>(),
-            _currentAction?.Tags?.ToArray(), weight, _currentFiring, _currentAction?.Name));
+            _currentAction?.TagArray, weight, _currentFiring, _currentAction?.Name));
         DebugHook?.OnRecord(text, year);
     }
 

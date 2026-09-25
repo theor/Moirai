@@ -4,6 +4,11 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
 {
     public List<string>? Tags { get; } = tags;
 
+    // The tags as every record of this rule carries them: one array, shared, since nothing writes to a
+    // record's tags. Taken on first use, once parsing has finished adding to Tags.
+    private string[]? _tagArray;
+    internal string[]? TagArray => Tags == null ? null : _tagArray ??= Tags.ToArray();
+
     public enum WhenType { Created, Changed, }
     public readonly int Id = id;
     public readonly string Name = name;

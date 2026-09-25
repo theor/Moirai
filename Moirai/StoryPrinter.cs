@@ -263,6 +263,38 @@ public partial class StoryPrinter
         return sb.ToString();
     }
 
+    /// <summary><see cref="Print(PropertyValue, History.HistoryMode)"/>, written into a builder: the same
+    /// text, without a string per number.</summary>
+    private void AppendValue(StringBuilder sb, PropertyValue value, History.HistoryMode storyMode)
+    {
+        if (value.Value == null)
+            switch (value.Type.BaseType)
+            {
+                case PropertyValue.ValueBaseType.Number:
+                    sb.Append(value.IntValue);
+                    return;
+                case PropertyValue.ValueBaseType.Percentage:
+                    sb.Append(value.IntValue).Append('%');
+                    return;
+                case PropertyValue.ValueBaseType.Ref when value.IntValue != 0:
+                    sb.Append('#').Append(value.IntValue);
+                    return;
+                case PropertyValue.ValueBaseType.Float:
+                {
+                    Span<char> buffer = stackalloc char[32];
+                    if (value.FloatValue.TryFormat(buffer, out var written, default, CultureInfo.InvariantCulture))
+                    {
+                        sb.Append(buffer[..written]);
+                        return;
+                    }
+
+                    break;
+                }
+            }
+
+        sb.Append(Print(value, storyMode));
+    }
+
     public string Print(PropertyValue value, History.HistoryMode storyMode = History.HistoryMode.Default)
     {
         var s = value.Value;
@@ -563,9 +595,43 @@ public partial class StoryPrinter
         }
     }
 
+    // Taken while a Format is running, so a nested one (an argument that formats a string of its own)
+    // builds in a fresh builder instead of writing into the middle of this one.
+    private StringBuilder? _formatBuilder;
+
     public string Format(InterpolatedString formatAction, Database database, bool injectIdTags = false,
         ICollection<EntityId>? participants = null)
     {
+        if (formatAction.Literals is { } literals)
+        {
+            var sb = _formatBuilder ?? new StringBuilder();
+            _formatBuilder = null;
+            sb.Clear();
+            sb.Append(literals[0]);
+            for (int i = 0; i < formatAction.Arguments.Length; i++)
+            {
+                var v = formatAction.Arguments[i];
+                var value = v.Compute(database.Ctx);
+                if (injectIdTags && v is PropertyPath path && path.Mode == PropertyPath.PropertyPathMode.Variable
+                    && path.VariableIndex != -1
+                    && database.Ctx.Argument(path.VariableIndex) is var entity && entity.Type == PropertyValue.TypeRef)
+                {
+                    participants?.Add(entity.Id);
+                    sb.Append("<#").Append(entity.Id.Id).Append('>');
+                    AppendValue(sb, value, History.HistoryMode.Story);
+                    sb.Append("</>");
+                }
+                else
+                    AppendValue(sb, value, History.HistoryMode.Story);
+
+                sb.Append(literals[i + 1]);
+            }
+
+            var text = sb.ToString();
+            _formatBuilder = sb;
+            return text;
+        }
+
         var propertyValues = formatAction.Arguments.Select(v =>
         {
             var print = Print(v.Compute(database.Ctx), History.HistoryMode.Story);

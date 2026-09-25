@@ -39,6 +39,67 @@ public class InterpolatedString : IValue
         return ctx.Database.Printer.Format(this, ctx.Database) ?? "";
     }
 
+    private string[]? _literals;
+    private bool _compiled;
+
+    /// <summary>
+    /// The text around each argument: <c>Literals[i]</c> precedes argument i, the last one follows them
+    /// all. Null when the format string is not the plain <c>{0}..{n-1}</c>-in-order shape the parser
+    /// builds, in which case it still goes through <see cref="string.Format(string, object[])"/>.
+    /// </summary>
+    internal string[]? Literals
+    {
+        get
+        {
+            if (!_compiled)
+            {
+                _literals = Split(FormatString, Arguments.Length);
+                _compiled = true;
+            }
+
+            return _literals;
+        }
+    }
+
+    private static string[]? Split(string format, int count)
+    {
+        var literals = new string[count + 1];
+        var text = new System.Text.StringBuilder();
+        int next = 0;
+        for (int i = 0; i < format.Length; i++)
+        {
+            char c = format[i];
+            if (c == '{' && i + 1 < format.Length && format[i + 1] == '{')
+            {
+                text.Append('{');
+                i++;
+            }
+            else if (c == '}' && i + 1 < format.Length && format[i + 1] == '}')
+            {
+                text.Append('}');
+                i++;
+            }
+            else if (c == '{')
+            {
+                var close = format.IndexOf('}', i);
+                if (close < 0 || next >= count || format.Substring(i + 1, close - i - 1) != next.ToString())
+                    return null;
+                literals[next++] = text.ToString();
+                text.Clear();
+                i = close;
+            }
+            else if (c == '}')
+                return null;
+            else
+                text.Append(c);
+        }
+
+        if (next != count)
+            return null;
+        literals[count] = text.ToString();
+        return literals;
+    }
+
     // public (string where, string? joins) ToSql(ExecuteContext ctx) => ($"'{Compute(ctx)}'", null);
 }
 
@@ -222,12 +283,19 @@ public class Record : IValueCall
         Weight = weight;
     }
 
+    // Reused across firings, and taken while in use, so a record whose argument somehow records again
+    // gets a list of its own rather than sharing this one.
+    private List<EntityId>? _participants;
+
     public PropertyValue Compute(ExecuteContext ctx)
     {
-        var participants = new List<EntityId>();
+        var participants = _participants ?? new List<EntityId>();
+        _participants = null;
+        participants.Clear();
         var text = ctx.Database.Printer.Format(String, ctx.Database, true, participants);
         var weight = Weight?.Compute(ctx).IntValue ?? Database.Record.DefaultWeight;
         ctx.Database.AppendRecord(text, ctx.Year, participants, weight);
+        _participants = participants;
         return true;
     }
 
