@@ -155,12 +155,12 @@ event advance_age {
 @start
 event link_countries {
     each Country $0: () {
-        if pick Country $1: ((($1.id != $0) and not (contains ($0.neighbors, $1)))) {
+        if pick Country $1: ((($1 != $0) and not (contains ($0.neighbors, $1)))) {
             add ($0.neighbors, $1)
             add ($1.neighbors, $0)
         }
 
-        if pick Country $2: ((($2.id != $0) and not (contains ($0.neighbors, $2)))) {
+        if pick Country $2: ((($2 != $0) and not (contains ($0.neighbors, $2)))) {
             add ($0.neighbors, $2)
             add ($2.neighbors, $0)
         }
@@ -356,7 +356,7 @@ event divine_wrath {
 @frequency(1, Frequency.PerXYear, 2)
 event wedding {
     pick Person $0: ((((($0.alive = true) and ($0.partner = null)) and ($0.age > Age.Child)) and ($0.age < Age.Old)))
-    pick Person $1: (((((((($1.alive = true) and ($1.partner = null)) and ($1.age > Age.Child)) and ($1.age < Age.Old)) and ($1.id != $0)) and ($1.place = $0.place)) and not (related ($0, $1, 6))))
+    pick Person $1: (((((((($1.alive = true) and ($1.partner = null)) and ($1.age > Age.Child)) and ($1.age < Age.Old)) and ($1 != $0)) and ($1.place = $0.place)) and not (related ($0, $1, 6))))
     set $0.partner = $1
     set $1.partner = $0
     set $0.prosperity = ($0.prosperity + 20%)
@@ -366,7 +366,7 @@ event wedding {
 @frequency(1, Frequency.PerXYear, 15)
 event divorce {
     pick Person $0: (($0.alive = true),     ($0.partner != null))
-    pick Person $1: (($1.alive = true),     ($1.partner = $0),         ($1.id != $0))
+    pick Person $1: (($1.alive = true),     ($1.partner = $0),         ($1 != $0))
     set $0.partner = null
     set $1.partner = null
     record ('{$0.name} and {$1.name} separate')
@@ -375,7 +375,7 @@ event divorce {
 event murder {
     var $0: min Person $0: (($0.alive and ($0.age > Age.Child)), $0.prosperity)
     pick Person $1: (($1.alive = true),     ($1.age > Age.Child),         ($1.prosperity <= ($0 + 5%)))
-    pick Person $2: (($2.alive = true),     ($2.id != $1),         ($2.place = $1.place))
+    pick Person $2: (($2.alive = true),     ($2 != $1),         ($2.place = $1.place))
     set $2.alive = false
     set $2.killer = $1
     record ('{$1.name} murders {$2} {$2.name}', 2)
@@ -384,7 +384,7 @@ event murder {
 event bandits_attack_town {
     pick Person $0: (($0.alive = true),     ($0.job = Job.Bandit))
     pick Country $1: (($0.place = $1))
-    pick Person $2: (($2.alive = true),     ($2.id != $0),         ($2.place = $1))
+    pick Person $2: (($2.alive = true),     ($2 != $0),         ($2.place = $1))
     set $2.alive = false
     set $2.killer = $0
     set $0.prosperity = ($0.prosperity + 30%)
@@ -396,7 +396,7 @@ event bandits_attack_town {
 event char_migrates {
     pick Person $0: ($0.alive,     ($0.partner = null))
     var $1: $0.place
-    pick Country $2: ((($2.id != $1) and contains ($1.neighbors, $2)))
+    pick Country $2: ((($2 != $1) and contains ($1.neighbors, $2)))
     set $0.place = $2
     record ('{$0.name} moves to {$2.name}', 0)
 }
@@ -404,7 +404,7 @@ event char_migrates {
 @frequency(1, Frequency.PerXYear, 25)
 event country_war_start {
     pick Country $0: (($0.war_with = null))
-    pick Country $1: (($1.id != $0),     ($1.war_with = null),         contains ($0.neighbors, $1))
+    pick Country $1: (($1 != $0),     ($1.war_with = null),         contains ($0.neighbors, $1))
     set $0.war_with = $1
     set $1.war_with = $0
     record ('{$0.name} and {$1.name} start a war', 2)
@@ -572,7 +572,7 @@ event arcane_catastrophe {
 event item_painted {
     pick Person $0: (($0.alive = true),     ($0.job = Job.Painter),         ($0.age > Age.Child))
     set $0.prestige = ($0.prestige + 10%)
-    pick Person $1: (($1.alive = true),     ($1.id != $0))
+    pick Person $1: (($1.alive = true),     ($1 != $0))
     create Item $2: ('Portrait of {$1.name}')
     set $2.maker = $0
     set $2.item_type = ItemSource.Painted
@@ -590,7 +590,7 @@ event item_painted {
 @frequency(1, Frequency.PerXYear, 8)
 event item_lost {
     pick Item $0: (($0.owner != null))
-    pick Person $1: (($1.id = $0.owner),     $1.alive)
+    pick Person $1: (($1 = $0.owner),     $1.alive)
     var $2: $0.owner
     set $0.owner = null
     record ('{$2.name} lost the {$0.name}')
@@ -607,8 +607,8 @@ event item_found {
 @frequency(1, Frequency.PerXYear, 10)
 event item_sold {
     pick Item $0: (($0.owner != null))
-    pick Person $1: (($1.id = $0.owner),     $1.alive)
-    pick Person $2: ($2.alive,     ($2.id != $1))
+    pick Person $1: (($1 = $0.owner),     $1.alive)
+    pick Person $2: ($2.alive,     ($2 != $1))
     var $3: $0.owner
     set $0.owner = $2
     record ('{$2.name} acquires the {$0.name} from {$3.name}')
@@ -693,18 +693,16 @@ event monster_emerges {
 event monster_raids {
     pick Monster $0: ($0.alive)
     var $1: $0.lair
-    if pick Settlement $2: ((($2.country = $1) and ($2.status != SettlementStatus.Ruined))) {
-        set $2.status = SettlementStatus.Ruined
-        set $2.prosperity = 0%
-        record ('{$0.name} descends upon {$2.name} and razes it', 3)
-    } else {
-        if pick Person $3: (($3.alive and ($3.place = $1))) {
-            set $3.alive = false
-            record ('{$3.name} is devoured by {$0.name} in {$1.name}')
+    pick Settlement $2: ((($2.country = $1) and ($2.status != SettlementStatus.Ruined))) else {
+        if pick Person $2: (($2.alive and ($2.place = $1))) {
+            set $2.alive = false
+            record ('{$2.name} is devoured by {$0.name} in {$1.name}')
         }
 
     }
-
+    set $2.status = SettlementStatus.Ruined
+    set $2.prosperity = 0%
+    record ('{$0.name} descends upon {$2.name} and razes it', 3)
 }
 @tag('legends')
 @frequency(1, Frequency.PerXYear, 12)
@@ -771,14 +769,12 @@ trigger inherit {
      }
 
     each Item $2: (($2.owner = $1)) {
-        if pick Person $3: (($3.alive and is_child_of($3,     $1))) {
-            set $2.owner = $3
-            record ('{$3.name} inherits the {$2.name} from {$1.name}')
-        } else {
+        pick Person $3: (($3.alive and is_child_of($3,     $1))) else {
             record ('The {$2.name} is lost after the death of {$1.name}')
             set $2.owner = null
         }
-
+        set $2.owner = $3
+        record ('{$3.name} inherits the {$2.name} from {$1.name}')
      }
 
 }
@@ -795,16 +791,14 @@ trigger buries_children {
 trigger succession {
   when Person and (($1.alive = false) and $0.alive)
     each Country $2: (($2.ruler = $1)) {
-        if pick Person $3: (($3.alive and is_child_of($3,     $1))) {
-            set $2.ruler = $3
-            set $3.title = Title.King
-            set $3.prestige = ($3.prestige + 20%)
-            record ('{$3.name} of House {$3.family_name} succeeds {$1.name} as ruler of {$2.name}', 3)
-        } else {
+        pick Person $3: (($3.alive and is_child_of($3,     $1))) else {
             set $2.ruler = null
             record ('The throne of {$2.name} is left vacant after the death of {$1.name}', 4)
         }
-
+        set $2.ruler = $3
+        set $3.title = Title.King
+        set $3.prestige = ($3.prestige + 20%)
+        record ('{$3.name} of House {$3.family_name} succeeds {$1.name} as ruler of {$2.name}', 3)
      }
 
 }

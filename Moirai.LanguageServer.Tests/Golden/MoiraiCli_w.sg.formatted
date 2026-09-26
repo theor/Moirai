@@ -92,8 +92,8 @@ entity Monster {
     prop hoard: Item
     prop alive: bool
 }
-// A named deed remembered forever: which hero slew which monster, where, and in what year. Legends
-// cite the actual entities, so the chronicle can point back to the people and places involved.
+/// A named deed remembered forever: which hero slew which monster, where, and in what year. Legends
+/// cite the actual entities, so the chronicle can point back to the people and places involved.
 @display(Person, 'Hero of', $other = $self.hero)
 entity Legend {
     prop hero: Person
@@ -101,8 +101,8 @@ entity Legend {
     prop place: Country
     prop year: number
 }
-// A named age of history. Eras form a contiguous timeline (each begins where the last ended), so the
-// chronicle can be read in chapters. The open era (end_year = 0) is the present age.
+/// A named age of history. Eras form a contiguous timeline (each begins where the last ended), so the
+/// chronicle can be read in chapters. The open era (end_year = 0) is the present age.
 entity Era {
     prop start_year: number
     prop end_year: number
@@ -119,21 +119,21 @@ enum Job {
     Prince, King,
 }
 enum Age { Child, Young, Adult, Old }
-// Political rank. Most people are Commoner; a Country's reigning monarch holds King (see crown_monarch
-// and the succession trigger). King was previously a dead Job value with no mechanics.
+/// Political rank. Most people are Commoner; a Country's reigning monarch holds King (see crown_monarch
+/// and the succession trigger). King was previously a dead Job value with no mechanics.
 enum Title { Commoner, King }
-// Settlements: named places founded inside Countries that grow Village -> Town -> City and can be
-// reduced to ruins by war. They give the world a gazetteer of places, not just statistical Countries.
+/// Settlements: named places founded inside Countries that grow Village -> Town -> City and can be
+/// reduced to ruins by war. They give the world a gazetteer of places, not just statistical Countries.
 enum SettlementKind { Village, Town, City }
 enum SettlementStatus { Thriving, Struggling, Ruined }
-// The arcane: a kind of enchantment carried by a magical artifact. Wizards who reach high mastery
-// forge named artifacts of one of these powers.
+/// The arcane: a kind of enchantment carried by a magical artifact. Wizards who reach high mastery
+/// forge named artifacts of one of these powers.
 enum ArtifactPower { Flame, Frost, Storm, Healing, Shadow, Ward }
-// Factions take on a character from their founder's calling: mage circles, knightly orders, thieves
-// guilds, merchant leagues, or cults devoted to a god. Previously a Faction was just a name + founder.
+/// Factions take on a character from their founder's calling: mage circles, knightly orders, thieves
+/// guilds, merchant leagues, or cults devoted to a god. Previously a Faction was just a name + founder.
 enum FactionKind { Cult, KnightlyOrder, MageCircle, ThievesGuild, MerchantLeague }
-// Monsters that emerge from the wild and the ruined places, raid settlements, hoard artifacts, and
-// fall to heroes — the stuff of legend.
+/// Monsters that emerge from the wild and the ruined places, raid settlements, hoard artifacts, and
+/// fall to heroes — the stuff of legend.
 enum MonsterKind { Dragon, Wyrm, Lich, Demon, Giant }
 enum ItemType { Ring, Sword, Spear, Breastplate, Greatsword, Pendant, }
 enum ItemSource { Forged, Painted, Sculpted }
@@ -224,11 +224,11 @@ event advance_age {
 @start
 event link_countries {
     each Country $c {
-        if (pick Country $n: (id != $c and not(contains($c.neighbors, $n)))) {
+        if (pick Country $n: ($n != $c and not(contains($c.neighbors, $n)))) {
             add($c.neighbors, $n)
             add($n.neighbors, $c)
         }
-        if (pick Country $n: (id != $c and not(contains($c.neighbors, $n)))) {
+        if (pick Country $n: ($n != $c and not(contains($c.neighbors, $n)))) {
             add($c.neighbors, $n)
             add($n.neighbors, $c)
         }
@@ -370,16 +370,13 @@ trigger inherit {
             record '{$child.name} starts a vendetta with {$k.name}'
         }
     }
-    each Item $i: (owner = $new){
-        if(pick Person $child: (alive and is_child_of($child, $new))) {
-        // pick $child:( type=Person, id = $l.child, alive)
-            set $i.owner = $child
-            record('{$child.name} inherits the {$i.name} from {$new.name}')
-        } else {
+    each Item $i: (owner = $new) {
+        pick Person $child: (alive and is_child_of($child, $new)) else {
             record('The {$i.name} is lost after the death of {$new.name}')
             set $i.owner = null
-
         }
+        set $i.owner = $child
+        record('{$child.name} inherits the {$i.name} from {$new.name}')
     }
 }
 
@@ -403,15 +400,14 @@ trigger succession {
     // Release EVERY throne the deceased held (a monarch can hold more than one crown via inheritance),
     // so no realm is ever left with a corpse on the throne.
     each Country $realm: (ruler = $new) {
-        if (pick Person $heir: (alive and is_child_of($heir, $new))) {
-            set $realm.ruler = $heir
-            set $heir.title = Title.King
-            set $heir.prestige = $heir.prestige + 20%
-            record('{$heir.name} of House {$heir.family_name} succeeds {$new.name} as ruler of {$realm.name}', 3)
-        } else {
+        pick Person $heir: (alive and is_child_of($heir, $new)) else {
             set $realm.ruler = null
             record('The throne of {$realm.name} is left vacant after the death of {$new.name}', 4)
         }
+        set $realm.ruler = $heir
+        set $heir.title = Title.King
+        set $heir.prestige = $heir.prestige + 20%
+        record('{$heir.name} of House {$heir.family_name} succeeds {$new.name} as ruler of {$realm.name}', 3)
     }
 }
 
@@ -626,7 +622,7 @@ event divine_wrath {
 @frequency(1, PerXYear, 2)
 event wedding {
     pick Person $x: (alive = true and partner = null and age > Age.Child and age < Age.Old)
-    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and id != $x and place = $x.place and not(related($x, $y, 6)))
+    pick Person $y: (alive = true and partner = null and age > Age.Child and age < Age.Old and $y != $x and place = $x.place and not(related($x, $y, 6)))
     set $x.partner = $y
     set $y.partner = $x
     set $x.prosperity = $x.prosperity + 20%
@@ -639,7 +635,7 @@ event wedding {
 @frequency(1, PerXYear, 15)
 event divorce {
     pick Person $x: (alive = true, partner != null)
-    pick Person $y: (alive = true, partner = $x, id != $x)
+    pick Person $y: (alive = true, partner = $x, $y != $x)
     set $x.partner = null
     set $y.partner = null
     record('{$x.name} and {$y.name} separate')
@@ -650,7 +646,7 @@ event murder {
     // in this age (a fixed bar like prosperity < 20% is one this world almost never falls below).
     var $floor: min Person $q: (alive and age > Age.Child, $q.prosperity)
     pick Person $x: (alive = true, age > Age.Child, prosperity <= $floor + 5%)
-    pick Person $y: (alive = true, id != $x, place = $x.place)
+    pick Person $y: (alive = true, $y != $x, place = $x.place)
     set $y.alive = false
     set $y.killer = $x
     record('{$x.name} murders {$y} {$y.name}', 2)
@@ -659,7 +655,7 @@ event murder {
 event bandits_attack_town {
     pick Person $x: (alive = true, job = Job.Bandit)
     pick Country $c: ($x.place = $c)
-    pick Person $y: (alive = true, id != $x, place = $c)
+    pick Person $y: (alive = true, $y != $x, place = $c)
     set $y.alive = false
     set $y.killer = $x
     set $x.prosperity = $x.prosperity + 30%
@@ -672,7 +668,7 @@ event char_migrates {
     pick Person $p: (alive, partner = null)
     var $here: $p.place
     // Move to a bordering realm rather than teleporting anywhere on the map.
-    pick Country $c: (id != $here and contains($here.neighbors, $c))
+    pick Country $c: ($c != $here and contains($here.neighbors, $c))
     set $p.place = $c
     record('{$p.name} moves to {$c.name}', 0)
 }
@@ -681,7 +677,7 @@ event char_migrates {
 event country_war_start {
     pick Country $x: (war_with = null)
     // War breaks out across a shared border, not between arbitrary distant realms.
-    pick Country $y: (id != $x, war_with = null, contains($x.neighbors, $y))
+    pick Country $y: ($y != $x, war_with = null, contains($x.neighbors, $y))
     set $x.war_with = $y
     set $y.war_with = $x
     record('{$x.name} and {$y.name} start a war', 2)
@@ -875,7 +871,7 @@ event arcane_catastrophe {
 event item_painted {
     pick Person $p: (alive = true, job = Job.Painter, age > Age.Child)
     set $p.prestige = $p.prestige + 10%
-    pick Person $t: (alive = true, id != $p)
+    pick Person $t: (alive = true, $t != $p)
     create Item $i: ('Portrait of {$t.name}')
     set $i.maker = $p
     set $i.item_type = ItemSource.Painted
@@ -892,7 +888,7 @@ event item_painted {
 @tag('items')
 event item_lost {
     pick Item $i: (owner != null)
-    pick Person $p: (id = $i.owner, alive)
+    pick Person $p: ($p = $i.owner, alive)
     var $prev: $i.owner
     set $i.owner = null
     record('{$prev.name} lost the {$i.name}')
@@ -909,8 +905,8 @@ event item_found {
 @tag('items')
 event item_sold {
     pick Item $i: (owner != null)
-    pick Person $s: (id = $i.owner, alive)
-    pick Person $p: (alive, id != $s)
+    pick Person $s: ($s = $i.owner, alive)
+    pick Person $p: (alive, $p != $s)
     var $prev: $i.owner
     set $i.owner = $p
     record('{$p.name} acquires the {$i.name} from {$prev.name}')
@@ -1009,16 +1005,15 @@ event monster_emerges {
 event monster_raids {
     pick Monster $m: (alive)
     var $c: $m.lair
-    if (pick Settlement $s: (country = $c and status != SettlementStatus.Ruined)) {
-        set $s.status = SettlementStatus.Ruined
-        set $s.prosperity = 0%
-        record('{$m.name} descends upon {$s.name} and razes it', 3)
-    } else {
+    pick Settlement $s: (country = $c and status != SettlementStatus.Ruined) else {
         if (pick Person $v: (alive and place = $c)) {
             set $v.alive = false
             record('{$v.name} is devoured by {$m.name} in {$c.name}')
         }
     }
+    set $s.status = SettlementStatus.Ruined
+    set $s.prosperity = 0%
+    record('{$m.name} descends upon {$s.name} and razes it', 3)
 }
 
 // A renowned warrior or wizard confronts a monster. Triumph makes a legend (and recovers its hoard);
