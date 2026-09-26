@@ -39,11 +39,13 @@ draws no random numbers of its own (its value expression could), and may sit ins
 predicate (`pick Place $pl: (count Person $p: (place = $pl) > 3)`). `count($e.coll)` still counts a collection. Pinned by `DslFeatureTests`.
 
 ### ✅ Optional `pick` with explicit failure
-`pick T $v: (...) else { ... }` runs the block when nothing matches, then stops the rule, exactly as a bare
-failed pick would -- a guard clause, so the rule's own flow stays flat. It is written on the pick's line
-and only at statement level, so an `if`'s `else` is never taken for one; the block cannot see `$v`. A rule
-that takes it still counts as *not completed* on the Rules page. `if (pick ...) { } else { }` still works
-for a fallback that should carry on.
+`pick T $v: (...) else { ... }` runs the block when nothing matches, then stops -- a guard clause, so the
+rule's own flow stays flat. Unlike a bare failed pick the stop is *handled*: the rule succeeds, so what the
+block wrote is logged and its triggers run (a failed rule's changeset is discarded), and inside an `each`
+only that iteration ends. It is written on the pick's line and only at statement level, so an `if`'s `else`
+is never taken for one; any other call given an `else` is an error; the block cannot see `$v`.
+`if (pick ...) { } else { }` still works for a fallback that should carry on. w.sg uses it in `inherit`,
+`succession` and `monster_raids`.
 
 ### ✅ `random_weighted` total is manual / fragile
 `random_weighted { 3 => ...  1 => ... }` with no total draws from the sum of the weights (the printer
