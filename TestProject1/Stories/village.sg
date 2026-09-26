@@ -25,6 +25,10 @@ entity Era {
     prop start_year: number
     prop end_year: number
 }
+table Name {
+    'Alys', 'Bram', 'Cerys', 'Dafydd', 'Elin', 'Gareth', 'Heledd', 'Ifor', 'Megan', 'Owain', 'Rhys', 'Tegan'
+}
+
 enum Age { Child, Adult, Old }
 
 @start
@@ -72,7 +76,7 @@ trigger born {
 @frequency(1, EveryXYear, 3)
 event newcomer {
     pick Village $v
-    create Person $p: ('{random(Name)}')
+    create Person $p: ('{roll(Name)}')
     set $p.home = $v
     record('{$p.name} settles in {$v.name}')
 }
@@ -91,7 +95,7 @@ event child {
     pick Person $x: (alive and partner != null and age = Age.Adult)
     var $y: $x.partner
     if $y.alive {
-        create Person $c: ('{random(Name)}')
+        create Person $c: ('{roll(Name)}')
         set $c.parent1 = $x
         set $c.parent2 = $y
         set $c.home = $x.home
@@ -112,7 +116,7 @@ event famine {
 event new_age {
     pick Era $cur: (end_year = 0)
     set $cur.end_year = #Time.year
-    create Era $next: ('The Age of {random(Name)}') {
+    create Era $next: ('The Age of {roll(Name)}') {
         start_year := #Time.year
     }
     record('An age ends and another begins in the year {#Time.year}', 5)

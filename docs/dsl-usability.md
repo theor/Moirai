@@ -91,7 +91,7 @@ Addressed with a C#-style object-initializer block using the `:=` operator (the 
 `COLON_EQ` token), scoping the assignments to the new entity:
 
 ```
-create Country $c: '{random(CountryName)} {random(Name)}' {
+create Country $c: '{random(CountryName)} {roll(Name)}' {
     prosperity := 50%
     health := CountryHealth.Neutral
 }

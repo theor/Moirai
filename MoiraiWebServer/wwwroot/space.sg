@@ -29,6 +29,10 @@ entity Person {
     }
 }
 
+table Name {
+    'Altair', 'Cassini', 'Deneb', 'Halley', 'Kepler', 'Lovell', 'Mira', 'Nova', 'Orion', 'Rigel', 'Sagan', 'Vega'
+}
+
 enum Kind {
     Asteroid,
     Star,
@@ -45,7 +49,7 @@ enum Age {
 
 
 event create_station {
-    create Object $p: '{random Name} Station'
+    create Object $p: '{roll(Name)} Station'
     set kind = Kind.Station
     pick System $s
     set $p.system = $s
@@ -118,7 +122,7 @@ event create_solar_system {
  
 @frequency(1, PerXYear, 10)
 event born {
-    create Person $p: ('{random(Name)}')
+    create Person $p: ('{roll(Name)}')
 }
 
 trigger when_born {

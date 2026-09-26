@@ -15,6 +15,7 @@ entity Person {
 }
 enum Kind { Asteroid, Star, Planet, Satelite, Station }
 enum Age { Child, Young, Adult, Old }
+table Name { 1 => 'Altair', 1 => 'Cassini', 1 => 'Deneb', 1 => 'Halley', 1 => 'Kepler', 1 => 'Lovell', 1 => 'Mira', 1 => 'Nova', 1 => 'Orion', 1 => 'Rigel', 1 => 'Sagan', 1 => 'Vega' }
 function age_years($self: Person): number {
     (#Time.year - $0.birthyear)
 }
@@ -28,7 +29,7 @@ function available($self: Person): bool {
 }
 
 event create_station {
-    create Object $0: ('{random (Name)} Station')
+    create Object $0: ('{roll(Name)} Station')
     set $0.kind = Kind.Station
     pick System $1: ()
     set $0.system = $1
@@ -85,7 +86,7 @@ event create_solar_system {
 }
 @frequency(1, Frequency.PerXYear, 10)
 event born {
-    create Person $0: ('{random (Name)}')
+    create Person $0: ('{roll(Name)}')
 }
 @frequency(1, Frequency.EveryXYear, 1)
 event grow {

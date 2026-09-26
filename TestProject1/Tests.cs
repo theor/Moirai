@@ -412,11 +412,12 @@ event r {
     public void Test1()
     {
         var s = @"
+table Name { 'Aeron', 'Branwen', 'Cordelia', 'Dorian', 'Elaine', 'Gawain' }
 entity Person {
     prop alive: bool
 }
 event born_char {
-    create Person $p: ('{random Name}')
+    create Person $p: ('{roll(Name)}')
     set $p.alive = true
     assert($p.alive = true)
 }
@@ -444,11 +445,12 @@ event born_char {
     public void FilterByType()
     {
         var s = @"
+table Name { 'Aeron', 'Branwen', 'Cordelia', 'Dorian', 'Elaine', 'Gawain' }
 entity Person {
     prop alive: number
 }
 event born_char {
-    create Person $p: ('{random Name}')
+    create Person $p: ('{roll(Name)}')
 }
 @start
 event init {
@@ -824,26 +826,27 @@ event e {
     public void Format()
     {
         var s = @"
+table Name { 'Aeron', 'Branwen', 'Cordelia', 'Dorian', 'Elaine', 'Gawain' }
 entity Person {
 }
 entity Faction {
     prop owner: Person
 }
 event create_faction {
-    create Faction $f: ('Faction of {random Name}')
+    create Faction $f: ('Faction of {roll(Name)}')
     create Faction $g
-    set $g.name = 'Circle of {random Name}'
+    set $g.name = 'Circle of {roll(Name)}'
     create Person $p
-    set $p.name = '{random Name}'
+    set $p.name = '{roll(Name)}'
     set $f.owner = $p
     record('{$p.name} creates the {$f.name} to counter the {$g.name}')
-    assert_eq('{$p.name} creates the {$f.name} to counter the {$g.name}', 'Gawain creates the Faction of Corabel to counter the Circle of Zella')
+    assert_eq('{$p.name} creates the {$f.name} to counter the {$g.name}', 'Gawain creates the Faction of Gawain to counter the Circle of Aeron')
 }";
         var db = Run(s, out var errors);
         db.History = new();
         db.RunAction(db.Actions[0]);
         Console.WriteLine(db.Records.Last().Text);
-        Assert.That(db.Records.Last().Text, Is.EqualTo("<#3>Gawain</> creates the <#1>Faction of Corabel</> to counter the <#2>Circle of Zella</>"));
+        Assert.That(db.Records.Last().Text, Is.EqualTo("<#3>Gawain</> creates the <#1>Faction of Gawain</> to counter the <#2>Circle of Aeron</>"));
     }
 
     [Test]
@@ -863,11 +866,12 @@ event youngs_grow {
     public void Format_TwoRandomNames()
     {
         var s = @"
+table Name { 'Aeron', 'Branwen', 'Cordelia', 'Dorian', 'Elaine', 'Gawain' }
 entity Person {
 }
 event create_faction {
-    create Person $p: ('{random Name}-{random Name} of {random Name}')
-    assert_eq($p.name, 'Corabel-Zella of Gawain')
+    create Person $p: ('{roll(Name)}-{roll(Name)} of {roll(Name)}')
+    assert_eq($p.name, 'Gawain-Aeron of Gawain')
 }";
         var db = Run(s, out var errors);
         db.History = new();

@@ -14,6 +14,10 @@ entity Person {
     prop location: Object
 }
 
+table Name {
+    'Altair', 'Cassini', 'Deneb', 'Halley', 'Kepler', 'Lovell', 'Mira', 'Nova', 'Orion', 'Rigel', 'Sagan', 'Vega'
+}
+
 enum Kind {
     Asteroid,
     Star,
@@ -87,7 +91,7 @@ event create_solar_system {
 
 @frequency(1, PerXYear, 2)
 event born {
-    create Person $p: ('{random(Name)}')
+    create Person $p: ('{roll(Name)}')
     pick Object $o: (kind = Kind.Planet or kind = Kind.Satelite)
     set $p.birthplace = $o
     set $p.location = $o

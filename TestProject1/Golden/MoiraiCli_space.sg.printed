@@ -11,6 +11,7 @@ entity Person {
     prop location: Object
 }
 enum Kind { Asteroid, Star, Planet, Satelite }
+table Name { 1 => 'Altair', 1 => 'Cassini', 1 => 'Deneb', 1 => 'Halley', 1 => 'Kepler', 1 => 'Lovell', 1 => 'Mira', 1 => 'Nova', 1 => 'Orion', 1 => 'Rigel', 1 => 'Sagan', 1 => 'Vega' }
 @start
 event create_time {
     create Time $0: ('time')
@@ -61,7 +62,7 @@ event create_solar_system {
 }
 @frequency(1, Frequency.PerXYear, 2)
 event born {
-    create Person $0: ('{random (Name)}')
+    create Person $0: ('{roll(Name)}')
     pick Object $1: ((($1.kind = Kind.Planet) or ($1.kind = Kind.Satelite)))
     set $0.birthplace = $1
     set $0.location = $1

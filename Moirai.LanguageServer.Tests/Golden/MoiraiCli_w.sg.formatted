@@ -172,7 +172,7 @@ function has_parent($p: Person): bool {
 
 // Procedural subroutines (invoked via call(...), not scheduled) — `function`, not `event`.
 function create_country() {
-    create Country $c: '{random(CountryName)} {random(Name)}' {
+    create Country $c: '{random(CountryName)} {roll(Name)}' {
         prosperity := 50%
         health := CountryHealth.Neutral
     }
@@ -181,7 +181,7 @@ function create_country() {
 
 function create_god() {
     var $dom: random(GodTypes)
-    create God $g: ('{random(Name)}, God of {$dom}') {
+    create God $g: ('{roll(Name)}, God of {$dom}') {
         domain := $dom
     }
     record '{$g.name} appears'
@@ -504,9 +504,42 @@ table Surname {
     'Grimsbane', 'Holloway', 'Ironvale', 'Karras', 'Lothian', 'Mournhal',
     'Nightfell', 'Oakhart', 'Ravenscar', 'Stormwell', 'Thornwood', 'Vaelin'
 }
+table Name {
+    'Abraxas', 'Adara', 'Adelaide', 'Adelina', 'Adrienne', 'Aelfric', 'Aelwen', 'Aeron', 'Aeronwen', 'Aeronwy', 'Agravaine', 'Ailbhe',
+        'Aileen', 'Áine', 'Aislinn', 'Aithne', 'Alanna', 'Alaric', 'Alastair', 'Alastriona', 'Albion', 'Alcyone', 'Aldous', 'Aldric',
+        'Alienor', 'Altalune', 'Alys', 'Amaris', 'Ambrose', 'Amethyst', 'Amina', 'Amira', 'Anastasia', 'Andreas', 'Aneira', 'Angeline',
+        'Anwen', 'Aodh', 'Aoife', 'Aradia', 'Arden', 'Arella', 'Ariadne', 'Arianell', 'Arianwen', 'Arnaud', 'Artair', 'Artemis',
+        'Artemisia', 'Arthur', 'Arwen', 'Ascella', 'Aster', 'Asteria', 'Astoria', 'Astra', 'Astraea', 'Astraia', 'Astrid', 'Astrophel',
+        'Athelstan', 'Auberon', 'Aud', 'Audrienne', 'Aurelia', 'Aurelius', 'Aurora', 'Autumn', 'Avalon', 'Avelina', 'Azalea', 'Bara',
+        'Bastian', 'Beatrix', 'Bedivere', 'Belinda', 'Belladonna', 'Beltane', 'Benedict', 'Berengar', 'Bertrand', 'Bethan', 'Bianca',
+        'Blaise', 'Blanchefleur', 'Bramwell', 'Brangaine', 'Branwen', 'Brenna', 'Brennan', 'Briar', 'Brigid', 'Bronwyn', 'Cadfael', 'Cadoc',
+        'Caelan', 'Caitriona', 'Caius', 'Calder', 'Calista', 'Calla', 'Calliope', 'Camellia', 'Caradoc', 'Cassia', 'Cassius', 'Catriona',
+        'Cedric', 'Celandine', 'Celestine', 'Cerelia', 'Cerella', 'Ceridwen', 'Cerys', 'Chandra', 'Cian', 'Ciaran', 'Clarimond', 'Clarinda',
+        'Clarine', 'Clement', 'Clovis', 'Conall', 'Constance', 'Corabel', 'Corabella', 'Corbin', 'Cordelia', 'Corentin', 'Corinda',
+        'Corisande', 'Cormac', 'Crescent', 'Cressida', 'Cyprian', 'Dagonet', 'Darius', 'Dawn', 'Deirdre', 'Delphine', 'Demelza', 'Derwen',
+        'Dominic', 'Dorian', 'Drystan', 'Eamon', 'Edith', 'Edmund', 'Edric', 'Eilidh', 'Eira', 'Elaine', 'Elara', 'Eleri', 'Elora',
+        'Elspeth', 'Emeric', 'Emrys', 'Endellion', 'Enid', 'Eowyn', 'Ermengarde', 'Esclarmonde', 'Esmeralda', 'Ethelinda', 'Euphemia',
+        'Evadne', 'Evander', 'Evangelia', 'Evangelina', 'Evangeline', 'Evangelique', 'Fae', 'Faolan', 'Faye', 'Fenella', 'Ferelith',
+        'Fergus', 'Finnian', 'Fiona', 'Fionnuala', 'Florian', 'Galahad', 'Gareth', 'Garrick', 'Gaspard', 'Gawain', 'Geraint', 'Gideon',
+        'Gilda', 'Ginevra', 'Gloriana', 'Godric', 'Gráinne', 'Griffin', 'Guinevere', 'Gwendolyn', 'Gwenllian', 'Gwenore', 'Gwydion',
+        'Hadrian', 'Halcyon', 'Hecate', 'Heledd', 'Heloise', 'Hesperia', 'Hestia', 'Hilda', 'Ianthe', 'Idris', 'Ignatia', 'Ilse', 'Imogen',
+        'Ingrid', 'Io', 'Iona', 'Isabeau', 'Isembard', 'Isidore', 'Isolde', 'Ivor', 'Izora', 'Jessamine', 'Jocasta', 'Josselin', 'Kaelan',
+        'Keira', 'Kenelm', 'Khione', 'Lancelot', 'Lavinia', 'Leander', 'Leofric', 'Leonie', 'Lethia', 'Lior', 'Liora', 'Livia', 'Lorcan',
+        'Lorelei', 'Lowenna', 'Lowri', 'Lucan', 'Lucienne', 'Lucina', 'Lucine', 'Lucius', 'Luna', 'Lunette', 'Lysander', 'Lysandra',
+        'Mabon', 'Maelgwn', 'Maelona', 'Maeve', 'Magnus', 'Malachi', 'Manon', 'Marius', 'Maxen', 'Meleri', 'Melisande', 'Melisende',
+        'Merewyn', 'Meriadoc', 'Merlin', 'Minerva', 'Mireille', 'Mirian', 'Moon', 'Mordred', 'Morgaine', 'Morgana', 'Morrigan', 'Myrcella',
+        'Nerys', 'Nessa', 'Niamh', 'Nimue', 'Oberon', 'Odalys', 'Odran', 'Oleander', 'Olwyn', 'Ondine', 'Opal', 'Orenda', 'Oriana', 'Orla',
+        'Osric', 'Ottoline', 'Owain', 'Palomides', 'Percival', 'Peredur', 'Perrine', 'Persephone', 'Philippa', 'Pryderi', 'Quillon',
+        'Radomir', 'Ragnall', 'Reverie', 'Rhian', 'Rhiannon', 'Rhodri', 'Rhosyn', 'River', 'Roderic', 'Rolan', 'Rosabel', 'Rosabella',
+        'Rosabelle', 'Rosalind', 'Rosella', 'Rosina', 'Rowena', 'Ruadh', 'Rune', 'Sage', 'Saoirse', 'Senara', 'Seren', 'Severin', 'Sigrid',
+        'Silvana', 'Solenne', 'Sonora', 'Sorcha', 'Soren', 'Sulien', 'Sybella', 'Taliesin', 'Tamora', 'Tancred', 'Tarian', 'Tegan', 'Teilo',
+        'Theodric', 'Thessaly', 'Tiernan', 'Titania', 'Tristan', 'Twyla', 'Ulric', 'Ulrika', 'Una', 'Urien', 'Valerian', 'Vanora',
+        'Venetia', 'Victoire', 'Vivia', 'Viviana', 'Viviane', 'Wendeline', 'Wilhelmina', 'Willow', 'Wynne', 'Yseult', 'Ysolde', 'Yvaine',
+        'Zella', 'Zephyrine'
+}
 @frequency(1, PerXYear, 2)
 event char_born {
-    var $fname: '{random(Name)}'
+    var $fname: '{roll(Name)}'
     var $house: '{roll(Surname)}'
     create Person $p: ('{$fname} {$house}')
     pick Country $loc
@@ -769,7 +802,7 @@ event couple_has_child {
         mark($x)
         mark($y)
 
-        var $fname: '{random(Name)}'
+        var $fname: '{roll(Name)}'
         create Person $c: ('{$fname} {$x.family_name}')
         set $c.alive = true
         set $c.first_name = $fname
@@ -796,7 +829,7 @@ event parent_child_quarrel {
 event item_forged {
     pick Person $p: (alive = true, job = Job.Smith, age > Age.Child)
     set $p.prestige = $p.prestige + 10%
-    create Item $i: ('{random(ItemType)} of {random(Name)}')
+    create Item $i: ('{random(ItemType)} of {roll(Name)}')
     set $i.item_type = ItemSource.Forged
     set $i.maker = $p
     set $i.creation_date = #Time.year

@@ -38,17 +38,16 @@ public class Database
     public readonly List<EnumDefinition> Enums = new()
     {
         default,
-        new EnumDefinition(new EnumDefinitionId(1), "Name", EntityNames.Names),
-        EnumDefinition.FromEnum<Frequency>(new EnumDefinitionId(2)),
+        EnumDefinition.FromEnum<Frequency>(new EnumDefinitionId(1)),
         // new EnumDefinition(new EnumDefinitionId(2), "Frequency", new List<string>{"Per","Every"}),
     };
 
-    public EnumDefinition FrequencyEnumDefinition => Enums[2];
+    public EnumDefinition FrequencyEnumDefinition => Enums[1];
 
     // Named weighted tables (index 0 is a reserved sentinel so id 0 means "no table").
     public readonly List<TableDefinition> Tables = new() { null! };
 
-    public static readonly int BuiltinEnumCount = 3;
+    public static readonly int BuiltinEnumCount = 2;
     public readonly List<EntityType> Types;
     public readonly int BuiltinTypes;
 

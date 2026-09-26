@@ -618,7 +618,7 @@ public partial class StoryPrinter
             if (formatAction.Arguments.Length == 0)
                 return literals[0];
             // Just one argument and no link to wrap it in: the text is that value's own, and for a string or
-            // an enum name that string already exists -- '{roll(Surname)}', '{random(Name)}'.
+            // an enum name that string already exists -- '{roll(Surname)}', '{random(Job)}'.
             if (formatAction.Arguments.Length == 1 && literals[0].Length == 0 && literals[1].Length == 0
                 && !(injectIdTags && formatAction.Arguments[0] is PropertyPath { Mode: PropertyPath.PropertyPathMode.Variable }))
                 return Print(formatAction.Arguments[0].Compute(database.Ctx), History.HistoryMode.Story);
