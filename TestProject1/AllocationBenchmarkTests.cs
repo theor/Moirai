@@ -22,20 +22,6 @@ public class AllocationBenchmarkTests
     private static readonly ulong[] Seeds = { 42, 7, 1234 };
     private const int Runs = 3;
 
-    private static string FindWsg()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate MoiraiCli/w.sg above " + AppContext.BaseDirectory);
-    }
-
     private readonly record struct Sample(
         double Ms, long Bytes, int Gen0, int Gen1, int Gen2, double PauseMs, long Retained, string Fingerprint);
 
@@ -126,7 +112,7 @@ public class AllocationBenchmarkTests
 
     private static void Bench(int years, bool history)
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         // One throwaway pass so the JIT is not what gets measured.
         Run(story, Seeds[0], Math.Min(years, 100), history);
 
@@ -148,7 +134,7 @@ public class AllocationBenchmarkTests
     [Test]
     public void ProfileOfWsg()
     {
-        var db = StoryParser.Parse(File.ReadAllText(FindWsg()), out _);
+        var db = StoryParser.Parse(Stories.Wsg, out _);
         db.SetSeed(Seeds[0]);
         db.History = new();
         db.Init();
@@ -164,7 +150,7 @@ public class AllocationBenchmarkTests
     [Test]
     public void AllocationsByType()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         Run(story, Seeds[0], 100); // warm up
         var db = StoryParser.Parse(story, out _);
         db.SetSeed(Seeds[0]);
@@ -229,7 +215,7 @@ public class AllocationBenchmarkTests
     [TestCase(1000)]
     public void BytesPerYear(int years)
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.SetSeed(Seeds[0]);
         db.History = new();

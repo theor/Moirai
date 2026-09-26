@@ -223,7 +223,7 @@ public class WorldSeriesTests
     [Test]
     public void WsgPopulationIsPlausible()
     {
-        var wsg = File.ReadAllText(FindWsg());
+        var wsg = Stories.Wsg;
         var db = Run(wsg, 250);
         var alive = WorldSeries.PropertyOverTime(db, db.GetEntityType("Person"), "alive");
         Assert.That(alive.Values[^1], Is.GreaterThan(0), "everyone in w.sg died");
@@ -232,19 +232,5 @@ public class WorldSeriesTests
 
         var records = WorldSeries.RecordsPerYear(db);
         Assert.That(records.Values.Sum(), Is.GreaterThan(0));
-    }
-
-    private static string FindWsg()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate MoiraiCli/w.sg above " + AppContext.BaseDirectory);
     }
 }

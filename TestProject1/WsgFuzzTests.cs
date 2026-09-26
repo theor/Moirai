@@ -18,21 +18,7 @@ public class WsgFuzzTests
     private static readonly ulong[] Seeds = { 1, 2, 3, 7, 42, 99, 777, 2024 };
     private const int Years = 250;
 
-    private static string FindWsg()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate MoiraiCli/w.sg above " + AppContext.BaseDirectory);
-    }
-
-    private static readonly string Story = File.ReadAllText(FindWsg());
+    private static readonly string Story = Stories.Wsg;
 
     private static Database Run(ulong seed)
     {

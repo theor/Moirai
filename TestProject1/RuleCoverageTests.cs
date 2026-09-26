@@ -9,23 +9,9 @@ public class RuleCoverageTests
 {
     private const int Years = 250;
 
-    private static string FindWsg()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate MoiraiCli/w.sg above " + AppContext.BaseDirectory);
-    }
-
     private static Database Load(ulong seed, bool profile)
     {
-        var db = StoryParser.Parse(File.ReadAllText(FindWsg()), out var errors);
+        var db = StoryParser.Parse(Stories.Wsg, out var errors);
         Assert.That(errors.Count(e => e.Severity == StoryParser.Severity.Error), Is.EqualTo(0),
             string.Join("\n", errors));
         db.SetSeed(seed);

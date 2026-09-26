@@ -15,20 +15,6 @@ namespace TestProject1;
 [Explicit("comparison between builds: run by hand, in Release")]
 public class ViewerEquivalenceTests
 {
-    private static string FindWsg()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate MoiraiCli/w.sg above " + AppContext.BaseDirectory);
-    }
-
     [TestCase(42ul, 400)]
     [TestCase(7ul, 400)]
     [TestCase(1234ul, 400)]
@@ -37,7 +23,7 @@ public class ViewerEquivalenceTests
     [TestCase(1234ul, 1000)]
     public void WhatTheViewerSees(ulong seed, int years)
     {
-        var s = new WorldSession(File.ReadAllText(FindWsg()), seed);
+        var s = new WorldSession(Stories.Wsg, seed);
         s.PassYears(years);
         var db = s.Database;
         long start = db.StartYear, end = db.Ctx.Year;

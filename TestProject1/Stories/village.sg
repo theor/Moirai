@@ -1,0 +1,119 @@
+/// A small world for tests of the viewer API (WorldSessionTests), so they stop depending on w.sg's
+/// details. What they rely on is made to happen for any seed -- every rule that has to fire is
+/// EveryXYear -- and they assert properties of the world, never counts, so this file can be edited too.
+///
+/// Within 200 years it guarantees: newcomers, weddings, children and grandchildren (family trees three
+/// generations deep, with partners and siblings), deaths at 50 (a Person changes after birth, and
+/// some are dead), eras that turn, and records at several weights: 0 (noise), 1, 2, 3, 4 and 5.
+@display(Person, 'Children', parent1 = $self or parent2 = $self)
+@display(Person, 'Parents', $other = $self.parent1 or $other = $self.parent2)
+entity Person {
+    prop alive: bool
+    prop age: Age
+    prop birthdate: number
+    prop deathdate: number
+    prop partner: Person
+    prop parent1: Person
+    prop parent2: Person
+    prop home: Village
+}
+@display(Person, 'Villagers', home = $self)
+entity Village {
+    prop prosperity: percentage
+}
+entity Era {
+    prop start_year: number
+    prop end_year: number
+}
+enum Age { Child, Adult, Old }
+
+@start
+event founding {
+    create Time $t: 'time' {
+        year := 1000
+    }
+    create Era $e: ('The First Age') {
+        start_year := 1000
+    }
+    create Village $a: ('Oakley') {
+        prosperity := 50%
+    }
+    create Village $b: ('Ashby') {
+        prosperity := 50%
+    }
+    record('{$a.name} and {$b.name} are founded', 3)
+}
+
+trigger born {
+    when_created Person
+    set $new.alive = true
+    set $new.age = Age.Child
+    set $new.birthdate = #Time.year
+    schedule($new, $new.birthdate + 16) {
+        if $self.alive {
+            set $self.age = Age.Adult
+            record('{$self.name} comes of age', 0)
+        }
+    }
+    schedule($new, $new.birthdate + 40) {
+        if $self.alive {
+            set $self.age = Age.Old
+        }
+    }
+    schedule($new, $new.birthdate + 50) {
+        if $self.alive {
+            set $self.alive = false
+            set $self.deathdate = #Time.year
+            record('{$self.name} dies at {#Time.year - $self.birthdate}')
+        }
+    }
+}
+
+@frequency(1, EveryXYear, 3)
+event newcomer {
+    pick Village $v
+    create Person $p: ('{random(Name)}')
+    set $p.home = $v
+    record('{$p.name} settles in {$v.name}')
+}
+
+@frequency(1, EveryXYear, 2)
+event wedding {
+    pick Person $x: (alive and partner = null and age = Age.Adult)
+    pick Person $y: (alive and partner = null and age = Age.Adult and $y != $x and not(related($x, $y, 4)))
+    set $x.partner = $y
+    set $y.partner = $x
+    record('{$x.name} marries {$y.name}', 2)
+}
+
+@frequency(1, EveryXYear, 1)
+event child {
+    pick Person $x: (alive and partner != null and age = Age.Adult)
+    var $y: $x.partner
+    if $y.alive {
+        create Person $c: ('{random(Name)}')
+        set $c.parent1 = $x
+        set $c.parent2 = $y
+        set $c.home = $x.home
+        record('{$c.name} is born to {$x.name} and {$y.name}')
+    }
+}
+
+@frequency(1, EveryXYear, 10)
+@tag('hardship')
+event famine {
+    pick Village $v
+    set $v.prosperity = $v.prosperity - 10%
+    record('Famine strikes {$v.name}', 4)
+}
+
+@frequency(1, EveryXYear, 30)
+@tag('era')
+event new_age {
+    pick Era $cur: (end_year = 0)
+    set $cur.end_year = #Time.year
+    create Era $next: ('The Age of {random(Name)}') {
+        start_year := #Time.year
+    }
+    record('An age ends and another begins in the year {#Time.year}', 5)
+}

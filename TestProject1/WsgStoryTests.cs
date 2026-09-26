@@ -6,24 +6,10 @@ namespace TestProject1;
 // and engine evolve. Also exercises the dynastic-name feature (Surname table + family_name inheritance).
 public class WsgStoryTests
 {
-    private static string FindWsg()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate MoiraiCli/w.sg above " + AppContext.BaseDirectory);
-    }
-
     [Test]
     public void ParsesAndSimulatesWithoutErrors()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out var errors);
         Assert.That(errors.Count(e => e.Severity == StoryParser.Severity.Error), Is.EqualTo(0),
             string.Join("\n", errors));
@@ -39,7 +25,7 @@ public class WsgStoryTests
     {
         // A schedule body's RNG stream used to be named after the line it was written on, so a comment
         // added above one re-rolled every job, death age and accident in the world.
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var padded = story.Replace("\ntrigger born {", "\n// one\n// two\n// three\ntrigger born {");
         Assert.That(padded, Is.Not.EqualTo(story));
 
@@ -62,7 +48,7 @@ public class WsgStoryTests
         // seed 42 over a quarter of the children with two parents were born to full siblings. It now
         // excludes related($x, $y, 4): parents, grandparents, siblings, aunts and uncles, first cousins.
         // Checked here with a walk of its own, not with related() itself.
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -123,7 +109,7 @@ public class WsgStoryTests
     [Test]
     public void ChildrenInheritTheirFathersHouse()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -159,7 +145,7 @@ public class WsgStoryTests
     [Test]
     public void MonarchsAreCrownedAndSucceeded()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -202,7 +188,7 @@ public class WsgStoryTests
     [Test]
     public void SettlementsAreFoundedGrowAndFallToRuin()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -234,7 +220,7 @@ public class WsgStoryTests
     [Test]
     public void WizardsAdvanceAndForgeArtifacts()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -269,7 +255,7 @@ public class WsgStoryTests
     [Test]
     public void FaithProducesMiraclesProphetsAndSaints()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -297,7 +283,7 @@ public class WsgStoryTests
     [Test]
     public void FactionsTakeOnKindsAndFeud()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -324,7 +310,7 @@ public class WsgStoryTests
     [Test]
     public void MonstersEmergeAndHeroesMakeLegends()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -360,7 +346,7 @@ public class WsgStoryTests
     [Test]
     public void CountriesBorderNeighborsAndWarsAreAdjacent()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -399,7 +385,7 @@ public class WsgStoryTests
     [Test]
     public void ErasFormAContiguousTimelineAndExportToMarkdown()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();

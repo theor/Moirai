@@ -6,23 +6,9 @@ namespace TestProject1;
 // Guards the in-memory query backend (which replaced the SQLite mirror).
 public class InMemoryQueryTests
 {
-    private static string FindWsg()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate))
-                return candidate;
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate MoiraiCli/w.sg above " + AppContext.BaseDirectory);
-    }
-
     private static List<string> RunWsg(int years)
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         var db = StoryParser.Parse(story, out _);
         db.History = new();
         db.Init();
@@ -105,7 +91,7 @@ public class InMemoryQueryTests
     [Explicit]
     public void TimeRuns()
     {
-        var story = File.ReadAllText(FindWsg());
+        var story = Stories.Wsg;
         foreach (var years in new[] { 200, 500, 1000 })
         {
             double best = double.MaxValue;

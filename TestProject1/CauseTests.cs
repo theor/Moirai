@@ -123,20 +123,10 @@ event prophecy {
     public void EveryRecordInAWorldHasACause()
     {
         // Nothing w.sg writes should come out unattributed: that would be a "why?" with no answer.
-        var s = new WorldSession(File.ReadAllText(FindWsg()), 42);
+        var s = new WorldSession(Stories.Wsg, 42);
         s.PassYears(120);
 
         Assert.That(s.Database.Records.Where(r => r.Firing == 0), Is.Empty);
         Assert.That(s.Database.Records.All(r => s.GetCause(r.Firing).Steps.Length > 0), Is.True);
-    }
-
-    private static string FindWsg()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate)) return candidate;
-        }
-        throw new FileNotFoundException("MoiraiCli/w.sg");
     }
 }

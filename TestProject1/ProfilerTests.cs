@@ -97,9 +97,7 @@ trigger on_death {
     [TestCase(1000)]
     public void ProfileWsg(int years)
     {
-        var path = Path.Combine(TestContext.CurrentContext.TestDirectory,
-            "..", "..", "..", "..", "MoiraiCli", "w.sg");
-        var text = File.ReadAllText(path);
+        var text = Stories.Wsg;
 
         double best = double.MaxValue;
         ExecutionProfiler? bestProf = null;
@@ -137,9 +135,7 @@ trigger on_death {
     [TestCase(1000)]
     public void AllocPerRun(int years)
     {
-        var path = Path.Combine(TestContext.CurrentContext.TestDirectory,
-            "..", "..", "..", "..", "MoiraiCli", "w.sg");
-        var db = StoryParser.Parse(File.ReadAllText(path), out var errors);
+        var db = StoryParser.Parse(Stories.Wsg, out var errors);
         Assert.That(errors, Is.Empty);
         db.History = new();
         db.Init();

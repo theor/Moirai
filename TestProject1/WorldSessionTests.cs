@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Moirai.Api;
 using Moirai.Core;
+using Moirai.Parser;
 
 namespace TestProject1;
 
@@ -12,21 +13,23 @@ public class WorldSessionTests
 {
     private const ulong Seed = 42;
 
-    private static string Wsg()
+    // Most tests run on Stories/village.sg, a small world written for them, so an edit to w.sg cannot
+    // break a test of the API. A few determinism checks stay on w.sg on purpose: they hold for any
+    // story, and w.sg exercises far more of the engine (nested calls, else-picks, many RNG streams).
+    private static readonly string Village = Stories.Load("village.sg");
+
+    private static WorldSession Session(ulong seed = Seed) => new(Village, seed);
+    private static WorldSession WsgSession() => new(Stories.Wsg, Seed);
+
+    [Test]
+    public void TheVillageStoryParsesCleanly()
     {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir != null)
-        {
-            var candidate = Path.Combine(dir.FullName, "MoiraiCli", "w.sg");
-            if (File.Exists(candidate))
-                return File.ReadAllText(candidate);
-            dir = dir.Parent;
-        }
-
-        throw new FileNotFoundException("Could not locate MoiraiCli/w.sg above " + AppContext.BaseDirectory);
+        // A definition that fails to parse is dropped, not reported by the session, so a typo in the
+        // fixture would quietly remove a rule and leave the tests below passing on less than they think.
+        StoryParser.Parse(Village, out var errors);
+        Assert.That(errors.Where(e => e.Severity == StoryParser.Severity.Error), Is.Empty,
+            () => string.Join("\n", errors));
     }
-
-    private static WorldSession Session(ulong seed = Seed) => new(Wsg(), seed);
 
     [Test]
     public void ConstructionRunsStartEventsAndLeavesAQueryableWorld()
@@ -35,15 +38,15 @@ public class WorldSessionTests
 
         Assert.That(s.GetSeed(), Is.EqualTo(Seed));
         Assert.That(s.Database.Entities.Count(), Is.GreaterThan(0), "@start events should have populated the world");
-        // w.sg's Time singleton starts at 764, and StartYear is captured at the end of Init.
+        // StartYear is captured at the end of Init, after the story has set the clock.
         Assert.That(s.Year, Is.EqualTo(s.Database.StartYear));
     }
 
     [Test]
     public void SameSeedAndStoryGiveTheSameWorld()
     {
-        var a = Session();
-        var b = Session();
+        var a = WsgSession();
+        var b = WsgSession();
         a.PassYears(60);
         b.PassYears(60);
 
@@ -83,7 +86,7 @@ public class WorldSessionTests
     public void ResetRereadsTheStoryText()
     {
         // The server's hot reload depends on this: the session holds a factory, not a snapshot.
-        var story = Wsg();
+        var story = Village;
         int reads = 0;
         var s = new WorldSession(() => { reads++; return story; }, Seed);
         Assert.That(reads, Is.EqualTo(1));
@@ -140,10 +143,10 @@ public class WorldSessionTests
         // simulates in chunks rather than one call. That is only sound if chunking cannot change the
         // outcome: the RNG streams live on ExecuteContext and the year is re-read from the Time entity
         // each call, so it should not. This is the assertion the whole chunked design rests on.
-        var whole = Session();
+        var whole = WsgSession();
         whole.PassYears(120);
 
-        var chunked = Session();
+        var chunked = WsgSession();
         for (int i = 0; i < 12; i++)
             chunked.PassYears(10);
 
@@ -159,10 +162,10 @@ public class WorldSessionTests
     public void UnevenChunksAreAlsoIdenticalToOneLongPass()
     {
         // The host's last chunk is whatever remains, so the sizes are not uniform in practice.
-        var whole = Session();
+        var whole = WsgSession();
         whole.PassYears(100);
 
-        var chunked = Session();
+        var chunked = WsgSession();
         foreach (var n in new[] { 7, 25, 1, 40, 27 })
             chunked.PassYears(n);
 
@@ -174,11 +177,24 @@ public class WorldSessionTests
     [Test]
     public void StartEventsAreStampedWithTheYearTheStorySets()
     {
-        // w.sg's @start event creates Time with year 764 and then creates the countries and gods. The
-        // clock follows Time.year, so those records and changesets belong to 764, not year 0.
-        var db = Session().Database;
+        // The @start event creates Time with year 500 and then the world. The clock follows Time.year, so
+        // those records and changesets belong to 500, not year 0.
+        const string story = @"
+entity Thing {
+    prop n: number
+}
+@start
+event begin {
+    create Time $t: 'time' {
+        year := 500
+    }
+    create Thing $a: ('a thing')
+    record('{$a.name} appears')
+}
+";
+        var db = new WorldSession(story, Seed).Database;
 
-        Assert.That(db.StartYear, Is.EqualTo(764));
+        Assert.That(db.StartYear, Is.EqualTo(500));
         Assert.That(db.Records, Is.Not.Empty);
         Assert.That(db.Records.Select(r => r.Year), Is.All.EqualTo(db.StartYear));
         Assert.That(db.History!.Changesets.Select(c => c.Year), Is.All.EqualTo(db.StartYear));
@@ -195,7 +211,7 @@ public class WorldSessionTests
         Assert.That(groups, Is.Not.Empty);
         Assert.That(groups.Select(g => g.TypeName), Does.Not.Contain("Time"), "singletons are furniture");
         Assert.That(groups.Single(g => g.TypeName == "Person").HasFamily, Is.True);
-        Assert.That(groups.Single(g => g.TypeName == "Country").HasFamily, Is.False);
+        Assert.That(groups.Single(g => g.TypeName == "Village").HasFamily, Is.False);
         foreach (var g in groups)
         {
             Assert.That(g.Top, Has.Length.InRange(1, 5));
@@ -219,36 +235,56 @@ public class WorldSessionTests
 
         var c = s.GetChronicle(8);
 
-        Assert.That(c.Weighted, Is.True, "w.sg weighs its records");
+        Assert.That(c.Weighted, Is.True, "the village weighs its records");
         Assert.That(c.TurningPoints, Has.Length.EqualTo(8));
         Assert.That(c.TurningPoints.Select(t => (t.Year, t.ChangesetId)), Is.Ordered);
         Assert.That(c.TurningPoints.Select(t => t.Weight), Has.All.GreaterThan(Database.Record.DefaultWeight));
-        // Slots are shared between kinds of record, so a frequent heavy rule cannot fill the card: w.sg has
-        // more than eight kinds above the default weight, so every turning point is a different one.
-        var kinds = s.Database.Records.Where(r => r.Weight > Database.Record.DefaultWeight)
-            .Select(r => (r.ActionId, r.Weight)).Distinct().Count();
-        Assert.That(kinds, Is.GreaterThan(8));
-        Assert.That(c.TurningPoints.Select(t => t.Text.Split('<')[0] + t.Weight).Distinct().Count(),
-            Is.GreaterThan(4), "the card mixes kinds of event");
-        // The heaviest kind in the world is always represented.
-        var heaviest = s.Database.Records.Max(r => r.Weight);
-        Assert.That(c.TurningPoints.Select(t => t.Weight), Has.Some.EqualTo(heaviest));
+        // Slots are shared between kinds of record, so a frequent heavy rule cannot fill the card: the
+        // village has a few kinds above the default weight (its founding, weddings, famines, new ages), one
+        // weight each, and weddings far outnumber the rest -- yet every kind gets a place. Fewer kinds than
+        // slots is what makes that checkable; more than two is what a plain top 8 by weight would miss.
+        var heavy = s.Database.Records.Where(r => r.Weight > Database.Record.DefaultWeight)
+            .Select(r => r.Weight).Distinct().ToList();
+        Assert.That(heavy.Count, Is.InRange(3, 8));
+        Assert.That(c.TurningPoints.Select(t => t.Weight).Distinct(), Is.EquivalentTo(heavy));
         Assert.That(c.Tags.Select(t => t.Tag), Has.None.Contains("'"), "tags lose the parser's quotes");
+        Assert.That(c.Tags.Select(t => t.Tag), Does.Contain("hardship"));
         Assert.That(c.TurningPoints.Select(t => t.Year), Has.All.InRange(c.StartYear, c.Year));
     }
 
     [Test]
     public void ChronicleErasTileTheWorldAndThePresentOneIsOpen()
     {
-        var s = Session();
-        s.PassYears(200);
+        // Two closed ages and the present one, declared outright so no seed is needed to land them.
+        const string story = @"
+entity Era {
+    prop start_year: number
+    prop end_year: number
+}
+@start
+event begin {
+    create Time $t: 'time' {
+        year := 500
+    }
+    create Era $a: ('The First Age') {
+        start_year := 500
+        end_year := 505
+    }
+    create Era $b: ('The Second Age') {
+        start_year := 505
+        end_year := 512
+    }
+    create Era $c: ('The Third Age') {
+        start_year := 512
+    }
+}
+";
+        var s = new WorldSession(story, Seed);
+        s.PassYears(20);
 
         var eras = s.GetChronicle(5).Eras;
 
-        // w.sg: the Founding Age at 764, then one turn somewhere in each 90-year window (EveryXYear). 200
-        // years hold two whole windows and part of a third, so two or three turns; seed 42 gives two.
-        Assert.That(eras, Has.Length.EqualTo(3));
-        Assert.That(eras[0].Name, Is.EqualTo("The Founding Age"));
+        Assert.That(eras.Select(e => e.Name), Is.EqualTo(new[] { "The First Age", "The Second Age", "The Third Age" }));
         Assert.That(eras[0].Start, Is.EqualTo(s.Database.StartYear));
         for (int i = 1; i < eras.Length; i++)
             Assert.That(eras[i].Start, Is.EqualTo(eras[i - 1].End), "each era begins where the last ended");
@@ -265,9 +301,11 @@ public class WorldSessionTests
         var pop = s.GetChronicle(5).Population;
 
         Assert.That(pop.Label, Is.EqualTo("Person alive"));
-        var alive = s.Database.GetEntityType(s.Database.Types.First(t => t.Name == "Person").Id)
-            .GetPropertyId("alive");
-        var living = s.Database.Entities.Count(e => e.TryGetProperty(alive, out var v) && v.BoolValue);
+        var person = s.Database.GetEntityType("Person");
+        var alive = person.GetPropertyId("alive");
+        // Property ids are per type, so only a Person's slot for `alive` means alive.
+        var living = s.Database.Entities.Count(e => e.Type.Id == person.Id.Id
+                                                     && e.TryGetProperty(alive, out var v) && v.BoolValue);
         Assert.That(pop.Values[^1], Is.EqualTo(living));
     }
 
@@ -275,7 +313,7 @@ public class WorldSessionTests
     public void WeightsChangeNothingButTheRecordsWeight()
     {
         // Weights draw no random numbers and gate nothing, so stripping them must leave the same world.
-        var weighted = Wsg();
+        var weighted = Stories.Wsg;
         var plain = System.Text.RegularExpressions.Regex.Replace(weighted, @"(record\('(?:[^']|'[^,)])*'), \d+\)", "$1)");
         Assert.That(plain, Is.Not.EqualTo(weighted), "the pattern should find w.sg's weights");
 
@@ -298,11 +336,12 @@ public class WorldSessionTests
         var md = s.GetChronicleMarkdown();
 
         Assert.That(md, Does.StartWith($"# Chronicle of seed {Seed}, {s.Database.StartYear}–{s.Year}"));
-        Assert.That(md, Does.Contain("## The Founding Age"));
+        Assert.That(md, Does.Contain("## The First Age"));
         Assert.That(md, Does.Not.Contain("<#"), "links are reduced to names");
         // Weight 0 is noise the story asked to be left out; turning points are set in bold.
-        Assert.That(md, Does.Not.Contain(" grew old"));
-        Assert.That(md, Does.Match(@"- \*\*\d+\*\* \*\*The throne of .+ is left vacant"));
+        Assert.That(s.Database.Records.Any(r => r.Text.Contains(" comes of age")), Is.True);
+        Assert.That(md, Does.Not.Contain(" comes of age"));
+        Assert.That(md, Does.Match(@"- \*\*\d+\*\* \*\*Famine strikes "));
         var kept = s.Database.Records.Count(r => r.Weight > 0);
         Assert.That(md.Split('\n').Count(l => l.StartsWith("- **")), Is.EqualTo(kept),
             "every record worth keeping is in exactly one chapter");
@@ -355,7 +394,7 @@ public class WorldSessionTests
             return id;
         }
 
-        throw new AssertionException("w.sg should have a person who changes after birth");
+        throw new AssertionException("the village should have a person who changes after birth");
     }
 
     [Test]
@@ -536,7 +575,7 @@ public class WorldSessionTests
         var s = Session();
         s.PassYears(150);
         var declared = s.Database.GetEntityType("Person").Attributes.Select(a => a.Label).ToList();
-        Assert.That(declared, Is.Not.Empty, "w.sg gives Person @display back-references");
+        Assert.That(declared, Is.Not.Empty, "the village gives Person @display back-references");
 
         var result = s.Query("pick Person $p: (not $p.alive)");
         Assert.That(result.Errors, Is.Null.Or.Empty, () => string.Join("\n", result.Errors));
@@ -615,7 +654,7 @@ public class WorldSessionTests
         var root = s.Database.Entities
             .Select(e => e.Id.Id)
             .FirstOrDefault(id => s.GetFamilyTree(id, 3).Count > 2);
-        Assert.That(root, Is.Not.Zero, "w.sg should have produced at least one family by year 120");
+        Assert.That(root, Is.Not.Zero, "the village should have produced at least one family by year 120");
 
         var tree = s.GetFamilyTree(root, 3);
         Assert.That(tree.Select(n => n.Id).Distinct().Count(), Is.EqualTo(tree.Count), "nodes are unique by id");
@@ -647,25 +686,28 @@ public class WorldSessionTests
         // A grandparent: someone with a child who has a child of their own.
         var grand = people.First(g => people.Any(c => IsChildOf(c, g.Id.Id)
                                                        && people.Any(gc => IsChildOf(gc, c.Id.Id))));
-        var child = people.First(c => IsChildOf(c, grand.Id.Id) && people.Any(gc => IsChildOf(gc, c.Id.Id)));
+        // Prefer a child with several children, so the grandchild has siblings to find.
+        var child = people.Where(c => IsChildOf(c, grand.Id.Id))
+            .OrderByDescending(c => people.Count(gc => IsChildOf(gc, c.Id.Id)))
+            .First();
         var grandchild = people.First(gc => IsChildOf(gc, child.Id.Id));
 
         var ids = s.GetFamilyTree(grand.Id.Id, 4).Select(n => n.Id).ToHashSet();
         Assert.That(ids, Contains.Item(grandchild.Id.Id), "descendants go deeper than one generation");
         var coParent = Ref(grandchild, p1) == child.Id.Id ? Ref(grandchild, p2) : Ref(grandchild, p1);
-        if (coParent != 0)
-            Assert.That(ids, Contains.Item(coParent), "a child's co-parent is in the family");
+        Assert.That(coParent, Is.Not.Zero, "the village's children always have two parents");
+        Assert.That(ids, Contains.Item(coParent), "a child's co-parent is in the family");
 
         // From the grandchild's side: its siblings are there.
         var siblings = people.Where(x => x.Id.Id != grandchild.Id.Id && IsChildOf(x, child.Id.Id)).ToList();
+        Assert.That(siblings, Is.Not.Empty, "the village should give some grandchild a sibling by year 200");
         var fromBelow = s.GetFamilyTree(grandchild.Id.Id, 4).Select(n => n.Id).ToHashSet();
         foreach (var sib in siblings)
             Assert.That(fromBelow, Contains.Item(sib.Id.Id), "siblings, whole or half");
 
-        // A married descendant brings their partner.
-        var married = people.FirstOrDefault(c => IsChildOf(c, grand.Id.Id) && Ref(c, partnerProp) != 0);
-        if (married.Id.Id != 0)
-            Assert.That(ids, Contains.Item(Ref(married, partnerProp)), "a child's partner is in the family");
+        // A married descendant brings their partner: the child has children, and only couples do.
+        Assert.That(Ref(child, partnerProp), Is.Not.Zero);
+        Assert.That(ids, Contains.Item(Ref(child, partnerProp)), "a child's partner is in the family");
     }
 
     [Test]
@@ -702,8 +744,8 @@ public class WorldSessionTests
 
         // Which events can run standalone depends on the story, so drive them all rather than naming one:
         // the contract is that RunAction changes the world without moving the clock. @start events are
-        // left out because they are where a story sets the year -- w.sg's create_time builds a fresh Time
-        // at 764, and the clock follows Time.year, so re-running it rewinds the world on purpose.
+        // left out because they are where a story sets the year -- the village's founding builds a fresh
+        // Time at 1000, and the clock follows Time.year, so re-running it rewinds the world on purpose.
         foreach (var action in s.Database.Actions.Where(a => a.Filter is not FilterAtStart))
             s.RunAction(action.Id);
 
@@ -746,7 +788,7 @@ public class WorldSessionTests
     [Test]
     public void EveryRecordReachesTheFeedExactlyOnce()
     {
-        var s = Session();
+        var s = WsgSession();
         int cursor = 0;
         var delivered = new List<string>();
 
@@ -802,8 +844,8 @@ public class WorldSessionTests
     public void TheStoryComesBackOutAsItWentIn()
     {
         var s = Session();
-        Assert.That(s.GetStory(), Is.EqualTo(Wsg()));
-        Assert.That(s.ValidateStory(Wsg()).Where(d => d.Severity == "Error"), Is.Empty);
+        Assert.That(s.GetStory(), Is.EqualTo(Village));
+        Assert.That(s.ValidateStory(Village).Where(d => d.Severity == "Error"), Is.Empty);
     }
 
     [Test]
@@ -814,7 +856,7 @@ public class WorldSessionTests
         var year = s.Year;
         var records = s.RecordCount;
 
-        var result = s.SetStory(Wsg() + "\nevent broken { set $nobody. }\n");
+        var result = s.SetStory(Village + "\nevent broken { set $nobody. }\n");
 
         Assert.That(result.Applied, Is.False);
         Assert.That(result.Diagnostics.Any(d => d.Severity == "Error"), Is.True);
@@ -822,7 +864,7 @@ public class WorldSessionTests
         Assert.That(result.Diagnostics.First(d => d.Severity == "Error").Line, Is.GreaterThan(0));
         Assert.That(s.Year, Is.EqualTo(year));
         Assert.That(s.RecordCount, Is.EqualTo(records));
-        Assert.That(s.GetStory(), Is.EqualTo(Wsg()));
+        Assert.That(s.GetStory(), Is.EqualTo(Village));
     }
 
     [Test]
@@ -832,7 +874,7 @@ public class WorldSessionTests
         s.PassYears(20);
         Assert.That(s.Year, Is.GreaterThan(s.Database.StartYear));
 
-        var story = Wsg() + "\nevent an_added_event {\n  record('nothing happened')\n}\n";
+        var story = Village + "\nevent an_added_event {\n  record('nothing happened')\n}\n";
         var result = s.SetStory(story);
 
         Assert.That(result.Applied, Is.True);
@@ -864,7 +906,7 @@ public class WorldSessionTests
         var s = Session();
         s.DrainFeed(0, out var cursor);
 
-        s.SetStory(Wsg());
+        s.SetStory(Village);
 
         Assert.That(s.DrainFeed(cursor, out _).Any(m => m.Type == Message.MessageType.Reset), Is.True);
     }
