@@ -89,7 +89,10 @@ public static class MoiraiSemanticTokens
         public void Flush(List<(Range range, SemanticTokenType type, string[] modifiers)> tokens)
         {
             tokens.Clear();
+            // The lexical layer splits its tokens per line; a linked symbol spanning lines would be a
+            // linker bug, and dropping it costs one colour where keeping it would cost the file's.
             tokens.AddRange(_best.Values
+                .Where(t => t.range.Start.Line == t.range.End.Line)
                 .OrderBy(t => t.range.Start.Line)
                 .ThenBy(t => t.range.Start.Character)
                 .Select(t => (t.range, t.type, t.modifiers)));
@@ -188,9 +191,36 @@ public static class MoiraiSemanticTokens
                 var layer = kind is MoiraiTokenKind.VarId or MoiraiTokenKind.SingletonId
                     ? Layer.Syntactic
                     : Layer.Lexical;
-                sink.Add(RangeOf(all[i].Span), type, NoModifiers, layer);
+                foreach (var line in LinesOf(all[i].Span))
+                    sink.Add(RangeOf(line), type, NoModifiers, layer);
             }
         }
+    }
+
+    /// A token can span lines -- a string with a line break in it, and above all an unterminated one
+    /// while it is being typed, which runs to the next quote -- but a semantic token cannot: the
+    /// protocol's builder throws on one, and the client then gets no colour for the whole file.
+    static IEnumerable<TextSpan> LinesOf(TextSpan span)
+    {
+        var start = span.Position;
+        var line = start.Line;
+        var from = start.Absolute;
+        var column = start.Column;
+        var end = start.Absolute + span.Length;
+        for (int i = from; i < end; i++)
+        {
+            if (span.Source![i] != '\n')
+                continue;
+            var stop = i > from && span.Source[i - 1] == '\r' ? i - 1 : i;
+            if (stop > from)
+                yield return new TextSpan(span.Source, new Superpower.Model.Position(from, line, column), stop - from);
+            from = i + 1;
+            line++;
+            column = 1;
+        }
+
+        if (end > from)
+            yield return new TextSpan(span.Source!, new Superpower.Model.Position(from, line, column), end - from);
     }
 
     // ---- Semantic layer ------------------------------------------------------------------

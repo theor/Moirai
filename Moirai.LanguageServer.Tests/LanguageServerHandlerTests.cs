@@ -546,4 +546,40 @@ trigger spawned {
         Assert.That(titles, Does.Contain("reacts to new Person"));
         Assert.That(doc.TriggerReadPropLenses.Count, Is.EqualTo(5));
     }
+
+    // ---- Semantic tokens never span lines (the protocol's builder throws on one) ----
+
+    [TestCase(@"event e {
+    /* one
+       two */
+    record('x')
+}")]
+    [TestCase(@"event e {
+    record('one
+two')
+}")]
+    [TestCase(@"event e {
+    record('unterminated
+}
+event f {
+}")]
+    [TestCase(@"event e {
+    record('{$x.
+}')
+}")]
+    [TestCase(@"table T {
+    'a',
+    'b'
+}
+event e {
+    record('{roll(T
+)}')
+}")]
+    public void SemanticTokens_are_single_line(string source)
+    {
+        var doc = Process(source);
+        var multi = doc.SemanticTokens.Where(t => t.range.Start.Line != t.range.End.Line)
+            .Select(t => $"{t.range} {t.type}").ToList();
+        Assert.That(multi, Is.Empty);
+    }
 }
