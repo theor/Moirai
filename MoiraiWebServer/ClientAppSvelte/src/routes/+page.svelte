@@ -89,7 +89,7 @@
 </script>
 
 <div class="h-full overflow-auto">
-  <div class="max-w-5xl space-y-8">
+  <div class="space-y-8">
     <header>
       <h1 class="h2 font-serif">Moirai</h1>
       <p class="text-sm text-surface-600 max-w-2xl">
