@@ -247,6 +247,13 @@ public class ExecuteContext
     }
 
     public PrevView PrevEntity;
+
+    /// Set with the `false` a pick returns after running its `else { ... }`: the rule stops there, as
+    /// after any failed pick, but the failure was handled -- so the rule still succeeds, its changeset is
+    /// logged and its triggers run. Whatever consumes the false consumes this with it (the rule, an each
+    /// iteration, a trigger); a genuine failure clears it, and so does a function returning, since a
+    /// function's body does not stop on false.
+    internal bool HandledStop;
     internal PropertyValue GetPrevEntityProperty(PropertyId property)
     {
         if (!property.IsValid)

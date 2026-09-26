@@ -591,8 +591,16 @@ public class Database
                     throw new NotImplementedException("Arg index -1 on p " + index);
 
                 DebugHook?.OnStatement(e, _ctx);
+                _ctx.HandledStop = false;
                 if (!e.Execute(_ctx).BoolValue)
                 {
+                    // A pick's else ran: the rule ends here, but as a success.
+                    if (_ctx.HandledStop)
+                    {
+                        _ctx.HandledStop = false;
+                        break;
+                    }
+
                     // Console.WriteLine($"  ABORT [{action.Name}]");
                     // TODO option to keep empty changesets
                     // History?.Changesets.Add(CurrentChangeset);
@@ -785,7 +793,11 @@ public class Database
                         {
                             DebugHook?.OnStatement(e, _ctx);
                             if (!e.Execute(_ctx).BoolValue)
+                            {
+                                // A trigger's changeset is logged however it stops.
+                                _ctx.HandledStop = false;
                                 break;
+                            }
                         }
                         DebugHook?.OnExitFrame();
                         if (CurrentChangeset.Changes.Count != 0)

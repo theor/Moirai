@@ -85,6 +85,8 @@ public class UserFunctionCall : IValueCall, IValueSql
             val = definitionInstruction.Execute(ctx);
         }
 
+        // A function's body runs on past a false, so a pick-else stop inside it means nothing to the caller.
+        ctx.HandledStop = false;
         hook?.OnExitFrame();
         return val;
     }

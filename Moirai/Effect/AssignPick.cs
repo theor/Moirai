@@ -34,15 +34,25 @@ public struct AssignPick : IValueCall
                 // Console.WriteLine($"PICK {ctx.Database.Printer.Print(Value)}");
                 bool res = ctx.PickRandom(EntityType, Value, VariableIndex, out var val);
                 ctx.SetArgument(VariableIndex, val);
-                if (!res && ElseEffects != null)
+                if (res)
+                    return true;
+
+                // A failed pick with an else stops the rule as handled -- unless the else itself failed.
+                bool handled = ElseEffects != null;
+                if (ElseEffects != null)
                 {
                     foreach (var e in ElseEffects)
                     {
                         ctx.Database.DebugHook?.OnStatement(e, ctx);
                         if (!e.Execute(ctx).BoolValue)
+                        {
+                            handled = ctx.HandledStop;
                             break;
+                        }
                     }
                 }
+
+                ctx.HandledStop = handled;
                 // Console.WriteLine($"ENDPICK {ctx.Database.Printer.Print(Value)} VAL COUNT {ctx.ValueCount} OFFSET {ctx.ValueOffset}");
                 return res;
             }
@@ -70,6 +80,8 @@ public struct AssignPick : IValueCall
                                 ctx.Database.DebugHook?.OnStatement(e, ctx);
                                 if (!e.Execute(ctx).BoolValue)
                                 {
+                                    // Stopping ends this iteration only, whether or not it was handled.
+                                    ctx.HandledStop = false;
                                     break;
                                 }
                             }

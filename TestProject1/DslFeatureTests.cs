@@ -207,6 +207,56 @@ event e {
     }
 
     [Test]
+    public void AnElseIsAHandledFailureItsChangesAreLoggedAndTriggered()
+    {
+        // A rule that fails keeps its writes off the history and out of every trigger. Taking an else is
+        // not that: the rule succeeds, so what the else wrote is logged and replayed.
+        var db = Run(Things + @"
+@start
+event setup {
+    create Thing $a {
+        alive := true
+    }
+}
+event e {
+    pick Thing $t: (x = 99) else {
+        pick Thing $v: (alive)
+        set $v.alive = false
+    }
+    record('never')
+}
+trigger died {
+    when Thing and alive = false and $old.alive
+    record('died')
+}
+", out _);
+        db.History = new();
+        db.RunAction("e");
+        var e = db.Actions.Single(a => a.Name == "e");
+        Assert.That(Texts(db), Is.EqualTo(new[] { "died" }));
+        Assert.That(e.Successes, Is.EqualTo(1));
+        Assert.That(db.History!.Changesets.Any(c => c.ActionName == "e"), Is.True);
+    }
+
+    [Test]
+    public void AnElseInsideAnEachEndsOnlyThatIteration()
+    {
+        var db = Run(Census + @"
+event e {
+    each Thing $t: () {
+        pick Place $p: (size = $t.x) else {
+            record('no place for {$t.x}')
+        }
+        record('place for {$t.x}')
+    }
+    record('done')
+}
+", out _);
+        db.RunAction("e");
+        Assert.That(Texts(db), Is.EqualTo(new[] { "place for 1", "no place for 4", "no place for 10", "done" }));
+    }
+
+    [Test]
     public void PickElseIsSkippedWhenThePickSucceeds()
     {
         var db = Run(Things + @"
