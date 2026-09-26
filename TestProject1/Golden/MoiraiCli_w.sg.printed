@@ -373,11 +373,12 @@ event divorce {
 }
 @frequency(1, Frequency.PerXYear, 15)
 event murder {
-    pick Person $0: (($0.alive = true),     ($0.age > Age.Child),         ($0.prosperity < 20%))
-    pick Person $1: (($1.alive = true),     ($1.id != $0),         ($1.place = $0.place))
-    set $1.alive = false
-    set $1.killer = $0
-    record ('{$0.name} murders {$1} {$1.name}', 2)
+    var $0: min Person $0: (($0.alive and ($0.age > Age.Child)), $0.prosperity)
+    pick Person $1: (($1.alive = true),     ($1.age > Age.Child),         ($1.prosperity <= ($0 + 5%)))
+    pick Person $2: (($2.alive = true),     ($2.id != $1),         ($2.place = $1.place))
+    set $2.alive = false
+    set $2.killer = $1
+    record ('{$1.name} murders {$2} {$2.name}', 2)
 }
 @frequency(1, Frequency.PerXYear, 15)
 event bandits_attack_town {

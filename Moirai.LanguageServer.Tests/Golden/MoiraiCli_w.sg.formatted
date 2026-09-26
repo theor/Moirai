@@ -646,7 +646,10 @@ event divorce {
 }
 @frequency(1, PerXYear, 15)
 event murder {
-    pick Person $x: (alive = true, age > Age.Child, prosperity < 20%)
+    // Desperation is relative: the murderer comes from the poorest of the living, whatever poor means
+    // in this age (a fixed bar like prosperity < 20% is one this world almost never falls below).
+    var $floor: min Person $q: (alive and age > Age.Child, $q.prosperity)
+    pick Person $x: (alive = true, age > Age.Child, prosperity <= $floor + 5%)
     pick Person $y: (alive = true, id != $x, place = $x.place)
     set $y.alive = false
     set $y.killer = $x
