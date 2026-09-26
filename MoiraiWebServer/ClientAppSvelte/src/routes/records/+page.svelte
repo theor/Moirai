@@ -128,6 +128,11 @@
     });
   });
 
+  function measure(node: HTMLTableRowElement) {
+    // The virtualizer keeps a ResizeObserver on the row from here, keyed by its data-index.
+    $virtualizer.measureElement(node);
+  }
+
   // Back from a story line: scroll the asked-about record into the middle once its row exists. Records
   // arrive through the feed, so the first run may be too early; `reveal` is plain, not $state, so this
   // settles when the row turns up instead of re-running on its own write.
@@ -200,11 +205,17 @@
           {/each}
         </thead>
         <tbody>
-          {#each $virtualizer.getVirtualItems() as row, idx (row.index)}
+          {#each $virtualizer.getVirtualItems() as row (row.index)}
+            <!--
+              Rows are measured, not assumed 44px: a record that wraps -- most of them, on a phone -- is
+              taller, and with a fixed size the list jumped by the difference each time a row left the
+              top. The rows stay in the table's flow, so they all move by the first one's offset.
+            -->
             <tr
+              data-index={row.index}
+              use:measure
               class:asked={why !== null && rows[row.index].original.firing === why}
-              style="height: {row.size + 1}px; transform: translateY({row.start -
-                idx * row.size}px);"
+              style="transform: translateY({$virtualizer.getVirtualItems()[0].start}px);"
             >
               {#each rows[row.index].getVisibleCells() as cell (cell.id)}
                 <td class={cell.column.id}>
@@ -256,6 +267,23 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* On a phone the fixed columns (64 + 180) left the record a third of the row, and its chips, which do
+   * not wrap, ran under the rule. The rule keeps a stub: it is still the "why?" button. */
+  @media (max-width: 639px) {
+    .table :global(th.year),
+    .table :global(td.year) {
+      width: 2.75rem !important;
+      padding-inline: 0 0.25rem;
+    }
+    .table :global(th.actionId),
+    .table :global(td.actionId) {
+      width: 5rem !important;
+      padding-inline: 0.25rem 0;
+    }
+    .table :global(td.text) {
+      padding-inline: 0.25rem;
+    }
   }
   .scroll-container {
     flex: 1;

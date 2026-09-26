@@ -65,6 +65,33 @@
     activeTab = eventsOpen ? 'events' : 'details';
   }
 
+  // Phone only: the panel is a sheet over the page, folded down to its handle. Choosing someone else or
+  // opening the events unfolds it again, since that is asking to see it -- except on Family, where the
+  // selection is the tree's subject and every tap on a node would otherwise cover the tree.
+  let sheetCollapsed = $state(false);
+  const onFamily = $derived(page.url.pathname.endsWith('/family'));
+  $effect(() => {
+    void selected;
+    sheetCollapsed = onFamily;
+  });
+  $effect(() => {
+    if (eventsOpen) sheetCollapsed = false;
+  });
+
+  // Keep the current tab in view: on a phone the strip is wider than the screen, and a tab chosen from
+  // a link (Life -> Family) would otherwise be selected somewhere off to the right. The strip scrolls
+  // itself rather than calling scrollIntoView, which would also scroll the page (see the grid note).
+  let tabStrip: HTMLElement | undefined = $state();
+  $effect(() => {
+    void selectedTab;
+    const tab = tabStrip?.querySelector<HTMLElement>('[data-selected]');
+    if (!tabStrip || !tab) return;
+    const strip = tabStrip.getBoundingClientRect();
+    const box = tab.getBoundingClientRect();
+    if (box.left < strip.left) tabStrip.scrollLeft -= strip.left - box.left + 16;
+    else if (box.right > strip.right) tabStrip.scrollLeft += box.right - strip.right + 16;
+  });
+
   const queryClient = new QueryClient();
 
   // Seed box. The world is deterministic per seed, so re-seeding is the only way to get a different
@@ -196,12 +223,13 @@
     use:shortcut={{ control: true, code: 'KeyD', callback: switchTab }}
   >
     <!-- Row 1: where you are. -->
-    <header class="flex items-center gap-4 px-4 h-12 border-b border-surface-200">
+    <header class="flex items-center gap-2 sm:gap-4 px-2 sm:px-4 h-12 border-b border-surface-200">
       <div class="flex items-center shrink-0">
-        <img src={asset('/icon.png')} alt="" class="w-6 h-6 mr-2" />
-        <strong class="text-lg font-serif">Moirai</strong>
+        <img src={asset('/icon.png')} alt="" class="w-6 h-6 sm:mr-2" />
+        <!-- On a phone the tabs need the room more than the name does; the icon stays. -->
+        <strong class="hidden sm:inline text-lg font-serif">Moirai</strong>
       </div>
-      <nav class="min-w-0 overflow-x-auto">
+      <nav class="tab-strip min-w-0 overflow-x-auto" bind:this={tabStrip}>
         <Tabs value={selectedTab} class="w-auto">
           <Tabs.List class="mb-0 pb-0 border-b-0 gap-0">
             {#each tabs as tab (tab.href)}
@@ -249,7 +277,7 @@
       the world's identity on the right, with Reset last and quiet because it throws work away.
     -->
     <div
-      class="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2 border-b border-surface-200 bg-surface-50"
+      class="flex flex-wrap items-center gap-x-3 sm:gap-x-5 gap-y-2 px-2 sm:px-4 py-2 border-b border-surface-200 bg-surface-50"
     >
       <div class="flex items-baseline gap-2">
         <span class="text-xs text-surface-600">Year</span>
@@ -287,7 +315,9 @@
         {/if}
       </div>
 
+      <!-- A keyboard shortcut's box (Ctrl+G) for the records list; on a phone it only costs a row. -->
       <form
+        class="hidden sm:block"
         onsubmit={(e) => {
           e.preventDefault();
           $moiraiViewStore.gotoYear = yearValue;
@@ -306,7 +336,7 @@
         />
       </form>
 
-      <div class="grow"></div>
+      <div class="hidden sm:block grow"></div>
 
       <form
         class="flex items-center gap-1"
@@ -328,7 +358,7 @@
           name="seed"
           aria-label="RNG seed"
           bind:value={seedValue}
-          class="input w-24 text-sm"
+          class="input w-20 sm:w-24 text-sm"
         />
         {#if seedDirty}
           <button
@@ -353,15 +383,18 @@
         class="btn btn-sm hover:preset-tonal text-surface-700"
         disabled={connecting}
         onclick={() => moiraiStore.reset()}
-        title="Rebuild this world from its start year"><Restart />Reset</button
+        aria-label="Reset"
+        title="Rebuild this world from its start year"
+        ><Restart /><span class="hidden sm:inline">Reset</span></button
       >
       <button
         type="button"
         class="btn btn-sm {eventsOpen ? 'preset-tonal-primary' : 'hover:preset-tonal'}"
         aria-pressed={eventsOpen}
+        aria-label="Events"
         onclick={toggleEvents}
         title="Show the event list: run an event now, or hide its records (Ctrl+D)"
-        ><ListChecks />Events</button
+        ><ListChecks /><span class="hidden sm:inline">Events</span></button
       >
       {#if bootNotice}
         <!--
@@ -384,31 +417,59 @@
 
     <div class="flex min-h-0">
       {#if panelOpen}
-        <aside class="w-80 shrink-0 min-h-0 overflow-y-auto border-r border-surface-200 p-4">
-          {#if showDetails && eventsOpen}
-            <div class="flex gap-1 p-1 mb-3 rounded-lg bg-surface-100" role="tablist">
-              {#each PANEL_TABS as t (t)}
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === t}
-                  class="flex-1 btn btn-sm capitalize {activeTab === t
-                    ? 'bg-white shadow-sm'
-                    : 'text-surface-600'}"
-                  onclick={() => (activeTab = t)}>{t}</button
-                >
-              {/each}
-            </div>
-          {/if}
-          {#if activeTab === 'details' && showDetails}
-            <DetailsPanel />
-          {:else if $moiraiStore.clientData}
-            <!-- Closed from the Events button in the toolbar, which stays pressed while this is open. -->
-            <ActionList />
-          {/if}
+        <!--
+          Beside the page from md up; below that, a sheet over the bottom of the page. A 320px column
+          beside a 390px screen left the page a 60px strip -- on Family, where the selection is the whole
+          point of the page, there was nothing left to see. The sheet collapses to its handle so the page
+          under it can be read without losing the selection.
+        -->
+        <aside
+          class="panel fixed inset-x-0 bottom-0 z-40 flex flex-col max-h-[65dvh] rounded-t-xl border-t
+            border-surface-200 bg-white shadow-[0_-4px_16px_rgb(0_0_0/0.12)]
+            md:static md:z-auto md:w-80 md:max-h-none md:shrink-0 md:min-h-0 md:rounded-none md:border-t-0
+            md:border-r md:shadow-none"
+        >
+          <button
+            type="button"
+            class="md:hidden flex flex-col items-center gap-1 pt-2 pb-1 w-full text-xs text-surface-600"
+            aria-expanded={!sheetCollapsed}
+            onclick={() => (sheetCollapsed = !sheetCollapsed)}
+          >
+            <span class="block w-10 h-1 rounded-full bg-surface-300"></span>
+            {#if sheetCollapsed}
+              {activeTab === 'details' && showDetails ? 'Show details' : 'Show events'}
+            {/if}
+          </button>
+          <div
+            class="min-h-0 overflow-y-auto px-4 pb-4 md:p-4 {sheetCollapsed
+              ? 'hidden md:block'
+              : ''}"
+          >
+            {#if showDetails && eventsOpen}
+              <div class="flex gap-1 p-1 mb-3 rounded-lg bg-surface-100" role="tablist">
+                {#each PANEL_TABS as t (t)}
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === t}
+                    class="flex-1 btn btn-sm capitalize {activeTab === t
+                      ? 'bg-white shadow-sm'
+                      : 'text-surface-600'}"
+                    onclick={() => (activeTab = t)}>{t}</button
+                  >
+                {/each}
+              </div>
+            {/if}
+            {#if activeTab === 'details' && showDetails}
+              <DetailsPanel />
+            {:else if $moiraiStore.clientData}
+              <!-- Closed from the Events button in the toolbar, which stays pressed while this is open. -->
+              <ActionList />
+            {/if}
+          </div>
         </aside>
       {/if}
-      <main class="flex-1 min-w-0 min-h-0 h-full p-4 space-y-4">
+      <main class="flex-1 min-w-0 min-h-0 h-full p-3 sm:p-4 space-y-4">
         {@render children?.()}
       </main>
     </div>

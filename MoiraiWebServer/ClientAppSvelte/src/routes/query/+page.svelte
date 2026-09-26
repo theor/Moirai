@@ -136,7 +136,7 @@
     {:else}
       <!--            <div class="w-full inline-block overflow-auto">-->
       <div class="table-wrap overflow-auto">
-        <table class="table table-fixed overflow-auto" style="display: block">
+        <table class="results table table-fixed overflow-auto" style="display: block">
           <tbody>
             {#each results.results.slice(0, shown) as result, ri (ri)}
               <tr>
@@ -159,3 +159,20 @@
     {/if}
   {/await}
 </div>
+
+<style>
+  /* One row per entity with a column per property is ~5000px wide; on a phone that is a sliver of the
+   * first three properties and a sideways scroll nobody finds. There each result wraps as a card. */
+  @media (max-width: 639px) {
+    .results tr {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 1rem;
+      padding-block: 0.5rem;
+    }
+    .results td {
+      display: block;
+      padding: 0;
+    }
+  }
+</style>

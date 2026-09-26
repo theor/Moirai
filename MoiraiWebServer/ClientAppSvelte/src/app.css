@@ -152,6 +152,14 @@ body {
   color: oklch(36% var(--ent-c) var(--ent-h));
   box-shadow: inset 0 -1px 0 oklch(85% calc(var(--ent-c) * 0.6) var(--ent-h));
 }
+/* A long name ("Lavinia, God of The Sea") is wider than a phone's record column; unbroken, it ran over
+ * the next cell. */
+@media (max-width: 639px) {
+  .ent {
+    white-space: normal;
+    max-width: 100%;
+  }
+}
 .ent:hover {
   background: oklch(90% calc(var(--ent-c) * 0.6) var(--ent-h));
 }
