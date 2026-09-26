@@ -118,7 +118,7 @@ enum Job {
     Monk,
     Prince, King,
 }
-enum Age { Child, Young, Adult, Old }
+enum Age { Child, Young, Adult, Old, Dead }
 /// Political rank. Most people are Commoner; a Country's reigning monarch holds King (see crown_monarch
 /// and the succession trigger). King was previously a dead Job value with no mechanics.
 enum Title { Commoner, King }
@@ -363,6 +363,7 @@ trigger inherit {
     when Person and alive = false and $old.alive
     // record('{$new.name} died')
     set $new.deathdate = #Time.year
+    set $new.age = Age.Dead
     each Person $child: (is_child_of($child, $new) and alive) {
         record('{$child.name} lose their parent, {$new.name}')
         if $new.killer {
@@ -500,10 +501,21 @@ trigger born {
 // House / family names. Founders (people born with no parents) start a new house drawn from here;
 // their descendants inherit it (see couple_has_child), so lineages read as "<given> <House>".
 table Surname {
-    'Ashford', 'Blackwood', 'Caelmoor', 'Dunmere', 'Eldridge', 'Fenwick',
-    'Grimsbane', 'Holloway', 'Ironvale', 'Karras', 'Lothian', 'Mournhal',
-    'Nightfell', 'Oakhart', 'Ravenscar', 'Stormwell', 'Thornwood', 'Vaelin'
+    'Ambervale', 'Ardmore', 'Ashcombe', 'Ashford', 'Aubrey', 'Balefort', 'Barrowden', 'Bellrose',
+    'Blackwood', 'Brackenridge', 'Brightwater', 'Caelmoor', 'Caldermoor', 'Carrow', 'Cindermere',
+    'Coldharbour', 'Corvane', 'Crowhurst', 'Darkmoor', 'Deepwell', 'Dunharrow', 'Dunmere',
+    'Duskmantle', 'Elderglen', 'Eldridge', 'Emberlane', 'Everhart', 'Fairwind', 'Falconridge',
+    'Farrow', 'Fenwick', 'Foxglove', 'Frostmere', 'Galloway', 'Gildenholt', 'Glenmoor', 'Goldcrest',
+    'Greymane', 'Grimsbane', 'Hawkmoor', 'Hearthstone', 'Highcliff', 'Holloway', 'Hollowmere',
+    'Ironvale', 'Karras', 'Kestrel', 'Kingsbane', 'Larkspur', 'Lindqvist', 'Lothian', 'Marchbank',
+    'Merrow', 'Mistvale', 'Montclair', 'Mossgrave', 'Mournhal', 'Nightfell', 'Northam',
+    'Oakenshield', 'Oakhart', 'Ormond', 'Pendragon', 'Pennywhistle', 'Ravenscar', 'Redthorn',
+    'Rookwood', 'Rosewarne', 'Saltmarsh', 'Selwyn', 'Shadowmere', 'Silverbrook', 'Stonebridge',
+    'Stormwell', 'Strand', 'Swiftwater', 'Tamsin', 'Thornwood', 'Tregarth', 'Trevanion',
+    'Underhill', 'Vaelin', 'Valcourt', 'Vane', 'Westbrook', 'Whitlock', 'Wildmoor', 'Windermere',
+    'Winterbourne', 'Wolfsbane', 'Wrenfield', 'Yarrow'
 }
+
 table Name {
     'Abraxas', 'Adara', 'Adelaide', 'Adelina', 'Adrienne', 'Aelfric', 'Aelwen', 'Aeron', 'Aeronwen', 'Aeronwy', 'Agravaine', 'Ailbhe',
         'Aileen', 'Áine', 'Aislinn', 'Aithne', 'Alanna', 'Alaric', 'Alastair', 'Alastriona', 'Albion', 'Alcyone', 'Aldous', 'Aldric',
@@ -827,19 +839,23 @@ event parent_child_quarrel {
 @frequency(1, PerXYear, 8)
 @tag('items')
 event item_forged {
-    pick Person $p: (alive = true, job = Job.Smith, age > Age.Child)
-    set $p.prestige = $p.prestige + 10%
+    pick Person $p: (alive = true, job = Job.Smith)
     create Item $i: ('{random(ItemType)} of {roll(Name)}')
     set $i.item_type = ItemSource.Forged
     set $i.maker = $p
     set $i.creation_date = #Time.year
     set $i.owner = $p
     record('{$p.name} crafts the {$i.name}')
+    set $p.prestige = $p.prestige + 10%
 }
 
-table ArtifactName {
-    'Dawnbreaker', 'Nightfang', 'Stormcaller', 'Frostmourne', 'Sunforge', 'Shadowrend',
-    'Wyrmtongue', 'Lightbringer', 'Doomwhisper', 'Starfall', 'Emberheart', 'Soulward'
+table ArtifactPrefix {
+    'Dawn', 'Night', 'Storm', 'Frost', 'Sun', 'Shadow',
+    'Wyrm', 'Light', 'Doom', 'Star', 'Ember', 'Soul'
+}
+table ArtifactSuffix {
+    'breaker', 'fang', 'caller', 'mourne', 'forge', 'rend',
+    'tongue', 'bringer', 'whisper', 'fall', 'heart', 'ward'
 }
 // Wizards (a job assigned at coming-of-age that otherwise did nothing) climb the arcane ranks,
 // finally reaching Legendary mastery — previously an unreachable enum value.
@@ -871,7 +887,8 @@ event wizard_studies {
 @tag('magic', 'items')
 event artifact_forged {
     pick Person $w: (alive and job = Job.Wizard and mastery >= Mastery.Master)
-    create Item $i: ('{roll(ArtifactName)}') {
+    var $name: '{roll(ArtifactPrefix)}{roll(ArtifactSuffix)}'
+    create Item $i: ('{$name}') {
         maker := $w
         owner := $w
         item_type := ItemSource.Forged
