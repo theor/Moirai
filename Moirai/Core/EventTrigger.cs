@@ -13,9 +13,14 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
     public readonly int Id = id;
     public readonly string Name = name;
 
-    // Stable id of this rule's RNG stream (FNV-1a of the name), so every event/trigger draws from its
-    // own independent PCG stream — adding or reordering rules doesn't perturb others' randomness.
+    // Stable id of this rule's RNG stream (FNV-1a of the name, or of RngKey when it has one), so every
+    // event/trigger draws from its own independent PCG stream — adding or reordering rules doesn't perturb
+    // others' randomness.
     private ulong _rngStreamId;
+
+    /// What names the RNG stream when the display name is not stable: a schedule site is shown as
+    /// `schedule@<line>`, but keyed by its owner and ordinal so that editing lines above it moves nothing.
+    public string? RngKey { get; init; }
     public ulong RngStreamId
     {
         get
@@ -23,7 +28,7 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
             if (_rngStreamId == 0)
             {
                 ulong h = 14695981039346656037UL;
-                foreach (char c in Name)
+                foreach (char c in RngKey ?? Name)
                     h = (h ^ c) * 1099511628211UL;
                 _rngStreamId = h == 0 ? 1UL : h;
             }

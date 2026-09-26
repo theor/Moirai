@@ -35,6 +35,27 @@ public class WsgStoryTests
     }
 
     [Test]
+    public void LinesAddedAboveAScheduleMoveNothing()
+    {
+        // A schedule body's RNG stream used to be named after the line it was written on, so a comment
+        // added above one re-rolled every job, death age and accident in the world.
+        var story = File.ReadAllText(FindWsg());
+        var padded = story.Replace("\ntrigger born {", "\n// one\n// two\n// three\ntrigger born {");
+        Assert.That(padded, Is.Not.EqualTo(story));
+
+        string[] Run(string s)
+        {
+            var db = StoryParser.Parse(s, out _);
+            db.History = new();
+            db.Init();
+            db.Ctx.PassYears(120, true);
+            return db.Records.Select(r => r.Text).ToArray();
+        }
+
+        Assert.That(Run(padded), Is.EqualTo(Run(story)));
+    }
+
+    [Test]
     public void KinWithinFourDegreesDoNotMarryOrHaveChildrenTogether()
     {
         // wedding once ruled out parent and child only, and siblings share a `place`, so by year 964 on

@@ -260,6 +260,7 @@ public class AstVisitor : StoryParser.IVisitor
         var rootScope = _current;
 
         var name = fundef.Name.Text;
+        _currentFunctionName = instanceType != null ? $"{instanceType.Name}.{name}" : name;
         PropertyValue.ValueType returnType = PropertyValue.ValueType.Null;
         if (fundef.ReturnType != null)
             returnType = ParseType(fundef.ReturnType.Name);
@@ -458,6 +459,21 @@ public class AstVisitor : StoryParser.IVisitor
     }
 
     public EventTrigger? CurrentEventTrigger;
+    private string? _currentFunctionName;
+    private readonly Dictionary<string, int> _scheduleOrdinals = new();
+
+    /// A stable name for the next `schedule(...)` body's RNG stream: the definition it is written in and
+    /// its place among that definition's schedule sites, `trigger born/schedule#2`. The line it sits on
+    /// would do as a name, but then adding a line anywhere above it re-rolls every draw the body makes.
+    internal string NextScheduleStreamKey()
+    {
+        var owner = CurrentEventTrigger is { } rule
+            ? $"{(rule.IsTrigger ? "trigger" : "event")} {rule.Name}"
+            : $"function {_currentFunctionName}";
+        _scheduleOrdinals.TryGetValue(owner, out var n);
+        _scheduleOrdinals[owner] = ++n;
+        return $"{owner}/schedule#{n}";
+    }
 
     private void VisitTrigger(TriggerNode context)
     {

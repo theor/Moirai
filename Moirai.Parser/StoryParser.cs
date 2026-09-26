@@ -74,6 +74,8 @@ public static class StoryParser
                 return (null!, PropertyValue.ValueType.Null);
             }
 
+            // Taken before the body is parsed, so a schedule nested in this one is numbered after it.
+            var scheduleKey = ctx.Visitor.NextScheduleStreamKey();
             int selfVarIndex;
             IInstruction[] body;
             Moirai.Core.DebugScope? debugScope;
@@ -95,6 +97,7 @@ public static class StoryParser
                 DebugScopeRoot = debugScope,
                 Line = ctx.CallContext.Span.Position.Line,
                 IsScheduled = true,
+                RngKey = scheduleKey,
             };
             site.Effects.AddRange(body);
             var siteIndex = ctx.Visitor.Database.RegisterScheduleSite(site, selfVarIndex);
