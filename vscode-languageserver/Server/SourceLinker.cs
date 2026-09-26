@@ -11,6 +11,7 @@ public class SourceLinker : StoryParser.ILinker
     private Dictionary<EnumDefinitionId, MoiraiSymbol.EnumDefinition> _enumDefinitions = new();
     private IntervalTree<Position, MoiraiSymbol.Definition> _tree = new();
     private Dictionary<string, MoiraiSymbol.FunctionDefinition> _funDefinitions = new();
+    private Dictionary<int, MoiraiSymbol.TableDefinition> _tableDefinitions = new();
 
     public SourceLinker()
     {
@@ -99,7 +100,8 @@ public class SourceLinker : StoryParser.ILinker
     // variables are excluded: members share a line (lenses would collide) and locals are too noisy.
     private const MoiraiSymbol.DefinitionType LensKinds =
         MoiraiSymbol.DefinitionType.Type | MoiraiSymbol.DefinitionType.TypeProperty |
-        MoiraiSymbol.DefinitionType.Enum | MoiraiSymbol.DefinitionType.Function;
+        MoiraiSymbol.DefinitionType.Enum | MoiraiSymbol.DefinitionType.Function |
+        MoiraiSymbol.DefinitionType.Table;
 
     /// <summary>
     /// One entry per declaration that should carry a usage-count CodeLens: the declaration's
@@ -221,5 +223,19 @@ public class SourceLinker : StoryParser.ILinker
         var r = range.ToLspRange();
         _tree.Add(r.Start, r.End, _funDefinitions[descriptor.FuncName]);
 
+    }
+
+    public void DeclareTable(FileRange range, Moirai.Core.TableDefinition table)
+    {
+        _tableDefinitions.Add(table.Id, new MoiraiSymbol.TableDefinition(table, range.ToLspRange()));
+    }
+
+    public void LinkTable(FileRange range, Moirai.Core.TableDefinition table, bool isDeclaration = false)
+    {
+        var r = range.ToLspRange();
+        var definition = _tableDefinitions[table.Id];
+        _tree.Add(r.Start, r.End, definition);
+        if (isDeclaration)
+            definition.DeclarationNameRange = r;
     }
 }

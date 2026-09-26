@@ -214,6 +214,7 @@ public static class MoiraiSemanticTokens
         [MoiraiSymbol.DefinitionType.EnumMember] = SemanticTokenType.EnumMember,
         [MoiraiSymbol.DefinitionType.Function] = SemanticTokenType.Function,
         [MoiraiSymbol.DefinitionType.Variable] = SemanticTokenType.Variable,
+        [MoiraiSymbol.DefinitionType.Table] = SemanticTokenType.Type,
     };
 
     // ---- Syntactic layer -----------------------------------------------------------------

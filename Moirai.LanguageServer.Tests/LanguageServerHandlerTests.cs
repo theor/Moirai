@@ -344,6 +344,30 @@ event start {
     }
 
     [Test]
+    public async Task CodeLensHandler_counts_table_rolls()
+    {
+        const string content = """
+                               table Name { 'Ada', 'Bo' }
+                               table Unused { 'x' }
+                               event e {
+                                 record('{roll(Name)}')
+                                 record('{roll(Name)}')
+                               }
+                               """;
+        var doc = Process(content);
+        Assert.That(doc.Errors, Is.Empty, () => string.Join("\n", doc.Errors.Select(e => $"{e.Code}: {e.Message}")));
+        var (cache, uri, _) = await OpenAsync(content);
+        var handler = new MoiraiCodeLensHandler(cache);
+
+        var result = await handler.Handle(
+            new CodeLensParams { TextDocument = new TextDocumentIdentifier(uri) }, default);
+
+        var byLine = result!.ToDictionary(l => l.Range.Start.Line, l => l.Command!.Title);
+        Assert.That(byLine[0], Is.EqualTo("2 usages"));
+        Assert.That(byLine[1], Is.EqualTo("0 usages"));
+    }
+
+    [Test]
     public async Task CodeLensHandler_lens_invokes_show_references_command()
     {
         var (cache, uri, _) = await OpenAsync(Source);

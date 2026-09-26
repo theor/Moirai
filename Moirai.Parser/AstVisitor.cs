@@ -366,7 +366,10 @@ public class AstVisitor : StoryParser.IVisitor
             weighted[i] = (weight, val);
         }
 
-        Database.Tables.Add(new Moirai.Core.TableDefinition(Database.Tables.Count, name, weighted, valueType));
+        var table = new Moirai.Core.TableDefinition(Database.Tables.Count, name, weighted, valueType);
+        Database.Tables.Add(table);
+        Linker?.DeclareTable(context.Span, table);
+        Linker?.LinkTable(new FileRange(context.Name.Span), table, isDeclaration: true);
     }
 
     private void VisitEvent(EventNode context)

@@ -316,12 +316,15 @@ public static class StoryParser
                 return (null!, PropertyValue.ValueType.Null);
             }
 
-            var tableName = ctx.GetText(ctx.GetArgumentToken(0)!.Span);
+            var tableSpan = ctx.GetArgumentToken(0)!.Span;
+            var tableName = ctx.GetText(tableSpan);
             if (!ctx.Visitor.Database.GetTableDefinition(tableName, out var table))
             {
                 ctx.Visitor.AddError(ErrorCode.UnknownTable, ctx.CallContext.Span, tableName);
                 return (null!, PropertyValue.ValueType.Null);
             }
+
+            ctx.Visitor.Linker?.LinkTable(new FileRange(tableSpan), table);
 
             return (new RollTable(table.Id, table.Name), table.ValueType);
         }, "Samples a named weighted table: roll(TableName)"),
@@ -752,6 +755,8 @@ public static class StoryParser
             FileRange variableScope);
         void DeclareFunction(FileRange fileRange, IFunctionDescriptor descriptor, string? inlineDef = null);
         void LinkFunction(FileRange range, IFunctionDescriptor descriptor);
+        void DeclareTable(FileRange range, Moirai.Core.TableDefinition table);
+        void LinkTable(FileRange range, Moirai.Core.TableDefinition table, bool isDeclaration = false);
     }
 
     internal struct PathParser(AstVisitor astVisitor, PathNode context)

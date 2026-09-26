@@ -24,6 +24,7 @@ public static class MoiraiSymbol
         TypeProperty = 1 << 4,
         Variable = 1 << 5,
         VariableScope = 1 << 6,
+        Table = 1 << 7,
     }
 
     public abstract class Definition(DefinitionType Type, string Name, Range? FullDefinition)
@@ -91,6 +92,16 @@ public static class MoiraiSymbol
             .ToList();
 
         public Definition MemberDefinition(PropertyValue enumValue) => Members[enumValue.IntValue];
+    }
+
+    /// Keyed by the table's id rather than the engine object, so a key compares by value.
+    public class TableDefinition(Moirai.Core.TableDefinition table, Range? declarationRange)
+        : Definition<int>(DefinitionType.Table, table.Id, table.Name, declarationRange)
+    {
+        public override void GetHoverText(List<MarkedString> markedStrings)
+        {
+            markedStrings.Add(new MarkedString("moirai", $"table {Name}"));
+        }
     }
 
     public class VariableDefinition(
