@@ -1,0 +1,56 @@
+entity Artifact {
+    prop date_created: number
+    prop owner: Person
+}
+
+@display(Artifact, 'Artifacts owned',owner = $self)
+entity Person {
+    prop birth_date: number
+    prop alive: bool
+}
+
+table Names { 'Arwen', 'Brenna', 'Chandra', 'Dorian', 'Evangelique'}
+table Surnames { 'Ambervale', 'Brackenridge', 'Corvane', 'Darkmoor', 'Emberlane'}
+function create_person(){
+    create Person $p: ('{roll(Names)} {roll(Surnames)}')
+}
+
+@start
+event populate_world() {
+    call(create_person, 10)
+}
+
+trigger birth {
+    when_created Person
+    set $new.birth_date = #Time.year
+    set $new.alive = true
+    record('{$new.name} is born')
+}
+
+table NamePrefix { 'Sword', 'Spear', 'Boots', 'Keychain', 'Grimoire'}
+table NameSuffix { 'Destiny', 'Doom', 'Solace', 'Joy'}
+
+@frequency(1, Frequency.PerXYear, 15)
+event artifact_created() {
+    // event exits if no entity matched a pick 
+    pick Person $p
+    create Artifact $a: '{roll(NamePrefix)} of {roll(NameSuffix)}'
+    set $a.date_created = #Time.year
+    set $a.owner = $p
+    record('Artifact {$a.name} has been created. {$p.name} owns it.')
+}
+@frequency(1, Frequency.PerXYear, 50)
+event random_death() {
+    pick Person $p (alive)
+    set $p.alive = false
+}
+
+trigger death {
+    when Person and alive = false
+    record ('{$new.name} leaves this world')
+    each Artifact $i: (owner = $new) {
+        pick Person $other: $other != $new
+        set $i.owner = $other
+        record('The {$i.name} is given to {$other.name}')
+    }
+}
