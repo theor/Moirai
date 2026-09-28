@@ -1,0 +1,417 @@
+﻿using Moirai.Parser;
+
+namespace Moirai.Tests;
+
+// Guards the canonical sample story MoiraiCli/w.sg: it must keep parsing and running as the grammar
+// and engine evolve. Also exercises the dynastic-name feature (Surname table + family_name inheritance).
+public class WsgStoryTests
+{
+    [Test]
+    public void ParsesAndSimulatesWithoutErrors()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out var errors);
+        Assert.That(errors.Count(e => e.Severity == StoryParser.Severity.Error), Is.EqualTo(0),
+            string.Join("\n", errors));
+
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(120, true);
+        Assert.That(db.Records.Count, Is.GreaterThan(0), "a 120-year run should produce narrative records");
+    }
+
+    [Test]
+    public void LinesAddedAboveAScheduleMoveNothing()
+    {
+        // A schedule body's RNG stream used to be named after the line it was written on, so a comment
+        // added above one re-rolled every job, death age and accident in the world.
+        var story = Stories.Wsg;
+        var padded = story.Replace("\ntrigger born {", "\n// one\n// two\n// three\ntrigger born {");
+        Assert.That(padded, Is.Not.EqualTo(story));
+
+        string[] Run(string s)
+        {
+            var db = StoryParser.Parse(s, out _);
+            db.History = new();
+            db.Init();
+            db.Ctx.PassYears(120, true);
+            return db.Records.Select(r => r.Text).ToArray();
+        }
+
+        Assert.That(Run(padded), Is.EqualTo(Run(story)));
+    }
+
+    [Test]
+    public void KinWithinFourDegreesDoNotMarryOrHaveChildrenTogether()
+    {
+        // wedding once ruled out parent and child only, and siblings share a `place`, so by year 964 on
+        // seed 42 over a quarter of the children with two parents were born to full siblings. It now
+        // excludes related($x, $y, 4): parents, grandparents, siblings, aunts and uncles, first cousins.
+        // Checked here with a walk of its own, not with related() itself.
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(300, true);
+
+        var person = db.GetEntityType("Person");
+        var p1 = person.GetPropertyId("parent1");
+        var p2 = person.GetPropertyId("parent2");
+        var partner = person.GetPropertyId("partner");
+        var people = db.Entities.Where(e => e.Type == person.Id).ToDictionary(e => e.Id.Id);
+        uint Ref(Entity e, PropertyId p) => e.TryGetProperty(p, out var v) ? v.Id.Id : 0;
+
+        // Every ancestor within `depth` generations, with the nearest depth it is reached at.
+        Dictionary<uint, int> Ancestors(uint id, int depth)
+        {
+            var found = new Dictionary<uint, int> { [id] = 0 };
+            var frontier = new List<uint> { id };
+            for (var d = 1; d <= depth; d++)
+            {
+                frontier = frontier
+                    .Where(people.ContainsKey)
+                    .SelectMany(x => new[] { Ref(people[x], p1), Ref(people[x], p2) })
+                    .Where(x => x != 0)
+                    .ToList();
+                foreach (var x in frontier)
+                    found.TryAdd(x, d);
+            }
+            return found;
+        }
+
+        int? Degree(uint a, uint b)
+        {
+            var mine = Ancestors(a, 4);
+            var theirs = Ancestors(b, 4);
+            var common = mine.Keys.Intersect(theirs.Keys).Select(k => mine[k] + theirs[k]).ToList();
+            return common.Count == 0 ? null : common.Min();
+        }
+
+        var coupled = 0;
+        foreach (var e in people.Values)
+        {
+            var a = Ref(e, p1);
+            var b = Ref(e, p2);
+            if (a != 0 && b != 0)
+            {
+                coupled++;
+                Assert.That(Degree(a, b), Is.Null.Or.GreaterThan(4), $"#{e.Id.Id}'s parents #{a} and #{b} are kin");
+            }
+
+            var mate = Ref(e, partner);
+            if (mate != 0)
+                Assert.That(Degree(e.Id.Id, mate), Is.Null.Or.GreaterThan(4), $"#{e.Id.Id} is partnered with kin, #{mate}");
+        }
+
+        Assert.That(coupled, Is.GreaterThan(20), "the check needs families to look at");
+    }
+
+    [Test]
+    public void ChildrenInheritTheirFathersHouse()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(200, true);
+
+        var personType = db.GetEntityType("Person");
+        var familyNameProp = personType.GetPropertyId("family_name");
+        var parent1Prop = personType.GetPropertyId("parent1");
+
+        // Find any person with a father; their family_name must match the father's (dynastic surname).
+        int checkedPairs = 0;
+        foreach (var e in db.Entities)
+        {
+            if (e.Type != personType.Id) continue;
+            var p1 = e.GetProperty(parent1Prop);
+            if (p1.Id.IsNull) continue;
+            if (!db.TryGetEntity(p1.Id, out var father)) continue;
+
+            var childHouse = e.GetProperty(familyNameProp).Value;
+            var fatherHouse = father.GetProperty(familyNameProp).Value;
+            if (string.IsNullOrEmpty(fatherHouse)) continue;
+
+            Assert.That(childHouse, Is.EqualTo(fatherHouse),
+                "a child's family_name should equal their parent1 (father)'s house");
+            checkedPairs++;
+            if (checkedPairs >= 20) break;
+        }
+
+        Assert.That(checkedPairs, Is.GreaterThan(0),
+            "a 200-year run should produce at least one parent-child pair to verify inheritance");
+    }
+
+    [Test]
+    public void MonarchsAreCrownedAndSucceeded()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var crownings = db.Records.Count(r => r.Text.Contains("is crowned ruler of"));
+        var successions = db.Records.Count(r => r.Text.Contains("succeeds"));
+        var vacancies = db.Records.Count(r => r.Text.Contains("is left vacant"));
+
+        Assert.That(crownings, Is.GreaterThan(0), "adults should be crowned over a 400-year run");
+        // Monarchs die over the centuries, each death passing the crown to an heir or vacating it.
+        Assert.That(successions, Is.GreaterThan(0), "heirs should succeed dead monarchs");
+        Assert.That(vacancies, Is.GreaterThan(0), "some heirless deaths should vacate a throne");
+
+        // Invariant: no realm may keep a dead person on the throne — succession must transfer or vacate.
+        var countryType = db.GetEntityType("Country");
+        var rulerProp = countryType.GetPropertyId("ruler");
+        var personType = db.GetEntityType("Person");
+        var titleProp = personType.GetPropertyId("title");
+        var aliveProp = personType.GetPropertyId("alive");
+
+        int ruled = 0;
+        foreach (var e in db.Entities)
+        {
+            if (e.Type != countryType.Id) continue;
+            var ruler = e.GetProperty(rulerProp);
+            if (ruler.Id.IsNull) continue;
+            Assert.That(db.TryGetEntity(ruler.Id, out var king), Is.True);
+            // Title enum is { Commoner=1, King=2 }; a sitting ruler must be a living King.
+            Assert.That(king.GetProperty(titleProp).IntValue, Is.EqualTo(2),
+                "a country's ruler must hold the King title");
+            Assert.That(king.GetProperty(aliveProp).BoolValue, Is.True,
+                "a sitting ruler must be alive (no corpse on the throne)");
+            ruled++;
+        }
+
+        Assert.That(ruled, Is.GreaterThan(0), "at least one realm should have a reigning monarch");
+    }
+
+    [Test]
+    public void SettlementsAreFoundedGrowAndFallToRuin()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var founded = db.Records.Count(r => r.Text.Contains("founds the village of"));
+        var grewTown = db.Records.Count(r => r.Text.Contains("grows into a town"));
+        var grewCity = db.Records.Count(r => r.Text.Contains("grows into a city"));
+
+        // Settlements fall to ruin by several causes (war, monster raids, arcane catastrophe), so
+        // assert on the resulting world state rather than one specific record.
+        var settlementType = db.GetEntityType("Settlement");
+        var statusProp = settlementType.GetPropertyId("status");
+        int total = 0, ruins = 0;
+        foreach (var e in db.Entities)
+        {
+            if (e.Type != settlementType.Id) continue;
+            total++;
+            if (e.GetProperty(statusProp).IntValue == 3) ruins++; // SettlementStatus.Ruined
+        }
+
+        Assert.That(founded, Is.GreaterThan(0), "settlements should be founded over a 400-year run");
+        Assert.That(grewTown, Is.GreaterThan(0), "some villages should grow into towns");
+        Assert.That(grewCity, Is.GreaterThan(0), "some towns should grow into cities");
+        Assert.That(ruins, Is.GreaterThan(0), "some settlements should be left in ruins");
+        Assert.That(total, Is.GreaterThan(0));
+    }
+
+    [Test]
+    public void WizardsAdvanceAndForgeArtifacts()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var legendary = db.Records.Count(r => r.Text.Contains("attains legendary mastery"));
+        var masters = db.Records.Count(r => r.Text.Contains("becomes a master wizard"));
+        var forged = db.Records.Count(r => r.Text.Contains("forges the enchanted") || r.Text.Contains("forges the cursed"));
+        var catastrophes = db.Records.Count(r => r.Text.Contains("goes catastrophically wrong"));
+
+        Assert.That(masters, Is.GreaterThan(0), "wizards should climb to master rank");
+        Assert.That(legendary, Is.GreaterThan(0), "a wizard should reach the (previously unreachable) Legendary mastery");
+        Assert.That(forged, Is.GreaterThan(0), "master wizards should forge enchanted artifacts");
+
+        // Enchanted artifacts must be real Items flagged enchanted with a power set.
+        var itemType = db.GetEntityType("Item");
+        var enchantedProp = itemType.GetPropertyId("enchanted");
+        var powerProp = itemType.GetPropertyId("power");
+        int enchantedItems = 0;
+        foreach (var e in db.Entities)
+        {
+            if (e.Type != itemType.Id) continue;
+            if (!e.GetProperty(enchantedProp).BoolValue) continue;
+            enchantedItems++;
+            Assert.That(e.GetProperty(powerProp).IntValue, Is.GreaterThan(0),
+                "an enchanted artifact must carry an ArtifactPower");
+        }
+
+        Assert.That(enchantedItems, Is.GreaterThan(0), "enchanted artifacts should exist in the world");
+    }
+
+    [Test]
+    public void FaithProducesMiraclesProphetsAndSaints()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var miracles = db.Records.Count(r => r.Text.Contains("receives a miracle from"));
+        var temples = db.Records.Count(r => r.Text.Contains("raises a temple in"));
+        var saints = db.Records.Count(r => r.Text.Contains("is canonized as a saint"));
+
+        Assert.That(miracles, Is.GreaterThan(0), "devout believers in crisis should receive miracles");
+        Assert.That(temples, Is.GreaterThan(0), "prophets should raise temples");
+        Assert.That(saints, Is.GreaterThan(0), "deeply devout believers should be canonized on death");
+
+        // Temples exist as entities tied to a god; some person carries the saint flag.
+        var templeType = db.GetEntityType("Temple");
+        int templeEntities = db.Entities.Count(e => e.Type == templeType.Id);
+        Assert.That(templeEntities, Is.GreaterThan(0), "temple entities should exist");
+
+        var personType = db.GetEntityType("Person");
+        var saintProp = personType.GetPropertyId("is_saint");
+        int saintEntities = db.Entities.Count(e => e.Type == personType.Id && e.GetProperty(saintProp).BoolValue);
+        Assert.That(saintEntities, Is.GreaterThan(0), "at least one canonized saint should exist");
+    }
+
+    [Test]
+    public void FactionsTakeOnKindsAndFeud()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var circles = db.Records.Count(r => r.Text.Contains("founds the mage circle"));
+        var orders = db.Records.Count(r => r.Text.Contains("founds the knightly order"));
+        var guilds = db.Records.Count(r => r.Text.Contains("founds the thieves guild"));
+        var cults = db.Records.Count(r => r.Text.Contains("founds the cult"));
+        var feuds = db.Records.Count(r => r.Text.Contains("strikes down") && r.Text.Contains(" of "));
+
+        // A faction's kind comes from its founder's calling, so several kinds should appear.
+        int kindsSeen = new[] { circles, orders, guilds, cults }.Count(c => c > 0);
+        Assert.That(kindsSeen, Is.GreaterThanOrEqualTo(3), "factions of several callings should be founded");
+        Assert.That(feuds, Is.GreaterThan(0), "knightly orders and thieves guilds should feud");
+
+        // Factions carry a non-default kind on the entity.
+        var factionType = db.GetEntityType("Faction");
+        var kindProp = factionType.GetPropertyId("kind");
+        int withKind = db.Entities.Count(e => e.Type == factionType.Id && e.GetProperty(kindProp).IntValue > 0);
+        Assert.That(withKind, Is.GreaterThan(0), "factions should record a FactionKind");
+    }
+
+    [Test]
+    public void MonstersEmergeAndHeroesMakeLegends()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var awakenings = db.Records.Count(r => r.Text.Contains("awakens in"));
+        var legendsBorn = db.Records.Count(r => r.Text.Contains("a legend is born"));
+
+        Assert.That(awakenings, Is.GreaterThan(0), "monsters should emerge over a 400-year run");
+        Assert.That(legendsBorn, Is.GreaterThan(0), "heroes should slay monsters and make legends");
+
+        // Each Legend entity must cite a real hero and monster (it's a saga reference, not flavor text).
+        var legendType = db.GetEntityType("Legend");
+        var heroProp = legendType.GetPropertyId("hero");
+        var monsterProp = legendType.GetPropertyId("monster");
+        int legends = 0;
+        foreach (var e in db.Entities)
+        {
+            if (e.Type != legendType.Id) continue;
+            legends++;
+            Assert.That(e.GetProperty(heroProp).Id.IsNull, Is.False, "a legend must name its hero");
+            Assert.That(e.GetProperty(monsterProp).Id.IsNull, Is.False, "a legend must name its monster");
+        }
+        Assert.That(legends, Is.GreaterThan(0), "legend entities should exist");
+
+        // A slain monster records its slayer.
+        var monsterType = db.GetEntityType("Monster");
+        var slainProp = monsterType.GetPropertyId("slain_by");
+        int slain = db.Entities.Count(e => e.Type == monsterType.Id && !e.GetProperty(slainProp).Id.IsNull);
+        Assert.That(slain, Is.GreaterThan(0), "some monsters should have been slain by a hero");
+    }
+
+    [Test]
+    public void CountriesBorderNeighborsAndWarsAreAdjacent()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var countryType = db.GetEntityType("Country");
+        var nb = countryType.GetPropertyId("neighbors");
+        var warProp = countryType.GetPropertyId("war_with");
+        var countries = db.Entities.Where(e => e.Type == countryType.Id).ToList();
+
+        // Every realm borders at least one other (adjacency wired at @start).
+        foreach (var c in countries)
+            Assert.That(db.CollectionCount(c.Id, nb), Is.GreaterThan(0),
+                "every country should border at least one neighbor");
+
+        // Borders are mutual.
+        foreach (var a in countries)
+            foreach (var b in countries)
+                Assert.That(db.CollectionContains(a.Id, nb, b.Id), Is.EqualTo(db.CollectionContains(b.Id, nb, a.Id)),
+                    "adjacency must be symmetric");
+
+        // Any war in progress is between bordering realms.
+        foreach (var c in countries)
+        {
+            var w = c.GetProperty(warProp);
+            if (w.Id.IsNull) continue;
+            Assert.That(db.CollectionContains(c.Id, nb, w.Id), Is.True,
+                "a war must be between neighboring countries");
+        }
+
+        // Migration still happens (now constrained to bordering realms).
+        var moves = db.Records.Count(r => r.Text.Contains("moves to"));
+        Assert.That(moves, Is.GreaterThan(0), "people should still migrate to bordering realms");
+    }
+
+    [Test]
+    public void ErasFormAContiguousTimelineAndExportToMarkdown()
+    {
+        var story = Stories.Wsg;
+        var db = StoryParser.Parse(story, out _);
+        db.History = new();
+        db.Init();
+        db.Ctx.PassYears(400, true);
+
+        var eraType = db.GetEntityType("Era");
+        var startP = eraType.GetPropertyId("start_year");
+        var endP = eraType.GetPropertyId("end_year");
+        var eras = db.Entities
+            .Where(e => e.Type == eraType.Id)
+            .Select(e => (start: e.GetProperty(startP).IntValue, end: e.GetProperty(endP).IntValue))
+            .OrderBy(e => e.start)
+            .ToList();
+
+        Assert.That(eras.Count, Is.GreaterThan(1), "history should pass through several ages");
+        Assert.That(eras.Count(e => e.end == 0), Is.EqualTo(1), "exactly one age is open (the present)");
+        // Contiguous: each closed age ends exactly where the next begins.
+        for (int i = 0; i < eras.Count - 1; i++)
+            Assert.That(eras[i].end, Is.EqualTo(eras[i + 1].start), "ages must be contiguous");
+
+        // Markdown chronicle export.
+        var md = db.Printer.ExportChronicle();
+        Assert.That(md, Does.StartWith("# Chronicle"));
+        Assert.That(md, Does.Contain("## The Founding Age"));
+        Assert.That(md, Does.Contain("present"), "the open age is rendered as '–present'");
+        Assert.That(md, Does.Contain("- **"), "records are listed under their age");
+        Assert.That(md, Does.Not.Contain("<#"), "entity-link markup is stripped to plain names");
+    }
+}

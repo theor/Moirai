@@ -10,7 +10,7 @@ public record FileRange(FilePosition Start, FilePosition End)
     /// Built from a Superpower TextSpan (every AST node in Moirai.Parser.Ast carries one). Superpower
     /// positions are 1-based on both line and column; FileRange keeps the 0-based-on-both convention
     /// the rest of the codebase (and the LSP, via the frozen ANTLR path) already assumes, so both
-    /// axes get a "-1" here -- pinned exactly by TestProject1/FileRangePositionTests's AST-based cases.
+    /// axes get a "-1" here -- pinned exactly by Moirai.Tests/FileRangePositionTests's AST-based cases.
     /// Unlike the old ANTLR-based FileRange (whose End was the *start* of the rule's last consumed
     /// token, a quirk documented and pinned in that same test file), End here is the true end of the
     /// span -- the position one character past the last character it covers.

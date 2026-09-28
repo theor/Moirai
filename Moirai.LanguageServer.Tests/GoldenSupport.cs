@@ -6,7 +6,7 @@ namespace Moirai.LanguageServer.Tests;
 /// Locates the .sg sample stories used as a realistic corpus for the golden tests. The repo has no
 /// dedicated test-data directory -- the corpus is the app's own sample stories, so we walk up from
 /// the test binary to the repo root rather than relying on a "../../../.." relative path (the
-/// approach TestProject1's differential suites use, which breaks if the output path ever changes).
+/// approach Moirai.Tests's differential suites use, which breaks if the output path ever changes).
 public static class Corpus
 {
     public static string RepoRoot { get; } = FindRepoRoot();

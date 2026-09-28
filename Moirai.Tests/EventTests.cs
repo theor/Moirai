@@ -1,0 +1,356 @@
+﻿using Moirai.Parser;
+
+namespace Moirai.Tests;
+
+public class EventTests : TestsBase
+{
+    
+    [Test]
+    public void Event()
+    {
+        var s = @"
+entity Person {
+    prop alive: bool
+    prop test: bool
+}
+event born {
+    create Person $p
+    set alive = true
+}
+
+event die {
+    each Person $p: (alive = true) {
+        set alive = false
+        record('{$p} dies')
+    }
+}
+
+trigger on_death {
+    when Person and $new.alive = false
+
+    set test = true
+    record('trigger on {$new}')
+}";
+        var db = Run(s, out _, 0);
+        db.History = new();
+        Assert.AreEqual(1, db.Triggers.Count);
+
+        db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[1]);
+        db.Printer.PrintDb();
+        Entity e = db.Entities.First();
+        PropertyId propTest = db.GetPropertyId("Person", "test");
+        Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
+        foreach (var historyChangeset in db.History.Changesets)
+        {
+            Console.WriteLine(historyChangeset.ActionName);
+            db.Printer.PrintChangeset(historyChangeset);
+        }
+    }
+    [Test]
+    public void EventCompareOldNewValues()
+    {
+        var s = @"
+entity Person {
+    prop x: number
+    prop test: number
+}
+event born {
+    create Person $p
+    set x = 1
+    set test = 1
+}
+
+event die {
+    each Person $p: (x = 1) {
+        set x = 2
+        record('{$p} dies')
+    }
+}
+
+trigger on_death {
+    when Person and $new.x = 2 and $old.x = 1
+
+    set test = 10
+    record('trigger on {$new}')
+}
+trigger on_death2 {
+    when Person and $new.x = 2 and $old.x = 3
+
+    set test = 20
+    record('trigger on {$new}')
+}";
+        var db = Run(s, out _, 0);
+        db.History = new();
+
+        db.RunAction(db.Actions[0]);
+        // db.RunAction(db.Actions[0]);
+        db.RunAction(db.Actions[1]);
+        db.Printer.PrintDb();
+        Entity e = db.Entities.First();
+        PropertyId propTest = db.GetPropertyId("Person","test");
+        Assert.That(e.GetProperty(propTest).IntValue, Is.EqualTo(10));
+        foreach (var historyChangeset in db.History.Changesets)
+        {
+            Console.WriteLine(historyChangeset.ActionName);
+            db.Printer.PrintChangeset(historyChangeset);
+        }
+    }
+
+    [Test]
+    public void Event2()
+    {
+        var s = @"
+entity Person {
+    prop alive: bool
+}
+entity Item {
+    prop owner: Person
+}
+entity Link {
+    prop child: Person
+    prop parent: Person
+}
+
+trigger inherit {
+    when Person and $new.alive = false
+    each Item $i: (owner = $new) {
+        pick Link $l: ($l.parent = $new) 
+        pick Person $c: (alive = true, id = $l.child)
+            set $i.owner = $c
+            record('{$c.name} inherits the {$i.name} from {$new.name}')
+    }
+}";
+        var db = Run(s, out _, 0);
+        Assert.AreEqual(1, db.Triggers.Count);
+
+        // db.RunAction(db.Events[0]);
+        db.Printer.PrintDb();
+        // Entity e = db.Entities.Single();
+        // PropertyId propTest = db.GetProperty("test");
+        // Assert.AreEqual(true, e.GetProperty(propTest).BoolValue);
+    }
+
+    [Test]
+    public void Inherit_ParentName()
+    {
+        var db = Run(@"
+entity Person {
+    prop alive: bool
+    prop parent1: Person
+    prop parent2: Person
+}
+entity Item {
+    prop owner: Person
+}
+@start
+event init {
+    create Person $a: 'parent'
+    set $a.alive = true  
+    create Item $i: 'item'
+    set $i.owner = $a
+    create Person $b: 'child'
+    set $b.alive = true  
+    set $b.parent1 = $a  
+
+}
+event parent_dies {
+    pick Person $p: (id = 1)
+    debug('{$p} {$p.name}')
+    set $p.alive = false
+    record '{$p.name} dies'
+    pick Person $child: (alive, parent1 = $p or parent2 = $p)
+    record 'child: {$child.name}'
+
+}
+trigger inherit {
+    when Person and alive = false and $old.alive
+    record '{$new.name} inherits'
+    each Item $i: (owner = $new){
+        record 'item {$i.name}, looking for children of {$new.name}'
+        pick Person $child: (alive and parent1 = $new or parent2 = $new)
+        record('{$child.name} inherits the {$i.name} from {$new.name}')
+    }
+}", out _);
+        db.History = new();
+        db.RunAction("parent_dies");
+        db.Printer.PrintDb();
+        db.Printer.PrintRecords();
+        Assert.That(db.Records.Last().Text, Is.EqualTo("<#3>child</> inherits the <#2>item</> from <#1>parent</>"));
+    }
+
+
+    [Test, Ignore("obsolete json...")]
+    public void Bug_Inherit()
+    {
+        string json =
+            "[{\"Id\":1,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"time\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":4,\"Value\":{\"Value\":null,\"IntValue\":844,\"Type\":[3,0]}}]},{\"Id\":2,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Lowenna Tarian\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Lowenna\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":764,\"Type\":[3,0]}},{\"Type\":11,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[5,1]}},{\"Type\":9,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[2,0]}}]},{\"Id\":3,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Aeron\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":784,\"Type\":[3,0]}},{\"Type\":11,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[5,1]}},{\"Type\":9,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":4,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"ring of Lowenna Tarian\",\"IntValue\":-2147483648,\"Type\":[1,0]}}]},{\"Id\":5,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Portrait of Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":12,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,3]}},{\"Type\":15,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":6,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Portrait of Aeron Morgaine\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":12,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[5,3]}},{\"Type\":15,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}}]},{\"Id\":7,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[6,0]}},{\"Type\":3,\"Value\":{\"Value\":\"Auberon Lowennason\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":6,\"Value\":{\"Value\":\"Auberon\",\"IntValue\":-2147483648,\"Type\":[1,0]}},{\"Type\":7,\"Value\":{\"Value\":null,\"IntValue\":1,\"Type\":[4,0]}},{\"Type\":5,\"Value\":{\"Value\":null,\"IntValue\":0,\"Type\":[5,2]}},{\"Type\":8,\"Value\":{\"Value\":null,\"IntValue\":804,\"Type\":[3,0]}}]},{\"Id\":8,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":5,\"Type\":[6,0]}},{\"Type\":13,\"Value\":{\"Value\":null,\"IntValue\":2,\"Type\":[2,0]}},{\"Type\":14,\"Value\":{\"Value\":null,\"IntValue\":7,\"Type\":[2,0]}}]},{\"Id\":9,\"Properties\":[{\"Type\":2,\"Value\":{\"Value\":null,\"IntValue\":5,\"Type\":[6,0]}},{\"Type\":13,\"Value\":{\"Value\":null,\"IntValue\":3,\"Type\":[2,0]}},{\"Type\":14,\"Value\":{\"Value\":null,\"IntValue\":7,\"Type\":[2,0]}}]}]";
+        string script = @"
+entity Person {}
+entity Item {}
+entity Faction {}
+entity Link {}
+
+tag #death
+
+enum Job { Smith, Farmer, Painter, Sculptor }
+enum Age { Child, Young, Adult, Old }
+enum ItemType { Forged, Painted, Sculpted }
+
+prop age: Age
+prop first_name: string
+prop alive: bool
+prop birthdate: number
+prop partner: ref
+prop faction: ref
+prop job: Job
+prop item_type: ItemType
+
+prop parent: ref
+prop child: ref
+
+prop owner: ref
+
+trigger inherit {
+    when #death
+    when $p: type = Person, alive = false
+    record('## {$p} {$p.name} died, inheriting')
+    each $i: (type = Item, owner = $p) {
+        record('##   {$i} {$i.name} item')
+        pick $l: (type = Link, $l.parent = $p)
+        set $i.owner = $l.child
+        var $c = $l.child
+        record('{$c.name} inherits the {$i.name} from {$p.name} - {$l}')
+    }
+}
+
+@1 every 1 year
+event olds_dies {
+    each Person $p: alive = true, age = Age.Old, (birthdate + 80) <= #Time.year{
+        set $p.alive = false
+        record('{$p.name} dies of old age at {#Time.year - $p.birthdate} in {#Time.year}')
+    }
+}
+";
+
+        var db = StoryParser.Parse(script, out List<StoryParser.Error> _);
+        db.Deserialize(json);
+        db.Init();
+        db.Printer.PrintDb();
+        db.Ctx.PassYears(1, true);
+        // db.PrintDb();
+        db.Printer.PrintChangeset(db.CurrentChangeset, false);
+        Console.WriteLine(db.Records.Last().Text);
+    }
+
+    private const string ScheduleStory = @"
+entity Person {
+    prop birthdate: number
+    prop grown: bool
+}
+event create_time {
+    create Time $t: 'time'
+    set $t.year = 100
+}
+event make {
+    create Person $p
+    set $p.birthdate = #Time.year
+}
+trigger born {
+    when_created Person
+    schedule($new, $new.birthdate + 3) {
+        set $self.grown = true
+        record('grew at {#Time.year}')
+    }
+}";
+
+    private static bool FirstPersonGrown(Database db)
+    {
+        var personType = db.GetEntityType("Person").Id;
+        var grownProp = db.GetPropertyId("Person", "grown");
+        var person = db.Entities.First(e => e.Type == personType);
+        return person.GetProperty(grownProp).BoolValue;
+    }
+
+    [Test]
+    public void ScheduleFiresWhenDue()
+    {
+        var db = Run(ScheduleStory, out _);
+        db.History = new();
+        db.RunAction("create_time");
+        db.RunAction("make");
+
+        // Scheduled for birthdate(100) + 3 = 103; not due during years 101, 102.
+        db.Ctx.PassYears(2, true);
+        Assert.That(FirstPersonGrown(db), Is.False, "should not have grown before year 103");
+        Assert.That(db.Records, Is.Empty, "no scheduled record before it is due");
+
+        // Year 103: the deferred effect fires.
+        db.Ctx.PassYears(1, true);
+        Assert.That(FirstPersonGrown(db), Is.True, "should have grown at year 103");
+        Assert.That(db.Records.Count, Is.EqualTo(1));
+        Assert.That(db.Records.Last().Text, Is.EqualTo("grew at 103"));
+
+        // It fires exactly once.
+        db.Ctx.PassYears(3, true);
+        Assert.That(db.Records.Count, Is.EqualTo(1), "deferred effect must fire only once");
+    }
+
+    [Test]
+    public void ScheduleCatchesUpOnMultiYearJump()
+    {
+        var db = Run(ScheduleStory, out _);
+        db.History = new();
+        db.RunAction("create_time");
+        db.RunAction("make");
+
+        // Jump straight past year 103 in a single PassYears call; the drain uses `<=` so it still fires.
+        db.Ctx.PassYears(20, true);
+        Assert.That(FirstPersonGrown(db), Is.True, "should catch up when the due year is jumped over");
+        Assert.That(db.Records.Count, Is.EqualTo(1));
+        Assert.That(db.Records.Last().Text, Is.EqualTo("grew at 103"));
+    }
+
+    [Test]
+    public void ScheduleIsDeterministic([Values(1ul, 2ul, 3ul)] ulong seed)
+    {
+        // A scheduled body that consumes the shared RNG, fired for several entities the same year, must
+        // produce an identical record stream across runs with the same seed (fixed (year, seq) drain order).
+        const string story = @"
+enum Job { Farmer, Smith, Monk }
+entity Person {
+    prop birthdate: number
+    prop job: Job
+}
+event create_time {
+    create Time $t: 'time'
+    set $t.year = 100
+}
+@frequency(3, EveryXYear, 1)
+event make {
+    create Person $p
+    set $p.birthdate = #Time.year
+}
+trigger born {
+    when_created Person
+    schedule($new, $new.birthdate + 2) {
+        set $self.job = random(Job)
+        record('job {$self.job} at {#Time.year}')
+    }
+}";
+        string Records(ulong s)
+        {
+            var db = Run(story, out _);
+            db.SetSeed(s);
+            db.RunAction("create_time");
+            db.Ctx.PassYears(10, true);
+            return string.Join("\n", db.Records.Select(r => r.Text));
+        }
+
+        var first = Records(seed);
+        Assert.That(first, Is.Not.Empty);
+        Assert.That(Records(seed), Is.EqualTo(first));
+    }
+
+}
