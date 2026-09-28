@@ -25,6 +25,13 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 10.0.x
+    # Publish builds the Svelte client (yarn install && yarn build), so it needs Node and yarn.
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: yarn
+        cache-dependency-path: MoiraiWebServer/ClientAppSvelte/yarn.lock
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -32,8 +39,11 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
     - name: Publish
-      run: dotnet publish -c Release MoiraiWebServer/MoiraiWebServer.csproj
+      # Framework-dependent and run through `dotnet MoiraiWebServer.dll` (see release/run.*), so the one
+      # zip works on every OS; an apphost built here would be a Linux binary that confuses everyone else.
+      run: dotnet publish -c Release -p:UseAppHost=false MoiraiWebServer/MoiraiWebServer.csproj
     - name: Archive Release
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
       uses: thedoctor0/zip-release@0.7.5
       with:
         type: 'zip'

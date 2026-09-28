@@ -128,7 +128,10 @@ internal class Program
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapHub<ChatHub>("/hub");
-            // endpoints.MapFallbackToFile("index.html");
+            // A deep link (/records, a reload) is a client route with no file behind it: hand it the SPA.
+            // Not in development, where UseSpa below proxies everything to the Vite dev server instead.
+            if (!app.Environment.IsDevelopment())
+                endpoints.MapFallbackToFile("index.html");
         });
 #pragma warning restore ASP0014
         if (app.Environment.IsDevelopment())

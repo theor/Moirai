@@ -20,6 +20,13 @@
       <ProjectReference Include="..\Moirai\Moirai.csproj" />
       <ProjectReference Include="..\Moirai.DebugAdapter\Moirai.DebugAdapter.csproj" />
     </ItemGroup>
+    <!-- The release zip starts with one click: a story to load and a launcher for each platform. -->
+    <ItemGroup>
+        <Content Update="ClientApp\**;ClientAppSvelte\**;Hubs\**" CopyToPublishDirectory="Never" />
+        <None Include="..\MoiraiCli\w.sg" Link="w.sg" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest" />
+        <None Update="release\run.cmd;release\run.sh" Link="%(Filename)%(Extension)" CopyToOutputDirectory="Never" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+
     <Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
         <!-- As part of publishing, ensure the JS resources are freshly built in production mode -->
         <Exec WorkingDirectory="$(SpaRoot)" Command="yarn install" />
@@ -27,7 +34,9 @@
 
         <!-- Include the newly-built files in the publish output -->
         <ItemGroup>
-            <DistFiles Include="$(SpaRoot)dist\**" />
+            <!-- adapter-static writes build/. A staged WebAssembly engine (yarn wasm:build) lands there too,
+                 but it is the Pages site's, not the server's: leave it out. -->
+            <DistFiles Include="$(SpaRoot)build\**" Exclude="$(SpaRoot)build\_framework\**;$(SpaRoot)build\w.sg" />
             <ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
                 <RelativePath>wwwroot\%(RecursiveDir)%(FileName)%(Extension)</RelativePath>
                 <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
