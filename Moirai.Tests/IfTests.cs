@@ -13,7 +13,9 @@ event c {
 }
 @start
 event r {
-    call (c, 100)
+    repeat(100) {
+        c()
+    }
 }", out _);
     }
     [Test]
@@ -27,7 +29,9 @@ event c {
 }
 @start
 event r {
-    call (c, 100)
+    repeat(100) {
+        c()
+    }
 }", out _);
     }
 }

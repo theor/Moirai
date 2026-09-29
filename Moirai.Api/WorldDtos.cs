@@ -41,7 +41,7 @@ public record BiographyEntry(
 
 /// <summary>
 /// One link in a record's chain of causes: a rule that ran. <c>Kind</c> is <c>event</c> (scheduled),
-/// <c>call</c> (an event another rule call()ed) or <c>trigger</c>. <c>Because</c> says what set a
+/// <c>call</c> (an event another rule called) or <c>trigger</c>. <c>Because</c> says what set a
 /// trigger off -- which entity changed, and how -- in the same entity-link markup record text uses, and
 /// is empty for an event, which the schedule ran. <c>Line</c> is the rule's 1-based line in the story.
 /// <c>Records</c> are what that rule wrote, so each step reads as something that happened.

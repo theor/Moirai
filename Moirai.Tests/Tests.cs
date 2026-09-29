@@ -454,7 +454,9 @@ event born_char {
 }
 @start
 event init {
-    call (born_char, 10)
+    repeat(10) {
+        born_char()
+    }
 }
 event r {
     each Person $p {
@@ -905,7 +907,7 @@ event called {
     create E $e
 }
 event run {
-    call called
+    called()
 }";
         var db = Run(s, out var errors);
         db.History = new();

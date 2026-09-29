@@ -146,7 +146,7 @@
     },
     "builtins": {
       "$comment": "Exactly StoryParser.Functions. Listed rather than recognised by a following `(`, because the statement forms take none: `create Person $p: ...`, `pick Person $x: (...)`.",
-      "match": "\\b(create|each|pick|schedule|assert|assert_eq|mark|since_last|related|record|link|call|random|chance|roll|add|remove|contains|sum|avg|min|max|count|not|floor|round|ceiling|clamp01|debug|repeat)\\b",
+      "match": "\\b(create|each|pick|schedule|assert|assert_eq|mark|since_last|related|record|link|random|chance|roll|add|remove|contains|sum|avg|min|max|count|not|floor|round|ceiling|clamp01|debug|repeat)\\b",
       "name": "support.function.builtin.moirai"
     },
     "string": {

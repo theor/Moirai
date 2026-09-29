@@ -64,8 +64,8 @@ public class EventTrigger(int id, string name, bool isEvent,IFilter? filter, boo
     // every devotion write, only on a death. Null = no such conjunct.
     public PropertyId[]? RequiredProps;
     public bool GatingComputed;
-    // Parameters for an event invoked as call(name, args...). Declared as the event scope's first
-    // value-stack slots (0..n-1), which call() binds before the body runs. Null = no parameters.
+    // Parameters for an event called as name(args...). Declared as the event scope's first value-stack
+    // slots (0..n-1), which the call binds before the body runs. Null = no parameters.
     public List<FunctionDefinition.Parameter>? Parameters;
     public (WhenType, EntityTypeId, IValue?) When = default;
 

@@ -815,10 +815,9 @@ public partial class AstVisitor : StoryParser.IVisitor
     private IValue ParseCall(CallNode context, out PropertyValue.ValueType returnType)
     {
         var funcName = context.FunId.Text;
-        // The grammar lets any statement-level call carry `else { ... }`. A checked built-in's forms say
-        // whether it takes one, and the binder reports it; anything else -- a story's own function, `call`
-        // -- takes none.
-        if (context.Else != null && !(StoryParser.GetFunctionDescriptor(funcName, out var checkedBuiltin) && checkedBuiltin.IsChecked))
+        // The grammar lets any statement-level call carry `else { ... }`. A built-in's forms say whether it
+        // takes one, and the binder reports it; a story's own function or event takes none.
+        if (context.Else != null && !StoryParser.GetFunctionDescriptor(funcName, out _))
             AddError(StoryParser.ErrorCode.InvalidArgument, context.Else.Span,
                 $"only a pick can have an else block; '{funcName}' cannot fail over to one");
         if (Database.GetFunctionDefinition(funcName, out var fd))
@@ -848,7 +847,8 @@ public partial class AstVisitor : StoryParser.IVisitor
         }
 
         returnType = default!;
-        return (AddError(StoryParser.ErrorCode.UnknownInstruction, context.Span, funcName) as IValue)!;
+        return (AddError(StoryParser.ErrorCode.UnknownInstruction, context.Span,
+            StoryParser.Removed.TryGetValue(funcName, out var instead) ? instead : funcName) as IValue)!;
     }
 
     internal UserFunctionCall ParseUserFunctionCall(AstVisitor astVisitor,

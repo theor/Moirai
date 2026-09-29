@@ -59,7 +59,7 @@ public struct AssignPick : IValueCall
             case CallType.Each:
             {
                 // The site's list is taken while its bodies run and handed back after, so an each whose body
-                // reaches this same site again (a call() back into its own event) gets a list of its own
+                // reaches this same site again (a call back into its own event) gets a list of its own
                 // instead of FindAll clearing the one being walked.
                 var pool = _pool ?? new List<EntityId>();
                 _pool = null;

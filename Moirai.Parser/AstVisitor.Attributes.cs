@@ -291,8 +291,7 @@ public partial class AstVisitor
             {
                 case "tag":
                     tags ??= new();
-                    // The literal as written, quotes included: a quirk as old as the ANTLR port, preserved
-                    // (call()'s use of GetString is the deliberately-trimmed counterpart).
+                    // The literal as written, quotes included: a quirk as old as the ANTLR port, preserved.
                     for (int i = 0; i < args.Count; i++)
                         tags.Add(args.String(i));
                     break;

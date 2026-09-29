@@ -67,8 +67,8 @@ cache, last-wins, rather than erroring). Deferred to avoid edge cases around rel
 follow-up if desired.
 
 ### ✅ Parametrized / unified events
-`event name($a: T, ...)` takes parameters, passed by `call(name, $x, ...)` (`EventParamTests`); the count
-form `call(name, n)` remains for events without parameters. Arguments accept the same conversions `set` does
+`event name($a: T, ...)` takes parameters, passed by calling it by name, `name($x, ...)` (`EventParamTests`);
+`repeat(n) { name() }` runs one n times. (Both replaced `call(...)`, which is gone.) Arguments accept the same conversions `set` does
 (a number into a percentage, `null` into a reference) for events and functions alike.
 
 ## Clarity / consistency
@@ -113,8 +113,7 @@ prominently.
 
 ### ✅ `event` keyword is overloaded
 `function` now doubles as the procedural keyword: a no-return `function name() { ...effects... }` is a
-subroutine, invoked via `call(name)` / `call(name, count)` (which now resolves functions, running them
-inline in the caller's changeset) or directly as `name()`. w.sg's call-only `create_country` /
+subroutine, called by name, `name()`, and run inline in the caller's changeset. w.sg's call-only `create_country` /
 `create_god` are now functions, leaving `event` for scheduled actions. (Not enforced: a non-scheduled
 `event` is still allowed; making that a warning is a possible follow-up.)
 

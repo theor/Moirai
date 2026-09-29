@@ -9,7 +9,7 @@ using System.Text;
 ///   - <b>successes</b>  events: ran to completion (returned true); triggers: predicate matched and effects ran
 ///   - <b>hit rate</b>   successes / attempts
 ///   - <b>self time</b>  wall time spent in that event/trigger, EXCLUDING nested measured scopes
-///                       (an event calling another event via <c>call()</c>, or a trigger's effects calling
+///                       (an event calling another event by name, or a trigger's effects calling
 ///                       events, and the triggers fired after an event are all measured separately).
 ///   - <b>inclusive time</b> wall time including those nested measured scopes.
 ///   - <b>self KB</b>    bytes allocated on this thread in that scope, excluding nested scopes the same way

@@ -533,7 +533,7 @@ public class Database
     // computed-vs-SQL-variable decision for $new in trigger pick/each predicates (e.g. `ruler = $new`).
     public bool RunAction(EventTrigger eventTrigger, int selfVarIndex = -1, EntityId self = default)
     {
-        // A call() from inside another rule nests: the callee's firing records its caller as its cause,
+        // A call to an event from inside another rule nests: the callee's firing records its caller as its cause,
         // and when it returns the caller gets back its attribution *and its changeset*. The callee opens a
         // changeset of its own, and without giving the caller's back, everything the caller did before
         // the call was never logged and no trigger ever saw it (w.sg's crown_monarch: the new king's
@@ -557,7 +557,7 @@ public class Database
         }
     }
 
-    // How many RunActions are on the stack: above zero, a RunAction is a call() from inside a rule.
+    // How many RunActions are on the stack: above zero, a RunAction is an event called from inside a rule.
     private int _actionDepth;
 
     private bool RunActionCore(EventTrigger eventTrigger, int selfVarIndex, EntityId self)
@@ -1418,7 +1418,7 @@ public class Database
     /// <summary>
     /// One rule running: an event (scheduled, or called by another rule) or a trigger whose predicate
     /// matched. <see cref="Parent"/> is the firing it happened inside -- the event whose changeset a
-    /// trigger reacted to, or the rule that call()ed an event -- so following parents from a record's
+    /// trigger reacted to, or the rule that called an event -- so following parents from a record's
     /// firing answers "why did this happen". For a trigger, <see cref="Cause"/> is the entity whose
     /// change set it off, and <see cref="CauseCreated"/> says whether that change was its creation.
     /// Serials start at 1; 0 means "outside any rule".

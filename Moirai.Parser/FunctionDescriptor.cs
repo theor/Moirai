@@ -4,80 +4,49 @@ namespace Moirai.Parser;
 
 public class FunctionDescriptor : IFunctionDescriptor
 {
-    public delegate (IValueCall, PropertyValue.ValueType) ParseCallDelegate(FunctionParseContext context);
-
-    /// A handler for a checked built-in: it receives arguments already bound to one of its forms, and the
-    /// return type comes from that form.
+    /// The handler: it receives arguments already bound to one of the built-in's forms, and the return type
+    /// comes from that form.
     public delegate IValueCall? BoundCallDelegate(BoundCall call);
 
     public string FuncName { get; }
     public bool ExpectVariable { get; }
 
-    /// How the built-in can be written. Empty for the few whose syntax is its own (`call`, `schedule`,
-    /// `chance`), which keep hand-written signatures in their <see cref="BuiltinDoc"/>.
-    public FunctionForm[] Forms { get; } = [];
+    /// How the built-in can be written. The parser checks every call against them before the handler runs,
+    /// and the reference's signatures are generated from them.
+    public FunctionForm[] Forms { get; }
 
-    /// True when the parser checks calls against <see cref="Forms"/>: every built-in but the special ones.
-    public bool IsChecked => _bound != null;
+    public BuiltinDoc Doc { get; }
+    public string Documentation => Doc.ToMarkdown();
+    private readonly BoundCallDelegate _bound;
 
-    public BuiltinDoc? Doc { get; }
-    public string Documentation => Doc?.ToMarkdown() ?? "";
-    private readonly ParseCallDelegate? _parse;
-    private readonly BoundCallDelegate? _bound;
-
-    /// A built-in with syntax of its own and a hand-written signature.
-    public FunctionDescriptor(string funcName, bool expectVariable, ParseCallDelegate parse, BuiltinDoc? doc = null)
-    {
-        FuncName = funcName;
-        ExpectVariable = expectVariable;
-        Doc = doc;
-        _parse = parse;
-    }
-
-    /// A built-in the parser checks against its forms before the handler runs. <paramref name="prepare"/>
-    /// runs after the arguments and before any block is parsed, for a handler that must claim something
-    /// first (schedule reserves its stream key, so a schedule nested in its body is numbered after it).
+    /// <paramref name="prepare"/> runs after the arguments and before any block is parsed, for a handler
+    /// that must claim something first (schedule reserves its stream key, so a schedule nested in its body is
+    /// numbered after it).
     public FunctionDescriptor(string funcName, FunctionForm[] forms, BoundCallDelegate parse, FunctionDoc doc,
         Func<FunctionParseContext, object?>? prepare = null)
     {
         FuncName = funcName;
         ExpectVariable = forms.Any(f => f is BindingForm);
         Forms = forms;
-        Doc = MakeDoc(funcName, forms, doc);
+        Doc = new BuiltinDoc(doc.Category, forms.Select(f => f.Signature(funcName)).ToArray(), doc.Summary, doc.Example);
         _bound = parse;
         Prepare = prepare;
     }
 
     public Func<FunctionParseContext, object?>? Prepare { get; }
 
-    static BuiltinDoc MakeDoc(string name, FunctionForm[] forms, FunctionDoc doc) =>
-        new(doc.Category, forms.Select(f => f.Signature(name)).ToArray(), doc.Summary, doc.Example);
-
     public IValueCall Parse(AstVisitor parser, CallOrRawCall call, out PropertyValue.ValueType returnType)
     {
         var ctx = new FunctionParseContext(parser, call, null);
-        if (_bound != null)
-        {
-            returnType = default;
-            // A call that cannot be bound has been reported, argument by argument; there is nothing to add.
-            if (!FunctionBinder.TryBind(this, ctx, out var bound))
-                return null!;
-            returnType = bound.ReturnType;
-            var checkedCall = _bound(bound);
-            if (checkedCall != null)
-                checkedCall.FunctionDescriptor = this;
-            return checkedCall!;
-        }
-
-        (IValueCall, PropertyValue.ValueType) c = _parse!(ctx);
-        returnType = c.Item2;
-        if (c.Item1 != null)
-            c.Item1.FunctionDescriptor = this;
-        else if (call.Call != null)
-            parser.AddError(StoryParser.ErrorCode.UnknownFunction, call.Span, "");
-        else
-            throw new InvalidOperationException(call.Span.ToStringValue());
-        return c.Item1;
+        returnType = default;
+        // A call that cannot be bound has been reported, argument by argument; there is nothing to add.
+        if (!FunctionBinder.TryBind(this, ctx, out var bound))
+            return null!;
+        returnType = bound.ReturnType;
+        var checkedCall = _bound(bound);
+        if (checkedCall != null)
+            checkedCall.FunctionDescriptor = this;
+        return checkedCall!;
     }
 
     public string Print(StoryPrinter printer, IValueCall call)

@@ -26,14 +26,12 @@ public struct CallRule : IValueCall
         _argv = null;
     }
 
+    /// Runs the event as a rule of its own. Its success is its own too: a callee that fails (a pick that
+    /// finds nobody) discards its own changes, and the caller carries on. This used to return whatever value
+    /// was last on the stack -- often the callee's last local, sometimes nothing -- so whether the caller went
+    /// on after a call was an accident of what the callee declared.
     public PropertyValue Compute(ExecuteContext ctx)
     {
-        // DONE offset value stack
-        // eg. if $0 $1 are used now, have called.$0 become $2
-        // copy result in VariableIndex then pop extra values
-        bool res = false;
-        PropertyValue ctxLastValue = default;
-
         if (Args != null)
         {
             // Evaluate arguments in the CALLER's frame first (they reference the caller's locals),
@@ -49,28 +47,23 @@ public struct CallRule : IValueCall
                     ctx.SetArgument(a, argv[a]);
                 Array.Clear(argv);
                 _argv = argv;
-                res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
-                ctxLastValue = ctx.LastValue;
+                ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
             }
 
-            return ctxLastValue;
+            return true;
         }
 
         for (int i = 0; i < Count; i++)
             using (ctx.RunScope(true))
-            {
-                res = ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
-                ctxLastValue = ctx.LastValue;
-            }
-        return ctxLastValue;
+                ctx.Database.RunAction(ctx.Database.Actions[RuleIndex]);
+        return true;
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
 
-    /// Through `call(...)` the descriptor prints it; called by name it has none, and prints as `name(args)`.
+    /// An event is called by name: `name(args)`.
     public string Print(StoryPrinter printer, int indent) =>
-        FunctionDescriptor?.Print(printer, this)
-        ?? $"{printer.GetRuleName(RuleIndex)}({string.Join(", ", (Args ?? []).Select(a => printer.Print(a)))})";
+        $"{printer.GetRuleName(RuleIndex)}({string.Join(", ", (Args ?? []).Select(a => printer.Print(a)))})";
 
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {

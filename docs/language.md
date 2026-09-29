@@ -151,7 +151,8 @@ event wedding {
 A rule calls an event by name, `harvest()`, and runs it n times with `repeat(n) { harvest() }`. An
 event can take parameters, `event found_city($founder: Person) { ... }`, called as `found_city($p)` with
 each argument checked against its type. A called event runs as a rule of its own, with its own changes and
-triggers, and if it fails, the caller stops there too, as it would after a failed `pick` of its own.
+triggers. Its failure is its own too: if its `pick` finds nobody, its own changes are discarded and the
+caller carries on.
 Events, functions and built-ins share one set of names, so an event cannot be called `floor` or share a
 name with a function.
 

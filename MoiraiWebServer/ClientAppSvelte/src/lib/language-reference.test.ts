@@ -26,7 +26,7 @@ describe('the language reference', () => {
   });
 
   it('documents the built-ins and attributes a story uses most', () => {
-    for (const name of ['pick', 'each', 'create', 'record', 'call', 'random', 'chance', 'count'])
+    for (const name of ['pick', 'each', 'create', 'record', 'repeat', 'random', 'chance', 'count'])
       expect(lookup(name, false)?.summary, name).toBeTruthy();
     for (const name of ['start', 'frequency', 'tag', 'display', 'parents'])
       expect(lookup(name, true)?.summary, name).toBeTruthy();

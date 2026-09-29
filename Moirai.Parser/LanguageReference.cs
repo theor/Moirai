@@ -67,7 +67,7 @@ public static class LanguageReference
 
     public sealed record Entry(string Kind, string Name, DocCategory Category, string[] Signatures,
         string Summary, string? Example, string[]? Targets = null, Parameter[]? Parameters = null,
-        Form[]? Forms = null, bool? Checked = null);
+        Form[]? Forms = null);
 
     /// One way to write a built-in, as data: a plain call's parameters and return type, or a binding form's
     /// head (`predicate`, `predicateAndValue`, ...) and how long its variable lives; either with its blocks.
@@ -90,10 +90,10 @@ public static class LanguageReference
     {
         foreach (var f in StoryParser.Functions)
         {
-            var d = f.Doc ?? throw new InvalidOperationException($"built-in '{f.FuncName}' has no documentation");
+            var d = f.Doc;
             var forms = f.Forms.Length == 0 ? null : f.Forms.Select(form => ToForm(f.FuncName, form)).ToArray();
             yield return new Entry("function", f.FuncName, d.Category, d.Signatures, d.Summary, d.Example,
-                Forms: forms, Checked: f.IsChecked ? true : null);
+                Forms: forms);
         }
 
         foreach (var a in StoryParser.Attributes)

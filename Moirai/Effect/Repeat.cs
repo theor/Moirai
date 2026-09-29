@@ -2,7 +2,7 @@ using Moirai.Core;
 
 /// `repeat(n) { ... }`: runs the block n times, n read once before the first turn. Each turn is a scope of
 /// its own, like an `each` iteration, and a statement that stops (a failed pick) ends that turn only -- so
-/// `repeat(10) { found_city() }` behaves like ten separate calls, which is what `call(found_city, 10)` did.
+/// `repeat(10) { found_city() }` behaves like ten separate calls.
 /// It draws no random numbers of its own.
 public struct Repeat : IValueCall
 {

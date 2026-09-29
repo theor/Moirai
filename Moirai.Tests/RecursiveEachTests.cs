@@ -5,7 +5,7 @@ namespace Moirai.Tests;
 /// An `each` that is re-entered while it is still walking. Every `each` site kept one results list, so
 /// the inner run's FindAll cleared and refilled the list the outer loop was walking: the outer loop then
 /// carried on over the inner run's matches (by then none) and skipped the rest of its own. A rule cannot
-/// call() itself, but a trigger's body can call an event whose change fires that same trigger again.
+/// a call itself, but a trigger's body can call an event whose change fires that same trigger again.
 public class RecursiveEachTests
 {
     private const string Story = @"

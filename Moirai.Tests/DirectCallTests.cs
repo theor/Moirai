@@ -3,7 +3,7 @@ using Moirai.Parser;
 namespace Moirai.Tests;
 
 /// Events and procedures are called by name, `harvest()` and `greet($p)`, and `repeat(n) { ... }` runs a
-/// block n times. Together they replace `call(event, args...)` and `call(event, n)`.
+/// block n times. Together they replaced `call(event, args...)` and `call(event, n)`, which is gone.
 public class DirectCallTests
 {
     const string Story = @"
@@ -63,10 +63,10 @@ event lonely {
     [Test]
     public void RepeatRunsItsBlockNTimesAndAStopEndsOnlyThatTurn()
     {
-        // lonely's pick finds nobody, so lonely fails -- and, as after a failed pick of its own, the caller
-        // stops there: each turn records, then ends at the call. Every turn still runs.
-        var records = Records("    repeat(3) {\n        record('a turn')\n        lonely()\n        record('unreached')\n    }");
-        Assert.That(records, Is.EqualTo(new[] { "a turn", "a turn", "a turn" }));
+        // lonely's pick finds nobody, so lonely fails. A called event is a rule of its own, and so is its
+        // failure: the caller carries on, and every turn runs to its end.
+        var records = Records("    repeat(2) {\n        lonely()\n        record('a turn')\n    }");
+        Assert.That(records, Is.EqualTo(new[] { "a turn", "a turn" }));
 
         // A stop in the block itself ends that turn only.
         records = Records("    repeat(2) {\n        pick Person $p: (name_seen)\n        record('unreached')\n    }\n    record('after')");
@@ -81,19 +81,21 @@ event lonely {
     }
 
     /// Every rule draws from its own random stream and repeat draws nothing, so repeating a call is the same
-    /// history as the old count form.
+    /// history as writing it out -- and as the `call(harvest, 5)` it replaced.
     [Test]
-    public void RepeatingACallIsTheSameHistoryAsTheCountForm()
+    public void RepeatingACallIsTheSameHistoryAsWritingItOut()
     {
-        Assert.That(Records("    repeat(5) {\n        harvest()\n    }"), Is.EqualTo(Records("    call(harvest, 5)")));
+        Assert.That(Records("    repeat(5) {\n        harvest()\n    }"),
+            Is.EqualTo(Records(string.Concat(Enumerable.Repeat("    harvest()\n", 5)))));
     }
 
+    /// `call` is gone; a story that still uses it is told what to write instead.
     [Test]
-    public void CallStillWorksButIsDeprecated()
+    public void CallIsGoneAndSaysWhatToWriteInstead()
     {
         Run("    call(harvest)", out var errors);
-        Assert.That(errors.Single().Code, Is.EqualTo(StoryParser.ErrorCode.Deprecated));
-        Assert.That(errors.Single().Severity, Is.EqualTo(StoryParser.Severity.Warning));
+        Assert.That(errors.Select(e => e.Code), Does.Contain(StoryParser.ErrorCode.UnknownInstruction));
+        Assert.That(errors.Select(e => e.Message), Has.Some.Contains("repeat(n) { name() }"));
     }
 
     [TestCase("event floor {\n    record('x')\n}")]

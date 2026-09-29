@@ -6,6 +6,13 @@ namespace Moirai.Parser;
 
 public static class StoryParser
 {
+    /// Built-ins that are gone, and what to write instead: a story that still uses one is told how to move
+    /// on, rather than that the name is unknown.
+    public static readonly IReadOnlyDictionary<string, string> Removed = new Dictionary<string, string>
+    {
+        ["call"] = "call() was removed: call an event or a function by name, name(args), and run one n times with repeat(n) { name() }",
+    };
+
     public static bool GetFunctionDescriptor(string name, [NotNullWhen(true)] out FunctionDescriptor? descriptor)
     {
         descriptor = Functions.FirstOrDefault(f => f.FuncName == name);
@@ -126,56 +133,6 @@ public static class StoryParser
             new FunctionDoc(DocCategory.Records,
                 "Inside a record's text, shows `text` as a link to `entity`. Use it when the words should not be the entity's name. Unlike `{$p.name}`, a link does not make the entity one of the record's participants.",
                 "pick Person $p: (alive)\nrecord('{$p.name} paints a {link($p, 'self-portrait')}')")),
-        new("call", false, ctx =>
-        {
-            ctx.Visitor.AddWarning(ErrorCode.Deprecated, ctx.CallContext.Span,
-                "call() is deprecated: call an event or a function by name, name(args), and repeat one with repeat(n) { name() }");
-            var arg = ctx.GetArgumentToken(0);
-            string? eventName = arg?.Value?.Path != null
-                ? arg.Value.Path.Span.ToStringValue()
-                : arg?.Value?.StringLit?.GetString();
-            if (eventName == null)
-            {
-                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span, "event name");
-                return (null!, PropertyValue.ValueType.Null);
-            }
-
-            int count = 1;
-            if (ctx.ArgCount > 1)
-            {
-                var countValue = ctx.ParseArgument(1);
-                if (countValue is Literal {
-                        Value.Type.BaseType: PropertyValue.ValueBaseType.Number
-                    } l)
-                {
-                    count = l.Value.IntValue;
-                }
-            }
-
-            // call() invokes either a scheduled event (run via RunAction, own changeset + triggers)
-            // or a procedural function (run inline in the caller's changeset).
-            var eventIndex = ctx.Visitor.Database.Actions.FindIndex(r => r.Name == eventName);
-            if (eventIndex != -1)
-            {
-                // A parameterized event takes the trailing call() args as its arguments (the count
-                // form is only for zero-parameter events).
-                if (ctx.Visitor.Database.Actions[eventIndex].Parameters is { Count: > 0 })
-                    return (EventCall(ctx, eventIndex, firstArgument: 1, $"call({eventName})"), PropertyValue.ValueType.Null);
-                return (new CallRule(eventIndex, count), PropertyValue.ValueType.Null);
-            }
-
-            var funcIndex = ctx.Visitor.Database.Functions
-                .FindIndex(f => f.Name == eventName && !f.IsInstanceMethod);
-            if (funcIndex != -1)
-                return (new CallFunction(ctx.Visitor.Database.Functions[funcIndex], count),
-                    PropertyValue.ValueType.Null);
-
-            ctx.Visitor.AddError(ErrorCode.UnknownRule, arg?.Span ?? ctx.CallContext.Span, eventName);
-            return (null!, PropertyValue.ValueType.Null);
-        }, new BuiltinDoc(DocCategory.Rules,
-            ["call(event)", "call(event, n)", "call(event, arg1, arg2, ...)", "call(function)"],
-            "Deprecated, and a warning says so: call an event or a function by name, `harvest()` or `greet($p)`, and repeat one with `repeat(n) { harvest() }`. `call` runs an event now, from inside another rule. The event runs as a rule of its own: its changes are logged and trigger reactions like a scheduled event's, and the caller's own changes carry on around it. `n`, a number literal, runs it that many times. An event declared with parameters, `event greet($who: Person) { }`, takes its arguments instead, checked against their types. `call` also runs a `function` that returns nothing (a procedure), inline in the caller's rule. The event can be written anywhere in the story, and a function can call one too.",
-            "call(harvest, 3)\npick Person $p: (alive)\ncall(greet, $p)\ncall(feast)")),
 
         new("random",
             [
@@ -474,8 +431,6 @@ public static class StoryParser
         DuplicateDefinition,
         UnknownTable,
         InvalidArgument,
-        /// A construct that still works but has a newer way to be written.
-        Deprecated,
     }
 
     /// <summary>How a <see cref="Error"/> should be surfaced. Defaults to <see cref="Error"/> (value 0)

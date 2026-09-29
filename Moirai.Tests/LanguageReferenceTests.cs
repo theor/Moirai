@@ -204,13 +204,12 @@ function feast() {
     }
 
     /// Every built-in is checked against its forms by the parser -- plain calls, binding forms and the
-    /// blocks either carries -- except `call`, whose arguments depend on the rule it names and which keeps a
-    /// hand-written signature. Adding a built-in means giving it forms.
+    /// blocks either carries -- and its signatures are generated from them: nothing in the reference is
+    /// hand-written. Adding a built-in means giving it forms.
     [Test]
-    public void EveryBuiltinButCallIsChecked()
+    public void EveryBuiltinHasForms()
     {
-        Assert.That(StoryParser.Functions.Where(f => !f.IsChecked).Select(f => f.FuncName), Is.EquivalentTo(new[] { "call" }));
-        Assert.That(StoryParser.Functions.Where(f => f.IsChecked && f.Forms.Length == 0).Select(f => f.FuncName), Is.Empty);
+        Assert.That(StoryParser.Functions.Where(f => f.Forms.Length == 0).Select(f => f.FuncName), Is.Empty);
     }
 
     [Test]
