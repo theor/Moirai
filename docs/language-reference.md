@@ -35,10 +35,10 @@ var $mean: avg Person $p: (alive, $p.happiness)
 ```moirai
 count T $v
 count T $v: (predicate...)
-count($e.coll)
+count(coll: collection): number
 ```
 
-`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count($e.coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.
+`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count(coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.
 
 ```moirai
 var $living: count Person $p: (alive)
@@ -48,10 +48,11 @@ pick Person $p: (alive, count($p.friends) < 3)
 ### `each`
 
 ```moirai
-each T $v: (predicate) { ... }
+each T $v: (predicate...) { ... }
+each T $v { ... }
 ```
 
-Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.
+Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first; with no predicate, for every T. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.
 
 ```moirai
 each Person $p: (alive, age > 60) {
@@ -86,8 +87,8 @@ var $youngest: min Person $p: (alive, $p.age)
 ### `pick`
 
 ```moirai
-pick T $v: (predicate)
-pick T $v: (predicate) else { ... }
+pick T $v: (predicate...)
+pick T $v: (predicate...) else { ... }
 ```
 
 Picks one T the predicate matches, uniformly at random, and binds it to $v. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. The block cannot see $v. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.
@@ -153,10 +154,10 @@ call(feast)
 ### `mark`
 
 ```moirai
-mark(entity)
+mark(entity: entity)
 ```
 
-Remembers that this rule touched `entity` this year, for `since_last` to read. Marks belong to the rule that makes them, so pair `mark` and `since_last` in the same rule. Use the pair to keep a rule from picking the same entity again too soon.
+Remembers that this rule touched `entity` this year, for `since_last` to read. Marks belong to the rule that makes them, so pair `mark` and `since_last` in the same rule, which must be an event or a trigger. Use the pair to keep a rule from picking the same entity again too soon.
 
 ```moirai
 pick Person $p: (alive, since_last($p) > 4)
@@ -184,7 +185,7 @@ schedule($p, #Time.year + 20) {
 ### `since_last`
 
 ```moirai
-since_last(entity)
+since_last(entity: entity): number
 ```
 
 The number of years since this rule last called `mark(entity)`. An entity this rule never marked counts as marked in year 0, so it reads as long ago rather than as a special value. Usable in a pick's predicate.
@@ -218,12 +219,12 @@ if chance(50%) {
 ### `random`
 
 ```moirai
-random(EnumName)
-random(max)
-random(min, max)
+random(E: enum): E
+random(max: number literal): number
+random(min: number literal, max: number): number
 ```
 
-`random(EnumName)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. The first argument must be a number literal (or the enum); the second can be any number expression. Every call draws from the rule's own random stream, so the world stays the same for a given seed.
+`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.
 
 ```moirai
 pick Person $x: (alive)
@@ -236,10 +237,10 @@ if random(100) < 8 {
 ### `roll`
 
 ```moirai
-roll(TableName)
+roll(T: table): entry of T
 ```
 
-Draws one entry from a `table`, according to its weights. The result has the type of the table's entries.
+Draws one entry from a `table`, according to its weights.
 
 ```moirai
 create Person $p: '{roll(Name)}'
@@ -250,7 +251,7 @@ create Person $p: '{roll(Name)}'
 ### `link`
 
 ```moirai
-link(entity, 'text')
+link(entity: entity, text: string): string
 ```
 
 Inside a record's text, shows `text` as a link to `entity`. Use it when the words should not be the entity's name. Unlike `{$p.name}`, a link does not make the entity one of the record's participants.
@@ -263,11 +264,10 @@ record('{$p.name} paints a {link($p, 'self-portrait')}')
 ### `record`
 
 ```moirai
-record('text')
-record('text', weight)
+record('text'[, weight: number])
 ```
 
-Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight, any number expression (taken as a whole number), says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.
+Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight (taken as a whole number) says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.
 
 ```moirai
 pick Person $p: (alive)
@@ -279,10 +279,10 @@ record('{$p.name} is crowned', 5)
 ### `related`
 
 ```moirai
-related($a, $b, n)
+related(a: entity, b: entity, n: 0..6): bool
 ```
 
-True when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. `n` is a number literal from 0 to 6. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.
+True when a and b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.
 
 ```moirai
 pick Person $x: (alive, partner = null)
@@ -294,7 +294,7 @@ pick Person $y: (alive, partner = null, $y != $x, not(related($x, $y, 4)))
 ### `add`
 
 ```moirai
-add($e.coll, value)
+add(coll: collection, value: element of coll)
 ```
 
 Adds a value to a collection property (`prop friends: [Person]`). A collection is a set: adding a value it already holds changes nothing.
@@ -308,7 +308,7 @@ add($a.friends, $b)
 ### `contains`
 
 ```moirai
-contains($e.coll, value)
+contains(coll: collection, value: element of coll): bool
 ```
 
 True when the collection property holds the value. Usable in a pick's predicate.
@@ -321,7 +321,7 @@ pick Person $b: (alive, $b != $a, not(contains($a.friends, $b)))
 ### `remove`
 
 ```moirai
-remove($e.coll, value)
+remove(coll: collection, value: element of coll)
 ```
 
 Removes a value from a collection property. Removing a value it does not hold changes nothing.
@@ -337,7 +337,7 @@ remove($a.friends, $b)
 ### `ceiling`
 
 ```moirai
-ceiling(x)
+ceiling(x: number): number
 ```
 
 x rounded up to a whole number.
@@ -349,7 +349,7 @@ var $boats: ceiling(count Person $p: (alive) / 12)
 ### `clamp01`
 
 ```moirai
-clamp01(x)
+clamp01(x: number): number
 ```
 
 x limited to the range 0 to 1. It is for fractions: a percentage is held as 0 to 100 and is already kept in that range whenever it is set.
@@ -361,7 +361,7 @@ var $share: clamp01(count Person $p: (alive) / 1000)
 ### `floor`
 
 ```moirai
-floor(x)
+floor(x: number): number
 ```
 
 x rounded down to a whole number.
@@ -373,7 +373,7 @@ var $half: floor(count Person $p: (alive) / 2)
 ### `not`
 
 ```moirai
-not(condition)
+not(condition: condition): bool
 ```
 
 True when the condition is false. Usable in a pick's predicate.
@@ -385,7 +385,7 @@ pick Person $p: (not($p.alive))
 ### `round`
 
 ```moirai
-round(x)
+round(x: number): number
 ```
 
 x rounded to the nearest whole number. A half rounds to the even neighbour: round(2.5) is 2, round(3.5) is 4.
@@ -399,7 +399,7 @@ var $mean: round(avg Person $p: (alive, $p.age))
 ### `assert`
 
 ```moirai
-assert(condition)
+assert(condition: condition)
 ```
 
 Stops the simulation with an error when the condition is false. The error quotes the condition as written.
@@ -412,7 +412,7 @@ assert($p.age >= 0)
 ### `assert_eq`
 
 ```moirai
-assert_eq(actual, expected)
+assert_eq(actual: any, expected: any)
 ```
 
 Stops the simulation with an error when the two values differ. The error quotes both expressions as written and prints both values.
@@ -427,7 +427,7 @@ assert_eq($p.age, 3)
 ### `debug`
 
 ```moirai
-debug(value, ...)
+debug(value: any, ...)
 ```
 
 Prints each argument, as written and as it evaluates, to the host's console (the server's, or the browser's developer console). It changes nothing in the world.

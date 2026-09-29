@@ -20,6 +20,27 @@ export interface ReferenceEntry {
   targets?: string[];
   /** An attribute's parameters, from which its signature was generated. */
   parameters?: ReferenceParameter[];
+  /** A built-in function's forms, from which its signatures were generated. Absent for the few with
+   * syntax of their own (`call`, `schedule`, `chance`). */
+  forms?: ReferenceForm[];
+  /** True when the parser checks calls against the forms, rather than the forms describing the call. */
+  checked?: boolean;
+}
+
+/** One way to write a built-in: `Form` in `Moirai.Parser/LanguageReference.cs`. */
+export interface ReferenceForm {
+  kind: 'call' | 'binding';
+  signature: string;
+  parameters?: {
+    name: string;
+    kind: string;
+    type: string;
+    optional?: boolean;
+    repeated?: boolean;
+  }[];
+  returns?: string;
+  head?: string;
+  block?: string;
 }
 
 /** One parameter of an attribute: `AttributeParam` in `Moirai.Parser/AttributeSchema.cs`. */

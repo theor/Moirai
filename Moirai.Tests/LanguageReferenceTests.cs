@@ -179,6 +179,91 @@ function feast() {
         Assert.That(errors, Is.Empty, () => string.Join("\n", errors));
     }
 
+    // ---- Built-in functions ----------------------------------------------------------------------
+
+    /// A built-in's signatures are generated from its forms. These pin the notation.
+    [TestCase("floor", 0, "floor(x: number): number")]
+    [TestCase("record", 0, "record('text'[, weight: number])")]
+    [TestCase("random", 0, "random(E: enum): E")]
+    [TestCase("random", 2, "random(min: number literal, max: number): number")]
+    [TestCase("related", 0, "related(a: entity, b: entity, n: 0..6): bool")]
+    [TestCase("add", 0, "add(coll: collection, value: element of coll)")]
+    [TestCase("debug", 0, "debug(value: any, ...)")]
+    [TestCase("roll", 0, "roll(T: table): entry of T")]
+    [TestCase("pick", 1, "pick T $v: (predicate...) else { ... }")]
+    [TestCase("sum", 0, "sum T $v: (predicate..., value)")]
+    [TestCase("count", 2, "count(coll: collection): number")]
+    public void AFunctionsSignatureIsGeneratedFromItsForms(string name, int form, string signature)
+    {
+        StoryParser.GetFunctionDescriptor(name, out var f);
+        Assert.That(f!.Doc!.Signatures[form], Is.EqualTo(signature));
+    }
+
+    /// Every built-in is one of three things, and adding one means choosing: checked against its forms by
+    /// the parser; described by forms its hand-written handler implements (the binding forms, whose
+    /// scoping the binder does not model); or special, with syntax of its own and a hand-written signature.
+    [Test]
+    public void EveryBuiltinIsCheckedDescribedOrSpecial()
+    {
+        var described = StoryParser.Functions.Where(f => !f.IsChecked && f.Forms.Length > 0).Select(f => f.FuncName);
+        var special = StoryParser.Functions.Where(f => f.Forms.Length == 0).Select(f => f.FuncName);
+        Assert.That(described, Is.EquivalentTo(new[] { "create", "each", "pick", "count", "sum", "avg", "min", "max" }));
+        Assert.That(special, Is.EquivalentTo(new[] { "call", "schedule", "chance" }));
+        foreach (var f in StoryParser.Functions.Where(f => f.IsChecked))
+            Assert.That(f.Forms, Has.All.InstanceOf<CallForm>(), f.FuncName);
+    }
+
+    [Test]
+    public void OnlyAFormsLastParameterIsOptionalOrRepeated()
+    {
+        foreach (var f in StoryParser.Functions)
+        foreach (var form in f.Forms.OfType<CallForm>())
+        {
+            Assert.That(form.Params.SkipLast(1).Any(p => p.Optional || p.Repeated), Is.False, f.FuncName);
+            foreach (var p in form.Params.Where(p => p.Constraint == ValueConstraint.ElementOf))
+                Assert.That(form.Params[p.Of].Kind, Is.EqualTo(FnArgKind.Collection), f.FuncName);
+        }
+    }
+
+    /// Every checked built-in's arguments go through one binder. Each case is a mistake it catches; most
+    /// were accepted before, and the last used to crash the parser.
+    [TestCase("pick Person $p: (alive)\nvar $x: floor($p.name)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("var $x: floor()", StoryParser.ErrorCode.MissingArgument)]
+    [TestCase("var $x: floor(1, 2)", StoryParser.ErrorCode.MissingArgument)]
+    [TestCase("pick Person $p: (alive)\nadd($p.friends, Job.Farmer)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("pick Person $p: (alive)\nadd($p.age, $p)", StoryParser.ErrorCode.ExpectedCollection)]
+    [TestCase("var $x: random('x')", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("var $x: random(1.5)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("pick Person $x: (alive)\nvar $r: related($x, $x, 9)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("pick Person $x: (alive)\nvar $r: related($x, 3, 2)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("var $x: roll(Nope)", StoryParser.ErrorCode.UnknownTable)]
+    [TestCase("record(3)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("var $x: not(3)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("pick Person $p: (alive)\nrecord('{link(3, 'x')}')", StoryParser.ErrorCode.InvalidArgument)]
+    public void ABuiltinsArgumentsAreCheckedAgainstItsForms(string body, StoryParser.ErrorCode code)
+    {
+        var story = Prelude + "event e {\n" + Indent(body) + "\n}\n";
+        StoryParser.Parse(story, out var errors);
+        Assert.That(errors.Select(e => e.Code), Does.Contain(code), () => string.Join("\n", errors));
+    }
+
+    [Test]
+    public void AMarkInAFunctionIsAnErrorNotACrash()
+    {
+        List<StoryParser.Error> errors = null!;
+        Assert.DoesNotThrow(() => StoryParser.Parse(Prelude + "function f($p: Person) {\n    mark($p)\n}\n", out errors));
+        Assert.That(errors.Select(e => e.Message), Has.Some.Contains("only in an event or a trigger"));
+    }
+
+    /// Which form a call binds to is decided by its arguments' shape when two forms take the same count.
+    [TestCase("var $x: random(Job)")]
+    [TestCase("var $x: random(10)")]
+    public void AFormIsChosenByItsArgumentsShape(string body)
+    {
+        StoryParser.Parse(Prelude + "event e {\n" + Indent(body) + "\n}\n", out var errors);
+        Assert.That(errors, Is.Empty, () => string.Join("\n", errors));
+    }
+
     /// The hand-written guide opens on a whole story; a reader will paste it, so it has to work.
     [Test]
     public void TheGuidesFirstStoryParsesCleanly()

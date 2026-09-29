@@ -66,7 +66,16 @@ public static class LanguageReference
     ];
 
     public sealed record Entry(string Kind, string Name, DocCategory Category, string[] Signatures,
-        string Summary, string? Example, string[]? Targets = null, Parameter[]? Parameters = null);
+        string Summary, string? Example, string[]? Targets = null, Parameter[]? Parameters = null,
+        Form[]? Forms = null, bool? Checked = null);
+
+    /// One way to write a built-in, as data: a plain call's parameters and return type, or a binding form's
+    /// head (`predicate`, `predicateAndValue`, ...) and block. `Signature` is the same form as text.
+    public sealed record Form(string Kind, string Signature, FormParameter[]? Parameters = null, string? Returns = null,
+        string? Head = null, string? Block = null);
+
+    /// A plain call's parameter: `Kind` is the FnArgKind, `Type` how a signature writes it (`number`, `0..6`).
+    public sealed record FormParameter(string Name, string Kind, string Type, bool? Optional, bool? Repeated);
 
     /// An attribute's parameter as the reference shows it. `Kind` is the AttributeArgKind, `Accepts` the
     /// phrase a reader sees ("a whole-number literal, at least 1").
@@ -78,7 +87,9 @@ public static class LanguageReference
         foreach (var f in StoryParser.Functions)
         {
             var d = f.Doc ?? throw new InvalidOperationException($"built-in '{f.FuncName}' has no documentation");
-            yield return new Entry("function", f.FuncName, d.Category, d.Signatures, d.Summary, d.Example);
+            var forms = f.Forms.Length == 0 ? null : f.Forms.Select(form => ToForm(f.FuncName, form)).ToArray();
+            yield return new Entry("function", f.FuncName, d.Category, d.Signatures, d.Summary, d.Example,
+                Forms: forms, Checked: f.IsChecked ? true : null);
         }
 
         foreach (var a in StoryParser.Attributes)
@@ -91,6 +102,17 @@ public static class LanguageReference
                 parameters);
         }
     }
+
+    static Form ToForm(string name, FunctionForm form) => form switch
+    {
+        CallForm c => new Form("call", c.Signature(name),
+            c.Params.Select(p => new FormParameter(p.Name, Camel(p.Kind.ToString()), p.TypeText(c.Params),
+                p.Optional ? true : null, p.Repeated ? true : null)).ToArray(),
+            c.Returns == FnReturn.Nothing ? null : c.ReturnText),
+        BindingForm b => new Form("binding", b.Signature(name), Returns: b.Returns == FnReturn.Nothing ? null : "number",
+            Head: Camel(b.Head.ToString()), Block: b.Block),
+        _ => throw new ArgumentOutOfRangeException(nameof(form)),
+    };
 
     static string Camel(string s) => char.ToLowerInvariant(s[0]) + s[1..];
 }

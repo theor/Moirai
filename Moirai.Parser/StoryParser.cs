@@ -14,26 +14,29 @@ public static class StoryParser
 
     public static readonly List<FunctionDescriptor> Functions =
     [
-        new("create", true, ctx =>
-        {
-            // $var is declared in the enclosing scope (it persists after the create). An optional
-            // `{ ... }` block is an initializer whose `prop := value` lines target the new entity.
-            var variableIndex = ctx.ParseVariable(out var etid, out _);
-            var name = ctx.ArgCount == 0 ? null : (InterpolatedString) ctx.ParseArgument(0);
-            var scopeContext = ctx.GetScopeContext();
-            IInstruction[]? init = null;
-            if (scopeContext != null)
+        new("create", true,
+            [new BindingForm(BindingHead.Variable, null), new BindingForm(BindingHead.Name, null),
+             new BindingForm(BindingHead.Name, "{ prop := value ... }")],
+            ctx =>
             {
-                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext.Span);
-                init = ctx.Visitor.ParseRawScope(scopeContext, out _);
-            }
+                // $var is declared in the enclosing scope (it persists after the create). An optional
+                // `{ ... }` block is an initializer whose `prop := value` lines target the new entity.
+                var variableIndex = ctx.ParseVariable(out var etid, out _);
+                var name = ctx.ArgCount == 0 ? null : (InterpolatedString) ctx.ParseArgument(0);
+                var scopeContext = ctx.GetScopeContext();
+                IInstruction[]? init = null;
+                if (scopeContext != null)
+                {
+                    using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext.Span);
+                    init = ctx.Visitor.ParseRawScope(scopeContext, out _);
+                }
 
-            return (new CreateEntity(variableIndex, etid, name, init), PropertyValue.TypeTypedRef(etid));
-        }, new BuiltinDoc(DocCategory.Entities,
-            ["create T $v", "create T $v: 'name'", "create T $v: 'name' { prop := value ... }"],
-            "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The optional block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
-            "create Person $p: '{roll(Name)}' {\n    age := 0\n    alive := true\n}")),
+                return (new CreateEntity(variableIndex, etid, name, init), PropertyValue.TypeTypedRef(etid));
+            }, new FunctionDoc(DocCategory.Entities,
+                "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The optional block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
+                "create Person $p: '{roll(Name)}' {\n    age := 0\n    alive := true\n}")),
         new("each", true,
+            [new BindingForm(BindingHead.Predicate, "{ ... }"), new BindingForm(BindingHead.Variable, "{ ... }")],
             ctx =>
             {
                 var scopeContext = ctx.GetScopeContext();
@@ -42,11 +45,11 @@ public static class StoryParser
                 return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
                         CallType.Each, ctx.Visitor.ParseRawScope(scopeContext, out _)),
                     PropertyValue.TypeTypedRef(etid));
-            }, new BuiltinDoc(DocCategory.Queries,
-                ["each T $v: (predicate) { ... }"],
-                "Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.",
+            }, new FunctionDoc(DocCategory.Queries,
+                "Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first; with no predicate, for every T. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.",
                 "each Person $p: (alive, age > 60) {\n    set $p.wealth = $p.wealth + 1\n}")),
         new("pick", true,
+            [new BindingForm(BindingHead.Predicate, null), new BindingForm(BindingHead.Predicate, "else { ... }")],
             ctx =>
             {
                 // The fallback is parsed before $v is declared: it runs exactly when there is no $v.
@@ -61,8 +64,7 @@ public static class StoryParser
                 return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
                         CallType.Pick, elseEffects: orElse),
                     PropertyValue.TypeTypedRef(etid));
-            }, new BuiltinDoc(DocCategory.Queries,
-                ["pick T $v: (predicate)", "pick T $v: (predicate) else { ... }"],
+            }, new FunctionDoc(DocCategory.Queries,
                 "Picks one T the predicate matches, uniformly at random, and binds it to $v. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. The block cannot see $v. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.",
                 "pick Person $p: (alive, partner = null) else {\n    record('Nobody is left to marry')\n}\nrecord('{$p.name} stays single')")),
 
@@ -116,107 +118,61 @@ public static class StoryParser
             ["schedule(entity, year) { ... }"],
             "Defers the block until the simulation reaches `year`, then runs it once, as a rule of its own, with $self bound to `entity`. Both arguments are evaluated now. The block sees $self but none of the enclosing rule's locals, so read what it needs from $self. A year that is not in the future fires next year. If the entity no longer exists by then, nothing runs, so a block that cares whether $self is still alive should test it.",
             "pick Person $p: (alive)\nschedule($p, #Time.year + 20) {\n    if $self.alive {\n        set $self.age = $self.age + 20\n    }\n}")),
-        new("assert", false, ctx =>
-            (new AssertInstr(ctx.ParseArgument(0), ctx.GetText(ctx.GetArgumentToken(0)!.Span)),
-                PropertyValue.ValueType.Null),
-            new BuiltinDoc(DocCategory.Testing,
-                ["assert(condition)"],
+        new("assert", [P.Call(FnReturn.Nothing, P.Condition("condition"))],
+            call => new AssertInstr(call.Value(0), call.Context.GetText(call.Node(0)!.Span)),
+            new FunctionDoc(DocCategory.Testing,
                 "Stops the simulation with an error when the condition is false. The error quotes the condition as written.",
                 "pick Person $p: (alive)\nassert($p.age >= 0)")),
-        new("assert_eq", false, ctx =>
-            (new AssertInstr(
-                    ctx.ParseArgument(0),
-                    ctx.ParseArgument(1),
-                    $"{ctx.GetText(ctx.GetArgumentToken(0)!.Span)} = {ctx.GetText(ctx.GetArgumentToken(1)!.Span)}"),
-                PropertyValue.ValueType.Null),
-            new BuiltinDoc(DocCategory.Testing,
-                ["assert_eq(actual, expected)"],
+        new("assert_eq", [P.Call(FnReturn.Nothing, P.Any("actual"), P.Any("expected"))],
+            call => new AssertInstr(call.Value(0), call.Value(1),
+                $"{call.Context.GetText(call.Node(0)!.Span)} = {call.Context.GetText(call.Node(1)!.Span)}"),
+            new FunctionDoc(DocCategory.Testing,
                 "Stops the simulation with an error when the two values differ. The error quotes both expressions as written and prints both values.",
                 "create Person $p: 'Ada' {\n    age := 3\n}\nassert_eq($p.age, 3)")),
-        new("mark", false, ctx =>
-        {
-            ctx.ExpectArgcount(1);
-            var e = ctx.ParseArgument(0);
-            return (new Mark(e, ctx.Visitor.CurrentEventTrigger!.Id), PropertyValue.ValueType.Null);
-        }, new BuiltinDoc(DocCategory.Rules,
-            ["mark(entity)"],
-            "Remembers that this rule touched `entity` this year, for `since_last` to read. Marks belong to the rule that makes them, so pair `mark` and `since_last` in the same rule. Use the pair to keep a rule from picking the same entity again too soon.",
-            "pick Person $p: (alive, since_last($p) > 4)\nmark($p)\nrecord('{$p.name} goes on a pilgrimage')")),
-        new("since_last", false, ctx =>
-        {
-            ctx.ExpectArgcount(1);
-            var e = ctx.ParseArgument(0);
-            return (new SinceLast(e, ctx.Visitor.CurrentEventTrigger!.Id), PropertyValue.TypeNumber);
-        }, new BuiltinDoc(DocCategory.Rules,
-            ["since_last(entity)"],
-            "The number of years since this rule last called `mark(entity)`. An entity this rule never marked counts as marked in year 0, so it reads as long ago rather than as a special value. Usable in a pick's predicate.",
-            "pick Person $p: (alive, since_last($p) > 10)\nmark($p)")),
-        new("related", false, ctx =>
-        {
-            ctx.ExpectArgcount(3);
-            var a = ctx.ParseArgument(0, out var aType);
-            var b = ctx.ParseArgument(1);
-            var degreeArg = ctx.ParseArgument(2);
-            var span = ctx.CallContext.Span;
-
-            if (degreeArg is not Literal { Value.Type.BaseType: PropertyValue.ValueBaseType.Number } degreeLit
-                || degreeLit.Value.IntValue < 0 || degreeLit.Value.IntValue > Related.MaxDegree)
+        new("mark", [P.Call(FnReturn.Nothing, P.Entity("entity"))],
+            call => CurrentRule(call, "mark") is { } rule ? new Mark(call.Value(0), rule) : null,
+            new FunctionDoc(DocCategory.Rules,
+                "Remembers that this rule touched `entity` this year, for `since_last` to read. Marks belong to the rule that makes them, so pair `mark` and `since_last` in the same rule, which must be an event or a trigger. Use the pair to keep a rule from picking the same entity again too soon.",
+                "pick Person $p: (alive, since_last($p) > 4)\nmark($p)\nrecord('{$p.name} goes on a pilgrimage')")),
+        new("since_last", [P.Call(FnReturn.Number, P.Entity("entity"))],
+            call => CurrentRule(call, "since_last") is { } rule ? new SinceLast(call.Value(0), rule) : null,
+            new FunctionDoc(DocCategory.Rules,
+                "The number of years since this rule last called `mark(entity)`. An entity this rule never marked counts as marked in year 0, so it reads as long ago rather than as a special value. Usable in a pick's predicate.",
+                "pick Person $p: (alive, since_last($p) > 10)\nmark($p)")),
+        new("related", [P.Call(FnReturn.Bool, P.Entity("a"), P.Entity("b"), P.IntLiteral("n", 0, Related.MaxDegree))],
+            call =>
             {
-                ctx.Visitor.AddError(ErrorCode.InvalidArgument, ctx.GetArgumentToken(2)?.Span ?? span,
-                    $"related() takes a degree from 0 to {Related.MaxDegree} as a number literal");
-                return (null!, PropertyValue.TypeBool);
-            }
+                // Parents are resolved here, once, from the first argument's type's parent roles
+                // (@parents, or parent1/parent2 by default) -- the same ones the viewer's family tree reads.
+                var aType = call.Type(0);
+                var type = aType.IsRefType && aType.Index != 0
+                    ? call.Context.Visitor.Database.GetEntityType(new EntityTypeId(aType.Index))
+                    : null;
+                var p1 = type?.Role(EntityRole.Parent1) ?? default;
+                var p2 = type?.Role(EntityRole.Parent2) ?? default;
+                if (!p1.IsValid || !p2.IsValid)
+                {
+                    call.Context.Visitor.AddError(ErrorCode.UnknownProperty, call.Node(0)?.Span ?? call.Context.CallContext.Span,
+                        "related() needs an entity whose type has parents: declare parent1 and parent2, or name them with @parents(a, b)");
+                    return null;
+                }
 
-            // Parents are resolved here, once, from the first argument's type's parent roles
-            // (@parents, or parent1/parent2 by default) -- the same ones the viewer's family tree reads.
-            var type = aType.IsRefType && aType.Index != 0
-                ? ctx.Visitor.Database.GetEntityType(new EntityTypeId(aType.Index))
-                : null;
-            var p1 = type?.Role(EntityRole.Parent1) ?? default;
-            var p2 = type?.Role(EntityRole.Parent2) ?? default;
-            if (!p1.IsValid || !p2.IsValid)
-            {
-                ctx.Visitor.AddError(ErrorCode.UnknownProperty, ctx.GetArgumentToken(0)?.Span ?? span,
-                    "related() needs an entity whose type has parents: declare parent1 and parent2, or name them with @parents(a, b)");
-                return (null!, PropertyValue.TypeBool);
-            }
-
-            return (new Related(a, b, degreeLit.Value.IntValue, p1, p2), PropertyValue.TypeBool);
-        },
-        new BuiltinDoc(DocCategory.Kinship,
-            ["related($a, $b, n)"],
-            "True when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. `n` is a number literal from 0 to 6. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.",
-            "pick Person $x: (alive, partner = null)\npick Person $y: (alive, partner = null, $y != $x, not(related($x, $y, 4)))")),
-        new("record", false, ctx =>
-        {
-            ctx.ExpectArgcount(2, isMaxCount: true);
-            var interpolatedString = (InterpolatedString) ctx.ParseArgument(0);
-            IValue? weight = null;
-            // Only the () form can carry a weight: the bare `record '...'` form has a single argument, and
-            // asking it for a second reports "convert to () syntax".
-            if (ctx.ArgCount > 1)
-            {
-                weight = ctx.ParseArgument(1, out var weightType);
-                if (weightType.BaseType is not (PropertyValue.ValueBaseType.Number or PropertyValue.ValueBaseType.Float))
-                    ctx.Visitor.AddError(ErrorCode.InvalidArgument, ctx.GetArgumentToken(1)?.Span ?? ctx.CallContext.Span,
-                        "record() weight must be a number");
-            }
-
-            return (new Record(interpolatedString, weight), PropertyValue.ValueType.Null);
-        },
-        new BuiltinDoc(DocCategory.Records,
-            ["record('text')", "record('text', weight)"],
-            "Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight, any number expression (taken as a whole number), says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.",
-            "pick Person $p: (alive)\nrecord('{$p.name} is crowned', 5)")),
-        new("link", false, ctx =>
-        {
-            var linkValue = ctx.ParseArgument(0);
-            var linkText = ctx.ParseArgument(1);
-            return (new InterpolatedStringLink(linkValue, linkText), PropertyValue.TypeString);
-        }, new BuiltinDoc(DocCategory.Records,
-            ["link(entity, 'text')"],
-            "Inside a record's text, shows `text` as a link to `entity`. Use it when the words should not be the entity's name. Unlike `{$p.name}`, a link does not make the entity one of the record's participants.",
-            "pick Person $p: (alive)\nrecord('{$p.name} paints a {link($p, 'self-portrait')}')")),
+                return new Related(call.Value(0), call.Value(1), call.Int(2), p1, p2);
+            },
+            new FunctionDoc(DocCategory.Kinship,
+                "True when a and b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.",
+                "pick Person $x: (alive, partner = null)\npick Person $y: (alive, partner = null, $y != $x, not(related($x, $y, 4)))")),
+        // Only the () form can carry a weight: the bare `record '...'` form has a single argument.
+        new("record", [P.Call(FnReturn.Nothing, P.Text("text"), P.Number("weight").Optional())],
+            call => new Record(call.Text(0), call.Count > 1 ? call.Value(1) : null),
+            new FunctionDoc(DocCategory.Records,
+                "Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight (taken as a whole number) says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.",
+                "pick Person $p: (alive)\nrecord('{$p.name} is crowned', 5)")),
+        new("link", [P.Call(FnReturn.String, P.Entity("entity"), P.String("text"))],
+            call => new InterpolatedStringLink(call.Value(0), call.Value(1)),
+            new FunctionDoc(DocCategory.Records,
+                "Inside a record's text, shows `text` as a link to `entity`. Use it when the words should not be the entity's name. Unlike `{$p.name}`, a link does not make the entity one of the record's participants.",
+                "pick Person $p: (alive)\nrecord('{$p.name} paints a {link($p, 'self-portrait')}')")),
         new("call", false, ctx =>
         {
             var arg = ctx.GetArgumentToken(0);
@@ -289,39 +245,21 @@ public static class StoryParser
             "Runs an event now, from inside another rule. The event runs as a rule of its own: its changes are logged and trigger reactions like a scheduled event's, and the caller's own changes carry on around it. `n`, a number literal, runs it that many times. An event declared with parameters, `event greet($who: Person) { }`, takes its arguments instead, checked against their types. `call` also runs a `function` that returns nothing (a procedure), inline in the caller's rule. The event must be written above the rule that calls it, and only an event or a trigger can call one: a function cannot.",
             "call(harvest, 3)\npick Person $p: (alive)\ncall(greet, $p)\ncall(feast)")),
 
-        new("random", false, ctx =>
-        {
-            var argCount = ctx.ArgCount;
-            if (argCount == 0)
+        new("random",
+            [
+                P.Call(FnReturn.EnumOfArg, P.EnumType("E")),
+                P.Call(FnReturn.Number, P.IntLiteral("max")),
+                P.Call(FnReturn.Number, P.IntLiteral("min"), P.Number("max")),
+            ],
+            call => call.FormIndex switch
             {
-                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span,
-                    "'random' needs at least one argument");
-                return (null!, PropertyValue.ValueType.Null);
-            }
-
-            var arg = ctx.ParseArgument(0);
-
-            if (arg is Literal {Value.Type.BaseType: PropertyValue.ValueBaseType.EnumType} l)
-            {
-                ctx.ExpectArgcount(1);
-                var edid = new EnumDefinitionId((ushort) l.Value.IntValue);
-                return (new RandomEnum(edid), PropertyValue.TypeEnum(edid));
-            }
-
-            if (arg is Literal {Value.Type.BaseType: PropertyValue.ValueBaseType.Number})
-            {
-                ctx.ExpectArgcount(2, true);
-                var min = argCount == 1 ? new Literal(0) : arg;
-                var max = ctx.ParseArgument(argCount == 1 ? 0 : 1);
-                return (new RandomRange(min, max), PropertyValue.TypeNumber);
-            }
-
-            ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span, ctx.GetText(ctx.CallContext.Span));
-            return (null!, PropertyValue.ValueType.Null);
-        }, new BuiltinDoc(DocCategory.Randomness,
-            ["random(EnumName)", "random(max)", "random(min, max)"],
-            "`random(EnumName)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. The first argument must be a number literal (or the enum); the second can be any number expression. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
-            "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}")),
+                0 => new RandomEnum(call.Enum(0)),
+                1 => new RandomRange(new Literal(0), call.Value(0)),
+                _ => new RandomRange(call.Value(0), call.Value(1)),
+            },
+            new FunctionDoc(DocCategory.Randomness,
+                "`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
+                "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}")),
         new("chance", false, ctx =>
         {
             ctx.ExpectArgcount(1);
@@ -349,134 +287,94 @@ public static class StoryParser
             ["chance(p)", "chance(p) { ... }"],
             "True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. As a statement with a block, the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.",
             "pick Person $p: (alive)\nchance(5%) {\n    record('{$p.name} finds a fortune')\n}\nif chance(50%) {\n    set $p.wealth = $p.wealth + 1\n}")),
-        new("roll", false, ctx =>
-        {
-            // roll(TableName) — sample a named weighted table. The arg is a bare table name (a
-            // TYPE_ID), looked up by text rather than parsed as a value (it isn't an enum/entity).
-            if (ctx.ArgCount != 1)
-            {
-                ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span, "'roll' takes one table name");
-                return (null!, PropertyValue.ValueType.Null);
-            }
-
-            var tableSpan = ctx.GetArgumentToken(0)!.Span;
-            var tableName = ctx.GetText(tableSpan);
-            if (!ctx.Visitor.Database.GetTableDefinition(tableName, out var table))
-            {
-                ctx.Visitor.AddError(ErrorCode.UnknownTable, ctx.CallContext.Span, tableName);
-                return (null!, PropertyValue.ValueType.Null);
-            }
-
-            ctx.Visitor.Linker?.LinkTable(new FileRange(tableSpan), table);
-
-            return (new RollTable(table.Id, table.Name), table.ValueType);
-        }, new BuiltinDoc(DocCategory.Randomness,
-            ["roll(TableName)"],
-            "Draws one entry from a `table`, according to its weights. The result has the type of the table's entries.",
-            "create Person $p: '{roll(Name)}'")),
-        new("add", false, ctx =>
-        {
-            ctx.ExpectArgcount(2);
-            if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
-                return (new CollectionMutate(full, owner, coll, ctx.ParseArgument(1), true),
-                    PropertyValue.ValueType.Null);
-            return (null!, PropertyValue.ValueType.Null);
-        }, new BuiltinDoc(DocCategory.Collections,
-            ["add($e.coll, value)"],
-            "Adds a value to a collection property (`prop friends: [Person]`). A collection is a set: adding a value it already holds changes nothing.",
-            "pick Person $a: (alive)\npick Person $b: (alive, $b != $a)\nadd($a.friends, $b)")),
-        new("remove", false, ctx =>
-        {
-            ctx.ExpectArgcount(2);
-            if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
-                return (new CollectionMutate(full, owner, coll, ctx.ParseArgument(1), false),
-                    PropertyValue.ValueType.Null);
-            return (null!, PropertyValue.ValueType.Null);
-        }, new BuiltinDoc(DocCategory.Collections,
-            ["remove($e.coll, value)"],
-            "Removes a value from a collection property. Removing a value it does not hold changes nothing.",
-            "pick Person $a: (alive)\npick Person $b: (contains($a.friends, $b))\nremove($a.friends, $b)")),
-        new("contains", false, ctx =>
-        {
-            ctx.ExpectArgcount(2);
-            if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
-                return (new CollectionQuery(CollectionQuery.QueryKind.Contains, full, owner, coll,
-                    ctx.ParseArgument(1)), PropertyValue.TypeBool);
-            return (null!, PropertyValue.TypeBool);
-        }, new BuiltinDoc(DocCategory.Collections,
-            ["contains($e.coll, value)"],
-            "True when the collection property holds the value. Usable in a pick's predicate.",
-            "pick Person $a: (alive)\npick Person $b: (alive, $b != $a, not(contains($a.friends, $b)))")),
-        new("sum", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Sum),
-            new BuiltinDoc(DocCategory.Queries,
-                ["sum T $v: (predicate..., value)"],
+        new("roll", [P.Call(FnReturn.TableEntryOfArg, P.Table("T"))],
+            call => new RollTable(call.Table(0).Id, call.Table(0).Name),
+            new FunctionDoc(DocCategory.Randomness,
+                "Draws one entry from a `table`, according to its weights.",
+                "create Person $p: '{roll(Name)}'")),
+        new("add", [P.Call(FnReturn.Nothing, P.Collection("coll"), P.ElementOf("value", 0))],
+            call => CollectionCall(call, (full, owner, coll) => new CollectionMutate(full, owner, coll, call.Value(1), true)),
+            new FunctionDoc(DocCategory.Collections,
+                "Adds a value to a collection property (`prop friends: [Person]`). A collection is a set: adding a value it already holds changes nothing.",
+                "pick Person $a: (alive)\npick Person $b: (alive, $b != $a)\nadd($a.friends, $b)")),
+        new("remove", [P.Call(FnReturn.Nothing, P.Collection("coll"), P.ElementOf("value", 0))],
+            call => CollectionCall(call, (full, owner, coll) => new CollectionMutate(full, owner, coll, call.Value(1), false)),
+            new FunctionDoc(DocCategory.Collections,
+                "Removes a value from a collection property. Removing a value it does not hold changes nothing.",
+                "pick Person $a: (alive)\npick Person $b: (contains($a.friends, $b))\nremove($a.friends, $b)")),
+        new("contains", [P.Call(FnReturn.Bool, P.Collection("coll"), P.ElementOf("value", 0))],
+            call => CollectionCall(call, (full, owner, coll) =>
+                new CollectionQuery(CollectionQuery.QueryKind.Contains, full, owner, coll, call.Value(1))),
+            new FunctionDoc(DocCategory.Collections,
+                "True when the collection property holds the value. Usable in a pick's predicate.",
+                "pick Person $a: (alive)\npick Person $b: (alive, $b != $a, not(contains($a.friends, $b)))")),
+        new("sum", true, [new BindingForm(BindingHead.PredicateAndValue, null, FnReturn.Number)],
+            ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Sum),
+            new FunctionDoc(DocCategory.Queries,
                 "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a plain number, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
                 "var $total: sum Person $p: (alive, $p.wealth)")),
-        new("avg", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Avg),
-            new BuiltinDoc(DocCategory.Queries,
-                ["avg T $v: (predicate..., value)"],
+        new("avg", true, [new BindingForm(BindingHead.PredicateAndValue, null, FnReturn.Number)],
+            ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Avg),
+            new FunctionDoc(DocCategory.Queries,
                 "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. Written like `sum`.",
                 "var $mean: avg Person $p: (alive, $p.happiness)")),
-        new("min", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Min),
-            new BuiltinDoc(DocCategory.Queries,
-                ["min T $v: (predicate..., value)"],
+        new("min", true, [new BindingForm(BindingHead.PredicateAndValue, null, FnReturn.Number)],
+            ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Min),
+            new FunctionDoc(DocCategory.Queries,
                 "The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
                 "var $youngest: min Person $p: (alive, $p.age)")),
-        new("max", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Max),
-            new BuiltinDoc(DocCategory.Queries,
-                ["max T $v: (predicate..., value)"],
+        new("max", true, [new BindingForm(BindingHead.PredicateAndValue, null, FnReturn.Number)],
+            ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Max),
+            new FunctionDoc(DocCategory.Queries,
                 "The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
                 "var $oldest: max Person $p: (alive, $p.age)")),
-        new("count", false, ctx =>
-        {
-            // `count T $v: (predicate)` counts a query; `count($e.coll)` a collection.
-            if ((ctx.CallContext.Call?.DeclType ?? ctx.CallContext.RawCall?.DeclType) != null)
-                return ParseAggregate(ctx, Aggregate.AggregateKind.Count);
-            ctx.ExpectArgcount(1);
-            if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
-                return (new CollectionQuery(CollectionQuery.QueryKind.Count, full, owner, coll, null),
-                    PropertyValue.TypeNumber);
-            return (null!, PropertyValue.TypeNumber);
-        }, new BuiltinDoc(DocCategory.Queries,
-            ["count T $v", "count T $v: (predicate...)", "count($e.coll)"],
-            "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count($e.coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
-            "var $living: count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)")),
-        new("not", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Not, ctx.ParseArgument(0)), PropertyValue.TypeBool),
-            new BuiltinDoc(DocCategory.Math,
-                ["not(condition)"],
+        new("count", false,
+            [
+                new BindingForm(BindingHead.Variable, null, FnReturn.Number),
+                new BindingForm(BindingHead.Predicate, null, FnReturn.Number),
+                P.Call(FnReturn.Number, P.Collection("coll")),
+            ],
+            ctx =>
+            {
+                // `count T $v: (predicate)` counts a query; `count($e.coll)` a collection.
+                if ((ctx.CallContext.Call?.DeclType ?? ctx.CallContext.RawCall?.DeclType) != null)
+                    return ParseAggregate(ctx, Aggregate.AggregateKind.Count);
+                ctx.ExpectArgcount(1);
+                if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
+                    return (new CollectionQuery(CollectionQuery.QueryKind.Count, full, owner, coll, null),
+                        PropertyValue.TypeNumber);
+                return (null!, PropertyValue.TypeNumber);
+            }, new FunctionDoc(DocCategory.Queries,
+                "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count(coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
+                "var $living: count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)")),
+        new("not", [P.Call(FnReturn.Bool, P.Condition("condition"))],
+            call => new MathUnary(MathUnary.UnaryFunction.Not, call.Value(0)),
+            new FunctionDoc(DocCategory.Math,
                 "True when the condition is false. Usable in a pick's predicate.",
                 "pick Person $p: (not($p.alive))")),
-        new("floor", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Floor, ctx.ParseArgument(0)), PropertyValue.TypeNumber),
-            new BuiltinDoc(DocCategory.Math,
-                ["floor(x)"],
+        new("floor", [P.Call(FnReturn.Number, P.Number("x"))],
+            call => new MathUnary(MathUnary.UnaryFunction.Floor, call.Value(0)),
+            new FunctionDoc(DocCategory.Math,
                 "x rounded down to a whole number.",
                 "var $half: floor(count Person $p: (alive) / 2)")),
-        new("round", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Round, ctx.ParseArgument(0)), PropertyValue.TypeNumber),
-            new BuiltinDoc(DocCategory.Math,
-                ["round(x)"],
+        new("round", [P.Call(FnReturn.Number, P.Number("x"))],
+            call => new MathUnary(MathUnary.UnaryFunction.Round, call.Value(0)),
+            new FunctionDoc(DocCategory.Math,
                 "x rounded to the nearest whole number. A half rounds to the even neighbour: round(2.5) is 2, round(3.5) is 4.",
                 "var $mean: round(avg Person $p: (alive, $p.age))")),
-        new("ceiling", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.ParseArgument(0)), PropertyValue.TypeNumber),
-            new BuiltinDoc(DocCategory.Math,
-                ["ceiling(x)"],
+        new("ceiling", [P.Call(FnReturn.Number, P.Number("x"))],
+            call => new MathUnary(MathUnary.UnaryFunction.Ceiling, call.Value(0)),
+            new FunctionDoc(DocCategory.Math,
                 "x rounded up to a whole number.",
                 "var $boats: ceiling(count Person $p: (alive) / 12)")),
-        new("clamp01", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.ParseArgument(0)), PropertyValue.TypeNumber),
-            new BuiltinDoc(DocCategory.Math,
-                ["clamp01(x)"],
+        new("clamp01", [P.Call(FnReturn.Number, P.Number("x"))],
+            call => new MathUnary(MathUnary.UnaryFunction.Clamp01, call.Value(0)),
+            new FunctionDoc(DocCategory.Math,
                 "x limited to the range 0 to 1. It is for fractions: a percentage is held as 0 to 100 and is already kept in that range whenever it is set.",
                 "var $share: clamp01(count Person $p: (alive) / 1000)")),
-        new("debug", false,
-            ctx => (
-                new DebugPrint(Enumerable.Repeat((object?) null, ctx.ArgCount).Select((_, i) => ctx.ParseArgument(i))),
-                PropertyValue.ValueType.Null),
-            new BuiltinDoc(DocCategory.Testing,
-                ["debug(value, ...)"],
+        new("debug", [P.Call(FnReturn.Nothing, P.Any("value").Repeated())],
+            call => new DebugPrint(Enumerable.Range(0, call.Count).Select(call.Value)),
+            new FunctionDoc(DocCategory.Testing,
                 "Prints each argument, as written and as it evaluates, to the host's console (the server's, or the browser's developer console). It changes nothing in the world.",
                 "pick Person $p: (alive)\ndebug($p.name, $p.age)"))
     ];
@@ -540,6 +438,24 @@ public static class StoryParser
 
     public static AttributeDescriptor? GetAttribute(string name, AttributeTarget target) =>
         Attributes.Find(a => a.Name == name && a.Targets.HasFlag(target));
+
+    /// The id of the event or trigger being parsed, which `mark` and `since_last` key their marks by. A
+    /// function body has none -- it can run inside any rule -- so a mark there is an error rather than the
+    /// crash it used to be.
+    static int? CurrentRule(BoundCall call, string name)
+    {
+        if (call.Context.Visitor.CurrentEventTrigger is { } rule)
+            return rule.Id;
+        call.Context.Visitor.AddError(ErrorCode.InvalidArgument, call.Context.CallContext.Span,
+            $"{name}() works only in an event or a trigger: its marks belong to the rule that makes them");
+        return null;
+    }
+
+    static IValueCall CollectionCall(BoundCall call, Func<PropertyPath, PropertyPath, PropertyId, IValueCall> make)
+    {
+        var (full, owner, coll) = call.Collection(0);
+        return make(full, owner, coll);
+    }
 
     /// `count T $v: (pred...)` and `sum|avg|min|max T $v: (pred..., value)`. Like a pick, the arguments
     /// before the value are the predicate, joined by `and`; $v exists only inside the call.

@@ -54,7 +54,15 @@
         "avg T $v: (predicate..., value)"
       ],
       "summary": "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. Written like `sum`.",
-      "example": "var $mean: avg Person $p: (alive, $p.happiness)"
+      "example": "var $mean: avg Person $p: (alive, $p.happiness)",
+      "forms": [
+        {
+          "kind": "binding",
+          "signature": "avg T $v: (predicate..., value)",
+          "returns": "number",
+          "head": "predicateAndValue"
+        }
+      ]
     },
     {
       "kind": "function",
@@ -63,20 +71,61 @@
       "signatures": [
         "count T $v",
         "count T $v: (predicate...)",
-        "count($e.coll)"
+        "count(coll: collection): number"
       ],
-      "summary": "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count($e.coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
-      "example": "var $living: count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)"
+      "summary": "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count(coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
+      "example": "var $living: count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)",
+      "forms": [
+        {
+          "kind": "binding",
+          "signature": "count T $v",
+          "returns": "number",
+          "head": "variable"
+        },
+        {
+          "kind": "binding",
+          "signature": "count T $v: (predicate...)",
+          "returns": "number",
+          "head": "predicate"
+        },
+        {
+          "kind": "call",
+          "signature": "count(coll: collection): number",
+          "parameters": [
+            {
+              "name": "coll",
+              "kind": "collection",
+              "type": "collection"
+            }
+          ],
+          "returns": "number"
+        }
+      ]
     },
     {
       "kind": "function",
       "name": "each",
       "category": "queries",
       "signatures": [
-        "each T $v: (predicate) { ... }"
+        "each T $v: (predicate...) { ... }",
+        "each T $v { ... }"
       ],
-      "summary": "Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.",
-      "example": "each Person $p: (alive, age > 60) {\n    set $p.wealth = $p.wealth + 1\n}"
+      "summary": "Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first; with no predicate, for every T. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.",
+      "example": "each Person $p: (alive, age > 60) {\n    set $p.wealth = $p.wealth + 1\n}",
+      "forms": [
+        {
+          "kind": "binding",
+          "signature": "each T $v: (predicate...) { ... }",
+          "head": "predicate",
+          "block": "{ ... }"
+        },
+        {
+          "kind": "binding",
+          "signature": "each T $v { ... }",
+          "head": "variable",
+          "block": "{ ... }"
+        }
+      ]
     },
     {
       "kind": "function",
@@ -86,7 +135,15 @@
         "max T $v: (predicate..., value)"
       ],
       "summary": "The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
-      "example": "var $oldest: max Person $p: (alive, $p.age)"
+      "example": "var $oldest: max Person $p: (alive, $p.age)",
+      "forms": [
+        {
+          "kind": "binding",
+          "signature": "max T $v: (predicate..., value)",
+          "returns": "number",
+          "head": "predicateAndValue"
+        }
+      ]
     },
     {
       "kind": "function",
@@ -96,18 +153,39 @@
         "min T $v: (predicate..., value)"
       ],
       "summary": "The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
-      "example": "var $youngest: min Person $p: (alive, $p.age)"
+      "example": "var $youngest: min Person $p: (alive, $p.age)",
+      "forms": [
+        {
+          "kind": "binding",
+          "signature": "min T $v: (predicate..., value)",
+          "returns": "number",
+          "head": "predicateAndValue"
+        }
+      ]
     },
     {
       "kind": "function",
       "name": "pick",
       "category": "queries",
       "signatures": [
-        "pick T $v: (predicate)",
-        "pick T $v: (predicate) else { ... }"
+        "pick T $v: (predicate...)",
+        "pick T $v: (predicate...) else { ... }"
       ],
       "summary": "Picks one T the predicate matches, uniformly at random, and binds it to $v. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. The block cannot see $v. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.",
-      "example": "pick Person $p: (alive, partner = null) else {\n    record('Nobody is left to marry')\n}\nrecord('{$p.name} stays single')"
+      "example": "pick Person $p: (alive, partner = null) else {\n    record('Nobody is left to marry')\n}\nrecord('{$p.name} stays single')",
+      "forms": [
+        {
+          "kind": "binding",
+          "signature": "pick T $v: (predicate...)",
+          "head": "predicate"
+        },
+        {
+          "kind": "binding",
+          "signature": "pick T $v: (predicate...) else { ... }",
+          "head": "predicate",
+          "block": "else { ... }"
+        }
+      ]
     },
     {
       "kind": "function",
@@ -117,7 +195,15 @@
         "sum T $v: (predicate..., value)"
       ],
       "summary": "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a plain number, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
-      "example": "var $total: sum Person $p: (alive, $p.wealth)"
+      "example": "var $total: sum Person $p: (alive, $p.wealth)",
+      "forms": [
+        {
+          "kind": "binding",
+          "signature": "sum T $v: (predicate..., value)",
+          "returns": "number",
+          "head": "predicateAndValue"
+        }
+      ]
     },
     {
       "kind": "function",
@@ -129,7 +215,25 @@
         "create T $v: 'name' { prop := value ... }"
       ],
       "summary": "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The optional block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
-      "example": "create Person $p: '{roll(Name)}' {\n    age := 0\n    alive := true\n}"
+      "example": "create Person $p: '{roll(Name)}' {\n    age := 0\n    alive := true\n}",
+      "forms": [
+        {
+          "kind": "binding",
+          "signature": "create T $v",
+          "head": "variable"
+        },
+        {
+          "kind": "binding",
+          "signature": "create T $v: 'name'",
+          "head": "name"
+        },
+        {
+          "kind": "binding",
+          "signature": "create T $v: 'name' { prop := value ... }",
+          "head": "name",
+          "block": "{ prop := value ... }"
+        }
+      ]
     },
     {
       "kind": "function",
@@ -149,10 +253,24 @@
       "name": "mark",
       "category": "rules",
       "signatures": [
-        "mark(entity)"
+        "mark(entity: entity)"
       ],
-      "summary": "Remembers that this rule touched `entity` this year, for `since_last` to read. Marks belong to the rule that makes them, so pair `mark` and `since_last` in the same rule. Use the pair to keep a rule from picking the same entity again too soon.",
-      "example": "pick Person $p: (alive, since_last($p) > 4)\nmark($p)\nrecord('{$p.name} goes on a pilgrimage')"
+      "summary": "Remembers that this rule touched `entity` this year, for `since_last` to read. Marks belong to the rule that makes them, so pair `mark` and `since_last` in the same rule, which must be an event or a trigger. Use the pair to keep a rule from picking the same entity again too soon.",
+      "example": "pick Person $p: (alive, since_last($p) > 4)\nmark($p)\nrecord('{$p.name} goes on a pilgrimage')",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "mark(entity: entity)",
+          "parameters": [
+            {
+              "name": "entity",
+              "kind": "value",
+              "type": "entity"
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
@@ -169,10 +287,25 @@
       "name": "since_last",
       "category": "rules",
       "signatures": [
-        "since_last(entity)"
+        "since_last(entity: entity): number"
       ],
       "summary": "The number of years since this rule last called `mark(entity)`. An entity this rule never marked counts as marked in year 0, so it reads as long ago rather than as a special value. Usable in a pick's predicate.",
-      "example": "pick Person $p: (alive, since_last($p) > 10)\nmark($p)"
+      "example": "pick Person $p: (alive, since_last($p) > 10)\nmark($p)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "since_last(entity: entity): number",
+          "parameters": [
+            {
+              "name": "entity",
+              "kind": "value",
+              "type": "entity"
+            }
+          ],
+          "returns": "number"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
@@ -190,163 +323,467 @@
       "name": "random",
       "category": "randomness",
       "signatures": [
-        "random(EnumName)",
-        "random(max)",
-        "random(min, max)"
+        "random(E: enum): E",
+        "random(max: number literal): number",
+        "random(min: number literal, max: number): number"
       ],
-      "summary": "`random(EnumName)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. The first argument must be a number literal (or the enum); the second can be any number expression. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
-      "example": "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}"
+      "summary": "`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
+      "example": "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "random(E: enum): E",
+          "parameters": [
+            {
+              "name": "E",
+              "kind": "enumType",
+              "type": "enum"
+            }
+          ],
+          "returns": "E"
+        },
+        {
+          "kind": "call",
+          "signature": "random(max: number literal): number",
+          "parameters": [
+            {
+              "name": "max",
+              "kind": "intLiteral",
+              "type": "number literal"
+            }
+          ],
+          "returns": "number"
+        },
+        {
+          "kind": "call",
+          "signature": "random(min: number literal, max: number): number",
+          "parameters": [
+            {
+              "name": "min",
+              "kind": "intLiteral",
+              "type": "number literal"
+            },
+            {
+              "name": "max",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "returns": "number"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "roll",
       "category": "randomness",
       "signatures": [
-        "roll(TableName)"
+        "roll(T: table): entry of T"
       ],
-      "summary": "Draws one entry from a `table`, according to its weights. The result has the type of the table's entries.",
-      "example": "create Person $p: '{roll(Name)}'"
+      "summary": "Draws one entry from a `table`, according to its weights.",
+      "example": "create Person $p: '{roll(Name)}'",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "roll(T: table): entry of T",
+          "parameters": [
+            {
+              "name": "T",
+              "kind": "table",
+              "type": "table"
+            }
+          ],
+          "returns": "entry of T"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "link",
       "category": "records",
       "signatures": [
-        "link(entity, 'text')"
+        "link(entity: entity, text: string): string"
       ],
       "summary": "Inside a record's text, shows `text` as a link to `entity`. Use it when the words should not be the entity's name. Unlike `{$p.name}`, a link does not make the entity one of the record's participants.",
-      "example": "pick Person $p: (alive)\nrecord('{$p.name} paints a {link($p, 'self-portrait')}')"
+      "example": "pick Person $p: (alive)\nrecord('{$p.name} paints a {link($p, 'self-portrait')}')",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "link(entity: entity, text: string): string",
+          "parameters": [
+            {
+              "name": "entity",
+              "kind": "value",
+              "type": "entity"
+            },
+            {
+              "name": "text",
+              "kind": "value",
+              "type": "string"
+            }
+          ],
+          "returns": "string"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "record",
       "category": "records",
       "signatures": [
-        "record('text')",
-        "record('text', weight)"
+        "record('text'[, weight: number])"
       ],
-      "summary": "Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight, any number expression (taken as a whole number), says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.",
-      "example": "pick Person $p: (alive)\nrecord('{$p.name} is crowned', 5)"
+      "summary": "Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight (taken as a whole number) says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.",
+      "example": "pick Person $p: (alive)\nrecord('{$p.name} is crowned', 5)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "record('text'[, weight: number])",
+          "parameters": [
+            {
+              "name": "text",
+              "kind": "text",
+              "type": "text"
+            },
+            {
+              "name": "weight",
+              "kind": "value",
+              "type": "number",
+              "optional": true
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "related",
       "category": "kinship",
       "signatures": [
-        "related($a, $b, n)"
+        "related(a: entity, b: entity, n: 0..6): bool"
       ],
-      "summary": "True when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. `n` is a number literal from 0 to 6. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.",
-      "example": "pick Person $x: (alive, partner = null)\npick Person $y: (alive, partner = null, $y != $x, not(related($x, $y, 4)))"
+      "summary": "True when a and b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.",
+      "example": "pick Person $x: (alive, partner = null)\npick Person $y: (alive, partner = null, $y != $x, not(related($x, $y, 4)))",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "related(a: entity, b: entity, n: 0..6): bool",
+          "parameters": [
+            {
+              "name": "a",
+              "kind": "value",
+              "type": "entity"
+            },
+            {
+              "name": "b",
+              "kind": "value",
+              "type": "entity"
+            },
+            {
+              "name": "n",
+              "kind": "intLiteral",
+              "type": "0..6"
+            }
+          ],
+          "returns": "bool"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "add",
       "category": "collections",
       "signatures": [
-        "add($e.coll, value)"
+        "add(coll: collection, value: element of coll)"
       ],
       "summary": "Adds a value to a collection property (`prop friends: [Person]`). A collection is a set: adding a value it already holds changes nothing.",
-      "example": "pick Person $a: (alive)\npick Person $b: (alive, $b != $a)\nadd($a.friends, $b)"
+      "example": "pick Person $a: (alive)\npick Person $b: (alive, $b != $a)\nadd($a.friends, $b)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "add(coll: collection, value: element of coll)",
+          "parameters": [
+            {
+              "name": "coll",
+              "kind": "collection",
+              "type": "collection"
+            },
+            {
+              "name": "value",
+              "kind": "value",
+              "type": "element of coll"
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "contains",
       "category": "collections",
       "signatures": [
-        "contains($e.coll, value)"
+        "contains(coll: collection, value: element of coll): bool"
       ],
       "summary": "True when the collection property holds the value. Usable in a pick's predicate.",
-      "example": "pick Person $a: (alive)\npick Person $b: (alive, $b != $a, not(contains($a.friends, $b)))"
+      "example": "pick Person $a: (alive)\npick Person $b: (alive, $b != $a, not(contains($a.friends, $b)))",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "contains(coll: collection, value: element of coll): bool",
+          "parameters": [
+            {
+              "name": "coll",
+              "kind": "collection",
+              "type": "collection"
+            },
+            {
+              "name": "value",
+              "kind": "value",
+              "type": "element of coll"
+            }
+          ],
+          "returns": "bool"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "remove",
       "category": "collections",
       "signatures": [
-        "remove($e.coll, value)"
+        "remove(coll: collection, value: element of coll)"
       ],
       "summary": "Removes a value from a collection property. Removing a value it does not hold changes nothing.",
-      "example": "pick Person $a: (alive)\npick Person $b: (contains($a.friends, $b))\nremove($a.friends, $b)"
+      "example": "pick Person $a: (alive)\npick Person $b: (contains($a.friends, $b))\nremove($a.friends, $b)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "remove(coll: collection, value: element of coll)",
+          "parameters": [
+            {
+              "name": "coll",
+              "kind": "collection",
+              "type": "collection"
+            },
+            {
+              "name": "value",
+              "kind": "value",
+              "type": "element of coll"
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "ceiling",
       "category": "math",
       "signatures": [
-        "ceiling(x)"
+        "ceiling(x: number): number"
       ],
       "summary": "x rounded up to a whole number.",
-      "example": "var $boats: ceiling(count Person $p: (alive) / 12)"
+      "example": "var $boats: ceiling(count Person $p: (alive) / 12)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "ceiling(x: number): number",
+          "parameters": [
+            {
+              "name": "x",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "returns": "number"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "clamp01",
       "category": "math",
       "signatures": [
-        "clamp01(x)"
+        "clamp01(x: number): number"
       ],
       "summary": "x limited to the range 0 to 1. It is for fractions: a percentage is held as 0 to 100 and is already kept in that range whenever it is set.",
-      "example": "var $share: clamp01(count Person $p: (alive) / 1000)"
+      "example": "var $share: clamp01(count Person $p: (alive) / 1000)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "clamp01(x: number): number",
+          "parameters": [
+            {
+              "name": "x",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "returns": "number"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "floor",
       "category": "math",
       "signatures": [
-        "floor(x)"
+        "floor(x: number): number"
       ],
       "summary": "x rounded down to a whole number.",
-      "example": "var $half: floor(count Person $p: (alive) / 2)"
+      "example": "var $half: floor(count Person $p: (alive) / 2)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "floor(x: number): number",
+          "parameters": [
+            {
+              "name": "x",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "returns": "number"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "not",
       "category": "math",
       "signatures": [
-        "not(condition)"
+        "not(condition: condition): bool"
       ],
       "summary": "True when the condition is false. Usable in a pick's predicate.",
-      "example": "pick Person $p: (not($p.alive))"
+      "example": "pick Person $p: (not($p.alive))",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "not(condition: condition): bool",
+          "parameters": [
+            {
+              "name": "condition",
+              "kind": "value",
+              "type": "condition"
+            }
+          ],
+          "returns": "bool"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "round",
       "category": "math",
       "signatures": [
-        "round(x)"
+        "round(x: number): number"
       ],
       "summary": "x rounded to the nearest whole number. A half rounds to the even neighbour: round(2.5) is 2, round(3.5) is 4.",
-      "example": "var $mean: round(avg Person $p: (alive, $p.age))"
+      "example": "var $mean: round(avg Person $p: (alive, $p.age))",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "round(x: number): number",
+          "parameters": [
+            {
+              "name": "x",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "returns": "number"
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "assert",
       "category": "testing",
       "signatures": [
-        "assert(condition)"
+        "assert(condition: condition)"
       ],
       "summary": "Stops the simulation with an error when the condition is false. The error quotes the condition as written.",
-      "example": "pick Person $p: (alive)\nassert($p.age >= 0)"
+      "example": "pick Person $p: (alive)\nassert($p.age >= 0)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "assert(condition: condition)",
+          "parameters": [
+            {
+              "name": "condition",
+              "kind": "value",
+              "type": "condition"
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "assert_eq",
       "category": "testing",
       "signatures": [
-        "assert_eq(actual, expected)"
+        "assert_eq(actual: any, expected: any)"
       ],
       "summary": "Stops the simulation with an error when the two values differ. The error quotes both expressions as written and prints both values.",
-      "example": "create Person $p: 'Ada' {\n    age := 3\n}\nassert_eq($p.age, 3)"
+      "example": "create Person $p: 'Ada' {\n    age := 3\n}\nassert_eq($p.age, 3)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "assert_eq(actual: any, expected: any)",
+          "parameters": [
+            {
+              "name": "actual",
+              "kind": "value",
+              "type": "any"
+            },
+            {
+              "name": "expected",
+              "kind": "value",
+              "type": "any"
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "debug",
       "category": "testing",
       "signatures": [
-        "debug(value, ...)"
+        "debug(value: any, ...)"
       ],
       "summary": "Prints each argument, as written and as it evaluates, to the host's console (the server's, or the browser's developer console). It changes nothing in the world.",
-      "example": "pick Person $p: (alive)\ndebug($p.name, $p.age)"
+      "example": "pick Person $p: (alive)\ndebug($p.name, $p.age)",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "debug(value: any, ...)",
+          "parameters": [
+            {
+              "name": "value",
+              "kind": "value",
+              "type": "any",
+              "repeated": true
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "attribute",
