@@ -65,15 +65,19 @@ public class UserFunctionCall : IValueCall, IValueSql
         int offset = /*Definition.IsInstanceMethod ? 1 :*/ 0;
 
         // f($0): need to evaluate $0 before creating a scope setting the ctx.ValueOffset
-        var valueCount = ctx.ValueCount + ctx.ValueOffset;
+        // The callee's frame starts at the end of the stack. SetArgument writes relative to the caller's
+        // frame, so the slot is written as (frame start - caller's offset + param). This used to add the
+        // caller's offset instead, which is right only when the caller's frame starts at 0: a function
+        // called from inside another function, or inside an event another rule called, read its
+        // arguments from the wrong slots.
+        var frameStart = ctx.ValueCount - ctx.ValueOffset;
         // don't set the offset - wait for the Start() call below
         using var s = ctx.RunScope(false);
         for (int i = 0; i < Definition.Parameters.Length; i++)
         {
             var p = Definition.Parameters[i];
             var argValue = /*Definition.IsInstanceMethod && i == 0 ? instance : */Arguments[i - offset]?.Compute(ctx) ?? default;
-            // compute the current arg index by adding the valueCount, which will be the param index after the scope starts
-            ctx.SetArgument(p.ParamIndex + valueCount, argValue);
+            ctx.SetArgument(p.ParamIndex + frameStart, argValue);
         }
         s.Start();
         var hook = ctx.Database.DebugHook;
