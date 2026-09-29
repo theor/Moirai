@@ -170,7 +170,7 @@ function has_parent($p: Person): bool {
     $p.parent1 != null or $p.parent2 != null
 }
 
-// Procedural subroutines (invoked via call(...), not scheduled) — `function`, not `event`.
+// Procedural subroutines (called by name, not scheduled) — `function`, not `event`.
 function create_country() {
     create Country $c: '{random(CountryName)} {roll(Name)}' {
         prosperity := 50%
@@ -191,8 +191,12 @@ event create_time {
     create Time $t: 'time' {
         year := 764
     }
-    call(create_country, 10)
-    call(create_god, 10)
+    repeat(10) {
+        create_country()
+    }
+    repeat(10) {
+        create_god()
+    }
 }
 
 table AgeName {
@@ -263,8 +267,8 @@ table SettlementName {
     'Duskhollow', 'Riverton', 'Blackmoor', 'Fairhaven', 'Ravensford', 'Oldcastle',
     'Emberfall', 'Northwatch', 'Silverbrook', 'Wraithmoor'
 }
-// Found a named settlement in $realm, attributed to $founder. A parameterized event invoked via
-// call(found_settlement, founder, realm) from both crown_monarch (a new ruler's seat) and `settle`.
+// Found a named settlement in $realm, attributed to $founder. A parameterized event, called as
+// found_settlement(founder, realm) from both crown_monarch (a new ruler's seat) and `settle`.
 @tag('geography')
 event found_settlement ($founder: Person, $realm: Country) {
     create Settlement $s: ('{roll(SettlementName)}') {
@@ -289,7 +293,7 @@ event crown_monarch {
     set $p.title = Title.King
     set $p.prestige = $p.prestige + 30%
     record('{$p.name} of House {$p.family_name} is crowned ruler of {$realm.name}', 3)
-    call(found_settlement, $p, $realm)
+    found_settlement($p, $realm)
 }
 
 @frequency(1, PerXYear, 10)
@@ -298,7 +302,7 @@ event settle {
     pick Person $founder: (alive and age > Age.Young)
     var $realm: $founder.place
     if $realm {
-        call(found_settlement, $founder, $realm)
+        found_settlement($founder, $realm)
     }
 }
 

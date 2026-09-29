@@ -90,7 +90,7 @@ public class GrammarRuleTests : TestsBase
     [Test]
     public void FunctionDefinition_WithParamsAndReturnType() => AssertParses(
         "function f($x: number, $y: number): number {\n  $x + $y\n}\n" +
-        "event e { var $r: call(f) }\n");
+        "event e { var $r: f(1, 2) }\n");
 
     [Test]
     public void Attributes_Stacked() => AssertParses(

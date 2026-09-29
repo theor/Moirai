@@ -82,7 +82,9 @@ event create_solar_system {
     set $10.kind = Kind.Satelite
     set $10.system = $0
     record ('{$0.name} created')
-    call (create_station, 10)
+    repeat(10) {
+        create_station()
+    }
 }
 @frequency(1, Frequency.PerXYear, 10)
 event born {

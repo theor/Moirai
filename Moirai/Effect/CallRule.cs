@@ -66,6 +66,12 @@ public struct CallRule : IValueCall
     }
 
     public IFunctionDescriptor? FunctionDescriptor { get; set; }
+
+    /// Through `call(...)` the descriptor prints it; called by name it has none, and prints as `name(args)`.
+    public string Print(StoryPrinter printer, int indent) =>
+        FunctionDescriptor?.Print(printer, this)
+        ?? $"{printer.GetRuleName(RuleIndex)}({string.Join(", ", (Args ?? []).Select(a => printer.Print(a)))})";
+
     public IEnumerable<IValue> GetArgs(StoryPrinter printer)
     {
         yield return new Literal(printer.GetRuleName(RuleIndex));

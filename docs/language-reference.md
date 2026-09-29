@@ -147,7 +147,7 @@ call(event, arg1, arg2, ...)
 call(function)
 ```
 
-Runs an event now, from inside another rule. The event runs as a rule of its own: its changes are logged and trigger reactions like a scheduled event's, and the caller's own changes carry on around it. `n`, a number literal, runs it that many times. An event declared with parameters, `event greet($who: Person) { }`, takes its arguments instead, checked against their types. `call` also runs a `function` that returns nothing (a procedure), inline in the caller's rule. The event can be written anywhere in the story, and a function can call one too.
+Deprecated, and a warning says so: call an event or a function by name, `harvest()` or `greet($p)`, and repeat one with `repeat(n) { harvest() }`. `call` runs an event now, from inside another rule. The event runs as a rule of its own: its changes are logged and trigger reactions like a scheduled event's, and the caller's own changes carry on around it. `n`, a number literal, runs it that many times. An event declared with parameters, `event greet($who: Person) { }`, takes its arguments instead, checked against their types. `call` also runs a `function` that returns nothing (a procedure), inline in the caller's rule. The event can be written anywhere in the story, and a function can call one too.
 
 ```moirai
 call(harvest, 3)

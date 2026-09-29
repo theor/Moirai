@@ -135,8 +135,12 @@ event create_time {
     create Time $0: ('time') {
         year := 764
     }
-    call (create_country, 10)
-    call (create_god, 10)
+    repeat(10) {
+        create_country()
+    }
+    repeat(10) {
+        create_god()
+    }
 }
 @start
 event begin_history {
@@ -217,7 +221,7 @@ event crown_monarch {
     set $1.title = Title.King
     set $1.prestige = ($1.prestige + 30%)
     record ('{$1.name} of House {$1.family_name} is crowned ruler of {$0.name}', 3)
-    call (found_settlement, $1, $0)
+    found_settlement($1, $0)
 }
 @tag('geography')
 @frequency(1, Frequency.PerXYear, 10)
@@ -225,7 +229,7 @@ event settle {
     pick Person $0: (($0.alive and ($0.age > Age.Young)))
     var $1: $0.place
     if $1 {
-        call (found_settlement, $0, $1)
+        found_settlement($0, $1)
     }
 
 }

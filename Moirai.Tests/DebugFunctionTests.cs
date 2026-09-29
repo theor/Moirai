@@ -5,7 +5,7 @@ namespace Moirai.Tests;
 
 /// <summary>
 /// Step-through debugging across function boundaries: breakpoints inside function bodies
-/// (called via <c>call(..)</c> and directly) and stepping into a function.
+/// (called by name) and stepping into a function.
 /// </summary>
 public class DebugFunctionTests
 {
@@ -24,7 +24,7 @@ event setup {
 }
 @frequency(1, EveryXYear, 1)
 event run {
-    call(make_country, 1)
+    make_country()
 }";
 
     private static int LineOf(string text, string needle)
@@ -58,7 +58,7 @@ event run {
     {
         var db = StoryParser.Parse(Story, out var errors);
         Assert.That(errors, Is.Empty, string.Join("\n", errors));
-        int callLine = LineOf(Story, "call(make_country, 1)");
+        int callLine = LineOf(Story, "    make_country()");
         int firstBodyLine = LineOf(Story, "create Country $c");
 
         using var run = DebugRun.Start(db, 1, "s.sg", callLine);

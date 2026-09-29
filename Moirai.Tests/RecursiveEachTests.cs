@@ -30,7 +30,7 @@ trigger walk {
     each Thing $t: (seen = 0) {
         set $t.seen = 1
         record('{$t.name}')
-        call(bump)
+        bump()
     }
 }
 ";

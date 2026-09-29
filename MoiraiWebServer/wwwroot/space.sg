@@ -107,7 +107,9 @@ event create_solar_system {
 
     record '{$s.name} created'
 
-    call('create_station', 10)
+    repeat(10) {
+        create_station()
+    }
 }
 
 // @start

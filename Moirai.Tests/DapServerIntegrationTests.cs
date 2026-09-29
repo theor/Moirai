@@ -84,7 +84,7 @@ event setup {
 }
 @frequency(1, EveryXYear, 1)
 event run {
-    call(make_country, 1)
+    make_country()
 }";
 
     [Test]

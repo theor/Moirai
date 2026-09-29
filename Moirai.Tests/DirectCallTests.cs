@@ -36,7 +36,7 @@ event lonely {
     static List<string> Records(string body)
     {
         var db = Run(body, out var errors);
-        Assert.That(errors, Is.Empty, () => string.Join("\n", errors));
+        Assert.That(errors.Where(e => e.Severity == StoryParser.Severity.Error), Is.Empty, () => string.Join("\n", errors));
         db.RunAction("main");
         return db.Records.Select(r => r.Text).ToList();
     }
@@ -86,6 +86,14 @@ event lonely {
     public void RepeatingACallIsTheSameHistoryAsTheCountForm()
     {
         Assert.That(Records("    repeat(5) {\n        harvest()\n    }"), Is.EqualTo(Records("    call(harvest, 5)")));
+    }
+
+    [Test]
+    public void CallStillWorksButIsDeprecated()
+    {
+        Run("    call(harvest)", out var errors);
+        Assert.That(errors.Single().Code, Is.EqualTo(StoryParser.ErrorCode.Deprecated));
+        Assert.That(errors.Single().Severity, Is.EqualTo(StoryParser.Severity.Warning));
     }
 
     [TestCase("event floor {\n    record('x')\n}")]

@@ -3,7 +3,7 @@ using Moirai.Parser;
 namespace Moirai.Tests;
 
 // Parameterized events: `event greet($name: string, $j: Job) { ... }` invoked via
-// call(greet, 'Alice', Job.Smith). Arguments bind to the event scope's first slots.
+// greet('Alice', Job.Smith). Arguments bind to the event scope's first slots.
 public class EventParamTests : TestsBase
 {
     private const string Story = @"
@@ -12,10 +12,10 @@ event greet($name: string, $j: Job) {
     record('{$name} is a {$j}')
 }
 event setup {
-    call(greet, 'Alice', Job.Smith)
-    call(greet, 'Bob', Job.Farmer)
+    greet('Alice', Job.Smith)
+    greet('Bob', Job.Farmer)
     var $who: 'Carol'
-    call(greet, $who, Job.Farmer)
+    greet($who, Job.Farmer)
 }";
 
     [Test]
@@ -54,7 +54,7 @@ event callee($x: number) {
 }
 event caller {
     var $a: 'before'
-    call(callee, 7)
+    callee(7)
     record('caller {$a}')
 }";
         var db = Run(s, out _, 0);
@@ -74,7 +74,7 @@ event greet($name: string, $j: Job) {
     record('{$name}')
 }
 event setup {
-    call(greet, Job.Smith, 'oops')
+    greet(Job.Smith, 'oops')
 }";
         StoryParser.Parse(s, out var errors);
         Assert.That(errors.Any(e => e.Code == StoryParser.ErrorCode.MismatchedAssignmentTypes));
@@ -88,7 +88,7 @@ event greet($name: string, $other: string) {
     record('{$name}')
 }
 event setup {
-    call(greet, 'only one')
+    greet('only one')
 }";
         StoryParser.Parse(s, out var errors);
         Assert.That(errors.Any(e => e.Code == StoryParser.ErrorCode.MissingArgument));

@@ -2,7 +2,7 @@ using Moirai.Parser;
 
 namespace Moirai.Tests;
 
-/// What happens to an event's own changes when it call()s another event part-way through.
+/// What happens to an event's own changes when it calls another event part-way through.
 ///
 /// RunAction opens a fresh changeset for the callee. It used to leave the caller on it, so everything the
 /// caller did before the call was dropped from the history and no trigger ever saw it -- w.sg's
@@ -26,7 +26,7 @@ event callee {
 event caller {
     pick Thing $t: (x = 0)
     set $t.x = 1
-    call(callee)
+    callee()
 }
 trigger saw_x {
     when Thing and $new.x = 1 and $old.x = 0
@@ -61,7 +61,7 @@ trigger saw_x {
     public void WithoutTheCallTheSameChangeIsLoggedAndTheTriggerFires()
     {
         // The control for the test above: same story, the call removed.
-        var db = StoryParser.Parse(Story.Replace("    call(callee)", ""), out var errors);
+        var db = StoryParser.Parse(Story.Replace("    callee()", ""), out var errors);
         Assert.That(errors, Is.Empty);
         db.History = new();
         db.Init();
@@ -79,11 +79,11 @@ trigger saw_x {
     {
         var db = StoryParser.Parse(@"
 function relay() {
-    call(target, 'from a function')
+    target('from a function')
 }
 event first {
-    call(target, 'from above')
-    call(relay)
+    target('from above')
+    relay()
 }
 event target($how: string) {
     record('{$how}')

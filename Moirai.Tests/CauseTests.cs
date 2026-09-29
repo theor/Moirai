@@ -39,7 +39,7 @@ event feast {
 event crown {
     pick Person $p: (alive)
     set $p.title = 1
-    call(feast)
+    feast()
 }
 event prophecy {
     pick Person $p: (alive)

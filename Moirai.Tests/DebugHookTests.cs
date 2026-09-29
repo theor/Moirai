@@ -138,7 +138,7 @@ trigger on_death {
         Assert.That(inTrigger.Variables["$new"], Is.True, "$new should have a value in the trigger");
     }
 
-    // An event that call()s another event: the callee's frame must nest under the caller's.
+    // An event that calls another event: the callee's frame must nest under the caller's.
     private const string NestedStory = @"
 entity Person {
     prop age: number
@@ -153,7 +153,7 @@ event inner {
 }
 @frequency(1, EveryXYear, 1)
 event outer {
-    call(inner, 1)
+    inner()
 }";
 
     [Test]
@@ -169,7 +169,7 @@ event outer {
         db.Ctx.PassYears(2, true);
 
         Assert.That(hook.ExitCount, Is.EqualTo(hook.EnterCount), "unbalanced enter/exit");
-        Assert.That(hook.MaxDepth, Is.GreaterThanOrEqualTo(2), "call() should produce a nested frame");
+        Assert.That(hook.MaxDepth, Is.GreaterThanOrEqualTo(2), "calling an event should produce a nested frame");
 
         // A statement executed inside `inner` while `outer` was still on the stack.
         Assert.That(

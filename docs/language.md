@@ -146,10 +146,14 @@ event wedding {
 - `@start` runs the event once, when the world is created.
 - `@frequency(x, PerXYear, y)` runs it at random, x times every y years on average.
 - `@frequency(x, EveryXYear, y)` runs it exactly x times in every window of y years.
-- With no scheduling attribute, the event runs only when a rule `call`s it.
+- With no scheduling attribute, the event runs only when a rule calls it by name.
 
-An event can take parameters: `event found_city($founder: Person) { ... }`, run with
-`call(found_city, $p)`.
+A rule calls an event by name, `harvest()`, and runs it n times with `repeat(n) { harvest() }`. An
+event can take parameters, `event found_city($founder: Person) { ... }`, called as `found_city($p)` with
+each argument checked against its type. A called event runs as a rule of its own, with its own changes and
+triggers, and if it fails, the caller stops there too, as it would after a failed `pick` of its own.
+Events, functions and built-ins share one set of names, so an event cannot be called `floor` or share a
+name with a function.
 
 **A rule that stops has failed.** When a statement stops the rule, typically a `pick` that finds no one,
 the rule ends there. What it had already done stays in the world, records included, but its changes are
@@ -198,7 +202,7 @@ function create_god() {
 
 A function with a return type is an expression, and its last line is its value. It can be used in a
 `pick`'s predicate, where the engine reads through it to find matches quickly. A function without a return
-type is a procedure, run with `call(create_god)` inside the calling rule.
+type is a procedure, run by name, `create_god()`, inside the calling rule.
 
 Functions are read in the order they are written, before any event body. A function can therefore use
 the functions above it but not those below, and an entity's methods cannot use top-level functions. Any
@@ -220,7 +224,8 @@ A rule's body is a list of statements, one per line.
 | `random_weighted { weight => statement … }` | Chooses one branch at random. See below. |
 | `chance(5%) { … }` | Runs the block with a probability. |
 | `record('text')` | Writes a sentence into the history. |
-| `call(event)` | Runs another event or procedure now. |
+| `name(args)` | Runs an event or a procedure now. |
+| `repeat(n) { … }` | Runs the block n times. |
 | `schedule($e, year) { … }` | Runs the block in a later year. |
 
 `match` compares one or more values against each case in turn and runs the first that fits. `_` matches

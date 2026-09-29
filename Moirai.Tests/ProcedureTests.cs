@@ -3,7 +3,7 @@ using Moirai.Parser;
 namespace Moirai.Tests;
 
 // `function` doubles as the procedural keyword: a no-return function is a subroutine of effects,
-// invoked via call(name) / call(name, count) or directly as name().
+// invoked by name, name(), or n times with repeat(n) { name() }.
 public class ProcedureTests : TestsBase
 {
     private const string Story = @"
@@ -21,16 +21,18 @@ event setup {
     create Time $t: 'time' {
         year := 0
     }
-    call(make_country, 3)
+    repeat(3) {
+        make_country()
+    }
 }";
 
     [Test]
     public void CallFunctionNTimes()
     {
         var db = Run(Story, out _, 0);   // parses (void function ok) + round-trips
-        // @start runs setup -> call(make_country, 3)
+        // @start runs setup -> repeat(3) { make_country() }
         var made = db.Records.Count(r => r.Text == "a country is made");
-        Assert.That(made, Is.EqualTo(3), "call(make_country, 3) runs the procedure three times");
+        Assert.That(made, Is.EqualTo(3), "repeat(3) runs the procedure three times");
         Assert.That(db.Entities.Count(e => db.GetEntityTypeName(e.Type) == "Country"), Is.EqualTo(3));
     }
 
