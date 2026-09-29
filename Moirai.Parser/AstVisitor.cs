@@ -150,7 +150,15 @@ public class AstVisitor : StoryParser.IVisitor
 
             typesContexts.Add((type, typeDefinitionContext));
             foreach (var attr in def.Attributes)
+            {
+                // StoryParser.Attributes is the registry: an attribute it does not list is unknown here.
+                if (!StoryParser.IsAttribute(attr.Name.Text, AttributeTarget.Type))
+                {
+                    AddError(StoryParser.ErrorCode.UnknownAttribute, attr.Name.Span, attr.Name.Text);
+                    continue;
+                }
                 deferredTypeAttributes.Add((type, attr));
+            }
         }
 
         foreach (var (type, typeDefinitionContext) in typesContexts)
@@ -378,7 +386,7 @@ public class AstVisitor : StoryParser.IVisitor
         using var _ = new VariableDeclarationScopeDisposable(this, context.Scope.Span);
         var rootScope = _current;
 
-        ParseAttributes(out var tags, out var f);
+        ParseAttributes(AttributeTarget.Event, out var tags, out var f);
 
         // Event parameters occupy the scope's first value-stack slots (0..n-1); call(name, args...)
         // writes them before the body runs (see CallRule).
@@ -410,7 +418,7 @@ public class AstVisitor : StoryParser.IVisitor
         CurrentEventTrigger = null;
     }
 
-    private void ParseAttributes(out List<string>? tags, out IFilter? f)
+    private void ParseAttributes(AttributeTarget target, out List<string>? tags, out IFilter? f)
     {
         tags = null;
         f = null;
@@ -418,6 +426,14 @@ public class AstVisitor : StoryParser.IVisitor
 
         foreach (var p in _currentAttribute)
         {
+            // StoryParser.Attributes is the registry: an attribute it does not list for this kind of
+            // definition is unknown, which also stops a trigger's @frequency being silently ignored.
+            if (!StoryParser.IsAttribute(p.Name.Text, target))
+            {
+                AddError(StoryParser.ErrorCode.UnknownCall, p.Span, "Unknown attribute");
+                continue;
+            }
+
             switch (p.Name.Text)
             {
                 case "tag":
@@ -481,7 +497,7 @@ public class AstVisitor : StoryParser.IVisitor
     private void VisitTrigger(TriggerNode context)
     {
         string actionId = context.Name.Text;
-        ParseAttributes(out var tags, out _);
+        ParseAttributes(AttributeTarget.Trigger, out var tags, out _);
         CurrentEventTrigger = new EventTrigger(Database.Triggers.Count + 1, actionId, true, null, tags: tags)
             { Line = context.Name.Span.Position.Line };
 

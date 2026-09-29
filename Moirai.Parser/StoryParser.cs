@@ -29,7 +29,10 @@ public static class StoryParser
             }
 
             return (new CreateEntity(variableIndex, etid, name, init), PropertyValue.TypeTypedRef(etid));
-        }),
+        }, new BuiltinDoc(DocCategory.Entities,
+            ["create T $v", "create T $v: 'name'", "create T $v: 'name' { prop := value ... }"],
+            "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The optional block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
+            "create Person $p: '{roll(Name)}' {\n    age := 0\n    alive := true\n}")),
         new("each", true,
             ctx =>
             {
@@ -39,7 +42,10 @@ public static class StoryParser
                 return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
                         CallType.Each, ctx.Visitor.ParseRawScope(scopeContext, out _)),
                     PropertyValue.TypeTypedRef(etid));
-            }),
+            }, new BuiltinDoc(DocCategory.Queries,
+                ["each T $v: (predicate) { ... }"],
+                "Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.",
+                "each Person $p: (alive, age > 60) {\n    set $p.wealth = $p.wealth + 1\n}")),
         new("pick", true,
             ctx =>
             {
@@ -55,7 +61,10 @@ public static class StoryParser
                 return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
                         CallType.Pick, elseEffects: orElse),
                     PropertyValue.TypeTypedRef(etid));
-            }, "pick T $v: (predicate) picks one matching entity at random. When none matches the rule stops there; with pick T $v: (predicate) else { ... } it runs the else block first, then stops."),
+            }, new BuiltinDoc(DocCategory.Queries,
+                ["pick T $v: (predicate)", "pick T $v: (predicate) else { ... }"],
+                "Picks one T the predicate matches, uniformly at random, and binds it to $v. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. The block cannot see $v. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.",
+                "pick Person $p: (alive, partner = null) else {\n    record('Nobody is left to marry')\n}\nrecord('{$p.name} stays single')")),
 
         new("schedule", false, ctx =>
         {
@@ -103,28 +112,45 @@ public static class StoryParser
             var siteIndex = ctx.Visitor.Database.RegisterScheduleSite(site, selfVarIndex);
 
             return (new ScheduleEffect(entity, year, siteIndex, body), PropertyValue.ValueType.Null);
-        }),
+        }, new BuiltinDoc(DocCategory.Rules,
+            ["schedule(entity, year) { ... }"],
+            "Defers the block until the simulation reaches `year`, then runs it once, as a rule of its own, with $self bound to `entity`. Both arguments are evaluated now. The block sees $self but none of the enclosing rule's locals, so read what it needs from $self. A year that is not in the future fires next year. If the entity no longer exists by then, nothing runs, so a block that cares whether $self is still alive should test it.",
+            "pick Person $p: (alive)\nschedule($p, #Time.year + 20) {\n    if $self.alive {\n        set $self.age = $self.age + 20\n    }\n}")),
         new("assert", false, ctx =>
             (new AssertInstr(ctx.ParseArgument(0), ctx.GetText(ctx.GetArgumentToken(0)!.Span)),
-                PropertyValue.ValueType.Null)),
+                PropertyValue.ValueType.Null),
+            new BuiltinDoc(DocCategory.Testing,
+                ["assert(condition)"],
+                "Stops the simulation with an error when the condition is false. The error quotes the condition as written.",
+                "pick Person $p: (alive)\nassert($p.age >= 0)")),
         new("assert_eq", false, ctx =>
             (new AssertInstr(
                     ctx.ParseArgument(0),
                     ctx.ParseArgument(1),
                     $"{ctx.GetText(ctx.GetArgumentToken(0)!.Span)} = {ctx.GetText(ctx.GetArgumentToken(1)!.Span)}"),
-                PropertyValue.ValueType.Null)),
+                PropertyValue.ValueType.Null),
+            new BuiltinDoc(DocCategory.Testing,
+                ["assert_eq(actual, expected)"],
+                "Stops the simulation with an error when the two values differ. The error quotes both expressions as written and prints both values.",
+                "create Person $p: 'Ada' {\n    age := 3\n}\nassert_eq($p.age, 3)")),
         new("mark", false, ctx =>
         {
             ctx.ExpectArgcount(1);
             var e = ctx.ParseArgument(0);
             return (new Mark(e, ctx.Visitor.CurrentEventTrigger!.Id), PropertyValue.ValueType.Null);
-        }),
+        }, new BuiltinDoc(DocCategory.Rules,
+            ["mark(entity)"],
+            "Remembers that this rule touched `entity` this year, for `since_last` to read. Marks belong to the rule that makes them, so pair `mark` and `since_last` in the same rule. Use the pair to keep a rule from picking the same entity again too soon.",
+            "pick Person $p: (alive, since_last($p) > 4)\nmark($p)\nrecord('{$p.name} goes on a pilgrimage')")),
         new("since_last", false, ctx =>
         {
             ctx.ExpectArgcount(1);
             var e = ctx.ParseArgument(0);
             return (new SinceLast(e, ctx.Visitor.CurrentEventTrigger!.Id), PropertyValue.TypeNumber);
-        }),
+        }, new BuiltinDoc(DocCategory.Rules,
+            ["since_last(entity)"],
+            "The number of years since this rule last called `mark(entity)`. An entity this rule never marked counts as marked in year 0, so it reads as long ago rather than as a special value. Usable in a pick's predicate.",
+            "pick Person $p: (alive, since_last($p) > 10)\nmark($p)")),
         new("related", false, ctx =>
         {
             ctx.ExpectArgcount(3);
@@ -157,7 +183,10 @@ public static class StoryParser
 
             return (new Related(a, b, degreeLit.Value.IntValue, p1, p2), PropertyValue.TypeBool);
         },
-        "related($a, $b, n): true when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way (parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4). Parents are the type's @parents (parent1/parent2 by default)."),
+        new BuiltinDoc(DocCategory.Kinship,
+            ["related($a, $b, n)"],
+            "True when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. `n` is a number literal from 0 to 6. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.",
+            "pick Person $x: (alive, partner = null)\npick Person $y: (alive, partner = null, $y != $x, not(related($x, $y, 4)))")),
         new("record", false, ctx =>
         {
             ctx.ExpectArgcount(2, isMaxCount: true);
@@ -175,13 +204,19 @@ public static class StoryParser
 
             return (new Record(interpolatedString, weight), PropertyValue.ValueType.Null);
         },
-        "record('text', weight?): records a string into the world history. The optional weight says how much it matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces."),
+        new BuiltinDoc(DocCategory.Records,
+            ["record('text')", "record('text', weight)"],
+            "Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight, any number expression (taken as a whole number), says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.",
+            "pick Person $p: (alive)\nrecord('{$p.name} is crowned', 5)")),
         new("link", false, ctx =>
         {
             var linkValue = ctx.ParseArgument(0);
             var linkText = ctx.ParseArgument(1);
             return (new InterpolatedStringLink(linkValue, linkText), PropertyValue.TypeString);
-        }),
+        }, new BuiltinDoc(DocCategory.Records,
+            ["link(entity, 'text')"],
+            "Inside a record's text, shows `text` as a link to `entity`. Use it when the words should not be the entity's name. Unlike `{$p.name}`, a link does not make the entity one of the record's participants.",
+            "pick Person $p: (alive)\nrecord('{$p.name} paints a {link($p, 'self-portrait')}')")),
         new("call", false, ctx =>
         {
             var arg = ctx.GetArgumentToken(0);
@@ -249,7 +284,10 @@ public static class StoryParser
 
             ctx.Visitor.AddError(ErrorCode.UnknownRule, arg?.Span ?? ctx.CallContext.Span, eventName);
             return (null!, PropertyValue.ValueType.Null);
-        }),
+        }, new BuiltinDoc(DocCategory.Rules,
+            ["call(event)", "call(event, n)", "call(event, arg1, arg2, ...)", "call(function)"],
+            "Runs an event now, from inside another rule. The event runs as a rule of its own: its changes are logged and trigger reactions like a scheduled event's, and the caller's own changes carry on around it. `n`, a number literal, runs it that many times. An event declared with parameters, `event greet($who: Person) { }`, takes its arguments instead, checked against their types. `call` also runs a `function` that returns nothing (a procedure), inline in the caller's rule. The event must be written above the rule that calls it, and only an event or a trigger can call one: a function cannot.",
+            "call(harvest, 3)\npick Person $p: (alive)\ncall(greet, $p)\ncall(feast)")),
 
         new("random", false, ctx =>
         {
@@ -280,8 +318,10 @@ public static class StoryParser
 
             ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span, ctx.GetText(ctx.CallContext.Span));
             return (null!, PropertyValue.ValueType.Null);
-        },
-            ""),
+        }, new BuiltinDoc(DocCategory.Randomness,
+            ["random(EnumName)", "random(max)", "random(min, max)"],
+            "`random(EnumName)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. The first argument must be a number literal (or the enum); the second can be any number expression. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
+            "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}")),
         new("chance", false, ctx =>
         {
             ctx.ExpectArgcount(1);
@@ -305,7 +345,10 @@ public static class StoryParser
             }
 
             return (new Chance(p, body), body == null ? PropertyValue.TypeBool : PropertyValue.ValueType.Null);
-        }, "chance(p): true with probability p, a percentage: chance(3%). As a statement with a body, chance(3%) { ... } runs the body when it hits and carries on either way."),
+        }, new BuiltinDoc(DocCategory.Randomness,
+            ["chance(p)", "chance(p) { ... }"],
+            "True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. As a statement with a block, the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.",
+            "pick Person $p: (alive)\nchance(5%) {\n    record('{$p.name} finds a fortune')\n}\nif chance(50%) {\n    set $p.wealth = $p.wealth + 1\n}")),
         new("roll", false, ctx =>
         {
             // roll(TableName) — sample a named weighted table. The arg is a bare table name (a
@@ -327,7 +370,10 @@ public static class StoryParser
             ctx.Visitor.Linker?.LinkTable(new FileRange(tableSpan), table);
 
             return (new RollTable(table.Id, table.Name), table.ValueType);
-        }, "Samples a named weighted table: roll(TableName)"),
+        }, new BuiltinDoc(DocCategory.Randomness,
+            ["roll(TableName)"],
+            "Draws one entry from a `table`, according to its weights. The result has the type of the table's entries.",
+            "create Person $p: '{roll(Name)}'")),
         new("add", false, ctx =>
         {
             ctx.ExpectArgcount(2);
@@ -335,7 +381,10 @@ public static class StoryParser
                 return (new CollectionMutate(full, owner, coll, ctx.ParseArgument(1), true),
                     PropertyValue.ValueType.Null);
             return (null!, PropertyValue.ValueType.Null);
-        }, "Adds a value to a collection property: add($e.coll, $x)"),
+        }, new BuiltinDoc(DocCategory.Collections,
+            ["add($e.coll, value)"],
+            "Adds a value to a collection property (`prop friends: [Person]`). A collection is a set: adding a value it already holds changes nothing.",
+            "pick Person $a: (alive)\npick Person $b: (alive, $b != $a)\nadd($a.friends, $b)")),
         new("remove", false, ctx =>
         {
             ctx.ExpectArgcount(2);
@@ -343,7 +392,10 @@ public static class StoryParser
                 return (new CollectionMutate(full, owner, coll, ctx.ParseArgument(1), false),
                     PropertyValue.ValueType.Null);
             return (null!, PropertyValue.ValueType.Null);
-        }, "Removes a value from a collection property: remove($e.coll, $x)"),
+        }, new BuiltinDoc(DocCategory.Collections,
+            ["remove($e.coll, value)"],
+            "Removes a value from a collection property. Removing a value it does not hold changes nothing.",
+            "pick Person $a: (alive)\npick Person $b: (contains($a.friends, $b))\nremove($a.friends, $b)")),
         new("contains", false, ctx =>
         {
             ctx.ExpectArgcount(2);
@@ -351,15 +403,30 @@ public static class StoryParser
                 return (new CollectionQuery(CollectionQuery.QueryKind.Contains, full, owner, coll,
                     ctx.ParseArgument(1)), PropertyValue.TypeBool);
             return (null!, PropertyValue.TypeBool);
-        }, "Tests collection membership: contains($e.coll, $x)"),
+        }, new BuiltinDoc(DocCategory.Collections,
+            ["contains($e.coll, value)"],
+            "True when the collection property holds the value. Usable in a pick's predicate.",
+            "pick Person $a: (alive)\npick Person $b: (alive, $b != $a, not(contains($a.friends, $b)))")),
         new("sum", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Sum),
-            "sum T $v: (predicate, value): the total of value over every T the predicate matches, e.g. sum Person $p: (alive, $p.prosperity)"),
+            new BuiltinDoc(DocCategory.Queries,
+                ["sum T $v: (predicate..., value)"],
+                "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a plain number, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
+                "var $total: sum Person $p: (alive, $p.wealth)")),
         new("avg", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Avg),
-            "avg T $v: (predicate, value): the mean of value over every T the predicate matches, 0 when none does"),
+            new BuiltinDoc(DocCategory.Queries,
+                ["avg T $v: (predicate..., value)"],
+                "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. Written like `sum`.",
+                "var $mean: avg Person $p: (alive, $p.happiness)")),
         new("min", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Min),
-            "min T $v: (predicate, value): the smallest value over every T the predicate matches, 0 when none does"),
+            new BuiltinDoc(DocCategory.Queries,
+                ["min T $v: (predicate..., value)"],
+                "The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
+                "var $youngest: min Person $p: (alive, $p.age)")),
         new("max", true, ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Max),
-            "max T $v: (predicate, value): the largest value over every T the predicate matches, 0 when none does"),
+            new BuiltinDoc(DocCategory.Queries,
+                ["max T $v: (predicate..., value)"],
+                "The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
+                "var $oldest: max Person $p: (alive, $p.age)")),
         new("count", false, ctx =>
         {
             // `count T $v: (predicate)` counts a query; `count($e.coll)` a collection.
@@ -370,22 +437,107 @@ public static class StoryParser
                 return (new CollectionQuery(CollectionQuery.QueryKind.Count, full, owner, coll, null),
                     PropertyValue.TypeNumber);
             return (null!, PropertyValue.TypeNumber);
-        }, "Number of elements in a collection property: count($e.coll)"),
+        }, new BuiltinDoc(DocCategory.Queries,
+            ["count T $v", "count T $v: (predicate...)", "count($e.coll)"],
+            "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count($e.coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
+            "var $living: count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)")),
         new("not", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Not, ctx.ParseArgument(0)), PropertyValue.TypeBool)),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Not, ctx.ParseArgument(0)), PropertyValue.TypeBool),
+            new BuiltinDoc(DocCategory.Math,
+                ["not(condition)"],
+                "True when the condition is false. Usable in a pick's predicate.",
+                "pick Person $p: (not($p.alive))")),
         new("floor", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Floor, ctx.ParseArgument(0)), PropertyValue.TypeNumber)),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Floor, ctx.ParseArgument(0)), PropertyValue.TypeNumber),
+            new BuiltinDoc(DocCategory.Math,
+                ["floor(x)"],
+                "x rounded down to a whole number.",
+                "var $half: floor(count Person $p: (alive) / 2)")),
         new("round", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Round, ctx.ParseArgument(0)), PropertyValue.TypeNumber)),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Round, ctx.ParseArgument(0)), PropertyValue.TypeNumber),
+            new BuiltinDoc(DocCategory.Math,
+                ["round(x)"],
+                "x rounded to the nearest whole number. A half rounds to the even neighbour: round(2.5) is 2, round(3.5) is 4.",
+                "var $mean: round(avg Person $p: (alive, $p.age))")),
         new("ceiling", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.ParseArgument(0)), PropertyValue.TypeNumber)),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Ceiling, ctx.ParseArgument(0)), PropertyValue.TypeNumber),
+            new BuiltinDoc(DocCategory.Math,
+                ["ceiling(x)"],
+                "x rounded up to a whole number.",
+                "var $boats: ceiling(count Person $p: (alive) / 12)")),
         new("clamp01", false,
-            ctx => (new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.ParseArgument(0)), PropertyValue.TypeNumber)),
+            ctx => (new MathUnary(MathUnary.UnaryFunction.Clamp01, ctx.ParseArgument(0)), PropertyValue.TypeNumber),
+            new BuiltinDoc(DocCategory.Math,
+                ["clamp01(x)"],
+                "x limited to the range 0 to 1. It is for fractions: a percentage is held as 0 to 100 and is already kept in that range whenever it is set.",
+                "var $share: clamp01(count Person $p: (alive) / 1000)")),
         new("debug", false,
             ctx => (
                 new DebugPrint(Enumerable.Repeat((object?) null, ctx.ArgCount).Select((_, i) => ctx.ParseArgument(i))),
-                PropertyValue.ValueType.Null))
+                PropertyValue.ValueType.Null),
+            new BuiltinDoc(DocCategory.Testing,
+                ["debug(value, ...)"],
+                "Prints each argument, as written and as it evaluates, to the host's console (the server's, or the browser's developer console). It changes nothing in the world.",
+                "pick Person $p: (alive)\ndebug($p.name, $p.age)"))
     ];
+
+    /// Every attribute the language accepts. This is the registry, not just the documentation: the parser
+    /// reports an attribute that is not listed here for its kind of definition before lowering it, so an
+    /// attribute cannot be added without being documented.
+    public static readonly List<AttributeDescriptor> Attributes =
+    [
+        new("start", AttributeTarget.Event, new BuiltinDoc(DocCategory.EventAttributes,
+            ["@start"],
+            "Runs the event once, when the world is created, before the first year passes. This is where a story sets the clock (`set #Time.year = 764`) and makes its first entities. Several `@start` events run in the order they are written.",
+            "@start\nevent founding {\n    create Person $p: 'Ada' {\n        alive := true\n    }\n}")),
+        new("frequency", AttributeTarget.Event, new BuiltinDoc(DocCategory.EventAttributes,
+            ["@frequency(x, PerXYear, y)", "@frequency(x, EveryXYear, y)"],
+            "Schedules the event. `PerXYear` is random: on average x runs every y years, drawn each year, so a year can have none or several. `EveryXYear` is exact: x runs in every window of y years, each on a year of the window drawn at random. x and y are whole-number literals. An event with no scheduling attribute runs only when something calls it.",
+            "@frequency(1, PerXYear, 2)\nevent quarrel {\n    record('A quarrel')\n}\n@frequency(1, EveryXYear, 10)\nevent census {\n    record('A census')\n}")),
+        new("tag", AttributeTarget.Event | AttributeTarget.Trigger, new BuiltinDoc(DocCategory.EventAttributes,
+            ["@tag('name', ...)"],
+            "Labels an event or trigger with one or more string literals. The viewer's Records page groups and filters records by them.",
+            "@tag('family', 'noise')\n@frequency(1, PerXYear, 1)\nevent chatter {\n    record('People talk', 0)\n}")),
+        new("display", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@display(OtherType, 'Label', predicate)", "@display(OtherType, 'Label', predicate, 'item format')"],
+            "Adds a derived field to the entity's details in the viewer: every OtherType the predicate matches, listed under Label. In the predicate, $self is the entity being shown and $other the candidate; a bare property name reads $other's. The optional item format is an interpolated string for each line, which can read $other.",
+            "@display(Kin, 'Children', parent1 = $self or parent2 = $self)\n@display(Kin, 'Friends', contains($self.friends, $other), '{$other.name}, aged {$other.age}')\nentity Kin {\n    prop age: number\n    prop parent1: Kin\n    prop parent2: Kin\n    prop friends: [Kin]\n}")),
+        new("parents", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@parents(a, b)"],
+            "Names the two properties that hold an entity's parents. Both must be references to the type itself. `related()`, the family tree and the Life page read them. Without it, properties named `parent1` and `parent2` are used.",
+            "@parents(mother, father)\nentity Kin {\n    prop mother: Kin\n    prop father: Kin\n}")),
+        new("partner", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@partner(p)"],
+            "Names the property that holds an entity's partner, a reference to the type itself, shown in the family tree. Defaults to a property named `partner`.",
+            "@partner(spouse)\nentity Kin {\n    prop spouse: Kin\n}")),
+        new("born", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@born(p)"],
+            "Names the number property that holds the year an entity was born. Defaults to `birthdate`, and then to the year the entity was created.",
+            "@born(born_in)\nentity Kin {\n    prop born_in: number\n}")),
+        new("died", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@died(p)"],
+            "Names the number property that holds the year an entity died. Defaults to `deathdate`.",
+            "@died(died_in)\nentity Kin {\n    prop died_in: number\n}")),
+        new("alive", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@alive(p)"],
+            "Names the bool property that is true while an entity lives. The viewer counts the living with it. Defaults to `alive`. A type takes `@alive` or `@dead`, not both.",
+            "@alive(breathing)\nentity Kin {\n    prop breathing: bool\n}")),
+        new("dead", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@dead(p)"],
+            "Names a bool property that is true once an entity has died, for a story that tracks death rather than life. A type takes `@alive` or `@dead`, not both.",
+            "@dead(fallen)\nentity Kin {\n    prop fallen: bool\n}")),
+        new("period", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@period(from, to)"],
+            "Marks the type as an age of history, bounded by two number properties holding its first and last year. The chronicle on the Home page and the exported history are chaptered by these. Without it, a type with `start_year` and `end_year` and no reference properties counts as one.",
+            "@period(from, to)\nentity Era {\n    prop from: number\n    prop to: number\n}")),
+        new("population", AttributeTarget.Type, new BuiltinDoc(DocCategory.TypeAttributes,
+            ["@population"],
+            "Marks the type whose living count is the world's population, plotted on the Home page. At most one type can carry it. Without it, the largest type with an alive or dead role is used.",
+            "@population\nentity Villager {\n    prop alive: bool\n}")),
+    ];
+
+    public static bool IsAttribute(string name, AttributeTarget target) =>
+        Attributes.Exists(a => a.Name == name && a.Targets.HasFlag(target));
 
     /// `count T $v: (pred...)` and `sum|avg|min|max T $v: (pred..., value)`. Like a pick, the arguments
     /// before the value are the predicate, joined by `and`; $v exists only inside the call.

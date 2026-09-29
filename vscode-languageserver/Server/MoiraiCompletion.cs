@@ -307,8 +307,7 @@ public static class MoiraiCompletion
                     break;
 
                 case Context.AttributeName:
-                    Keywords("tag", "display", "start", "frequency",
-                        "parents", "partner", "born", "died", "alive", "dead", "period", "population");
+                    Attributes();
                     break;
 
                 case Context.TypeName:
@@ -350,6 +349,22 @@ public static class MoiraiCompletion
                     Kind = CompletionItemKind.Keyword,
                 });
         }
+
+        void Attributes()
+        {
+            foreach (var attribute in StoryParser.Attributes)
+                _items.Add(new CompletionItem
+                {
+                    Label = attribute.Name,
+                    InsertText = attribute.Name,
+                    Kind = CompletionItemKind.Keyword,
+                    Detail = "attribute",
+                    Documentation = Markdown(attribute.Doc.ToMarkdown()),
+                });
+        }
+
+        static StringOrMarkupContent Markdown(string text) =>
+            new(new MarkupContent { Kind = MarkupKind.Markdown, Value = text });
 
         void Types()
         {
@@ -396,7 +411,7 @@ public static class MoiraiCompletion
                     Detail = "builtin",
                     Documentation = string.IsNullOrEmpty(descriptor.Documentation)
                         ? null
-                        : new StringOrMarkupContent(descriptor.Documentation),
+                        : Markdown(descriptor.Documentation),
                 });
 
             var db = document.Database;

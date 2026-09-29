@@ -24,6 +24,10 @@ event wedding {
 
 A simulation is deterministic: the same story and the same seed always give the same history.
 
+To write a story, start with [the language guide](docs/language.md). For each built-in function and
+attribute, see [the language reference](docs/language-reference.md), which is generated from the engine's
+code.
+
 ## Running it
 
 **From a release.** Download `moirai-<version>.zip` from

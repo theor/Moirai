@@ -8,14 +8,15 @@ public class FunctionDescriptor : IFunctionDescriptor
 
     public string FuncName { get; }
     public bool ExpectVariable { get; }
-    public string? Documentation { get; }
+    public BuiltinDoc? Doc { get; }
+    public string Documentation => Doc?.ToMarkdown() ?? "";
     private readonly ParseCallDelegate _parse;
 
-    public FunctionDescriptor(string funcName, bool expectVariable, ParseCallDelegate parse, string? documentation = null)
+    public FunctionDescriptor(string funcName, bool expectVariable, ParseCallDelegate parse, BuiltinDoc? doc = null)
     {
         FuncName = funcName;
         ExpectVariable = expectVariable;
-        Documentation = documentation;
+        Doc = doc;
         _parse = parse;
     }
 

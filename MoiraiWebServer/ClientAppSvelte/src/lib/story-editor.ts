@@ -1,3 +1,10 @@
+import {
+  autocompletion,
+  completionKeymap,
+  type Completion,
+  type CompletionContext,
+  type CompletionResult,
+} from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import {
   HighlightStyle,
@@ -12,12 +19,20 @@ import {
   drawSelection,
   highlightActiveLine,
   highlightActiveLineGutter,
+  hoverTooltip,
   keymap,
   lineNumbers,
 } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
 import { toCodeMirrorDiagnostics } from './diagnostics';
-import { moiraiLanguage } from './moirai-language';
+import {
+  lookup,
+  referenceEntries,
+  summaryParts,
+  wordAt,
+  type ReferenceEntry,
+} from './language-reference';
+import { KEYWORDS, moiraiLanguage } from './moirai-language';
 import type { StoryDiagnostic } from './types';
 
 /**
@@ -55,7 +70,83 @@ const theme = EditorView.theme({
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
   },
   '&.cm-focused': { outline: 'none' },
+  '.cm-moirai-doc': { maxWidth: '32rem', padding: '0.25rem 0.5rem', fontSize: '0.8125rem' },
+  '.cm-moirai-doc pre': {
+    margin: '0 0 0.25rem',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    whiteSpace: 'pre-wrap',
+  },
+  '.cm-moirai-doc p': { margin: '0', lineHeight: '1.4' },
+  '.cm-moirai-doc code': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
 });
+
+/** The signatures as code, then the summary, with its `code spans` set as code. Built from text nodes,
+ * never from HTML, so nothing in a summary can become markup. */
+function renderDoc(entry: ReferenceEntry): HTMLElement {
+  const root = document.createElement('div');
+  root.className = 'cm-moirai-doc';
+  const signatures = document.createElement('pre');
+  signatures.textContent = entry.signatures.join('\n');
+  root.appendChild(signatures);
+  const summary = document.createElement('p');
+  for (const part of summaryParts(entry.summary)) {
+    const node = part.code ? document.createElement('code') : document.createElement('span');
+    node.textContent = part.text;
+    summary.appendChild(node);
+  }
+  root.appendChild(summary);
+  return root;
+}
+
+/** Hovering a built-in or an `@attribute` shows its documentation. */
+const referenceHover = hoverTooltip((view, pos) => {
+  const line = view.state.doc.lineAt(pos);
+  const word = wordAt(line.text, pos - line.from);
+  const entry = word && lookup(word.word, word.attribute);
+  if (!word || !entry) return null;
+  return {
+    pos: line.from + word.from - (word.attribute ? 1 : 0),
+    end: line.from + word.to,
+    above: true,
+    create: () => ({ dom: renderDoc(entry) }),
+  };
+});
+
+const functionOptions: Completion[] = referenceEntries
+  .filter((e) => e.kind === 'function')
+  .map((e) => ({
+    label: e.name,
+    type: 'function',
+    detail: e.signatures[0],
+    info: () => renderDoc(e),
+  }));
+const attributeOptions: Completion[] = referenceEntries
+  .filter((e) => e.kind === 'attribute')
+  .map((e) => ({
+    label: e.name,
+    type: 'keyword',
+    detail: e.signatures[0],
+    info: () => renderDoc(e),
+  }));
+const keywordOptions: Completion[] = [...KEYWORDS].map((k) => ({ label: k, type: 'keyword' }));
+
+/**
+ * Built-ins, keywords and, after an `@`, attributes. The story's own names are left out on purpose: they
+ * come from a parse, and the parse the editor has is the engine's, which answers with diagnostics only.
+ */
+function completeReference(context: CompletionContext): CompletionResult | null {
+  const match = context.matchBefore(/[@$#.]?\w*/);
+  if (!match) return null;
+  const sigil = match.text[0];
+  if (sigil === '$' || sigil === '#' || sigil === '.') return null;
+  const attribute = sigil === '@';
+  if (!attribute && match.from === match.to && !context.explicit) return null;
+  return {
+    from: attribute ? match.from + 1 : match.from,
+    options: attribute ? attributeOptions : [...functionOptions, ...keywordOptions],
+    validFor: /^\w*$/,
+  };
+}
 
 export interface StoryEditorOptions {
   parent: HTMLElement;
@@ -93,11 +184,13 @@ export function createStoryEditor(options: StoryEditorOptions): EditorView {
         bracketMatching(),
         lintGutter(),
         lint,
+        referenceHover,
+        autocompletion({ override: [completeReference] }),
         moiraiLanguage,
         syntaxHighlighting(highlight),
         // Tab indents rather than moving focus. A deliberate trade: it is the expected behaviour in a
         // code editor, and Escape-then-Tab still gets a keyboard user out.
-        keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+        keymap.of([...completionKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
         theme,
         EditorView.updateListener.of((u) => {
           if (u.docChanged) options.onChange(u.state.doc.toString());

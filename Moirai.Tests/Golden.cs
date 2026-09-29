@@ -47,10 +47,16 @@ public static class Golden
 
     static bool UpdateRequested => Environment.GetEnvironmentVariable("UPDATE_GOLDENS") is "1" or "true";
 
-    public static void Verify(string name, string actual)
+    public static void Verify(string name, string actual) => VerifyAt(Path.Combine(Dir, name), name, actual);
+
+    /// A snapshot that lives somewhere other than Moirai.Tests/Golden -- a generated file the repo ships,
+    /// such as the language reference -- given as a path from the repo root.
+    public static void VerifyFile(string repoRelativePath, string actual) =>
+        VerifyAt(Path.Combine(RepoRoot, repoRelativePath.Replace('/', Path.DirectorySeparatorChar)), repoRelativePath, actual);
+
+    static void VerifyAt(string path, string name, string actual)
     {
         actual = actual.Replace("\r\n", "\n");
-        var path = Path.Combine(Dir, name);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
         if (UpdateRequested || !File.Exists(path))

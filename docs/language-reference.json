@@ -1,0 +1,511 @@
+{
+  "sections": [
+    {
+      "id": "queries",
+      "title": "Queries"
+    },
+    {
+      "id": "entities",
+      "title": "Entities"
+    },
+    {
+      "id": "rules",
+      "title": "Rules and scheduling"
+    },
+    {
+      "id": "randomness",
+      "title": "Randomness"
+    },
+    {
+      "id": "records",
+      "title": "Records"
+    },
+    {
+      "id": "kinship",
+      "title": "Kinship"
+    },
+    {
+      "id": "collections",
+      "title": "Collections"
+    },
+    {
+      "id": "math",
+      "title": "Math and logic"
+    },
+    {
+      "id": "testing",
+      "title": "Testing and debugging"
+    },
+    {
+      "id": "eventAttributes",
+      "title": "Event and trigger attributes"
+    },
+    {
+      "id": "typeAttributes",
+      "title": "Type attributes"
+    }
+  ],
+  "entries": [
+    {
+      "kind": "function",
+      "name": "avg",
+      "category": "queries",
+      "signatures": [
+        "avg T $v: (predicate..., value)"
+      ],
+      "summary": "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. Written like `sum`.",
+      "example": "var $mean: avg Person $p: (alive, $p.happiness)"
+    },
+    {
+      "kind": "function",
+      "name": "count",
+      "category": "queries",
+      "signatures": [
+        "count T $v",
+        "count T $v: (predicate...)",
+        "count($e.coll)"
+      ],
+      "summary": "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count($e.coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
+      "example": "var $living: count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)"
+    },
+    {
+      "kind": "function",
+      "name": "each",
+      "category": "queries",
+      "signatures": [
+        "each T $v: (predicate) { ... }"
+      ],
+      "summary": "Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.",
+      "example": "each Person $p: (alive, age > 60) {\n    set $p.wealth = $p.wealth + 1\n}"
+    },
+    {
+      "kind": "function",
+      "name": "max",
+      "category": "queries",
+      "signatures": [
+        "max T $v: (predicate..., value)"
+      ],
+      "summary": "The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
+      "example": "var $oldest: max Person $p: (alive, $p.age)"
+    },
+    {
+      "kind": "function",
+      "name": "min",
+      "category": "queries",
+      "signatures": [
+        "min T $v: (predicate..., value)"
+      ],
+      "summary": "The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
+      "example": "var $youngest: min Person $p: (alive, $p.age)"
+    },
+    {
+      "kind": "function",
+      "name": "pick",
+      "category": "queries",
+      "signatures": [
+        "pick T $v: (predicate)",
+        "pick T $v: (predicate) else { ... }"
+      ],
+      "summary": "Picks one T the predicate matches, uniformly at random, and binds it to $v. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. The block cannot see $v. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.",
+      "example": "pick Person $p: (alive, partner = null) else {\n    record('Nobody is left to marry')\n}\nrecord('{$p.name} stays single')"
+    },
+    {
+      "kind": "function",
+      "name": "sum",
+      "category": "queries",
+      "signatures": [
+        "sum T $v: (predicate..., value)"
+      ],
+      "summary": "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a plain number, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
+      "example": "var $total: sum Person $p: (alive, $p.wealth)"
+    },
+    {
+      "kind": "function",
+      "name": "create",
+      "category": "entities",
+      "signatures": [
+        "create T $v",
+        "create T $v: 'name'",
+        "create T $v: 'name' { prop := value ... }"
+      ],
+      "summary": "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The optional block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
+      "example": "create Person $p: '{roll(Name)}' {\n    age := 0\n    alive := true\n}"
+    },
+    {
+      "kind": "function",
+      "name": "call",
+      "category": "rules",
+      "signatures": [
+        "call(event)",
+        "call(event, n)",
+        "call(event, arg1, arg2, ...)",
+        "call(function)"
+      ],
+      "summary": "Runs an event now, from inside another rule. The event runs as a rule of its own: its changes are logged and trigger reactions like a scheduled event's, and the caller's own changes carry on around it. `n`, a number literal, runs it that many times. An event declared with parameters, `event greet($who: Person) { }`, takes its arguments instead, checked against their types. `call` also runs a `function` that returns nothing (a procedure), inline in the caller's rule. The event must be written above the rule that calls it, and only an event or a trigger can call one: a function cannot.",
+      "example": "call(harvest, 3)\npick Person $p: (alive)\ncall(greet, $p)\ncall(feast)"
+    },
+    {
+      "kind": "function",
+      "name": "mark",
+      "category": "rules",
+      "signatures": [
+        "mark(entity)"
+      ],
+      "summary": "Remembers that this rule touched `entity` this year, for `since_last` to read. Marks belong to the rule that makes them, so pair `mark` and `since_last` in the same rule. Use the pair to keep a rule from picking the same entity again too soon.",
+      "example": "pick Person $p: (alive, since_last($p) > 4)\nmark($p)\nrecord('{$p.name} goes on a pilgrimage')"
+    },
+    {
+      "kind": "function",
+      "name": "schedule",
+      "category": "rules",
+      "signatures": [
+        "schedule(entity, year) { ... }"
+      ],
+      "summary": "Defers the block until the simulation reaches `year`, then runs it once, as a rule of its own, with $self bound to `entity`. Both arguments are evaluated now. The block sees $self but none of the enclosing rule's locals, so read what it needs from $self. A year that is not in the future fires next year. If the entity no longer exists by then, nothing runs, so a block that cares whether $self is still alive should test it.",
+      "example": "pick Person $p: (alive)\nschedule($p, #Time.year + 20) {\n    if $self.alive {\n        set $self.age = $self.age + 20\n    }\n}"
+    },
+    {
+      "kind": "function",
+      "name": "since_last",
+      "category": "rules",
+      "signatures": [
+        "since_last(entity)"
+      ],
+      "summary": "The number of years since this rule last called `mark(entity)`. An entity this rule never marked counts as marked in year 0, so it reads as long ago rather than as a special value. Usable in a pick's predicate.",
+      "example": "pick Person $p: (alive, since_last($p) > 10)\nmark($p)"
+    },
+    {
+      "kind": "function",
+      "name": "chance",
+      "category": "randomness",
+      "signatures": [
+        "chance(p)",
+        "chance(p) { ... }"
+      ],
+      "summary": "True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. As a statement with a block, the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.",
+      "example": "pick Person $p: (alive)\nchance(5%) {\n    record('{$p.name} finds a fortune')\n}\nif chance(50%) {\n    set $p.wealth = $p.wealth + 1\n}"
+    },
+    {
+      "kind": "function",
+      "name": "random",
+      "category": "randomness",
+      "signatures": [
+        "random(EnumName)",
+        "random(max)",
+        "random(min, max)"
+      ],
+      "summary": "`random(EnumName)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. The first argument must be a number literal (or the enum); the second can be any number expression. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
+      "example": "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}"
+    },
+    {
+      "kind": "function",
+      "name": "roll",
+      "category": "randomness",
+      "signatures": [
+        "roll(TableName)"
+      ],
+      "summary": "Draws one entry from a `table`, according to its weights. The result has the type of the table's entries.",
+      "example": "create Person $p: '{roll(Name)}'"
+    },
+    {
+      "kind": "function",
+      "name": "link",
+      "category": "records",
+      "signatures": [
+        "link(entity, 'text')"
+      ],
+      "summary": "Inside a record's text, shows `text` as a link to `entity`. Use it when the words should not be the entity's name. Unlike `{$p.name}`, a link does not make the entity one of the record's participants.",
+      "example": "pick Person $p: (alive)\nrecord('{$p.name} paints a {link($p, 'self-portrait')}')"
+    },
+    {
+      "kind": "function",
+      "name": "record",
+      "category": "records",
+      "signatures": [
+        "record('text')",
+        "record('text', weight)"
+      ],
+      "summary": "Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight, any number expression (taken as a whole number), says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.",
+      "example": "pick Person $p: (alive)\nrecord('{$p.name} is crowned', 5)"
+    },
+    {
+      "kind": "function",
+      "name": "related",
+      "category": "kinship",
+      "signatures": [
+        "related($a, $b, n)"
+      ],
+      "summary": "True when $a and $b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. `n` is a number literal from 0 to 6. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.",
+      "example": "pick Person $x: (alive, partner = null)\npick Person $y: (alive, partner = null, $y != $x, not(related($x, $y, 4)))"
+    },
+    {
+      "kind": "function",
+      "name": "add",
+      "category": "collections",
+      "signatures": [
+        "add($e.coll, value)"
+      ],
+      "summary": "Adds a value to a collection property (`prop friends: [Person]`). A collection is a set: adding a value it already holds changes nothing.",
+      "example": "pick Person $a: (alive)\npick Person $b: (alive, $b != $a)\nadd($a.friends, $b)"
+    },
+    {
+      "kind": "function",
+      "name": "contains",
+      "category": "collections",
+      "signatures": [
+        "contains($e.coll, value)"
+      ],
+      "summary": "True when the collection property holds the value. Usable in a pick's predicate.",
+      "example": "pick Person $a: (alive)\npick Person $b: (alive, $b != $a, not(contains($a.friends, $b)))"
+    },
+    {
+      "kind": "function",
+      "name": "remove",
+      "category": "collections",
+      "signatures": [
+        "remove($e.coll, value)"
+      ],
+      "summary": "Removes a value from a collection property. Removing a value it does not hold changes nothing.",
+      "example": "pick Person $a: (alive)\npick Person $b: (contains($a.friends, $b))\nremove($a.friends, $b)"
+    },
+    {
+      "kind": "function",
+      "name": "ceiling",
+      "category": "math",
+      "signatures": [
+        "ceiling(x)"
+      ],
+      "summary": "x rounded up to a whole number.",
+      "example": "var $boats: ceiling(count Person $p: (alive) / 12)"
+    },
+    {
+      "kind": "function",
+      "name": "clamp01",
+      "category": "math",
+      "signatures": [
+        "clamp01(x)"
+      ],
+      "summary": "x limited to the range 0 to 1. It is for fractions: a percentage is held as 0 to 100 and is already kept in that range whenever it is set.",
+      "example": "var $share: clamp01(count Person $p: (alive) / 1000)"
+    },
+    {
+      "kind": "function",
+      "name": "floor",
+      "category": "math",
+      "signatures": [
+        "floor(x)"
+      ],
+      "summary": "x rounded down to a whole number.",
+      "example": "var $half: floor(count Person $p: (alive) / 2)"
+    },
+    {
+      "kind": "function",
+      "name": "not",
+      "category": "math",
+      "signatures": [
+        "not(condition)"
+      ],
+      "summary": "True when the condition is false. Usable in a pick's predicate.",
+      "example": "pick Person $p: (not($p.alive))"
+    },
+    {
+      "kind": "function",
+      "name": "round",
+      "category": "math",
+      "signatures": [
+        "round(x)"
+      ],
+      "summary": "x rounded to the nearest whole number. A half rounds to the even neighbour: round(2.5) is 2, round(3.5) is 4.",
+      "example": "var $mean: round(avg Person $p: (alive, $p.age))"
+    },
+    {
+      "kind": "function",
+      "name": "assert",
+      "category": "testing",
+      "signatures": [
+        "assert(condition)"
+      ],
+      "summary": "Stops the simulation with an error when the condition is false. The error quotes the condition as written.",
+      "example": "pick Person $p: (alive)\nassert($p.age >= 0)"
+    },
+    {
+      "kind": "function",
+      "name": "assert_eq",
+      "category": "testing",
+      "signatures": [
+        "assert_eq(actual, expected)"
+      ],
+      "summary": "Stops the simulation with an error when the two values differ. The error quotes both expressions as written and prints both values.",
+      "example": "create Person $p: 'Ada' {\n    age := 3\n}\nassert_eq($p.age, 3)"
+    },
+    {
+      "kind": "function",
+      "name": "debug",
+      "category": "testing",
+      "signatures": [
+        "debug(value, ...)"
+      ],
+      "summary": "Prints each argument, as written and as it evaluates, to the host's console (the server's, or the browser's developer console). It changes nothing in the world.",
+      "example": "pick Person $p: (alive)\ndebug($p.name, $p.age)"
+    },
+    {
+      "kind": "attribute",
+      "name": "frequency",
+      "category": "eventAttributes",
+      "signatures": [
+        "@frequency(x, PerXYear, y)",
+        "@frequency(x, EveryXYear, y)"
+      ],
+      "summary": "Schedules the event. `PerXYear` is random: on average x runs every y years, drawn each year, so a year can have none or several. `EveryXYear` is exact: x runs in every window of y years, each on a year of the window drawn at random. x and y are whole-number literals. An event with no scheduling attribute runs only when something calls it.",
+      "example": "@frequency(1, PerXYear, 2)\nevent quarrel {\n    record('A quarrel')\n}\n@frequency(1, EveryXYear, 10)\nevent census {\n    record('A census')\n}",
+      "targets": [
+        "event"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "start",
+      "category": "eventAttributes",
+      "signatures": [
+        "@start"
+      ],
+      "summary": "Runs the event once, when the world is created, before the first year passes. This is where a story sets the clock (`set #Time.year = 764`) and makes its first entities. Several `@start` events run in the order they are written.",
+      "example": "@start\nevent founding {\n    create Person $p: 'Ada' {\n        alive := true\n    }\n}",
+      "targets": [
+        "event"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "tag",
+      "category": "eventAttributes",
+      "signatures": [
+        "@tag('name', ...)"
+      ],
+      "summary": "Labels an event or trigger with one or more string literals. The viewer's Records page groups and filters records by them.",
+      "example": "@tag('family', 'noise')\n@frequency(1, PerXYear, 1)\nevent chatter {\n    record('People talk', 0)\n}",
+      "targets": [
+        "event",
+        "trigger"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "alive",
+      "category": "typeAttributes",
+      "signatures": [
+        "@alive(p)"
+      ],
+      "summary": "Names the bool property that is true while an entity lives. The viewer counts the living with it. Defaults to `alive`. A type takes `@alive` or `@dead`, not both.",
+      "example": "@alive(breathing)\nentity Kin {\n    prop breathing: bool\n}",
+      "targets": [
+        "type"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "born",
+      "category": "typeAttributes",
+      "signatures": [
+        "@born(p)"
+      ],
+      "summary": "Names the number property that holds the year an entity was born. Defaults to `birthdate`, and then to the year the entity was created.",
+      "example": "@born(born_in)\nentity Kin {\n    prop born_in: number\n}",
+      "targets": [
+        "type"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "dead",
+      "category": "typeAttributes",
+      "signatures": [
+        "@dead(p)"
+      ],
+      "summary": "Names a bool property that is true once an entity has died, for a story that tracks death rather than life. A type takes `@alive` or `@dead`, not both.",
+      "example": "@dead(fallen)\nentity Kin {\n    prop fallen: bool\n}",
+      "targets": [
+        "type"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "died",
+      "category": "typeAttributes",
+      "signatures": [
+        "@died(p)"
+      ],
+      "summary": "Names the number property that holds the year an entity died. Defaults to `deathdate`.",
+      "example": "@died(died_in)\nentity Kin {\n    prop died_in: number\n}",
+      "targets": [
+        "type"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "display",
+      "category": "typeAttributes",
+      "signatures": [
+        "@display(OtherType, 'Label', predicate)",
+        "@display(OtherType, 'Label', predicate, 'item format')"
+      ],
+      "summary": "Adds a derived field to the entity's details in the viewer: every OtherType the predicate matches, listed under Label. In the predicate, $self is the entity being shown and $other the candidate; a bare property name reads $other's. The optional item format is an interpolated string for each line, which can read $other.",
+      "example": "@display(Kin, 'Children', parent1 = $self or parent2 = $self)\n@display(Kin, 'Friends', contains($self.friends, $other), '{$other.name}, aged {$other.age}')\nentity Kin {\n    prop age: number\n    prop parent1: Kin\n    prop parent2: Kin\n    prop friends: [Kin]\n}",
+      "targets": [
+        "type"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "parents",
+      "category": "typeAttributes",
+      "signatures": [
+        "@parents(a, b)"
+      ],
+      "summary": "Names the two properties that hold an entity's parents. Both must be references to the type itself. `related()`, the family tree and the Life page read them. Without it, properties named `parent1` and `parent2` are used.",
+      "example": "@parents(mother, father)\nentity Kin {\n    prop mother: Kin\n    prop father: Kin\n}",
+      "targets": [
+        "type"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "partner",
+      "category": "typeAttributes",
+      "signatures": [
+        "@partner(p)"
+      ],
+      "summary": "Names the property that holds an entity's partner, a reference to the type itself, shown in the family tree. Defaults to a property named `partner`.",
+      "example": "@partner(spouse)\nentity Kin {\n    prop spouse: Kin\n}",
+      "targets": [
+        "type"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "period",
+      "category": "typeAttributes",
+      "signatures": [
+        "@period(from, to)"
+      ],
+      "summary": "Marks the type as an age of history, bounded by two number properties holding its first and last year. The chronicle on the Home page and the exported history are chaptered by these. Without it, a type with `start_year` and `end_year` and no reference properties counts as one.",
+      "example": "@period(from, to)\nentity Era {\n    prop from: number\n    prop to: number\n}",
+      "targets": [
+        "type"
+      ]
+    },
+    {
+      "kind": "attribute",
+      "name": "population",
+      "category": "typeAttributes",
+      "signatures": [
+        "@population"
+      ],
+      "summary": "Marks the type whose living count is the world's population, plotted on the Home page. At most one type can carry it. Without it, the largest type with an alive or dead role is used.",
+      "example": "@population\nentity Villager {\n    prop alive: bool\n}",
+      "targets": [
+        "type"
+      ]
+    }
+  ]
+}
