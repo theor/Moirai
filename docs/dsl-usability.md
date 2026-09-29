@@ -24,7 +24,8 @@ that. **Collections stay in the engine** for genuinely variable-arity / iterable
 Functions with >1 parameter used to throw `IndexOutOfRange` in `pick`/`each`. Now inlined into the
 caller scope, so bool helpers like `is_child_of($ch, $parent)` DRY repeated predicates. Two
 follow-ups surfaced:
-- Global functions aren't resolvable inside `@display` attributes (parsed before functions register).
+- ~~Global functions aren't resolvable inside `@display` attributes~~ ✅ Every function is declared before
+  any body is parsed, so `@display`, methods and functions can use any function, in any order.
 - ~~No void/effect functions~~ ✅ A function with no declared return type is now a **procedure**: its
   body is effects (create/set/record/call) and any trailing value is ignored. See `event` keyword below.
 

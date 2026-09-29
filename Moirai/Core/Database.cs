@@ -1232,15 +1232,18 @@ public class Database
                               || (r.Kind == ResolvedKind.QueryVar && l.Kind == ResolvedKind.Independent);
                 return usable ? new EqualsPlan(l, r) : null;
             }
+            // Read through a function once per path: a function that calls itself is not read into again,
+            // which would never end. The full predicate is still checked on every candidate.
             case UserFunctionCall call
                 when !call.Definition.IsInstanceMethod
                      && call.Definition.Instructions is [CallInstruction { Value: { } body }]
-                     && call.Arguments.Length == call.Definition.Parameters.Length:
+                     && call.Arguments.Length == call.Definition.Parameters.Length
+                     && (scope == null || !scope.Reads(call.Definition.Name)):
             {
                 var args = new Dictionary<int, IValue>();
                 for (int i = 0; i < call.Arguments.Length; i++)
                     args[call.Definition.Parameters[i].ParamIndex] = call.Arguments[i];
-                return CompileNarrow(body, varIdx, new ArgScope(args, scope));
+                return CompileNarrow(body, varIdx, new ArgScope(args, scope, call.Definition.Name));
             }
             default:
                 return null;
@@ -1305,7 +1308,10 @@ public class Database
     }
 
     // A function body's parameters, bound to the calling expressions (which live in the scope outside).
-    private sealed record ArgScope(Dictionary<int, IValue> Args, ArgScope? Outer);
+    private sealed record ArgScope(Dictionary<int, IValue> Args, ArgScope? Outer, string Function)
+    {
+        public bool Reads(string function) => Function == function || (Outer?.Reads(function) ?? false);
+    }
 
     private enum ResolvedKind { Unknown, QueryVar, Independent }
 

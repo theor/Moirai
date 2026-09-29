@@ -113,12 +113,21 @@ public partial class AstVisitor : StoryParser.IVisitor
                 _currentAttribute = null!;
             }
 
+        // Every function is declared -- name, parameters, return type -- before any body is parsed, as
+        // events are, so any body can call any function whatever order they are written in: one below it,
+        // itself, a method a top-level function, a top-level function a method. Methods are declared
+        // first, which keeps every function's id what it was when bodies were parsed in order.
+        var functions = new List<(FunctionDefinitionNode Node, EntityType? Type, FunctionDefinition Definition,
+            Parser.VariableDeclarationScope Scope)>();
         foreach (var (type, typeDefinitionContext) in typesContexts)
             foreach (var functionDefinitionContext in typeDefinitionContext.FunctionDefinitions)
-                ParseFunctionDefinition(functionDefinitionContext, type);
+                functions.Add(DeclareFunction(functionDefinitionContext, type));
+        foreach (var def in context.Defs)
+            if (def.FunctionDefinition != null)
+                functions.Add(DeclareFunction(def.FunctionDefinition));
 
         // Tables can reference enums and entity types, so register them after both are declared
-        // but before functions/events (whose bodies may call roll(...)).
+        // but before any body (which may call roll(...)).
         foreach (var def in context.Defs)
             if (def.TableDefinition != null)
                 VisitTableDefinition(def.TableDefinition);
@@ -128,9 +137,8 @@ public partial class AstVisitor : StoryParser.IVisitor
             if (attr.Name.Text == "display")
                 VisitDisplayAttribute(type, attr);
 
-        foreach (var def in context.Defs)
-            if (def.FunctionDefinition != null)
-                ParseFunctionDefinition(def.FunctionDefinition);
+        foreach (var f in functions)
+            ParseFunctionBody(f.Node, f.Type, f.Definition, f.Scope);
 
         int eventIndex = 0;
         foreach (var def in context.Defs)
@@ -144,16 +152,21 @@ public partial class AstVisitor : StoryParser.IVisitor
         }
     }
 
-    private void ParseFunctionDefinition(FunctionDefinitionNode fundef, EntityType? instanceType = null)
+    /// A function's signature, with no body yet. The scope its parameters are declared in is kept, and
+    /// <see cref="ParseFunctionBody"/> parses the body in it later.
+    private (FunctionDefinitionNode, EntityType?, FunctionDefinition, Parser.VariableDeclarationScope) DeclareFunction(
+        FunctionDefinitionNode fundef, EntityType? instanceType = null)
     {
         using var _ = new VariableDeclarationScopeDisposable(this, fundef.Scope.Span);
         var rootScope = _current;
 
         var name = fundef.Name.Text;
-        _currentFunctionName = instanceType != null ? $"{instanceType.Name}.{name}" : name;
         if (instanceType == null && Database.Actions.Exists(r => r.Name == name))
             AddError(StoryParser.ErrorCode.DuplicateDefinition, fundef.Name.Span,
                 $"'{name}' is already an event; a function and an event are called the same way, so they need different names");
+        else if (instanceType == null && Database.Functions.Exists(f => f.Name == name && !f.IsInstanceMethod))
+            AddError(StoryParser.ErrorCode.DuplicateDefinition, fundef.Name.Span,
+                $"there is already a function named '{name}'");
         PropertyValue.ValueType returnType = PropertyValue.ValueType.Null;
         if (fundef.ReturnType != null)
             returnType = ParseType(fundef.ReturnType.Name);
@@ -170,26 +183,41 @@ public partial class AstVisitor : StoryParser.IVisitor
         }).ToArray();
         var functionDefinitionId = new FunctionDefinitionId(
             (ushort) (instanceType == null ? Database.Functions.Count : instanceType.Functions.Count));
-        var instructions = ParseScope(fundef.Scope, out var actualType);
         var functionDefinition = new FunctionDefinition(functionDefinitionId,
             name,
             instanceType?.Id ?? EntityTypeId.Null,
             returnType,
-            parameters,
-            instructions,
-            ConvertScope(rootScope));
+            parameters);
         if (instanceType != null)
             instanceType.Functions.Add(functionDefinition);
         Database.Functions.Add(functionDefinition);
-        // A function with no declared return type is a procedure: its body is effects (create/set/
-        // record/call) and any trailing value is ignored, so only value functions check the body type.
-        if (returnType != PropertyValue.ValueType.Null && actualType != returnType)
-            AddError(
-                actualType == PropertyValue.ValueType.Null
-                    ? StoryParser.ErrorCode.MissingReturnValue
-                    : StoryParser.ErrorCode.MismatchedReturnType, fundef.Span, $"{actualType} != {returnType}");
-
         Linker?.DeclareFunction(new FileRange(fundef.Name.Span), new UserFunctionDescriptor(functionDefinition));
+        return (fundef, instanceType, functionDefinition, rootScope);
+    }
+
+    private void ParseFunctionBody(FunctionDefinitionNode fundef, EntityType? instanceType,
+        FunctionDefinition functionDefinition, Parser.VariableDeclarationScope scope)
+    {
+        var outer = _current;
+        _current = scope;
+        try
+        {
+            _currentFunctionName = instanceType != null ? $"{instanceType.Name}.{fundef.Name.Text}" : fundef.Name.Text;
+            var instructions = ParseScope(fundef.Scope, out var actualType);
+            functionDefinition.SetBody(instructions, ConvertScope(scope));
+            // A function with no declared return type is a procedure: its body is effects (create/set/
+            // record/call) and any trailing value is ignored, so only value functions check the body type.
+            var returnType = functionDefinition.ReturnType;
+            if (returnType != PropertyValue.ValueType.Null && actualType != returnType)
+                AddError(
+                    actualType == PropertyValue.ValueType.Null
+                        ? StoryParser.ErrorCode.MissingReturnValue
+                        : StoryParser.ErrorCode.MismatchedReturnType, fundef.Span, $"{actualType} != {returnType}");
+        }
+        finally
+        {
+            _current = outer;
+        }
     }
 
     public EntityType DeclareEntityType(string typeName)
