@@ -15,7 +15,7 @@ public class ScheduleScopeTests
         return errors.Where(e => e.Severity == StoryParser.Severity.Error).ToList();
     }
 
-    [TestCase("event e {\n    pick P $p\n    var $k: 5\n    schedule($p, 10) {\n        set $self.n = $k\n    }\n}\n", "$k")]
+    [TestCase("event e {\n    pick P $p\n    var $k = 5\n    schedule($p, 10) {\n        set $self.n = $k\n    }\n}\n", "$k")]
     [TestCase("event e {\n    pick P $p\n    schedule($p, 10) {\n        set $p.n = 1\n    }\n}\n", "$p")]
     [TestCase("trigger t {\n    when_created P\n    schedule($new, 10) {\n        set $new.n = 1\n    }\n}\n", "$new")]
     [TestCase("event e($who: P) {\n    schedule($who, 10) {\n        set $who.n = 1\n    }\n}\n", "$who")]
@@ -31,8 +31,8 @@ public class ScheduleScopeTests
     [Test]
     public void AnOuterSelfInsideANestedScheduleIsAnError()
     {
-        var errors = Errors("event e {\n    pick P $p\n    schedule($p, 10) {\n        var $outer: $self\n" +
-                            "        schedule($self, 20) {\n            set $self.n = 1\n            var $x: $outer\n        }\n    }\n}\n");
+        var errors = Errors("event e {\n    pick P $p\n    schedule($p, 10) {\n        var $outer = $self\n" +
+                            "        schedule($self, 20) {\n            set $self.n = 1\n            var $x = $outer\n        }\n    }\n}\n");
         Assert.That(errors.Select(e => e.Message), Has.Some.Contains("$outer"));
         Assert.That(errors, Has.Count.EqualTo(1), () => string.Join("\n", errors));
     }
@@ -42,8 +42,8 @@ public class ScheduleScopeTests
     [Test]
     public void SelfItsOwnLocalsSingletonsAndTheArgumentsAreFine()
     {
-        var errors = Errors("event e {\n    pick P $p\n    var $delay: 5\n    schedule($p, #Time.year + $delay) {\n" +
-                            "        var $n: $self.n + 1\n        set $self.n = $n\n        if $self.alive {\n            set $self.n = #Time.year\n        }\n    }\n}\n");
+        var errors = Errors("event e {\n    pick P $p\n    var $delay = 5\n    schedule($p, #Time.year + $delay) {\n" +
+                            "        var $n = $self.n + 1\n        set $self.n = $n\n        if $self.alive {\n            set $self.n = #Time.year\n        }\n    }\n}\n");
         Assert.That(errors, Is.Empty, () => string.Join("\n", errors));
     }
 }

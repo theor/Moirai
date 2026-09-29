@@ -205,7 +205,7 @@ public partial class StoryPrinter
                 break;
             case SetProperty setProperty:
                 sb.AppendLine(
-                    $"{indentStr}{(setProperty.IsLocalVar ? "var" : "set")} {Print(setProperty.PropertySet)}{(setProperty.IsLocalVar ? ":" : " =")} {Print(setProperty.Parameter)}");
+                    $"{indentStr}{(setProperty.IsLocalVar ? "var" : "set")} {Print(setProperty.PropertySet)} = {Print(setProperty.Parameter)}");
                 break;
 
             default:

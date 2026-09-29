@@ -56,7 +56,7 @@ function global_score($c: Country): number {
 event start {
     create Country $c: ('Test')
     set $c.health = 10
-    var $flag: true
+    var $flag = true
     if $c.health > 5 and $c.health < 100 or false {
         record('big')
     } else {

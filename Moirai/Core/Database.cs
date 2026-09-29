@@ -1574,7 +1574,7 @@ public class Database
 
     private readonly RecordStore _recordStore = new();
 
-    // Where the strings a pass makes live -- a birth's name, a `var $x: '...'` -- when they are not a literal
+    // Where the strings a pass makes live -- a birth's name, a `var $x = '...'` -- when they are not a literal
     // or some value's existing string. Referenced by the PropertyValues that hold them, so the slab lives
     // exactly as long as the world does.
     private readonly Slab<char> _strings = new();

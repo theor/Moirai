@@ -180,7 +180,7 @@ function create_country() {
 }
 
 function create_god() {
-    var $dom: random(GodTypes)
+    var $dom = random(GodTypes)
     create God $g: ('{roll(Name)}, God of {$dom}') {
         domain := $dom
     }
@@ -243,9 +243,9 @@ event link_countries {
 @tag('country_events')
 event update_country_health {
     each Country $c {
-        var $prev: $c.health
+        var $prev = $c.health
         set $c.health = ($c.prosperity / 10 + 1) / 2
-        var $diff: $prev != $c.health
+        var $diff = $prev != $c.health
         match $diff, $c.health  {
 
             false, CountryHealth.Disarray => random_weighted 100 {
@@ -300,7 +300,7 @@ event crown_monarch {
 @tag('geography')
 event settle {
     pick Person $founder: (alive and age > Age.Young)
-    var $realm: $founder.place
+    var $realm = $founder.place
     if $realm {
         found_settlement($founder, $realm)
     }
@@ -371,7 +371,7 @@ trigger inherit {
     each Person $child: (is_child_of($child, $new) and alive) {
         record('{$child.name} lose their parent, {$new.name}')
         if $new.killer {
-            var $k: $new.killer
+            var $k = $new.killer
             record('{$child.name} starts a vendetta with {$k.name}')
         }
     }
@@ -555,8 +555,8 @@ table Name {
 }
 @frequency(1, PerXYear, 2)
 event char_born {
-    var $fname: '{roll(Name)}'
-    var $house: '{roll(Surname)}'
+    var $fname = '{roll(Name)}'
+    var $house = '{roll(Surname)}'
     create Person $p: ('{$fname} {$house}')
     pick Country $loc
     set $p.alive = true
@@ -634,7 +634,7 @@ event deepen_faith {
 @tag('faith')
 event divine_miracle {
     pick Person $x: (alive and god != null and devotion > 50% and prosperity < 45%)
-    var $g: $x.god
+    var $g = $x.god
     set $x.prosperity = $x.prosperity + 40%
     set $x.prestige = $x.prestige + 10%
     record('{$x.name} receives a miracle from {$g.name} and is delivered from hardship')
@@ -645,8 +645,8 @@ event divine_miracle {
 @tag('faith')
 event prophet_rises {
     pick Person $p: (alive and god != null and devotion > 80% and age > Age.Young)
-    var $g: $p.god
-    var $realm: $p.place
+    var $g = $p.god
+    var $realm = $p.place
     if $realm {
         create Temple $t: ('Temple of {$g.name}') {
             god := $g
@@ -693,7 +693,7 @@ event divorce {
 event murder {
     // Desperation is relative: the murderer comes from the poorest of the living, whatever poor means
     // in this age (a fixed bar like prosperity < 20% is one this world almost never falls below).
-    var $floor: min Person $q: (alive and age > Age.Child, $q.prosperity)
+    var $floor = min Person $q: (alive and age > Age.Child, $q.prosperity)
     pick Person $x: (alive = true, age > Age.Child, prosperity <= $floor + 5%)
     pick Person $y: (alive = true, $y != $x, place = $x.place)
     set $y.alive = false
@@ -715,7 +715,7 @@ event bandits_attack_town {
 @tag('country')
 event char_migrates {
     pick Person $p: (alive, partner = null)
-    var $here: $p.place
+    var $here = $p.place
     // Move to a bordering realm rather than teleporting anywhere on the map.
     pick Country $c: ($c != $here and contains($here.neighbors, $c))
     set $p.place = $c
@@ -738,7 +738,7 @@ event country_war_start {
 event soldier_war_distinction {
     each Country $c: (war_with != null){
         pick Person $s: (alive, job = Job.Soldier, place = $c)
-        var $o: $c.war_with
+        var $o = $c.war_with
         random_weighted 100 {
             10 => {
                 set $s.prestige = $s.prestige + 10%
@@ -758,7 +758,7 @@ event soldier_war_distinction {
 // event soldier_war_distinction war country {
 //     each $c:( type = Country, war_with != null ){
 //         pick $s:( type = Person, alive, job = Job.Soldier, place = $c)
-//         var $o: $c.war_with
+//         var $o = $c.war_with
 //         record('{$s.name}, a soldier from {$c.name}, shines during the war with {$o.name}')
 
 //     }
@@ -767,7 +767,7 @@ event soldier_war_distinction {
 // event soldier_war_death war {
 //     each $c:( type = Country, war_with != null ){
 //         pick $s:( type = Person, alive, job = Job.Soldier, place = $c)
-//         var $o: $c.war_with
+//         var $o = $c.war_with
 //         add_tag $s, #death
 //         record('{$s.name}, a soldier from {$c.name}, dies during the war with {$o.name}')
 //         add_tag $c, #prosperity_decrease
@@ -778,7 +778,7 @@ event soldier_war_distinction {
 @tag('war', 'country')
 event country_war_peace {
     pick Country $x: (war_with != null)
-    var $y: $x.war_with
+    var $y = $x.war_with
     set $x.war_with = null
     set $y.war_with = null
     record('{$x.name} and {$y.name} sign a peace treaty, ending the war', 2)
@@ -789,7 +789,7 @@ event country_war_peace {
 @tag('war', 'country')
 event country_war_win {
     pick Country $x: (war_with != null)
-    var $y: $x.war_with
+    var $y = $x.war_with
     set $x.war_with = null
     set $y.war_with = null
     record('{$x.name} wins the war against {$y.name}', 3)
@@ -801,7 +801,7 @@ event country_war_win {
 @tag('country')
 event country_natural_disaster {
     pick Country $c
-    var $d: random_weighted 100 {
+    var $d = random_weighted 100 {
         20 => 'A flood'
         20 => 'A volcano'
         20 => 'A famine'
@@ -813,12 +813,12 @@ event country_natural_disaster {
 @frequency(2, PerXYear, 1)
 event couple_has_child {
     pick Person $x: (alive = true, age < Age.Old, partner != null, since_last($x) > 4)
-    var $y: $x.partner
+    var $y = $x.partner
     if $y.alive {
         mark($x)
         mark($y)
 
-        var $fname: '{roll(Name)}'
+        var $fname = '{roll(Name)}'
         create Person $c: ('{$fname} {$x.family_name}')
         set $c.alive = true
         set $c.first_name = $fname
@@ -891,7 +891,7 @@ event wizard_studies {
 @tag('magic', 'items')
 event artifact_forged {
     pick Person $w: (alive and job = Job.Wizard and mastery >= Mastery.Master)
-    var $name: '{roll(ArtifactPrefix)}{roll(ArtifactSuffix)}'
+    var $name = '{roll(ArtifactPrefix)}{roll(ArtifactSuffix)}'
     create Item $i: ('{$name}') {
         maker := $w
         owner := $w
@@ -913,7 +913,7 @@ event artifact_forged {
 @tag('magic', 'geography')
 event arcane_catastrophe {
     pick Person $w: (alive and job = Job.Wizard and mastery >= Mastery.Seasoned)
-    var $realm: $w.place
+    var $realm = $w.place
     pick Settlement $s: (country = $realm and status != SettlementStatus.Ruined)
     set $s.status = SettlementStatus.Ruined
     set $s.prosperity = 0%
@@ -943,7 +943,7 @@ event item_painted {
 event item_lost {
     pick Item $i: (owner != null)
     pick Person $p: ($p = $i.owner, alive)
-    var $prev: $i.owner
+    var $prev = $i.owner
     set $i.owner = null
     record('{$prev.name} lost the {$i.name}')
 }
@@ -961,7 +961,7 @@ event item_sold {
     pick Item $i: (owner != null)
     pick Person $s: ($s = $i.owner, alive)
     pick Person $p: (alive, $p != $s)
-    var $prev: $i.owner
+    var $prev = $i.owner
     set $i.owner = $p
     record('{$p.name} acquires the {$i.name} from {$prev.name}')
 }
@@ -1058,7 +1058,7 @@ event monster_emerges {
 @tag('legends')
 event monster_raids {
     pick Monster $m: (alive)
-    var $c: $m.lair
+    var $c = $m.lair
     pick Settlement $s: (country = $c and status != SettlementStatus.Ruined) else {
         if (pick Person $v: (alive and place = $c)) {
             set $v.alive = false
@@ -1083,7 +1083,7 @@ event hero_quest {
             set $m.slain_by = $h
             set $h.prestige = $h.prestige + 40%
             if $m.hoard {
-                var $art: $m.hoard
+                var $art = $m.hoard
                 set $art.owner = $h
                 record('{$h.name} recovers the {$art.name} from the hoard of {$m.name}', 2)
             }

@@ -436,7 +436,7 @@ function older($a: Person, $years: number): number {
 @start
 event start {
     create Person $p: ('p')
-    var $n: older($p, 2)
+    var $n = older($p, 2)
 }
 ");
         var handler = new MyHoverHandler(new FakeLogger<MyHoverHandler>(), cache);

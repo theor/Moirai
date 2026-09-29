@@ -90,7 +90,7 @@ public static partial class MoiraiGrammar
         return TokenListParserResult.Value(new InitNode(prop.Value, expr.Value, span), input, expr.Remainder);
     }
 
-    // var: VAR VAR_ID COLON expr ;
+    // var: VAR VAR_ID EQ expr ;  (and the old VAR VAR_ID COLON expr, read only to report it)
     static TokenListParserResult<MoiraiTokenKind, VarNode> VarRule(TokenList<MoiraiTokenKind> input)
     {
         var varTok = input.ConsumeToken();
@@ -99,14 +99,15 @@ public static partial class MoiraiGrammar
         var id = varTok.Remainder.ConsumeToken();
         if (!id.HasValue || id.Value.Kind != MoiraiTokenKind.VarId)
             return TokenListParserResult.Empty<MoiraiTokenKind, VarNode>(varTok.Remainder, "a variable name");
-        var colon = id.Remainder.ConsumeToken();
-        if (!colon.HasValue || colon.Value.Kind != MoiraiTokenKind.Colon)
-            return TokenListParserResult.Empty<MoiraiTokenKind, VarNode>(id.Remainder, "':'");
-        var expr = Expr(colon.Remainder);
+        var eq = id.Remainder.ConsumeToken();
+        if (!eq.HasValue || eq.Value.Kind is not (MoiraiTokenKind.Eq or MoiraiTokenKind.Colon))
+            return TokenListParserResult.Empty<MoiraiTokenKind, VarNode>(id.Remainder, "'='");
+        var expr = Expr(eq.Remainder);
         if (!expr.HasValue)
             return TokenListParserResult.CastEmpty<MoiraiTokenKind, ExprNode, VarNode>(expr);
         var span = Combine(varTok.Value.Span, expr.Value.Span);
-        return TokenListParserResult.Value(new VarNode(IdentOf(id.Value), expr.Value, span), input, expr.Remainder);
+        return TokenListParserResult.Value(new VarNode(IdentOf(id.Value), expr.Value, span,
+            OldColon: eq.Value.Kind == MoiraiTokenKind.Colon), input, expr.Remainder);
     }
 
     /// The `((effect SCOPE_CLOSE)|((effect LINE_BREAK+)* SCOPE_CLOSE))` alternation from `scope`,

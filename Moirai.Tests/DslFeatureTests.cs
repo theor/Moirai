@@ -447,8 +447,8 @@ event e {{
     record('{{random(0, 1000)}}')
 }}
 ";
-        var with = Run(Story("var $n: avg Thing $t: (alive, $t.x)"), out _);
-        var without = Run(Story("var $n: 0"), out _);
+        var with = Run(Story("var $n = avg Thing $t: (alive, $t.x)"), out _);
+        var without = Run(Story("var $n = 0"), out _);
         for (int i = 0; i < 20; i++)
         {
             with.RunAction("e");
@@ -465,7 +465,7 @@ event e {{
     {
         StoryParser.Parse(Things + $@"
 event e {{
-    var $n: {expr}
+    var $n = {expr}
 }}
 ", out var errors);
         Assert.That(errors.Count(e => e.Severity == StoryParser.Severity.Error), Is.GreaterThan(0));
@@ -476,7 +476,7 @@ event e {{
     {
         StoryParser.Parse(Census + @"
 event e {
-    var $n: count Thing $t: (alive)
+    var $n = count Thing $t: (alive)
     record('{$t.x}')
 }
 ", out var errors);

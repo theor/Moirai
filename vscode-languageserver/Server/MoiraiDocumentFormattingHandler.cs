@@ -285,7 +285,10 @@ internal sealed class MoiraiFormatter
         }
 
         if (effect.Var is { } var)
+        {
+            EnsureSpaces(Find(MoiraiTokenKind.Eq, End(var.VarId.Span), Start(var.Expr.Span)), 1, 1);
             Expr(var.Expr);
+        }
 
         Expr(effect.Expr);
     }

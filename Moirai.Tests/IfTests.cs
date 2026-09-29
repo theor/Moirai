@@ -7,7 +7,7 @@ public class RandomTests : TestsBase
     {
         Run(@"
 event c {
-   var $x: random (1, 10)
+   var $x = random (1, 10)
     assert ($x >= 1)
     assert ($x <= 10)
 }
@@ -23,7 +23,7 @@ event r {
     {
         Run(@"
 event c {
-   var $x: random (10)
+   var $x = random (10)
     assert ($x >= 0)
     assert ($x <= 10)
 }
@@ -44,7 +44,7 @@ public class CoalesceTests : TestsBase
         Run(@"
 @start
 event e {
-    var $x: null ?? 12
+    var $x = null ?? 12
     assert_eq($x, 12)
 }", out _);
     }
@@ -54,7 +54,7 @@ event e {
         Run(@"
 @start
 event e {
-    var $x: null ?? null
+    var $x = null ?? null
     assert_eq($x, null)
 }", out _);
     }
@@ -64,7 +64,7 @@ event e {
         Run(@"
 @start
 event e {
-    var $x: 13 ?? null
+    var $x = 13 ?? null
     assert_eq($x, 13)
 }", out _);
     }
@@ -74,7 +74,7 @@ event e {
         Run(@"
 @start
 event e {
-    var $x: 'asd' ?? 12
+    var $x = 'asd' ?? 12
     assert_eq($x, 'asd')
     debug($x)
 }", out _);
@@ -158,7 +158,7 @@ entity T {
     prop p: number
 }
 event r {
-    var $x: if false {
+    var $x = if false {
         create T $x
     } else {
         create T $x

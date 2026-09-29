@@ -554,6 +554,9 @@ public partial class AstVisitor : StoryParser.IVisitor
 
     private SetProperty ParseLocalVar(VarNode context)
     {
+        if (context.OldColon)
+            AddError(StoryParser.ErrorCode.Parser, context.Span,
+                $"write var {context.VarId.Text} = ...: a local is given its value with '=', as a property is by set");
         var expr = ParseExpr(context.Expr, out var type);
         DeclareVar(context.VarId.Text, type, context.VarId.Span, out var varIndex);
         return new SetProperty(new PropertyPath(varIndex, type), expr, true);

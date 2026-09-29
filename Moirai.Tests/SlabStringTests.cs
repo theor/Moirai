@@ -23,7 +23,7 @@ entity Thing {
 @start
 event make {
     create Thing $t: ('thing {7}')
-    var $n: 7
+    var $n = 7
     set $t.label = 'n{$n}'
     if $t.label = 'n7' {
         record('equal')

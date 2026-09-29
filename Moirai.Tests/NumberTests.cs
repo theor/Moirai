@@ -130,7 +130,7 @@ event e {
         Run(@"
 @start
 event e {
-    var $p: 50%
+    var $p = 50%
     debug($p)
     assert_eq($p, 50%)
 }", out _);
@@ -141,7 +141,7 @@ event e {
         Run(@"
 @start
 event e {
-    var $p: 50% + 2%
+    var $p = 50% + 2%
     debug($p)
     assert_eq($p, 52%)
 }", out _);
@@ -152,7 +152,7 @@ event e {
         Run(@"
 @start
 event e {
-    var $p: 50% + 60%
+    var $p = 50% + 60%
     debug($p)
     assert_eq($p, 100%)
 }", out _);
@@ -163,7 +163,7 @@ event e {
         Run(@"
 @start
 event e {
-    var $p: 50% - 60%
+    var $p = 50% - 60%
     debug($p)
     assert_eq($p, 0%)
 }", out _);

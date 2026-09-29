@@ -66,7 +66,7 @@ entity A {
     prop x: number
 }
 event e {
-    var $a: 12
+    var $a = 12
     each A $b: (x = 32) {
         pick A $a: (x = 11)
         record('')
@@ -689,7 +689,7 @@ event make {
     create Person $p2
     set $p.link = $p2
     set $p2.x = 33
-    var $tmp: $p.link
+    var $tmp = $p.link
     assert_eq(33, $tmp.x)
 }
 ";
@@ -926,8 +926,8 @@ event called {
     create E $x
 }
 event run {
-    var $x: call called
-    var $y: call called
+    var $x = call called
+    var $y = call called
     
     set $y.x = 42
     assert_eq ($x, 1)
@@ -949,8 +949,8 @@ entity E {
 }
 
 event run {
-    var $w:  42
-    var $g: 43
+    var $w =  42
+    var $g = 43
     assert_eq($w, 42)
     assert_eq($g, 43)
 }";

@@ -123,7 +123,7 @@ function create_country() {
 }
 
 function create_god() {
-    var $0: random (GodTypes)
+    var $0 = random (GodTypes)
     create God $1: ('{roll(Name)}, God of {$0}') {
         domain := $0
     }
@@ -178,9 +178,9 @@ event link_countries {
 @frequency(1, Frequency.PerXYear, 15)
 event update_country_health {
     each Country $0: () {
-        var $1: $0.health
+        var $1 = $0.health
         set $0.health = ((($0.prosperity / 10) + 1) / 2)
-        var $2: ($1 != $0.health)
+        var $2 = ($1 != $0.health)
         match $2,     $0.health {
             false,     CountryHealth.Disarray => {
                 random_weighted 100 {
@@ -227,7 +227,7 @@ event crown_monarch {
 @frequency(1, Frequency.PerXYear, 10)
 event settle {
     pick Person $0: (($0.alive and ($0.age > Age.Young)))
-    var $1: $0.place
+    var $1 = $0.place
     if $1 {
         found_settlement($0, $1)
     }
@@ -262,8 +262,8 @@ event settlement_sacked {
 }
 @frequency(1, Frequency.PerXYear, 2)
 event char_born {
-    var $0: '{roll(Name)}'
-    var $1: '{roll(Surname)}'
+    var $0 = '{roll(Name)}'
+    var $1 = '{roll(Surname)}'
     create Person $2: ('{$0} {$1}')
     pick Country $3: ()
     set $2.alive = true
@@ -328,7 +328,7 @@ event deepen_faith {
 @frequency(1, Frequency.PerXYear, 8)
 event divine_miracle {
     pick Person $0: (((($0.alive and ($0.god != null)) and ($0.devotion > 50%)) and ($0.prosperity < 45%)))
-    var $1: $0.god
+    var $1 = $0.god
     set $0.prosperity = ($0.prosperity + 40%)
     set $0.prestige = ($0.prestige + 10%)
     record ('{$0.name} receives a miracle from {$1.name} and is delivered from hardship')
@@ -337,8 +337,8 @@ event divine_miracle {
 @frequency(1, Frequency.PerXYear, 20)
 event prophet_rises {
     pick Person $0: (((($0.alive and ($0.god != null)) and ($0.devotion > 80%)) and ($0.age > Age.Young)))
-    var $1: $0.god
-    var $2: $0.place
+    var $1 = $0.god
+    var $2 = $0.place
     if $2 {
         create Temple $3: ('Temple of {$1.name}') {
             god := $1
@@ -379,7 +379,7 @@ event divorce {
 }
 @frequency(1, Frequency.PerXYear, 15)
 event murder {
-    var $0: min Person $0: (($0.alive and ($0.age > Age.Child)), $0.prosperity)
+    var $0 = min Person $0: (($0.alive and ($0.age > Age.Child)), $0.prosperity)
     pick Person $1: (($1.alive = true),     ($1.age > Age.Child),         ($1.prosperity <= ($0 + 5%)))
     pick Person $2: (($2.alive = true),     ($2 != $1),         ($2.place = $1.place))
     set $2.alive = false
@@ -401,7 +401,7 @@ event bandits_attack_town {
 @frequency(1, Frequency.PerXYear, 4)
 event char_migrates {
     pick Person $0: ($0.alive,     ($0.partner = null))
-    var $1: $0.place
+    var $1 = $0.place
     pick Country $2: ((($2 != $1) and contains ($1.neighbors, $2)))
     set $0.place = $2
     record ('{$0.name} moves to {$2.name}', 0)
@@ -422,7 +422,7 @@ event country_war_start {
 event soldier_war_distinction {
     each Country $0: (($0.war_with != null)) {
         pick Person $1: ($1.alive,     ($1.job = Job.Soldier),         ($1.place = $0))
-        var $2: $0.war_with
+        var $2 = $0.war_with
         random_weighted 100 {
             10 => {
                 set $1.prestige = ($1.prestige + 10%)
@@ -441,7 +441,7 @@ event soldier_war_distinction {
 @frequency(1, Frequency.PerXYear, 10)
 event country_war_peace {
     pick Country $0: (($0.war_with != null))
-    var $1: $0.war_with
+    var $1 = $0.war_with
     set $0.war_with = null
     set $1.war_with = null
     record ('{$0.name} and {$1.name} sign a peace treaty, ending the war', 2)
@@ -452,7 +452,7 @@ event country_war_peace {
 @frequency(1, Frequency.PerXYear, 10)
 event country_war_win {
     pick Country $0: (($0.war_with != null))
-    var $1: $0.war_with
+    var $1 = $0.war_with
     set $0.war_with = null
     set $1.war_with = null
     record ('{$0.name} wins the war against {$1.name}', 3)
@@ -463,7 +463,7 @@ event country_war_win {
 @frequency(1, Frequency.PerXYear, 20)
 event country_natural_disaster {
     pick Country $0: ()
-    var $1: random_weighted 100 {
+    var $1 = random_weighted 100 {
     20 => {
 'A flood'
     }
@@ -484,11 +484,11 @@ event country_natural_disaster {
 @frequency(2, Frequency.PerXYear, 1)
 event couple_has_child {
     pick Person $0: (($0.alive = true),     ($0.age < Age.Old),         ($0.partner != null),             (since_last ($0) > 4))
-    var $1: $0.partner
+    var $1 = $0.partner
     if $1.alive {
         mark ($0)
         mark ($1)
-        var $2: '{roll(Name)}'
+        var $2 = '{roll(Name)}'
         create Person $3: ('{$2} {$0.family_name}')
         set $3.alive = true
         set $3.first_name = $2
@@ -547,7 +547,7 @@ event wizard_studies {
 @frequency(1, Frequency.PerXYear, 14)
 event artifact_forged {
     pick Person $0: ((($0.alive and ($0.job = Job.Wizard)) and ($0.mastery >= Mastery.Master)))
-    var $1: '{roll(ArtifactPrefix)}{roll(ArtifactSuffix)}'
+    var $1 = '{roll(ArtifactPrefix)}{roll(ArtifactSuffix)}'
     create Item $2: ('{$1}') {
         maker := $0
         owner := $0
@@ -568,7 +568,7 @@ event artifact_forged {
 @frequency(1, Frequency.PerXYear, 30)
 event arcane_catastrophe {
     pick Person $0: ((($0.alive and ($0.job = Job.Wizard)) and ($0.mastery >= Mastery.Seasoned)))
-    var $1: $0.place
+    var $1 = $0.place
     pick Settlement $2: ((($2.country = $1) and ($2.status != SettlementStatus.Ruined)))
     set $2.status = SettlementStatus.Ruined
     set $2.prosperity = 0%
@@ -598,7 +598,7 @@ event item_painted {
 event item_lost {
     pick Item $0: (($0.owner != null))
     pick Person $1: (($1 = $0.owner),     $1.alive)
-    var $2: $0.owner
+    var $2 = $0.owner
     set $0.owner = null
     record ('{$2.name} lost the {$0.name}')
 }
@@ -616,7 +616,7 @@ event item_sold {
     pick Item $0: (($0.owner != null))
     pick Person $1: (($1 = $0.owner),     $1.alive)
     pick Person $2: ($2.alive,     ($2 != $1))
-    var $3: $0.owner
+    var $3 = $0.owner
     set $0.owner = $2
     record ('{$2.name} acquires the {$0.name} from {$3.name}')
 }
@@ -699,7 +699,7 @@ event monster_emerges {
 @frequency(1, Frequency.PerXYear, 10)
 event monster_raids {
     pick Monster $0: ($0.alive)
-    var $1: $0.lair
+    var $1 = $0.lair
     pick Settlement $2: ((($2.country = $1) and ($2.status != SettlementStatus.Ruined))) else {
         if pick Person $2: (($2.alive and ($2.place = $1))) {
             set $2.alive = false
@@ -722,7 +722,7 @@ event hero_quest {
             set $0.slain_by = $1
             set $1.prestige = ($1.prestige + 40%)
             if $0.hoard {
-                var $2: $0.hoard
+                var $2 = $0.hoard
                 set $2.owner = $1
                 record ('{$1.name} recovers the {$2.name} from the hoard of {$0.name}', 2)
             }
@@ -770,7 +770,7 @@ trigger inherit {
     each Person $2: ((is_child_of($2,     $1) and $2.alive)) {
         record ('{$2.name} lose their parent, {$1.name}')
         if $1.killer {
-            var $3: $1.killer
+            var $3 = $1.killer
             record ('{$2.name} starts a vendetta with {$3.name}')
         }
 

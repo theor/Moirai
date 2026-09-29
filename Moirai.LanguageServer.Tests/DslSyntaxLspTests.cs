@@ -29,8 +29,8 @@ event e {
         3 => record('a')
         1 => record('b')
     }
-    var $n: count Thing $u: (alive, x > 1)
-    var $m: avg Thing $u: (alive, $u.x)
+    var $n = count Thing $u: (alive, x > 1)
+    var $m = avg Thing $u: (alive, $u.x)
 }
 ";
 

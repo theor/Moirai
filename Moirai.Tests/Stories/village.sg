@@ -93,7 +93,7 @@ event wedding {
 @frequency(1, EveryXYear, 1)
 event child {
     pick Person $x: (alive and partner != null and age = Age.Adult)
-    var $y: $x.partner
+    var $y = $x.partner
     if $y.alive {
         create Person $c: ('{roll(Name)}')
         set $c.parent1 = $x

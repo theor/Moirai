@@ -51,13 +51,13 @@ function older_than($p: Person, $n: number): bool {
     $p.age > $n
 }
 event judge($p: Person) {
-    var $limit: 60
+    var $limit = 60
     if older_than($p, $limit) {
         record('{$p.name} is old')
     }
 }
 event e {
-    var $pad: 1
+    var $pad = 1
     create Person $a: 'a' {
         age := 70
     }

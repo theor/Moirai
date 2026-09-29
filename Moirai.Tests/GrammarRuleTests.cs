@@ -70,7 +70,7 @@ public class GrammarRuleTests : TestsBase
 
     [Test]
     public void Match_WithWildcardArm() => AssertParses(
-        "event e { var $r: match true { true => 1 _ => 2 } }\n");
+        "event e { var $r = match true { true => 1 _ => 2 } }\n");
 
     [Test]
     public void RandomWeighted_AsStatement() => AssertParses(
@@ -78,7 +78,7 @@ public class GrammarRuleTests : TestsBase
 
     [Test]
     public void RandomWeighted_AsExpression() => AssertParses(
-        "event e { var $d: random_weighted 100 { 50 => 'a' _ => 'b' } }\n");
+        "event e { var $d = random_weighted 100 { 50 => 'a' _ => 'b' } }\n");
 
     [Test]
     public void Trigger_WhenCreated() =>
@@ -92,7 +92,7 @@ public class GrammarRuleTests : TestsBase
     [Test]
     public void FunctionDefinition_WithParamsAndReturnType() => AssertParses(
         "function f($x: number, $y: number): number {\n  $x + $y\n}\n" +
-        "event e { var $r: f(1, 2) }\n");
+        "event e { var $r = f(1, 2) }\n");
 
     [Test]
     public void Attributes_Stacked() => AssertParses(

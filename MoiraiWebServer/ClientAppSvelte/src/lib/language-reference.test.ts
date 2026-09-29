@@ -54,7 +54,7 @@ describe('wordAt', () => {
   });
 
   it('skips variables, singletons and properties, whatever they are called', () => {
-    expect(wordAt('var $count: 3', 7)).toBeNull();
+    expect(wordAt('var $count = 3', 7)).toBeNull();
     expect(wordAt('#Time.year', 2)).toBeNull();
     expect(wordAt('$p.count', 5)).toBeNull();
   });

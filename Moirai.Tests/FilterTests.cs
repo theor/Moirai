@@ -39,7 +39,7 @@ event e {
 }
 event since {
     pick Person $p
-    var $since: since_last($p)
+    var $since = since_last($p)
     mark($p)
     record('since last: {$since}')
 }

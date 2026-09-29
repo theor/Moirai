@@ -36,7 +36,7 @@ entity Person {
 
 @start
 event start {
-    var $y: 2
+    var $y = 2
     create Person $p: 'test'
     set $p.age = 10
     debug('{$p.double_age()}')
@@ -58,7 +58,7 @@ entity Person {
 
 @start
 event start {
-    var $y: 2
+    var $y = 2
     create Person $p: 'test'
     set $p.age = 10
     debug('{$p.add_age(5)}')
@@ -79,7 +79,7 @@ entity Person {
 
 @start
 event start {
-    var $y: 2
+    var $y = 2
     create Person $p: 'test'
     set $p.age = 10
     debug('{$p.is_alive()}')

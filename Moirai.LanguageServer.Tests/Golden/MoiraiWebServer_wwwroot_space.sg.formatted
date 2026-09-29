@@ -115,7 +115,7 @@ event create_solar_system {
 // @start
 // event star_dies {
 //     pick Object $sun: (kind = Kind.Star, dead = false)
-//     var $s: $sun.system
+//     var $s = $sun.system
 //     each Object $p: (system = $s) {
 //         set $p.dead = true
 

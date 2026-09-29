@@ -224,7 +224,7 @@ A rule's body is a list of statements, one per line.
 
 | Statement | Meaning |
 |---|---|
-| `var $x: expression` | A local variable. Locals start with `$` and live until the end of their block. |
+| `var $x = expression` | A local variable. Locals start with `$` and live until the end of their block. |
 | `set $x.prop = expression` | Changes a property. `set #World.prop = …` writes to a singleton. |
 | `create T $v: 'name' { prop := value }` | Creates an entity. |
 | `pick T $v: (predicate)` | Picks one matching entity at random, or stops the rule. |

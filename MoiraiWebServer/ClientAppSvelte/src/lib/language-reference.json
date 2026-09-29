@@ -54,7 +54,7 @@
         "avg T $v: ([predicate..., ]value: number): number"
       ],
       "summary": "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. The mean of whole numbers is a float. Written like `sum`.",
-      "example": "var $mean: avg Person $p: (alive, $p.happiness)",
+      "example": "var $mean = avg Person $p: (alive, $p.happiness)",
       "forms": [
         {
           "kind": "binding",
@@ -74,7 +74,7 @@
         "count(coll: collection): number"
       ],
       "summary": "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count(coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
-      "example": "var $living: count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)",
+      "example": "var $living = count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)",
       "forms": [
         {
           "kind": "binding",
@@ -131,7 +131,7 @@
         "max T $v: ([predicate..., ]value: number): number"
       ],
       "summary": "The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
-      "example": "var $oldest: max Person $p: (alive, $p.age)",
+      "example": "var $oldest = max Person $p: (alive, $p.age)",
       "forms": [
         {
           "kind": "binding",
@@ -150,7 +150,7 @@
         "min T $v: ([predicate..., ]value: number): number"
       ],
       "summary": "The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
-      "example": "var $youngest: min Person $p: (alive, $p.age)",
+      "example": "var $youngest = min Person $p: (alive, $p.age)",
       "forms": [
         {
           "kind": "binding",
@@ -204,7 +204,7 @@
         "sum T $v: ([predicate..., ]value: number): number"
       ],
       "summary": "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a float, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
-      "example": "var $total: sum Person $p: (alive, $p.wealth)",
+      "example": "var $total = sum Person $p: (alive, $p.wealth)",
       "forms": [
         {
           "kind": "binding",
@@ -437,7 +437,7 @@
         "random(min: number, max: number): number"
       ],
       "summary": "`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. The bounds can be any number expressions; one that is not whole is cut to its whole part. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
-      "example": "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}\nvar $lucky: random(count Person $p: (alive))",
+      "example": "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}\nvar $lucky = random(count Person $p: (alive))",
       "forms": [
         {
           "kind": "call",
@@ -691,7 +691,7 @@
         "ceiling(x: number): number"
       ],
       "summary": "x rounded up to a whole number.",
-      "example": "var $boats: ceiling(count Person $p: (alive) / 12)",
+      "example": "var $boats = ceiling(count Person $p: (alive) / 12)",
       "forms": [
         {
           "kind": "call",
@@ -715,7 +715,7 @@
         "clamp01(x: number): number"
       ],
       "summary": "x limited to the range 0 to 1. It is for fractions: a percentage is held as 0 to 100 and is already kept in that range whenever it is set.",
-      "example": "var $share: clamp01(count Person $p: (alive) / 1000)",
+      "example": "var $share = clamp01(count Person $p: (alive) / 1000)",
       "forms": [
         {
           "kind": "call",
@@ -739,7 +739,7 @@
         "floor(x: number): number"
       ],
       "summary": "x rounded down to a whole number.",
-      "example": "var $half: floor(count Person $p: (alive) / 2)",
+      "example": "var $half = floor(count Person $p: (alive) / 2)",
       "forms": [
         {
           "kind": "call",
@@ -787,7 +787,7 @@
         "round(x: number): number"
       ],
       "summary": "x rounded to the nearest whole number. A half rounds to the even neighbour: round(2.5) is 2, round(3.5) is 4.",
-      "example": "var $mean: round(avg Person $p: (alive, $p.age))",
+      "example": "var $mean = round(avg Person $p: (alive, $p.age))",
       "forms": [
         {
           "kind": "call",

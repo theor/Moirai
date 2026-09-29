@@ -14,7 +14,7 @@ event greet($name: string, $j: Job) {
 event setup {
     greet('Alice', Job.Smith)
     greet('Bob', Job.Farmer)
-    var $who: 'Carol'
+    var $who = 'Carol'
     greet($who, Job.Farmer)
 }";
 
@@ -53,7 +53,7 @@ event callee($x: number) {
     record('callee {$x}')
 }
 event caller {
-    var $a: 'before'
+    var $a = 'before'
     callee(7)
     record('caller {$a}')
 }";

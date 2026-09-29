@@ -53,7 +53,8 @@ public sealed record SetNode(PathNode Path, ExprNode Expr, TextSpan Span);
 
 public sealed record InitNode(Ident PropertyId, ExprNode Expr, TextSpan Span);
 
-public sealed record VarNode(Ident VarId, ExprNode Expr, TextSpan Span);
+/// <param name="OldColon">Written `var $x: e`, the form `var $x = e` replaced; still read, so the error can say so.</param>
+public sealed record VarNode(Ident VarId, ExprNode Expr, TextSpan Span, bool OldColon = false);
 
 /// The parenthesized call form: `fun_id (type VAR_ID COLON)? PAREN_OPEN (expr (COMMA expr)*)? PAREN_CLOSE
 /// (scope | ELSE scope)?`. `Else` is the fallback of `pick T $v: (...) else { ... }`, only parsed at

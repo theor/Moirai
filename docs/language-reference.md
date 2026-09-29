@@ -27,7 +27,7 @@ avg T $v: ([predicate..., ]value: number): number
 The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. The mean of whole numbers is a float. Written like `sum`.
 
 ```moirai
-var $mean: avg Person $p: (alive, $p.happiness)
+var $mean = avg Person $p: (alive, $p.happiness)
 ```
 
 ### `count`
@@ -40,7 +40,7 @@ count(coll: collection): number
 `count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count(coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.
 
 ```moirai
-var $living: count Person $p: (alive)
+var $living = count Person $p: (alive)
 pick Person $p: (alive, count($p.friends) < 3)
 ```
 
@@ -69,7 +69,7 @@ max T $v: ([predicate..., ]value: number): number
 The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.
 
 ```moirai
-var $oldest: max Person $p: (alive, $p.age)
+var $oldest = max Person $p: (alive, $p.age)
 ```
 
 ### `min`
@@ -81,7 +81,7 @@ min T $v: ([predicate..., ]value: number): number
 The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.
 
 ```moirai
-var $youngest: min Person $p: (alive, $p.age)
+var $youngest = min Person $p: (alive, $p.age)
 ```
 
 ### `pick`
@@ -111,7 +111,7 @@ sum T $v: ([predicate..., ]value: number): number
 The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a float, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.
 
 ```moirai
-var $total: sum Person $p: (alive, $p.wealth)
+var $total = sum Person $p: (alive, $p.wealth)
 ```
 
 ## Entities
@@ -242,7 +242,7 @@ set $x.job = random(Job)
 if random(100) < 8 {
     set $x.wealth = random(40, 90)
 }
-var $lucky: random(count Person $p: (alive))
+var $lucky = random(count Person $p: (alive))
 ```
 
 ### `roll`
@@ -354,7 +354,7 @@ ceiling(x: number): number
 x rounded up to a whole number.
 
 ```moirai
-var $boats: ceiling(count Person $p: (alive) / 12)
+var $boats = ceiling(count Person $p: (alive) / 12)
 ```
 
 ### `clamp01`
@@ -366,7 +366,7 @@ clamp01(x: number): number
 x limited to the range 0 to 1. It is for fractions: a percentage is held as 0 to 100 and is already kept in that range whenever it is set.
 
 ```moirai
-var $share: clamp01(count Person $p: (alive) / 1000)
+var $share = clamp01(count Person $p: (alive) / 1000)
 ```
 
 ### `floor`
@@ -378,7 +378,7 @@ floor(x: number): number
 x rounded down to a whole number.
 
 ```moirai
-var $half: floor(count Person $p: (alive) / 2)
+var $half = floor(count Person $p: (alive) / 2)
 ```
 
 ### `not`
@@ -402,7 +402,7 @@ round(x: number): number
 x rounded to the nearest whole number. A half rounds to the even neighbour: round(2.5) is 2, round(3.5) is 4.
 
 ```moirai
-var $mean: round(avg Person $p: (alive, $p.age))
+var $mean = round(avg Person $p: (alive, $p.age))
 ```
 
 ## Testing and debugging
