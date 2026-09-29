@@ -185,7 +185,7 @@ function feast() {
     [TestCase("floor", 0, "floor(x: number): number")]
     [TestCase("record", 0, "record('text'[, weight: number])")]
     [TestCase("random", 0, "random(E: enum): E")]
-    [TestCase("random", 2, "random(min: number literal, max: number): number")]
+    [TestCase("random", 2, "random(min: number, max: number): number")]
     [TestCase("related", 0, "related(a: entity, b: entity, n: 0..6): bool")]
     [TestCase("add", 0, "add(coll: collection, value: element of coll)")]
     [TestCase("debug", 0, "debug(value: any, ...)")]
@@ -232,7 +232,8 @@ function feast() {
     [TestCase("pick Person $p: (alive)\nadd($p.friends, Job.Farmer)", StoryParser.ErrorCode.InvalidArgument)]
     [TestCase("pick Person $p: (alive)\nadd($p.age, $p)", StoryParser.ErrorCode.ExpectedCollection)]
     [TestCase("var $x: random('x')", StoryParser.ErrorCode.InvalidArgument)]
-    [TestCase("var $x: random(1.5)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("var $x: random(true)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("var $x: random(Job.Farmer)", StoryParser.ErrorCode.InvalidArgument)]
     [TestCase("pick Person $x: (alive)\nvar $r: related($x, $x, 9)", StoryParser.ErrorCode.InvalidArgument)]
     [TestCase("pick Person $x: (alive)\nvar $r: related($x, 3, 2)", StoryParser.ErrorCode.InvalidArgument)]
     [TestCase("var $x: roll(Nope)", StoryParser.ErrorCode.UnknownTable)]
@@ -267,6 +268,8 @@ function feast() {
     /// Which form a call binds to is decided by its arguments' shape when two forms take the same count.
     [TestCase("var $x: random(Job)")]
     [TestCase("var $x: random(10)")]
+    [TestCase("var $x: random(count Person $p: (alive))")]
+    [TestCase("var $x: random(2, 3 + 4)")]
     public void AFormIsChosenByItsArgumentsShape(string body)
     {
         StoryParser.Parse(Prelude + "event e {\n" + Indent(body) + "\n}\n", out var errors);

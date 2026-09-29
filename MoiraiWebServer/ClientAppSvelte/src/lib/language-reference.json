@@ -433,11 +433,11 @@
       "category": "randomness",
       "signatures": [
         "random(E: enum): E",
-        "random(max: number literal): number",
-        "random(min: number literal, max: number): number"
+        "random(max: number): number",
+        "random(min: number, max: number): number"
       ],
-      "summary": "`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
-      "example": "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}",
+      "summary": "`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. The bounds can be any number expressions; one that is not whole is cut to its whole part. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
+      "example": "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}\nvar $lucky: random(count Person $p: (alive))",
       "forms": [
         {
           "kind": "call",
@@ -453,24 +453,24 @@
         },
         {
           "kind": "call",
-          "signature": "random(max: number literal): number",
+          "signature": "random(max: number): number",
           "parameters": [
             {
               "name": "max",
-              "kind": "intLiteral",
-              "type": "number literal"
+              "kind": "value",
+              "type": "number"
             }
           ],
           "returns": "number"
         },
         {
           "kind": "call",
-          "signature": "random(min: number literal, max: number): number",
+          "signature": "random(min: number, max: number): number",
           "parameters": [
             {
               "name": "min",
-              "kind": "intLiteral",
-              "type": "number literal"
+              "kind": "value",
+              "type": "number"
             },
             {
               "name": "max",

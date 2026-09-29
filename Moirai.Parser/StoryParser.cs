@@ -136,8 +136,8 @@ public static class StoryParser
         new("random",
             [
                 P.Call(FnReturn.EnumOfArg, P.EnumType("E")),
-                P.Call(FnReturn.Number, P.IntLiteral("max")),
-                P.Call(FnReturn.Number, P.IntLiteral("min"), P.Number("max")),
+                P.Call(FnReturn.Number, P.Number("max")),
+                P.Call(FnReturn.Number, P.Number("min"), P.Number("max")),
             ],
             call => call.FormIndex switch
             {
@@ -146,8 +146,8 @@ public static class StoryParser
                 _ => new RandomRange(call.Value(0), call.Value(1)),
             },
             new FunctionDoc(DocCategory.Randomness,
-                "`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
-                "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}")),
+                "`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. The bounds can be any number expressions; one that is not whole is cut to its whole part. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
+                "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}\nvar $lucky: random(count Person $p: (alive))")),
         new("chance",
             [
                 P.Call(FnReturn.Bool, P.Number("p")),
