@@ -70,12 +70,16 @@ public static class LanguageReference
         Form[]? Forms = null, bool? Checked = null);
 
     /// One way to write a built-in, as data: a plain call's parameters and return type, or a binding form's
-    /// head (`predicate`, `predicateAndValue`, ...) and block. `Signature` is the same form as text.
+    /// head (`predicate`, `predicateAndValue`, ...) and how long its variable lives; either with its blocks.
+    /// `Signature` is the same form as text.
     public sealed record Form(string Kind, string Signature, FormParameter[]? Parameters = null, string? Returns = null,
-        string? Head = null, string? Block = null);
+        string? Head = null, string? Lives = null, FormBlock[]? Blocks = null);
 
-    /// A plain call's parameter: `Kind` is the FnArgKind, `Type` how a signature writes it (`number`, `0..6`).
+    /// A form's parameter: `Kind` is the FnArgKind, `Type` how a signature writes it (`number`, `0..6`).
     public sealed record FormParameter(string Name, string Kind, string Type, bool? Optional, bool? Repeated);
+
+    /// A form's block: `Runs` and `Sees` as declared, `Describes` the phrase a reader sees.
+    public sealed record FormBlock(string? Keyword, string Runs, string Sees, string Describes);
 
     /// An attribute's parameter as the reference shows it. `Kind` is the AttributeArgKind, `Accepts` the
     /// phrase a reader sees ("a whole-number literal, at least 1").
@@ -103,16 +107,28 @@ public static class LanguageReference
         }
     }
 
-    static Form ToForm(string name, FunctionForm form) => form switch
+    static Form ToForm(string name, FunctionForm form)
     {
-        CallForm c => new Form("call", c.Signature(name),
-            c.Params.Select(p => new FormParameter(p.Name, Camel(p.Kind.ToString()), p.TypeText(c.Params),
-                p.Optional ? true : null, p.Repeated ? true : null)).ToArray(),
-            c.Returns == FnReturn.Nothing ? null : c.ReturnText),
-        BindingForm b => new Form("binding", b.Signature(name), Returns: b.Returns == FnReturn.Nothing ? null : "number",
-            Head: Camel(b.Head.ToString()), Block: b.Block),
-        _ => throw new ArgumentOutOfRangeException(nameof(form)),
-    };
+        var blocks = form.Blocks.Length == 0
+            ? null
+            : form.Blocks.Select(b => new FormBlock(b.Keyword, Camel(b.Runs.ToString()), Camel(b.Sees.ToString()), b.Describe()))
+                .ToArray();
+        return form switch
+        {
+            CallForm c => new Form("call", c.Signature(name),
+                c.Params.Select(p => new FormParameter(p.Name, Camel(p.Kind.ToString()), p.TypeText(c.Params),
+                    p.Optional ? true : null, p.Repeated ? true : null)).ToArray(),
+                c.Returns == FnReturn.Nothing ? null : c.ReturnText, Blocks: blocks),
+            BindingForm b => new Form("binding", b.Signature(name), Returns: b.Returns switch
+                {
+                    FnReturn.Number => "number",
+                    FnReturn.Variable => "T",
+                    _ => null,
+                },
+                Head: Camel(b.Head.ToString()), Lives: Camel(b.Lives.ToString()), Blocks: blocks),
+            _ => throw new ArgumentOutOfRangeException(nameof(form)),
+        };
+    }
 
     static string Camel(string s) => char.ToLowerInvariant(s[0]) + s[1..];
 }

@@ -77,7 +77,8 @@ public sealed record FnParam(string Name, FnArgKind Kind)
 }
 
 /// What a form returns. <see cref="EnumOfArg"/> and <see cref="TableEntryOfArg"/> take their type from
-/// the enum or table named by argument 0.
+/// the enum or table named by argument 0; <see cref="Variable"/> is the entity the form binds; a handler
+/// may refine <see cref="Number"/> (an aggregate's type follows its value's).
 public enum FnReturn
 {
     Nothing,
@@ -86,18 +87,80 @@ public enum FnReturn
     String,
     EnumOfArg,
     TableEntryOfArg,
+    Variable,
+}
+
+/// When a block's statements run.
+public enum BlockRuns
+{
+    /// When the draw hits (`chance(p) { ... }`).
+    OnHit,
+    /// When nothing matched (`pick ... else { ... }`).
+    OnMiss,
+    /// Once per match (`each ... { ... }`).
+    PerMatch,
+    /// Right after the entity is made, on it (`create ... { prop := value }`).
+    OnCreate,
+    /// In a later year, as a rule of its own (`schedule(...) { ... }`).
+    Later,
+}
+
+/// What a block can see.
+public enum BlockSees
+{
+    /// The enclosing rule's locals.
+    Enclosing,
+    /// The enclosing locals and the form's variable.
+    EnclosingAndVariable,
+    /// The enclosing locals but not the form's variable, which does not exist when the block runs.
+    EnclosingNotVariable,
+    /// `$self`, typed after argument 0, and nothing else from the rule: it runs later, when those locals
+    /// are gone.
+    OnlySelf,
+}
+
+/// A block a form carries: `{ ... }`, or `else { ... }` when <see cref="Keyword"/> is set. What it runs,
+/// when, and what it sees are declared here, and the binder sets up its scope from them.
+public sealed record BlockSpec(BlockRuns Runs, BlockSees Sees, string? Keyword = null)
+{
+    /// `prop := value` lines rather than statements.
+    public bool Initializer => Runs == BlockRuns.OnCreate;
+
+    public string Syntax => (Keyword == null ? "" : Keyword + " ") + (Initializer ? "{ prop := value ... }" : "{ ... }");
+
+    public string Describe() => Runs switch
+    {
+        BlockRuns.OnHit => "runs when the draw hits",
+        BlockRuns.OnMiss => "runs when nothing matches, then the rule stops successfully",
+        BlockRuns.PerMatch => "runs once per match",
+        BlockRuns.OnCreate => "sets properties on the new entity",
+        _ => "runs in a later year, as a rule of its own",
+    } + Sees switch
+    {
+        BlockSees.EnclosingAndVariable => "; sees the rule's locals and $v",
+        BlockSees.EnclosingNotVariable => "; sees the rule's locals but not $v",
+        BlockSees.OnlySelf => "; sees only $self",
+        _ => "; sees the rule's locals",
+    };
 }
 
 /// One way a built-in can be written. A <see cref="CallForm"/> is a plain `name(arg, ...)`; a
-/// <see cref="BindingForm"/> introduces a variable (`pick T $v: (...)`).
+/// <see cref="BindingForm"/> introduces a variable (`pick T $v: (...)`). Either may carry blocks, and a
+/// call matches a form only if it has exactly the blocks the form declares.
 public abstract record FunctionForm
 {
+    public BlockSpec[] Blocks { get; init; } = [];
+    public abstract FnReturn Returns { get; }
     public abstract string Signature(string name);
+
+    protected string WithBlocks(string head) =>
+        Blocks.Length == 0 ? head : head + " " + string.Join(" ", Blocks.Select(b => b.Syntax));
 }
 
 /// `name(arg, ...)`: parameters in order, and what the call returns.
-public sealed record CallForm(FnParam[] Params, FnReturn Returns) : FunctionForm
+public sealed record CallForm(FnParam[] Params, FnReturn ReturnsValue) : FunctionForm
 {
+    public override FnReturn Returns => ReturnsValue;
     public int MinArgs => Params.Count(p => !p.Optional);
     public int? MaxArgs => Params.Any(p => p.Repeated) ? null : Params.Length;
 
@@ -114,7 +177,7 @@ public sealed record CallForm(FnParam[] Params, FnReturn Returns) : FunctionForm
         _ => "",
     };
 
-    /// `floor(x: number): number`, `record('text'[, weight: number])`, `debug(value: any, ...)`.
+    /// `floor(x: number): number`, `record('text'[, weight: number])`, `chance(p: number) { ... }`.
     public override string Signature(string name)
     {
         var b = new StringBuilder(name).Append('(');
@@ -131,7 +194,9 @@ public sealed record CallForm(FnParam[] Params, FnReturn Returns) : FunctionForm
         }
 
         b.Append(')');
-        return Returns == FnReturn.Nothing ? b.ToString() : b.Append(": ").Append(ReturnText).ToString();
+        if (Returns != FnReturn.Nothing)
+            b.Append(": ").Append(ReturnText);
+        return WithBlocks(b.ToString());
     }
 }
 
@@ -142,27 +207,48 @@ public enum BindingHead
     Variable,
     /// `T $v: 'name'`
     Name,
-    /// `T $v: (predicate...)`
+    /// `T $v[: (predicate...)]`: clauses joined by `and`; none means every T.
     Predicate,
-    /// `T $v: (predicate..., value)`
+    /// `T $v: ([predicate..., ]value)`: the last argument is the value, the rest the predicate.
     PredicateAndValue,
 }
 
-/// `name T $v...`: a form that introduces a variable, optionally followed by a block. These are described,
-/// not enforced: their parsing is scoping-sensitive (a pick's `else` cannot see `$v`, an each's body can)
-/// and stays hand-written, so the reference's examples, which are parsed, are what keeps the two honest.
-public sealed record BindingForm(BindingHead Head, string? Block, FnReturn Returns = FnReturn.Nothing) : FunctionForm
+/// How long a binding form's variable lives.
+public enum VariableLives
 {
+    /// For the rest of the rule (`pick`, `create`).
+    Rest,
+    /// Inside the form's block (`each`).
+    Block,
+    /// Inside the form's parentheses (`count`, `sum`).
+    Call,
+}
+
+/// `name T $v...`: a form that introduces a variable, with its head, its variable's lifetime and its blocks.
+public sealed record BindingForm(BindingHead Head, VariableLives Lives, FnReturn ReturnsValue = FnReturn.Nothing)
+    : FunctionForm
+{
+    public override FnReturn Returns => ReturnsValue;
+
+    /// The value argument of a <see cref="BindingHead.PredicateAndValue"/> head.
+    public FnParam? Value { get; init; }
+
     public override string Signature(string name)
     {
         var head = Head switch
         {
             BindingHead.Variable => "T $v",
             BindingHead.Name => "T $v: 'name'",
-            BindingHead.Predicate => "T $v: (predicate...)",
-            _ => "T $v: (predicate..., value)",
+            BindingHead.Predicate => "T $v[: (predicate...)]",
+            _ => $"T $v: ([predicate..., ]{Value?.Syntax([Value]) ?? "value"})",
         };
-        return Block == null ? $"{name} {head}" : $"{name} {head} {Block}";
+        var ret = Returns switch
+        {
+            FnReturn.Number => ": number",
+            FnReturn.Bool => ": bool",
+            _ => "",
+        };
+        return WithBlocks($"{name} {head}{ret}");
     }
 }
 
@@ -191,6 +277,8 @@ public static class P
     public static FnParam Repeated(this FnParam p) => p with { Repeated = true };
 
     public static CallForm Call(FnReturn returns, params FnParam[] ps) => new(ps, returns);
+
+    public static T With<T>(this T form, params BlockSpec[] blocks) where T : FunctionForm => form with { Blocks = blocks };
 }
 
 /// The documentation of a built-in whose signatures are generated from its forms.

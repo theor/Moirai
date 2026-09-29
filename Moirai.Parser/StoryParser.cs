@@ -12,112 +12,65 @@ public static class StoryParser
         return descriptor != null;
     }
 
+    /// `create ... { prop := value }`: sets properties on the new entity, and sees it.
+    static readonly BlockSpec Initializer = new(BlockRuns.OnCreate, BlockSees.EnclosingAndVariable);
+
     public static readonly List<FunctionDescriptor> Functions =
     [
-        new("create", true,
-            [new BindingForm(BindingHead.Variable, null), new BindingForm(BindingHead.Name, null),
-             new BindingForm(BindingHead.Name, "{ prop := value ... }")],
-            ctx =>
-            {
-                // $var is declared in the enclosing scope (it persists after the create). An optional
-                // `{ ... }` block is an initializer whose `prop := value` lines target the new entity.
-                var variableIndex = ctx.ParseVariable(out var etid, out _);
-                var name = ctx.ArgCount == 0 ? null : (InterpolatedString) ctx.ParseArgument(0);
-                var scopeContext = ctx.GetScopeContext();
-                IInstruction[]? init = null;
-                if (scopeContext != null)
-                {
-                    using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext.Span);
-                    init = ctx.Visitor.ParseRawScope(scopeContext, out _);
-                }
-
-                return (new CreateEntity(variableIndex, etid, name, init), PropertyValue.TypeTypedRef(etid));
-            }, new FunctionDoc(DocCategory.Entities,
-                "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The optional block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
+        new("create",
+            [
+                new BindingForm(BindingHead.Variable, VariableLives.Rest, FnReturn.Variable),
+                new BindingForm(BindingHead.Variable, VariableLives.Rest, FnReturn.Variable).With(Initializer),
+                new BindingForm(BindingHead.Name, VariableLives.Rest, FnReturn.Variable),
+                new BindingForm(BindingHead.Name, VariableLives.Rest, FnReturn.Variable).With(Initializer),
+            ],
+            call => new CreateEntity(call.Variable, call.EntityType, call.Count == 0 ? null : call.Text(0), call.Block()),
+            new FunctionDoc(DocCategory.Entities,
+                "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
                 "create Person $p: '{roll(Name)}' {\n    age := 0\n    alive := true\n}")),
-        new("each", true,
-            [new BindingForm(BindingHead.Predicate, "{ ... }"), new BindingForm(BindingHead.Variable, "{ ... }")],
-            ctx =>
-            {
-                var scopeContext = ctx.GetScopeContext();
-                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext?.Span);
-                var variableIndex = ctx.ParseVariable(out var etid, out _);
-                return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
-                        CallType.Each, ctx.Visitor.ParseRawScope(scopeContext, out _)),
-                    PropertyValue.TypeTypedRef(etid));
-            }, new FunctionDoc(DocCategory.Queries,
+        new("each",
+            [new BindingForm(BindingHead.Predicate, VariableLives.Block, FnReturn.Variable)
+                .With(new BlockSpec(BlockRuns.PerMatch, BlockSees.EnclosingAndVariable))],
+            call => new AssignPick(call.EntityType, call.Variable, call.Predicate, CallType.Each, call.Block()),
+            new FunctionDoc(DocCategory.Queries,
                 "Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first; with no predicate, for every T. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.",
                 "each Person $p: (alive, age > 60) {\n    set $p.wealth = $p.wealth + 1\n}")),
-        new("pick", true,
-            [new BindingForm(BindingHead.Predicate, null), new BindingForm(BindingHead.Predicate, "else { ... }")],
-            ctx =>
-            {
-                // The fallback is parsed before $v is declared: it runs exactly when there is no $v.
-                IInstruction[]? orElse = null;
-                if (ctx.GetElseContext() is { } elseContext)
-                {
-                    using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, elseContext.Span);
-                    orElse = ctx.Visitor.ParseRawScope(elseContext, out _);
-                }
-
-                var variableIndex = ctx.ParseVariable(out var etid, out _);
-                return (new AssignPick(etid, variableIndex, ctx.ParsePredicateSql(etid),
-                        CallType.Pick, elseEffects: orElse),
-                    PropertyValue.TypeTypedRef(etid));
-            }, new FunctionDoc(DocCategory.Queries,
-                "Picks one T the predicate matches, uniformly at random, and binds it to $v. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. The block cannot see $v. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.",
+        new("pick",
+            [
+                new BindingForm(BindingHead.Predicate, VariableLives.Rest, FnReturn.Variable),
+                new BindingForm(BindingHead.Predicate, VariableLives.Rest, FnReturn.Variable)
+                    .With(new BlockSpec(BlockRuns.OnMiss, BlockSees.EnclosingNotVariable, "else")),
+            ],
+            call => new AssignPick(call.EntityType, call.Variable, call.Predicate, CallType.Pick, elseEffects: call.Block("else")),
+            new FunctionDoc(DocCategory.Queries,
+                "Picks one T the predicate matches, uniformly at random, and binds it to $v; with no predicate, any T. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.",
                 "pick Person $p: (alive, partner = null) else {\n    record('Nobody is left to marry')\n}\nrecord('{$p.name} stays single')")),
 
-        new("schedule", false, ctx =>
-        {
-            // schedule(entity, year) { body } — defer `body` (with `entity` bound as $self) to fire once
-            // the simulation reaches `year`. Both args are evaluated now, in the enclosing scope; only the
-            // body is deferred. The body sees $self (the bound entity) but NOT the enclosing locals.
-            ctx.ExpectArgcount(2);
-            var entity = ctx.ParseArgument(0, out var entityType);
-            var year = ctx.ParseArgument(1);
-
-            var scopeContext = ctx.GetScopeContext();
-            if (scopeContext == null)
+        new("schedule",
+            [P.Call(FnReturn.Nothing, P.Entity("entity"), P.Number("year")).With(new BlockSpec(BlockRuns.Later, BlockSees.OnlySelf))],
+            call =>
             {
-                ctx.Visitor.AddError(ErrorCode.MissingEachScope, ctx.CallContext.Span,
-                    "schedule requires a { } body");
-                return (null!, PropertyValue.ValueType.Null);
-            }
-
-            // Taken before the body is parsed, so a schedule nested in this one is numbered after it.
-            var scheduleKey = ctx.Visitor.NextScheduleStreamKey();
-            int selfVarIndex;
-            IInstruction[] body;
-            Moirai.Core.DebugScope? debugScope;
-            using (var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext.Span))
-            {
-                // $self takes the static type of the target entity expression, so `$self.prop` resolves.
-                ctx.Visitor.DeclareVar("$self", entityType, ctx.GetArgumentToken(0)!.Span, out selfVarIndex);
-                body = ctx.Visitor.ParseRawScope(scopeContext, out _);
-                // Capture the body's scope (with $self) so the debugger can show locals when stopped here.
-                debugScope = ctx.Visitor.CaptureCurrentDebugScope();
-            }
-
-            // The body runs later via Database.RunAction, so wrap it as a standalone EventTrigger (not added
-            // to Actions/Triggers, so it never auto-fires). The high id base keeps schedule sites from
-            // colliding with real event ids in the profiler's per-id stats table.
-            var site = new EventTrigger(1_000_000 + ctx.Visitor.Database.ScheduleSiteCount,
-                $"schedule@{ctx.CallContext.Span.Position.Line}", false, null)
-            {
-                DebugScopeRoot = debugScope,
-                Line = ctx.CallContext.Span.Position.Line,
-                IsScheduled = true,
-                RngKey = scheduleKey,
-            };
-            site.Effects.AddRange(body);
-            var siteIndex = ctx.Visitor.Database.RegisterScheduleSite(site, selfVarIndex);
-
-            return (new ScheduleEffect(entity, year, siteIndex, body), PropertyValue.ValueType.Null);
-        }, new BuiltinDoc(DocCategory.Rules,
-            ["schedule(entity, year) { ... }"],
-            "Defers the block until the simulation reaches `year`, then runs it once, as a rule of its own, with $self bound to `entity`. Both arguments are evaluated now. The block sees $self but none of the enclosing rule's locals, so read what it needs from $self. A year that is not in the future fires next year. If the entity no longer exists by then, nothing runs, so a block that cares whether $self is still alive should test it.",
-            "pick Person $p: (alive)\nschedule($p, #Time.year + 20) {\n    if $self.alive {\n        set $self.age = $self.age + 20\n    }\n}")),
+                // The block runs later via Database.RunAction, so wrap it as a standalone EventTrigger (not added
+                // to Actions/Triggers, so it never auto-fires). The high id base keeps schedule sites from
+                // colliding with real event ids in the profiler's per-id stats table.
+                var line = call.Context.CallContext.Span.Position.Line;
+                var body = call.Block()!;
+                var site = new EventTrigger(1_000_000 + call.Context.Visitor.Database.ScheduleSiteCount, $"schedule@{line}", false, null)
+                {
+                    DebugScopeRoot = call.BlockScope(),
+                    Line = line,
+                    IsScheduled = true,
+                    RngKey = (string) call.Prepared!,
+                };
+                site.Effects.AddRange(body);
+                var siteIndex = call.Context.Visitor.Database.RegisterScheduleSite(site, call.SelfVariable);
+                return new ScheduleEffect(call.Value(0), call.Value(1), siteIndex, body);
+            },
+            new FunctionDoc(DocCategory.Rules,
+                "Defers the block until the simulation reaches `year`, then runs it once, as a rule of its own, with $self bound to `entity`. Both arguments are evaluated now. The block sees $self but none of the enclosing rule's locals, so read what it needs from $self. A year that is not in the future fires next year. If the entity no longer exists by then, nothing runs, so a block that cares whether $self is still alive should test it.",
+                "pick Person $p: (alive)\nschedule($p, #Time.year + 20) {\n    if $self.alive {\n        set $self.age = $self.age + 20\n    }\n}"),
+            // Taken before the block is parsed, so a schedule nested in this one is numbered after it.
+            prepare: ctx => ctx.Visitor.NextScheduleStreamKey()),
         new("assert", [P.Call(FnReturn.Nothing, P.Condition("condition"))],
             call => new AssertInstr(call.Value(0), call.Context.GetText(call.Node(0)!.Span)),
             new FunctionDoc(DocCategory.Testing,
@@ -260,33 +213,23 @@ public static class StoryParser
             new FunctionDoc(DocCategory.Randomness,
                 "`random(E)` is one of the enum's values, each equally likely. `random(max)` is a whole number from 0 to max - 1, and `random(min, max)` one from min to max - 1: the upper bound is never drawn. When max is not above min, the result is min. Every call draws from the rule's own random stream, so the world stays the same for a given seed.",
                 "pick Person $x: (alive)\nset $x.job = random(Job)\nif random(100) < 8 {\n    set $x.wealth = random(40, 90)\n}")),
-        new("chance", false, ctx =>
-        {
-            ctx.ExpectArgcount(1);
-            var span = ctx.GetArgumentToken(0)?.Span ?? ctx.CallContext.Span;
-            // A query's narrowing decides which candidates its predicate is evaluated on, so a draw
-            // inside one would make the world depend on the index -- pick first, then roll.
-            if (ctx.Visitor.InSqlPredicate)
-                ctx.Visitor.AddError(ErrorCode.InvalidArgument, ctx.CallContext.Span,
-                    "chance() cannot be part of a pick/each predicate; pick first, then test chance()");
-            var p = ctx.ParseArgument(0, out var pType);
-            if (pType.BaseType is not (PropertyValue.ValueBaseType.Percentage or PropertyValue.ValueBaseType.Number
-                or PropertyValue.ValueBaseType.Float))
-                ctx.Visitor.AddError(ErrorCode.InvalidArgument, span, "chance() takes a percentage, e.g. chance(3%)");
-
-            var scopeContext = ctx.GetScopeContext();
-            IInstruction[]? body = null;
-            if (scopeContext != null)
+        new("chance",
+            [
+                P.Call(FnReturn.Bool, P.Number("p")),
+                P.Call(FnReturn.Nothing, P.Number("p")).With(new BlockSpec(BlockRuns.OnHit, BlockSees.Enclosing)),
+            ],
+            call =>
             {
-                using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, scopeContext.Span);
-                body = ctx.Visitor.ParseRawScope(scopeContext, out _);
-            }
-
-            return (new Chance(p, body), body == null ? PropertyValue.TypeBool : PropertyValue.ValueType.Null);
-        }, new BuiltinDoc(DocCategory.Randomness,
-            ["chance(p)", "chance(p) { ... }"],
-            "True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. As a statement with a block, the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.",
-            "pick Person $p: (alive)\nchance(5%) {\n    record('{$p.name} finds a fortune')\n}\nif chance(50%) {\n    set $p.wealth = $p.wealth + 1\n}")),
+                // A query's narrowing decides which candidates its predicate is evaluated on, so a draw
+                // inside one would make the world depend on the index -- pick first, then roll.
+                if (call.Context.Visitor.InSqlPredicate)
+                    call.Context.Visitor.AddError(ErrorCode.InvalidArgument, call.Context.CallContext.Span,
+                        "chance() cannot be part of a pick/each predicate; pick first, then test chance()");
+                return new Chance(call.Value(0), call.Block());
+            },
+            new FunctionDoc(DocCategory.Randomness,
+                "True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. With a block, it is a statement: the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.",
+                "pick Person $p: (alive)\nchance(5%) {\n    record('{$p.name} finds a fortune')\n}\nif chance(50%) {\n    set $p.wealth = $p.wealth + 1\n}")),
         new("roll", [P.Call(FnReturn.TableEntryOfArg, P.Table("T"))],
             call => new RollTable(call.Table(0).Id, call.Table(0).Name),
             new FunctionDoc(DocCategory.Randomness,
@@ -308,43 +251,37 @@ public static class StoryParser
             new FunctionDoc(DocCategory.Collections,
                 "True when the collection property holds the value. Usable in a pick's predicate.",
                 "pick Person $a: (alive)\npick Person $b: (alive, $b != $a, not(contains($a.friends, $b)))")),
-        new("sum", true, [new BindingForm(BindingHead.PredicateAndValue, null, FnReturn.Number)],
-            ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Sum),
+        new("sum", [new BindingForm(BindingHead.PredicateAndValue, VariableLives.Call, FnReturn.Number) { Value = P.Number("value") }],
+            call => AggregateCall(call, Aggregate.AggregateKind.Sum),
             new FunctionDoc(DocCategory.Queries,
-                "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a plain number, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
+                "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a float, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
                 "var $total: sum Person $p: (alive, $p.wealth)")),
-        new("avg", true, [new BindingForm(BindingHead.PredicateAndValue, null, FnReturn.Number)],
-            ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Avg),
+        new("avg", [new BindingForm(BindingHead.PredicateAndValue, VariableLives.Call, FnReturn.Number) { Value = P.Number("value") }],
+            call => AggregateCall(call, Aggregate.AggregateKind.Avg),
             new FunctionDoc(DocCategory.Queries,
-                "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. Written like `sum`.",
+                "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. The mean of whole numbers is a float. Written like `sum`.",
                 "var $mean: avg Person $p: (alive, $p.happiness)")),
-        new("min", true, [new BindingForm(BindingHead.PredicateAndValue, null, FnReturn.Number)],
-            ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Min),
+        new("min", [new BindingForm(BindingHead.PredicateAndValue, VariableLives.Call, FnReturn.Number) { Value = P.Number("value") }],
+            call => AggregateCall(call, Aggregate.AggregateKind.Min),
             new FunctionDoc(DocCategory.Queries,
                 "The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
                 "var $youngest: min Person $p: (alive, $p.age)")),
-        new("max", true, [new BindingForm(BindingHead.PredicateAndValue, null, FnReturn.Number)],
-            ctx => ParseAggregate(ctx, Aggregate.AggregateKind.Max),
+        new("max", [new BindingForm(BindingHead.PredicateAndValue, VariableLives.Call, FnReturn.Number) { Value = P.Number("value") }],
+            call => AggregateCall(call, Aggregate.AggregateKind.Max),
             new FunctionDoc(DocCategory.Queries,
                 "The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
                 "var $oldest: max Person $p: (alive, $p.age)")),
-        new("count", false,
+        new("count",
             [
-                new BindingForm(BindingHead.Variable, null, FnReturn.Number),
-                new BindingForm(BindingHead.Predicate, null, FnReturn.Number),
+                new BindingForm(BindingHead.Predicate, VariableLives.Call, FnReturn.Number),
                 P.Call(FnReturn.Number, P.Collection("coll")),
             ],
-            ctx =>
-            {
-                // `count T $v: (predicate)` counts a query; `count($e.coll)` a collection.
-                if ((ctx.CallContext.Call?.DeclType ?? ctx.CallContext.RawCall?.DeclType) != null)
-                    return ParseAggregate(ctx, Aggregate.AggregateKind.Count);
-                ctx.ExpectArgcount(1);
-                if (ctx.ParseCollectionPath(0, out var full, out var owner, out var coll))
-                    return (new CollectionQuery(CollectionQuery.QueryKind.Count, full, owner, coll, null),
-                        PropertyValue.TypeNumber);
-                return (null!, PropertyValue.TypeNumber);
-            }, new FunctionDoc(DocCategory.Queries,
+            call => call.Form is BindingForm
+                ? new Aggregate(Aggregate.AggregateKind.Count, call.EntityType, call.Variable,
+                    call.PredicateCount == 0 ? null : call.Predicate, null, PropertyValue.TypeNumber)
+                : CollectionCall(call, (full, owner, coll) =>
+                    new CollectionQuery(CollectionQuery.QueryKind.Count, full, owner, coll, null)),
+            new FunctionDoc(DocCategory.Queries,
                 "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count(coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
                 "var $living: count Person $p: (alive)\npick Person $p: (alive, count($p.friends) < 3)")),
         new("not", [P.Call(FnReturn.Bool, P.Condition("condition"))],
@@ -457,79 +394,21 @@ public static class StoryParser
         return make(full, owner, coll);
     }
 
-    /// `count T $v: (pred...)` and `sum|avg|min|max T $v: (pred..., value)`. Like a pick, the arguments
-    /// before the value are the predicate, joined by `and`; $v exists only inside the call.
-    static (IValueCall, PropertyValue.ValueType) ParseAggregate(FunctionParseContext ctx, Aggregate.AggregateKind kind)
+    /// `sum|avg|min|max T $v: (pred..., value)`, bound: the result's type follows the value's -- a sum of
+    /// percentages runs past 100 so it is a float, and so is the mean of whole numbers.
+    static IValueCall AggregateCall(BoundCall call, Aggregate.AggregateKind kind)
     {
-        var call = ctx.CallContext.Call;
-        // `count T $v`, with no predicate at all, is the bare form: every T.
-        if (call == null && kind == Aggregate.AggregateKind.Count && ctx.CallContext.RawCall is { DeclType: not null, Value: null } raw)
-        {
-            using var rawScope = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, raw.Span);
-            var index = ctx.ParseVariable(out var type, out _);
-            return (new Aggregate(kind, type, index, null, null, PropertyValue.TypeNumber), PropertyValue.TypeNumber);
-        }
-
-        if (call?.DeclType == null)
-        {
-            ctx.Visitor.AddError(ErrorCode.MissingVariable, ctx.CallContext.Span,
-                $"{kind.ToString().ToLowerInvariant()} needs a query: {kind.ToString().ToLowerInvariant()} T $v: (predicate{(kind == Aggregate.AggregateKind.Count ? "" : ", value")})");
-            return (null!, PropertyValue.TypeNumber);
-        }
-
-        using var vs = new AstVisitor.VariableDeclarationScopeDisposable(ctx.Visitor, call.Span);
-        var variableIndex = ctx.ParseVariable(out var etid, out _);
-
-        int predicateCount = kind == Aggregate.AggregateKind.Count ? ctx.ArgCount : ctx.ArgCount - 1;
-        if (predicateCount < 0)
-        {
-            ctx.Visitor.AddError(ErrorCode.MissingArgument, call.Span,
-                $"{kind.ToString().ToLowerInvariant()} needs the value to add up, after the predicate: (predicate, $v.prop)");
-            return (null!, PropertyValue.TypeNumber);
-        }
-
-        IValueSql? predicate = null;
-        if (predicateCount > 0)
-        {
-            ctx.Visitor.InSqlPredicateDepth++;
-            try
-            {
-                var parts = new IValue[predicateCount];
-                for (int i = 0; i < predicateCount; i++)
-                    parts[i] = ctx.ParseArgument(i);
-                var p = predicateCount == 1 ? parts[0] : new And(parts);
-                if (p is IValueSql sql)
-                    predicate = sql;
-                else
-                    ctx.Visitor.AddError(ErrorCode.ExpectedSql, ctx.GetArgumentToken(0)?.Span ?? call.Span,
-                        "Expected a predicate");
-            }
-            finally
-            {
-                ctx.Visitor.InSqlPredicateDepth--;
-            }
-        }
-
-        if (kind == Aggregate.AggregateKind.Count)
-            return (new Aggregate(kind, etid, variableIndex, predicate, null, PropertyValue.TypeNumber),
-                PropertyValue.TypeNumber);
-
-        var value = ctx.ParseArgument(predicateCount, out var valueType);
-        if (valueType.BaseType is not (PropertyValue.ValueBaseType.Number or PropertyValue.ValueBaseType.Float
-            or PropertyValue.ValueBaseType.Percentage))
-        {
-            ctx.Visitor.AddError(ErrorCode.InvalidArgument, ctx.GetArgumentToken(predicateCount)?.Span ?? call.Span,
-                $"{kind.ToString().ToLowerInvariant()} adds up numbers; this value is {ctx.Visitor.Database.Printer.Print(valueType)}");
-            return (null!, PropertyValue.TypeNumber);
-        }
-
+        var value = call.Count - 1;
+        var valueType = call.Type(value);
         var resultType = (kind, valueType.BaseType) switch
         {
             (Aggregate.AggregateKind.Sum, PropertyValue.ValueBaseType.Percentage) => PropertyValue.TypeFloat,
             (Aggregate.AggregateKind.Avg, PropertyValue.ValueBaseType.Number) => PropertyValue.TypeFloat,
             _ => valueType,
         };
-        return (new Aggregate(kind, etid, variableIndex, predicate, value, resultType), resultType);
+        call.ReturnType = resultType;
+        return new Aggregate(kind, call.EntityType, call.Variable, call.PredicateCount == 0 ? null : call.Predicate,
+            call.Value(value), resultType);
     }
 
     public interface IVisitor

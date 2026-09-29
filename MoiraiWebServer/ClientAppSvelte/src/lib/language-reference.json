@@ -51,26 +51,27 @@
       "name": "avg",
       "category": "queries",
       "signatures": [
-        "avg T $v: (predicate..., value)"
+        "avg T $v: ([predicate..., ]value: number): number"
       ],
-      "summary": "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. Written like `sum`.",
+      "summary": "The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. The mean of whole numbers is a float. Written like `sum`.",
       "example": "var $mean: avg Person $p: (alive, $p.happiness)",
       "forms": [
         {
           "kind": "binding",
-          "signature": "avg T $v: (predicate..., value)",
+          "signature": "avg T $v: ([predicate..., ]value: number): number",
           "returns": "number",
-          "head": "predicateAndValue"
+          "head": "predicateAndValue",
+          "lives": "call"
         }
-      ]
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "count",
       "category": "queries",
       "signatures": [
-        "count T $v",
-        "count T $v: (predicate...)",
+        "count T $v[: (predicate...)]: number",
         "count(coll: collection): number"
       ],
       "summary": "`count T $v: (predicate)` is how many T the predicate matches; with no predicate, how many T exist at all. $v exists only inside the call. `count(coll)` is the number of values in a collection property. Draws no random numbers, and can sit inside another query's predicate.",
@@ -78,15 +79,10 @@
       "forms": [
         {
           "kind": "binding",
-          "signature": "count T $v",
+          "signature": "count T $v[: (predicate...)]: number",
           "returns": "number",
-          "head": "variable"
-        },
-        {
-          "kind": "binding",
-          "signature": "count T $v: (predicate...)",
-          "returns": "number",
-          "head": "predicate"
+          "head": "predicate",
+          "lives": "call"
         },
         {
           "kind": "call",
@@ -100,110 +96,131 @@
           ],
           "returns": "number"
         }
-      ]
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "each",
       "category": "queries",
       "signatures": [
-        "each T $v: (predicate...) { ... }",
-        "each T $v { ... }"
+        "each T $v[: (predicate...)] { ... }"
       ],
       "summary": "Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first; with no predicate, for every T. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.",
       "example": "each Person $p: (alive, age > 60) {\n    set $p.wealth = $p.wealth + 1\n}",
       "forms": [
         {
           "kind": "binding",
-          "signature": "each T $v: (predicate...) { ... }",
+          "signature": "each T $v[: (predicate...)] { ... }",
+          "returns": "T",
           "head": "predicate",
-          "block": "{ ... }"
-        },
-        {
-          "kind": "binding",
-          "signature": "each T $v { ... }",
-          "head": "variable",
-          "block": "{ ... }"
+          "lives": "block",
+          "blocks": [
+            {
+              "runs": "perMatch",
+              "sees": "enclosingAndVariable",
+              "describes": "runs once per match; sees the rule's locals and $v"
+            }
+          ]
         }
-      ]
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "max",
       "category": "queries",
       "signatures": [
-        "max T $v: (predicate..., value)"
+        "max T $v: ([predicate..., ]value: number): number"
       ],
       "summary": "The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
       "example": "var $oldest: max Person $p: (alive, $p.age)",
       "forms": [
         {
           "kind": "binding",
-          "signature": "max T $v: (predicate..., value)",
+          "signature": "max T $v: ([predicate..., ]value: number): number",
           "returns": "number",
-          "head": "predicateAndValue"
+          "head": "predicateAndValue",
+          "lives": "call"
         }
-      ]
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "min",
       "category": "queries",
       "signatures": [
-        "min T $v: (predicate..., value)"
+        "min T $v: ([predicate..., ]value: number): number"
       ],
       "summary": "The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.",
       "example": "var $youngest: min Person $p: (alive, $p.age)",
       "forms": [
         {
           "kind": "binding",
-          "signature": "min T $v: (predicate..., value)",
+          "signature": "min T $v: ([predicate..., ]value: number): number",
           "returns": "number",
-          "head": "predicateAndValue"
+          "head": "predicateAndValue",
+          "lives": "call"
         }
-      ]
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "pick",
       "category": "queries",
       "signatures": [
-        "pick T $v: (predicate...)",
-        "pick T $v: (predicate...) else { ... }"
+        "pick T $v[: (predicate...)]",
+        "pick T $v[: (predicate...)] else { ... }"
       ],
-      "summary": "Picks one T the predicate matches, uniformly at random, and binds it to $v. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. The block cannot see $v. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.",
+      "summary": "Picks one T the predicate matches, uniformly at random, and binds it to $v; with no predicate, any T. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.",
       "example": "pick Person $p: (alive, partner = null) else {\n    record('Nobody is left to marry')\n}\nrecord('{$p.name} stays single')",
       "forms": [
         {
           "kind": "binding",
-          "signature": "pick T $v: (predicate...)",
-          "head": "predicate"
+          "signature": "pick T $v[: (predicate...)]",
+          "returns": "T",
+          "head": "predicate",
+          "lives": "rest"
         },
         {
           "kind": "binding",
-          "signature": "pick T $v: (predicate...) else { ... }",
+          "signature": "pick T $v[: (predicate...)] else { ... }",
+          "returns": "T",
           "head": "predicate",
-          "block": "else { ... }"
+          "lives": "rest",
+          "blocks": [
+            {
+              "keyword": "else",
+              "runs": "onMiss",
+              "sees": "enclosingNotVariable",
+              "describes": "runs when nothing matches, then the rule stops successfully; sees the rule's locals but not $v"
+            }
+          ]
         }
-      ]
+      ],
+      "checked": true
     },
     {
       "kind": "function",
       "name": "sum",
       "category": "queries",
       "signatures": [
-        "sum T $v: (predicate..., value)"
+        "sum T $v: ([predicate..., ]value: number): number"
       ],
-      "summary": "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a plain number, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
+      "summary": "The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a float, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.",
       "example": "var $total: sum Person $p: (alive, $p.wealth)",
       "forms": [
         {
           "kind": "binding",
-          "signature": "sum T $v: (predicate..., value)",
+          "signature": "sum T $v: ([predicate..., ]value: number): number",
           "returns": "number",
-          "head": "predicateAndValue"
+          "head": "predicateAndValue",
+          "lives": "call"
         }
-      ]
+      ],
+      "checked": true
     },
     {
       "kind": "function",
@@ -211,29 +228,57 @@
       "category": "entities",
       "signatures": [
         "create T $v",
+        "create T $v { prop := value ... }",
         "create T $v: 'name'",
         "create T $v: 'name' { prop := value ... }"
       ],
-      "summary": "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The optional block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
+      "summary": "Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.",
       "example": "create Person $p: '{roll(Name)}' {\n    age := 0\n    alive := true\n}",
       "forms": [
         {
           "kind": "binding",
           "signature": "create T $v",
-          "head": "variable"
+          "returns": "T",
+          "head": "variable",
+          "lives": "rest"
+        },
+        {
+          "kind": "binding",
+          "signature": "create T $v { prop := value ... }",
+          "returns": "T",
+          "head": "variable",
+          "lives": "rest",
+          "blocks": [
+            {
+              "runs": "onCreate",
+              "sees": "enclosingAndVariable",
+              "describes": "sets properties on the new entity; sees the rule's locals and $v"
+            }
+          ]
         },
         {
           "kind": "binding",
           "signature": "create T $v: 'name'",
-          "head": "name"
+          "returns": "T",
+          "head": "name",
+          "lives": "rest"
         },
         {
           "kind": "binding",
           "signature": "create T $v: 'name' { prop := value ... }",
+          "returns": "T",
           "head": "name",
-          "block": "{ prop := value ... }"
+          "lives": "rest",
+          "blocks": [
+            {
+              "runs": "onCreate",
+              "sees": "enclosingAndVariable",
+              "describes": "sets properties on the new entity; sees the rule's locals and $v"
+            }
+          ]
         }
-      ]
+      ],
+      "checked": true
     },
     {
       "kind": "function",
@@ -277,10 +322,36 @@
       "name": "schedule",
       "category": "rules",
       "signatures": [
-        "schedule(entity, year) { ... }"
+        "schedule(entity: entity, year: number) { ... }"
       ],
       "summary": "Defers the block until the simulation reaches `year`, then runs it once, as a rule of its own, with $self bound to `entity`. Both arguments are evaluated now. The block sees $self but none of the enclosing rule's locals, so read what it needs from $self. A year that is not in the future fires next year. If the entity no longer exists by then, nothing runs, so a block that cares whether $self is still alive should test it.",
-      "example": "pick Person $p: (alive)\nschedule($p, #Time.year + 20) {\n    if $self.alive {\n        set $self.age = $self.age + 20\n    }\n}"
+      "example": "pick Person $p: (alive)\nschedule($p, #Time.year + 20) {\n    if $self.alive {\n        set $self.age = $self.age + 20\n    }\n}",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "schedule(entity: entity, year: number) { ... }",
+          "parameters": [
+            {
+              "name": "entity",
+              "kind": "value",
+              "type": "entity"
+            },
+            {
+              "name": "year",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "blocks": [
+            {
+              "runs": "later",
+              "sees": "onlySelf",
+              "describes": "runs in a later year, as a rule of its own; sees only $self"
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",
@@ -312,11 +383,44 @@
       "name": "chance",
       "category": "randomness",
       "signatures": [
-        "chance(p)",
-        "chance(p) { ... }"
+        "chance(p: number): bool",
+        "chance(p: number) { ... }"
       ],
-      "summary": "True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. As a statement with a block, the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.",
-      "example": "pick Person $p: (alive)\nchance(5%) {\n    record('{$p.name} finds a fortune')\n}\nif chance(50%) {\n    set $p.wealth = $p.wealth + 1\n}"
+      "summary": "True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. With a block, it is a statement: the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.",
+      "example": "pick Person $p: (alive)\nchance(5%) {\n    record('{$p.name} finds a fortune')\n}\nif chance(50%) {\n    set $p.wealth = $p.wealth + 1\n}",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "chance(p: number): bool",
+          "parameters": [
+            {
+              "name": "p",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "returns": "bool"
+        },
+        {
+          "kind": "call",
+          "signature": "chance(p: number) { ... }",
+          "parameters": [
+            {
+              "name": "p",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "blocks": [
+            {
+              "runs": "onHit",
+              "sees": "enclosing",
+              "describes": "runs when the draw hits; sees the rule's locals"
+            }
+          ]
+        }
+      ],
+      "checked": true
     },
     {
       "kind": "function",

@@ -17,8 +17,7 @@ public class FunctionDescriptor : IFunctionDescriptor
     /// `chance`), which keep hand-written signatures in their <see cref="BuiltinDoc"/>.
     public FunctionForm[] Forms { get; } = [];
 
-    /// True when every form is a <see cref="CallForm"/> the parser checks calls against, rather than a
-    /// description of what a hand-written handler accepts.
+    /// True when the parser checks calls against <see cref="Forms"/>: every built-in but the special ones.
     public bool IsChecked => _bound != null;
 
     public BuiltinDoc? Doc { get; }
@@ -35,26 +34,21 @@ public class FunctionDescriptor : IFunctionDescriptor
         _parse = parse;
     }
 
-    /// A built-in whose forms describe what its hand-written handler accepts: the binding forms, whose
-    /// parsing depends on scoping the binder does not model.
-    public FunctionDescriptor(string funcName, bool expectVariable, FunctionForm[] forms, ParseCallDelegate parse,
-        FunctionDoc doc)
+    /// A built-in the parser checks against its forms before the handler runs. <paramref name="prepare"/>
+    /// runs after the arguments and before any block is parsed, for a handler that must claim something
+    /// first (schedule reserves its stream key, so a schedule nested in its body is numbered after it).
+    public FunctionDescriptor(string funcName, FunctionForm[] forms, BoundCallDelegate parse, FunctionDoc doc,
+        Func<FunctionParseContext, object?>? prepare = null)
     {
         FuncName = funcName;
-        ExpectVariable = expectVariable;
-        Forms = forms;
-        Doc = MakeDoc(funcName, forms, doc);
-        _parse = parse;
-    }
-
-    /// A plain-call built-in the parser checks against its forms before the handler runs.
-    public FunctionDescriptor(string funcName, CallForm[] forms, BoundCallDelegate parse, FunctionDoc doc)
-    {
-        FuncName = funcName;
+        ExpectVariable = forms.Any(f => f is BindingForm);
         Forms = forms;
         Doc = MakeDoc(funcName, forms, doc);
         _bound = parse;
+        Prepare = prepare;
     }
+
+    public Func<FunctionParseContext, object?>? Prepare { get; }
 
     static BuiltinDoc MakeDoc(string name, FunctionForm[] forms, FunctionDoc doc) =>
         new(doc.Category, forms.Select(f => f.Signature(name)).ToArray(), doc.Summary, doc.Example);
@@ -66,7 +60,7 @@ public class FunctionDescriptor : IFunctionDescriptor
         {
             returnType = default;
             // A call that cannot be bound has been reported, argument by argument; there is nothing to add.
-            if (!FunctionBinder.TryBind(FuncName, Forms.Cast<CallForm>().ToArray(), ctx, out var bound))
+            if (!FunctionBinder.TryBind(this, ctx, out var bound))
                 return null!;
             returnType = bound.ReturnType;
             var checkedCall = _bound(bound);

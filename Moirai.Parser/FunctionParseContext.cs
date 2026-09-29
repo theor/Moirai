@@ -117,14 +117,18 @@ public record FunctionParseContext(AstVisitor Visitor, CallOrRawCall CallContext
                 $"Expected {i} arguments{(isMaxCount ? " max" : "")}, got {ArgCount}");
     }
 
-    public IValueSql ParsePredicateSql(EntityTypeId entityTypeId)
+    public IValueSql ParsePredicateSql(EntityTypeId entityTypeId) => ParsePredicateSql(entityTypeId, ArgCount);
+
+    /// The predicate made of the first <paramref name="clauses"/> arguments; the rest belong to something
+    /// else (an aggregate's value).
+    public IValueSql ParsePredicateSql(EntityTypeId entityTypeId, int clauses)
     {
         // The predicate compiles to SQL: flag user-function calls within it as inlined (not steppable).
         Visitor.InSqlPredicateDepth++;
         IValue v;
         try
         {
-            v = ParsePredicate(entityTypeId);
+            v = ParsePredicate(entityTypeId, clauses);
         }
         finally
         {
@@ -137,17 +141,19 @@ public record FunctionParseContext(AstVisitor Visitor, CallOrRawCall CallContext
         return null!;
     }
 
-    public IValue ParsePredicate(EntityTypeId entityTypeId)
+    public IValue ParsePredicate(EntityTypeId entityTypeId) => ParsePredicate(entityTypeId, ArgCount);
+
+    public IValue ParsePredicate(EntityTypeId entityTypeId, int clauses)
     {
-        if (ArgCount == 1)
+        if (clauses == 1)
         {
             var only = ParseArgument(0);
             WarnIfRedundantTypeFilter(only, 0, entityTypeId);
             return only;
         }
 
-        IValue[] preds = new IValue[ArgCount];
-        for (int i = 0; i < ArgCount; i++)
+        IValue[] preds = new IValue[clauses];
+        for (int i = 0; i < clauses; i++)
         {
             preds[i] = ParseArgument(i);
             WarnIfRedundantTypeFilter(preds[i], i, entityTypeId);

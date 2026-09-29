@@ -21,10 +21,10 @@ Every built-in function and attribute of the `.sg` language. For how a story is 
 ### `avg`
 
 ```moirai
-avg T $v: (predicate..., value)
+avg T $v: ([predicate..., ]value: number): number
 ```
 
-The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. Written like `sum`.
+The mean of `value` over every T the predicate matches, 0 when none does: use `count` to tell none from zero. The mean of whole numbers is a float. Written like `sum`.
 
 ```moirai
 var $mean: avg Person $p: (alive, $p.happiness)
@@ -33,8 +33,7 @@ var $mean: avg Person $p: (alive, $p.happiness)
 ### `count`
 
 ```moirai
-count T $v
-count T $v: (predicate...)
+count T $v[: (predicate...)]: number
 count(coll: collection): number
 ```
 
@@ -48,11 +47,12 @@ pick Person $p: (alive, count($p.friends) < 3)
 ### `each`
 
 ```moirai
-each T $v: (predicate...) { ... }
-each T $v { ... }
+each T $v[: (predicate...)] { ... }
 ```
 
 Runs the block once for every T the predicate matches, with $v bound to each in turn, oldest entity first; with no predicate, for every T. The matches are found before the block first runs, so entities it creates are not visited. A statement in the block that stops (a failed pick) ends only that iteration. `each` never fails, even when nothing matches.
+
+- `{ ... }`: runs once per match; sees the rule's locals and $v.
 
 ```moirai
 each Person $p: (alive, age > 60) {
@@ -63,7 +63,7 @@ each Person $p: (alive, age > 60) {
 ### `max`
 
 ```moirai
-max T $v: (predicate..., value)
+max T $v: ([predicate..., ]value: number): number
 ```
 
 The largest `value` over every T the predicate matches, 0 when none does. Written like `sum`.
@@ -75,7 +75,7 @@ var $oldest: max Person $p: (alive, $p.age)
 ### `min`
 
 ```moirai
-min T $v: (predicate..., value)
+min T $v: ([predicate..., ]value: number): number
 ```
 
 The smallest `value` over every T the predicate matches, 0 when none does. Written like `sum`.
@@ -87,11 +87,13 @@ var $youngest: min Person $p: (alive, $p.age)
 ### `pick`
 
 ```moirai
-pick T $v: (predicate...)
-pick T $v: (predicate...) else { ... }
+pick T $v[: (predicate...)]
+pick T $v[: (predicate...)] else { ... }
 ```
 
-Picks one T the predicate matches, uniformly at random, and binds it to $v. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. The block cannot see $v. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.
+Picks one T the predicate matches, uniformly at random, and binds it to $v; with no predicate, any T. When nothing matches, the rule stops there and has failed: what it already did stays in the world, but its changes are not logged and no trigger sees them, so pick before changing anything. With `else`, the block runs instead and the rule then stops *successfully*: its changes are logged and triggers see them. As a condition, `if (pick T $v: (...)) { }` tests whether anything matched.
+
+- `else { ... }`: runs when nothing matches, then the rule stops successfully; sees the rule's locals but not $v.
 
 ```moirai
 pick Person $p: (alive, partner = null) else {
@@ -103,10 +105,10 @@ record('{$p.name} stays single')
 ### `sum`
 
 ```moirai
-sum T $v: (predicate..., value)
+sum T $v: ([predicate..., ]value: number): number
 ```
 
-The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a plain number, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.
+The total of `value` over every T the predicate matches, 0 when none does. The arguments before the last are the predicate, joined by `and` like a pick's. $v exists only inside the call. A sum of percentages is a float, since it can pass 100. Draws no random numbers of its own, and can sit inside another query's predicate.
 
 ```moirai
 var $total: sum Person $p: (alive, $p.wealth)
@@ -118,11 +120,14 @@ var $total: sum Person $p: (alive, $p.wealth)
 
 ```moirai
 create T $v
+create T $v { prop := value ... }
 create T $v: 'name'
 create T $v: 'name' { prop := value ... }
 ```
 
-Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The optional block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.
+Creates a new T and binds it to $v, which stays in scope for the rest of the rule. The name is an interpolated string. The block sets properties on the new entity, one `prop := value` per line, before anything else sees it. Creating a singleton that already exists binds the existing one instead of making a second.
+
+- `{ ... }`: sets properties on the new entity; sees the rule's locals and $v.
 
 ```moirai
 create Person $p: '{roll(Name)}' {
@@ -168,10 +173,12 @@ record('{$p.name} goes on a pilgrimage')
 ### `schedule`
 
 ```moirai
-schedule(entity, year) { ... }
+schedule(entity: entity, year: number) { ... }
 ```
 
 Defers the block until the simulation reaches `year`, then runs it once, as a rule of its own, with $self bound to `entity`. Both arguments are evaluated now. The block sees $self but none of the enclosing rule's locals, so read what it needs from $self. A year that is not in the future fires next year. If the entity no longer exists by then, nothing runs, so a block that cares whether $self is still alive should test it.
+
+- `{ ... }`: runs in a later year, as a rule of its own; sees only $self.
 
 ```moirai
 pick Person $p: (alive)
@@ -200,11 +207,13 @@ mark($p)
 ### `chance`
 
 ```moirai
-chance(p)
-chance(p) { ... }
+chance(p: number): bool
+chance(p: number) { ... }
 ```
 
-True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. As a statement with a block, the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.
+True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. With a block, it is a statement: the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.
+
+- `{ ... }`: runs when the draw hits; sees the rule's locals.
 
 ```moirai
 pick Person $p: (alive)

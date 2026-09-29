@@ -190,27 +190,27 @@ function feast() {
     [TestCase("add", 0, "add(coll: collection, value: element of coll)")]
     [TestCase("debug", 0, "debug(value: any, ...)")]
     [TestCase("roll", 0, "roll(T: table): entry of T")]
-    [TestCase("pick", 1, "pick T $v: (predicate...) else { ... }")]
-    [TestCase("sum", 0, "sum T $v: (predicate..., value)")]
-    [TestCase("count", 2, "count(coll: collection): number")]
+    [TestCase("pick", 1, "pick T $v[: (predicate...)] else { ... }")]
+    [TestCase("sum", 0, "sum T $v: ([predicate..., ]value: number): number")]
+    [TestCase("count", 1, "count(coll: collection): number")]
+    [TestCase("create", 3, "create T $v: 'name' { prop := value ... }")]
+    [TestCase("each", 0, "each T $v[: (predicate...)] { ... }")]
+    [TestCase("chance", 1, "chance(p: number) { ... }")]
+    [TestCase("schedule", 0, "schedule(entity: entity, year: number) { ... }")]
     public void AFunctionsSignatureIsGeneratedFromItsForms(string name, int form, string signature)
     {
         StoryParser.GetFunctionDescriptor(name, out var f);
         Assert.That(f!.Doc!.Signatures[form], Is.EqualTo(signature));
     }
 
-    /// Every built-in is one of three things, and adding one means choosing: checked against its forms by
-    /// the parser; described by forms its hand-written handler implements (the binding forms, whose
-    /// scoping the binder does not model); or special, with syntax of its own and a hand-written signature.
+    /// Every built-in is checked against its forms by the parser -- plain calls, binding forms and the
+    /// blocks either carries -- except `call`, whose arguments depend on the rule it names and which keeps a
+    /// hand-written signature. Adding a built-in means giving it forms.
     [Test]
-    public void EveryBuiltinIsCheckedDescribedOrSpecial()
+    public void EveryBuiltinButCallIsChecked()
     {
-        var described = StoryParser.Functions.Where(f => !f.IsChecked && f.Forms.Length > 0).Select(f => f.FuncName);
-        var special = StoryParser.Functions.Where(f => f.Forms.Length == 0).Select(f => f.FuncName);
-        Assert.That(described, Is.EquivalentTo(new[] { "create", "each", "pick", "count", "sum", "avg", "min", "max" }));
-        Assert.That(special, Is.EquivalentTo(new[] { "call", "schedule", "chance" }));
-        foreach (var f in StoryParser.Functions.Where(f => f.IsChecked))
-            Assert.That(f.Forms, Has.All.InstanceOf<CallForm>(), f.FuncName);
+        Assert.That(StoryParser.Functions.Where(f => !f.IsChecked).Select(f => f.FuncName), Is.EquivalentTo(new[] { "call" }));
+        Assert.That(StoryParser.Functions.Where(f => f.IsChecked && f.Forms.Length == 0).Select(f => f.FuncName), Is.Empty);
     }
 
     [Test]
@@ -240,6 +240,16 @@ function feast() {
     [TestCase("record(3)", StoryParser.ErrorCode.InvalidArgument)]
     [TestCase("var $x: not(3)", StoryParser.ErrorCode.InvalidArgument)]
     [TestCase("pick Person $p: (alive)\nrecord('{link(3, 'x')}')", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("floor(1) {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("chance(5%) else {\n    record('y')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("each Person $p: (alive)", StoryParser.ErrorCode.MissingEachScope)]
+    [TestCase("pick Person $p: (alive) {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("pick Person $p: (alive)\nschedule($p, 3)", StoryParser.ErrorCode.MissingEachScope)]
+    [TestCase("pick Person $p: (alive)\nschedule(3, 3) {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("var $x: sum Person $p: (alive)", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("var $x: sum(3)", StoryParser.ErrorCode.MissingVariable)]
+    [TestCase("var $x: floor Person $p", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("create Person $p: 3", StoryParser.ErrorCode.InvalidArgument)]
     public void ABuiltinsArgumentsAreCheckedAgainstItsForms(string body, StoryParser.ErrorCode code)
     {
         var story = Prelude + "event e {\n" + Indent(body) + "\n}\n";
@@ -322,6 +332,20 @@ function feast() {
                     b.Append(s.GetString()).Append('\n');
                 b.Append("```\n\n");
                 b.Append(e.GetProperty("summary").GetString()).Append("\n\n");
+                if (e.TryGetProperty("forms", out var forms))
+                {
+                    // Each distinct block once: what it is for, when it runs and what it sees.
+                    var blocks = forms.EnumerateArray()
+                        .SelectMany(f => f.TryGetProperty("blocks", out var bs) ? bs.EnumerateArray() : [])
+                        .Select(bl => (Keyword: bl.TryGetProperty("keyword", out var k) ? k.GetString() + " " : "",
+                            Describes: bl.GetProperty("describes").GetString()))
+                        .Distinct().ToList();
+                    foreach (var (keyword, describes) in blocks)
+                        b.Append("- `").Append(keyword).Append("{ ... }`: ").Append(describes).Append(".\n");
+                    if (blocks.Count > 0)
+                        b.Append('\n');
+                }
+
                 if (e.TryGetProperty("parameters", out var parameters) && parameters.GetArrayLength() > 0)
                 {
                     foreach (var p in parameters.EnumerateArray())

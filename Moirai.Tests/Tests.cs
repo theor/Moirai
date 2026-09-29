@@ -30,7 +30,7 @@ entity A {
 }
 event e {
     create A $asd: 'asd'
-    pick A $a { }
+    pick A $a
     debug $a
 }
 ", out var errors, 0);

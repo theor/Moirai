@@ -789,8 +789,10 @@ public partial class AstVisitor : StoryParser.IVisitor
     private IValue ParseCall(CallNode context, out PropertyValue.ValueType returnType)
     {
         var funcName = context.FunId.Text;
-        // The grammar lets any statement-level call carry `else { ... }`; only a pick has a failure to handle.
-        if (context.Else != null && funcName != "pick")
+        // The grammar lets any statement-level call carry `else { ... }`. A checked built-in's forms say
+        // whether it takes one, and the binder reports it; anything else -- a story's own function, `call`
+        // -- takes none.
+        if (context.Else != null && !(StoryParser.GetFunctionDescriptor(funcName, out var checkedBuiltin) && checkedBuiltin.IsChecked))
             AddError(StoryParser.ErrorCode.InvalidArgument, context.Else.Span,
                 $"only a pick can have an else block; '{funcName}' cannot fail over to one");
         if (Database.GetFunctionDefinition(funcName, out var fd))

@@ -39,8 +39,11 @@ export interface ReferenceForm {
     repeated?: boolean;
   }[];
   returns?: string;
+  /** A binding form's head (`predicate`, `predicateAndValue`, ...) and how long its `$v` lives. */
   head?: string;
-  block?: string;
+  lives?: 'rest' | 'block' | 'call';
+  /** The blocks the form carries: when each runs and what it sees. */
+  blocks?: { keyword?: string; runs: string; sees: string; describes: string }[];
 }
 
 /** One parameter of an attribute: `AttributeParam` in `Moirai.Parser/AttributeSchema.cs`. */
