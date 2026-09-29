@@ -166,9 +166,9 @@ event link_countries {
             add ($1.neighbors, $0)
         }
 
-        if pick Country $2: ((($2 != $0) and not (contains ($0.neighbors, $2)))) {
-            add ($0.neighbors, $2)
-            add ($2.neighbors, $0)
+        if pick Country $1: ((($1 != $0) and not (contains ($0.neighbors, $1)))) {
+            add ($0.neighbors, $1)
+            add ($1.neighbors, $0)
         }
 
      }
@@ -757,10 +757,10 @@ trigger item_change_owner {
         set $2.end_year = #Time.year
     }
 
-    create ItemOwnership $3
-    set $3.owner = $1.owner
-    set $3.item = $1
-    set $3.start_year = #Time.year
+    create ItemOwnership $2
+    set $2.owner = $1.owner
+    set $2.item = $1
+    set $2.start_year = #Time.year
 }
 @tag('items')
 trigger inherit {

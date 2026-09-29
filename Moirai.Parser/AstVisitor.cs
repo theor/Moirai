@@ -524,7 +524,18 @@ public partial class AstVisitor : StoryParser.IVisitor
     private If ParseIf(IfNode @if, out PropertyValue.ValueType valueType)
     {
         var elseType = PropertyValue.ValueType.Null;
-        var iff = new If(ParseExpr(@if.Cond), ParseScope(@if.Then, out var ifType),
+        // The condition and the then-block share a scope, so a variable the condition binds --
+        // `if (pick T $v: (...)) { }` -- exists only where it is known to be bound: not in the else, and
+        // not after the if, where it used to stay visible and read an empty slot when the pick missed.
+        IValue? cond;
+        IInstruction[] then;
+        PropertyValue.ValueType ifType;
+        using (new VariableDeclarationScopeDisposable(this, @if.Span))
+        {
+            cond = ParseExpr(@if.Cond);
+            then = ParseScope(@if.Then, out ifType);
+        }
+        var iff = new If(cond, then,
             @if.Else == null ? Array.Empty<IInstruction>() : ParseScope(@if.Else, out elseType));
         valueType = @if.Else == null ? ifType : Cast(ifType, elseType);
         return iff;
