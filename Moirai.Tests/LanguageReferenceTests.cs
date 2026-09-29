@@ -121,7 +121,7 @@ function feast() {
     [TestCase("@lineage(mother)\nentity Kin {\n    prop mother: Kin\n}", StoryParser.ErrorCode.UnknownAttribute)]
     [TestCase("@shiny\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.UnknownCall)]
     [TestCase("@frequency(1, PerXYear, 2)\ntrigger t {\n    when_created Person\n}", StoryParser.ErrorCode.UnknownCall)]
-    [TestCase("@display(Person, 'Kin', parent1 = $self)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.UnknownCall)]
+    [TestCase("@display('Kin', each Person $p: (parent1 = $self))\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.UnknownCall)]
     [TestCase("@start\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.UnknownAttribute)]
     public void AnAttributeTheRegistryDoesNotListForThatDefinitionIsAnError(string definition, StoryParser.ErrorCode code)
     {
@@ -132,7 +132,7 @@ function feast() {
     /// An attribute's signature is generated from its parameters. These pin the notation: choices joined
     /// by `|`, an optional parameter in brackets, a repeated one followed by `...`, no parentheses for none.
     [TestCase("frequency", AttributeTarget.Event, "@frequency(x, PerXYear | EveryXYear, y)")]
-    [TestCase("display", AttributeTarget.Type, "@display(OtherType, 'Label', predicate[, 'item format'])")]
+    [TestCase("display", AttributeTarget.Type, "@display('Label', each T $v: (predicate...)[, 'item format'])")]
     [TestCase("tag", AttributeTarget.Trigger, "@tag('name', ...)")]
     [TestCase("parents", AttributeTarget.Type, "@parents(a, b)")]
     [TestCase("start", AttributeTarget.Event, "@start")]
@@ -143,11 +143,7 @@ function feast() {
     public void OnlyAnAttributesLastParameterIsOptionalOrRepeated()
     {
         foreach (var a in StoryParser.Attributes)
-        {
             Assert.That(a.Params.SkipLast(1).Any(p => p.Optional || p.Repeated), Is.False, a.Name);
-            foreach (var p in a.Params.Where(p => p.Kind == AttributeArgKind.Predicate))
-                Assert.That(a.Params[p.Over!.Value].Kind, Is.EqualTo(AttributeArgKind.EntityType), a.Name);
-        }
     }
 
     /// Every attribute's arguments go through one binder. Each case is a mistake it catches, with the
@@ -163,13 +159,23 @@ function feast() {
     [TestCase("@tag\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.MissingArgument)]
     [TestCase("@tag(war)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
     [TestCase("@tag('{$x}')\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
-    [TestCase("@display(Person, 'Kin')\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.MissingArgument)]
-    [TestCase("@display(Nobody, 'Kin', age > 1)\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.UnknownEntityType)]
-    [TestCase("@display(Person, 'Kin', age > 1, 4)\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("@display('Kin')\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.MissingArgument)]
+    [TestCase("@display('Kin', each Nobody $n: (age > 1))\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.UnknownEntityType)]
+    [TestCase("@display('Kin', each Kin $k: (age > 1), 4)\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("@display('Kin', age > 1)\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.InvalidArgument)]
     public void AnAttributesArgumentsAreCheckedAgainstItsParameters(string definition, StoryParser.ErrorCode code)
     {
         StoryParser.Parse(Prelude + definition + "\n", out var errors);
         Assert.That(errors.Select(e => e.Code), Does.Contain(code), () => string.Join("\n", errors));
+    }
+
+    /// The old @display named the type first and bound an implicit $other; the error writes the new form.
+    [Test]
+    public void TheOldDisplayFormIsAnErrorThatSaysWhatToWrite()
+    {
+        StoryParser.Parse(Prelude + "@display(Kin, 'Kids', parent1 = $self, '{$other.name}')\nentity Kin {\n    prop parent1: Kin\n}\n", out var errors);
+        Assert.That(errors.Select(e => e.Message),
+            Has.Some.Contains("write @display('Kids', each Kin $other: (parent1 = $self), '{$other.name}')"));
     }
 
     [Test]

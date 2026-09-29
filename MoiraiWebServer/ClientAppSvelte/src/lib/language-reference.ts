@@ -46,7 +46,7 @@ export interface ReferenceForm {
 /** One parameter of an attribute: `AttributeParam` in `Moirai.Parser/AttributeSchema.cs`. */
 export interface ReferenceParameter {
   name: string;
-  kind: 'number' | 'choice' | 'string' | 'text' | 'entityType' | 'predicate' | 'property';
+  kind: 'number' | 'choice' | 'string' | 'text' | 'entityType' | 'query' | 'property';
   /** What it accepts, as a phrase a reader sees. */
   accepts: string;
   optional?: boolean;
@@ -152,6 +152,8 @@ export function argumentSuggestions(
     case 'choice':
       return param.choices ?? [];
     case 'entityType':
+    // A query, `each T $v: (...)`, starts with its type.
+    case 'query':
       return lines.flatMap((l) => /^(?:entity|singleton)\s+([A-Z]\w*)/.exec(l)?.[1] ?? []);
     case 'property': {
       let i = lineIndex;

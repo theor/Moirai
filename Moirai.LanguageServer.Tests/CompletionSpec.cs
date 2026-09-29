@@ -182,10 +182,10 @@ trigger born {
     }
 
     [Test]
-    public void A_type_argument_offers_types()
+    public void A_query_argument_offers_types()
     {
-        const string src = "entity Kin {\n    prop age: number\n}\n@display()\nentity Clan {\n    prop size: number\n}\n";
-        Assert.That(Labels(src, 3, 9), Does.Contain("Kin"));
+        const string src = "entity Kin {\n    prop age: number\n}\n@display('Kin', each )\nentity Clan {\n    prop size: number\n}\n";
+        Assert.That(Labels(src, 3, 21), Does.Contain("Kin"));
     }
 
     [Test]

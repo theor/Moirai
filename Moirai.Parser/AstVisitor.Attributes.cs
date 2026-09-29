@@ -36,6 +36,7 @@ public partial class AstVisitor
         public StringNode Text(int i) => (StringNode) values[i]!;
         public PropertyValue.ValueType EntityType(int i) => (PropertyValue.ValueType) values[i]!;
         public ExprNode Expr(int i) => Node.Args[i];
+        public CallNode Query(int i) => (CallNode) values[i]!;
         public PropertyDefinition Property(int i) => (PropertyDefinition) values[i]!;
     }
 
@@ -162,9 +163,16 @@ public partial class AstVisitor
                 return type;
             }
 
-            case AttributeArgKind.Predicate:
-                // Parsed by the attribute's handler, which knows what $self and $other are.
-                return arg;
+            case AttributeArgKind.Query:
+                // Parsed by the attribute's handler, which knows what $self is.
+                if (value?.Call is not { FunId.Text: "each", DeclType: not null, VarId: not null, Scope: null, Else: null } query)
+                {
+                    AddError(StoryParser.ErrorCode.InvalidArgument, arg.Span,
+                        $"@{name}: {param.Name} must be a query, each T $v: (predicate...), with no block");
+                    return null;
+                }
+
+                return query;
 
             case AttributeArgKind.Property:
                 return BindProperty(descriptor, param, arg, annotated!);
@@ -248,21 +256,34 @@ public partial class AstVisitor
         return true;
     }
 
-    /// `@display(OtherType, 'Label', predicate[, 'item format'])`: a derived field on the type's details.
+    /// `@display('Label', each T $v: (predicate...)[, 'item format'])`: a derived field on the type's details.
     private void VisitDisplayAttribute(EntityType type, AttributeNode attr)
     {
+        // The old form named the type first and bound an implicit $other: say what to write instead.
+        if (attr.Args is [{ Value.TypeId: { } oldType }, var label, var predicate, ..] && label.Value?.StringLit != null)
+        {
+            var format = attr.Args.Length > 3 ? ", " + GetText(attr.Args[3].Span) : "";
+            AddError(StoryParser.ErrorCode.InvalidArgument, attr.Span,
+                $"write @display({GetText(label.Span)}, each {oldType.Text} $other: ({GetText(predicate.Span)}){format}): " +
+                "the items are a query, written as each is");
+            return;
+        }
+
         if (!BindAttribute(StoryParser.GetAttribute("display", AttributeTarget.Type)!, attr, type, out var args))
             return;
 
-        var other = args.EntityType(0);
+        var query = args.Query(1);
         using (new VariableDeclarationScopeDisposable(this, attr.Span))
         {
             DeclareVar("$self", type.RefType, attr.Name.Span, out var varIndex);
-            DeclareVar("$other", other, attr.Name.Span, out var otherVarIndex);
-            var expr = ParseExprSql(args.Expr(2))!;
-            var itemDisplay = args.Count > 3 ? ParseInterpolatedString(args.Text(3)) : null;
+            var ctx = new FunctionParseContext(this, query, null);
+            var itemVarIndex = ctx.ParseVariable(out var itemType, out _);
+            IValueSql? expr = query.Args.Length == 0 ? new Literal(true) : ctx.ParsePredicateSql(itemType, query.Args.Length);
+            if (expr == null)
+                return;
+            var itemDisplay = args.Count > 2 ? ParseInterpolatedString(args.Text(2)) : null;
             // The label as written, quotes included, which is how it has always reached the viewer.
-            var d = new Display(Database.GetEntityType(other)!, varIndex, otherVarIndex, args.String(1), expr, itemDisplay);
+            var d = new Display(Database.GetEntityType(itemType)!, varIndex, itemVarIndex, args.String(0), expr, itemDisplay);
             type.Attributes.Add(d);
         }
     }

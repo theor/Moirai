@@ -1,4 +1,4 @@
-@display ( Person,'Persons', location = $self)
+@display('Persons', each Person $p: (location = $self))
 entity Object {
     prop system: System
     prop dead: bool
@@ -6,7 +6,7 @@ entity Object {
     prop distance_to_sun: number
 }
 
-@display(Object, 'Objects', system = $self)
+@display('Objects', each Object $o: (system = $self))
 entity System {
 
 }

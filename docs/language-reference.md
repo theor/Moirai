@@ -595,21 +595,20 @@ entity Kin {
 ### `@display`
 
 ```moirai
-@display(OtherType, 'Label', predicate[, 'item format'])
+@display('Label', each T $v: (predicate...)[, 'item format'])
 ```
 
-Adds a derived field to the entity's details in the viewer: every OtherType the predicate matches, listed under Label, each written with the item format when there is one.
+Adds a derived field to the entity's details in the viewer: every entity the query matches, listed under Label, each written with the item format when there is one. The query is written as `each` is, with no block: `each T $v: (predicate)`.
 
-- `OtherType`: an entity type.
 - `Label`: a string literal.
-- `predicate`: a predicate over the `OtherType` entities: `$self` is the annotated entity, `$other` the candidate, and a bare property name reads `$other`'s.
-- `item format`: a string literal, which can interpolate `$other` (optional).
+- `items`: every T the predicate matches, written as `each` is but with no block: `$self` is the annotated entity, `$v` the candidate, and a bare property name reads `$v`'s.
+- `item format`: a string literal, which can interpolate the query's variable (optional).
 
 Applies to: types.
 
 ```moirai
-@display(Kin, 'Children', parent1 = $self or parent2 = $self)
-@display(Kin, 'Friends', contains($self.friends, $other), '{$other.name}, aged {$other.age}')
+@display('Children', each Kin $c: (parent1 = $self or parent2 = $self))
+@display('Friends', each Kin $f: (contains($self.friends, $f)), '{$f.name}, aged {$f.age}')
 entity Kin {
     prop age: number
     prop parent1: Kin

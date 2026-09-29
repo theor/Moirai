@@ -12,12 +12,12 @@ public enum AttributeArgKind
     Choice,
     /// A plain string literal, `'war'`.
     String,
-    /// A string literal that may interpolate, `'{$other.name}'`.
+    /// A string literal that may interpolate, `'{$c.name}'`.
     Text,
     /// The name of an entity type, `Person`.
     EntityType,
-    /// An expression over the entity type another argument names.
-    Predicate,
+    /// A query, written as `each` is: `each T $v: (predicate...)`. The attribute's handler parses it.
+    Query,
     /// The name of a property of the annotated type.
     Property,
 }
@@ -47,15 +47,13 @@ public sealed record AttributeParam(string Name, AttributeArgKind Kind)
     public int? Min { get; init; }
     /// For <see cref="AttributeArgKind.Property"/>.
     public PropertyKind? PropertyKind { get; init; }
-    /// For <see cref="AttributeArgKind.Predicate"/>: the index of the <see cref="AttributeArgKind.EntityType"/>
-    /// argument whose entities it is evaluated over.
-    public int? Over { get; init; }
 
     /// How the parameter is written in a signature.
     public string Syntax => Kind switch
     {
         AttributeArgKind.Choice => string.Join(" | ", Choices!),
         AttributeArgKind.String or AttributeArgKind.Text => $"'{Name}'",
+        AttributeArgKind.Query => "each T $v: (predicate...)",
         _ => Name,
     };
 
@@ -65,10 +63,10 @@ public sealed record AttributeParam(string Name, AttributeArgKind Kind)
         AttributeArgKind.Number => Min is { } m ? $"a whole-number literal, at least {m}" : "a whole-number literal",
         AttributeArgKind.Choice => "one of " + string.Join(", ", Choices!.Select(c => $"`{c}`")),
         AttributeArgKind.String => "a string literal",
-        AttributeArgKind.Text => "a string literal, which can interpolate `$other`",
+        AttributeArgKind.Text => "a string literal, which can interpolate the query's variable",
         AttributeArgKind.EntityType => "an entity type",
-        AttributeArgKind.Predicate =>
-            $"a predicate over the `{all[Over!.Value].Name}` entities: `$self` is the annotated entity, `$other` the candidate, and a bare property name reads `$other`'s",
+        AttributeArgKind.Query =>
+            "every T the predicate matches, written as `each` is but with no block: `$self` is the annotated entity, `$v` the candidate, and a bare property name reads `$v`'s",
         AttributeArgKind.Property => PropertyKind switch
         {
             Parser.PropertyKind.SelfReference => "a property of the annotated type that refers to that same type",
@@ -90,7 +88,7 @@ public static class Arg
     public static AttributeParam String(string name) => new(name, AttributeArgKind.String);
     public static AttributeParam Text(string name) => new(name, AttributeArgKind.Text);
     public static AttributeParam EntityType(string name) => new(name, AttributeArgKind.EntityType);
-    public static AttributeParam Predicate(string name, int over) => new(name, AttributeArgKind.Predicate) { Over = over };
+    public static AttributeParam Query(string name) => new(name, AttributeArgKind.Query);
 
     public static AttributeParam Property(string name, PropertyKind kind) =>
         new(name, AttributeArgKind.Property) { PropertyKind = kind };

@@ -124,7 +124,7 @@ public static class MoiraiCompletion
             var context = slot.Param?.Kind switch
             {
                 AttributeArgKind.Choice or AttributeArgKind.EntityType or AttributeArgKind.Property => Context.AttributeArgument,
-                AttributeArgKind.Predicate => Context.Expression,
+                AttributeArgKind.Query => Context.Expression,
                 _ => Context.None,
             };
             return new Analysis(context, target, before, slot);

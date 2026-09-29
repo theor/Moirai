@@ -118,7 +118,7 @@ event e {
     public void ADisplayCanUseATopLevelFunction()
     {
         const string s = @"
-@display(Person, 'Children', is_child_of($other, $self))
+@display('Children', each Person $p: (is_child_of($p, $self)))
 entity Person {
     prop parent1: Person
 }

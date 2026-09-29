@@ -4,7 +4,7 @@ entity Object {
     prop kind: Kind
     prop distance_to_sun: number
 }
-@display (Object,'Objects', system = $self)
+@display('Objects', each Object $o: (system = $self))
 entity System {
 
 }

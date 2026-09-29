@@ -88,8 +88,8 @@ describe('attribute arguments', () => {
   });
 
   it('counts commas only at the top level of the parentheses', () => {
-    const line = "@display(Kin, 'A, B', contains($self.friends, $other), ";
-    expect(attributeArgumentAt(line, line.length)?.argument).toBe(3);
+    const line = "@display('A, B', each Kin $k: (contains($self.friends, $k)), ";
+    expect(attributeArgumentAt(line, line.length)?.argument).toBe(2);
   });
 
   it('binds a repeated last parameter to every argument from its position', () => {
@@ -122,7 +122,7 @@ describe('attribute arguments', () => {
   it("offers a choice's choices and the story's types", () => {
     const mode = parameterAt(lookup('frequency', true)!, 1)!;
     expect(argumentSuggestions(mode, story, 0)).toEqual(['PerXYear', 'EveryXYear']);
-    const other = parameterAt(lookup('display', true)!, 0)!;
-    expect(argumentSuggestions(other, story, 0)).toEqual(['Kin', 'Other']);
+    const items = parameterAt(lookup('display', true)!, 1)!;
+    expect(argumentSuggestions(items, story, 0)).toEqual(['Kin', 'Other']);
   });
 });

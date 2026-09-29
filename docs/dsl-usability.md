@@ -136,7 +136,7 @@ doc comment, which the language server's hover shows; to the engine they are ord
 ### ✅ Scheduling-syntax drift
 The original mismatch between the docs/sample (`@1 per N years`) and the grammar is resolved: w.sg now
 uses the function-style attribute forms the grammar supports — `@frequency(1, PerXYear, 15)`,
-`@tag('…')`, `@display(Type, 'label', predicate)`.
+`@tag('…')`, `@display('label', each Type $v: (predicate))`.
 
 ---
 

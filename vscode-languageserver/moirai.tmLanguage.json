@@ -80,8 +80,8 @@
         { "include": "#string" },
         { "include": "#attribute" },
         {
-          "$comment": "The implicit locals: $self in a method or @display, $other in @display, $new/$old in a trigger.",
-          "match": "\\$(?:self|other|new|old)\\b",
+          "$comment": "The implicit locals: $self in a method or @display, $new/$old in a trigger.",
+          "match": "\\$(?:self|new|old)\\b",
           "name": "variable.language.moirai"
         },
         { "match": "\\$[A-Za-z_]\\w*", "name": "variable.other.readwrite.moirai" },

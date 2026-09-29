@@ -5,8 +5,8 @@
 /// Within 200 years it guarantees: newcomers, weddings, children and grandchildren (family trees three
 /// generations deep, with partners and siblings), deaths at 50 (a Person changes after birth, and
 /// some are dead), eras that turn, and records at several weights: 0 (noise), 1, 2, 3, 4 and 5.
-@display(Person, 'Children', parent1 = $self or parent2 = $self)
-@display(Person, 'Parents', $other = $self.parent1 or $other = $self.parent2)
+@display('Children', each Person $p: (parent1 = $self or parent2 = $self))
+@display('Parents', each Person $p: ($p = $self.parent1 or $p = $self.parent2))
 entity Person {
     prop alive: bool
     prop age: Age
@@ -17,7 +17,7 @@ entity Person {
     prop parent2: Person
     prop home: Village
 }
-@display(Person, 'Villagers', home = $self)
+@display('Villagers', each Person $p: (home = $self))
 entity Village {
     prop prosperity: percentage
 }
