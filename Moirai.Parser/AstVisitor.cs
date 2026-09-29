@@ -102,6 +102,17 @@ public partial class AstVisitor : StoryParser.IVisitor
         foreach (var (type, _) in typesContexts)
             type.InferRoles(Database.DefaultProperties().Count);
 
+        // Every event is registered -- name, schedule, parameters -- before any body is parsed, so a rule
+        // can call an event written below it, and a function or method can call one at all. Registration
+        // follows the file's order, which keeps every event's id what it always was.
+        foreach (var def in context.Defs)
+            if (def.Event != null)
+            {
+                _currentAttribute = def.Attributes;
+                RegisterEvent(def.Event);
+                _currentAttribute = null!;
+            }
+
         foreach (var (type, typeDefinitionContext) in typesContexts)
             foreach (var functionDefinitionContext in typeDefinitionContext.FunctionDefinitions)
                 ParseFunctionDefinition(functionDefinitionContext, type);
@@ -121,11 +132,12 @@ public partial class AstVisitor : StoryParser.IVisitor
             if (def.FunctionDefinition != null)
                 ParseFunctionDefinition(def.FunctionDefinition);
 
+        int eventIndex = 0;
         foreach (var def in context.Defs)
         {
             _currentAttribute = def.Attributes;
             if (def.Event != null)
-                VisitEvent(def.Event);
+                VisitEvent(def.Event, Database.Actions[eventIndex++]);
             else if (def.Trigger != null)
                 VisitTrigger(def.Trigger);
             _currentAttribute = null!;
@@ -250,31 +262,35 @@ public partial class AstVisitor : StoryParser.IVisitor
         Linker?.LinkTable(new FileRange(context.Name.Span), table, isDeclaration: true);
     }
 
-    private void VisitEvent(EventNode context)
+    /// An event as the rest of the story sees it: its id, schedule, tags and parameter types. Its body is
+    /// parsed later, by <see cref="VisitEvent"/>, into the same object.
+    private void RegisterEvent(EventNode context)
     {
-        string actionId = context.Name.Text;
-        using var _ = new VariableDeclarationScopeDisposable(this, context.Scope.Span);
-        var rootScope = _current;
-
         ParseAttributes(AttributeTarget.Event, out var tags, out var f);
-
-        // Event parameters occupy the scope's first value-stack slots (0..n-1); call(name, args...)
-        // writes them before the body runs (see CallRule).
-        CurrentEventTrigger = new EventTrigger(Database.Actions.Count + 1, actionId, false, f, tags: tags)
+        var rule = new EventTrigger(Database.Actions.Count + 1, context.Name.Text, false, f, tags: tags)
             { Line = context.Name.Span.Position.Line };
 
+        // Event parameters occupy the scope's first value-stack slots (0..n-1), which a call writes before
+        // the body runs (see CallRule).
         if (context.Params.Length > 0)
-        {
-            var ps = new List<FunctionDefinition.Parameter>(context.Params.Length);
-            foreach (var p in context.Params)
-            {
-                var paramName = p.VarId.Text;
-                var paramType = ParseType(p.Type.Name);
-                DeclareVar(paramName, paramType, p.VarId.Span, out var paramIndex);
-                ps.Add(new FunctionDefinition.Parameter(paramName, paramType, paramIndex));
-            }
+            rule.Parameters = context.Params
+                .Select((p, i) => new FunctionDefinition.Parameter(p.VarId.Text, ParseType(p.Type.Name), i))
+                .ToList();
 
-            CurrentEventTrigger.Parameters = ps;
+        Database.Actions.Add(rule);
+    }
+
+    private void VisitEvent(EventNode context, EventTrigger rule)
+    {
+        using var _ = new VariableDeclarationScopeDisposable(this, context.Scope.Span);
+        var rootScope = _current;
+        CurrentEventTrigger = rule;
+
+        for (int i = 0; i < context.Params.Length; i++)
+        {
+            var p = context.Params[i];
+            DeclareVar(p.VarId.Text, rule.Parameters![i].ParamType, p.VarId.Span, out var slot);
+            System.Diagnostics.Debug.Assert(slot == rule.Parameters[i].ParamIndex, "an event's parameters are its first slots");
         }
 
         foreach (var effectContext in context.Scope.Effects)
@@ -284,7 +300,6 @@ public partial class AstVisitor : StoryParser.IVisitor
         }
 
         CurrentEventTrigger.DebugScopeRoot = ConvertScope(rootScope);
-        Database.Actions.Add(CurrentEventTrigger);
         CurrentEventTrigger = null;
     }
 

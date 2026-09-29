@@ -71,4 +71,30 @@ trigger saw_x {
         Assert.That(db.History!.Changesets.Any(c => c.ActionName == "caller"), Is.True);
         Assert.That(db.Records.Select(r => r.Text), Has.Member("saw x"));
     }
+
+    /// Every event is registered before any body is parsed, so where a callee is written does not matter,
+    /// and a function -- parsed before every event body -- can call one too.
+    [Test]
+    public void AnEventCanBeCalledFromAboveItAndFromAFunction()
+    {
+        var db = StoryParser.Parse(@"
+function relay() {
+    call(target, 'from a function')
+}
+event first {
+    call(target, 'from above')
+    call(relay)
+}
+event target($how: string) {
+    record('{$how}')
+}
+", out var errors);
+        Assert.That(errors, Is.Empty, () => string.Join("\n", errors));
+        db.History = new();
+        db.Init();
+
+        db.RunAction("first");
+
+        Assert.That(db.Records.Select(r => r.Text), Is.EquivalentTo(new[] { "from above", "from a function" }));
+    }
 }

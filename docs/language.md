@@ -55,10 +55,9 @@ the `first_words` trigger.
 
 ## Definitions
 
-A story is a list of top-level definitions, each starting at the beginning of a line. Types, enums and
-tables can be used anywhere in the file, whatever their order. Rules can use any function. Order matters in
-two places: a function can use only the functions written above it, and `call(event)` needs the event
-written above the rule that calls it.
+A story is a list of top-level definitions, each starting at the beginning of a line. Types, enums,
+tables and events can be used anywhere in the file, whatever their order, and rules can use any function.
+Order matters in one place: a function can use only the functions written above it.
 
 ### Entity types
 
@@ -201,9 +200,9 @@ A function with a return type is an expression, and its last line is its value. 
 `pick`'s predicate, where the engine reads through it to find matches quickly. A function without a return
 type is a procedure, run with `call(create_god)` inside the calling rule.
 
-Functions are read before any event, in the order they are written. A function can therefore use the
-functions above it but not those below, cannot `call` an event, and an entity's methods cannot use
-top-level functions. Events and triggers can use every function.
+Functions are read in the order they are written, before any event body. A function can therefore use
+the functions above it but not those below, and an entity's methods cannot use top-level functions. Any
+function can call any event, and events and triggers can use every function.
 
 ## Statements
 
