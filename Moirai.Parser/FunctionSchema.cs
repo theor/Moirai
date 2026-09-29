@@ -103,6 +103,8 @@ public enum BlockRuns
     OnCreate,
     /// In a later year, as a rule of its own (`schedule(...) { ... }`).
     Later,
+    /// A given number of times (`repeat(n) { ... }`).
+    Times,
 }
 
 /// What a block can see.
@@ -134,6 +136,7 @@ public sealed record BlockSpec(BlockRuns Runs, BlockSees Sees, string? Keyword =
         BlockRuns.OnMiss => "runs when nothing matches, then the rule stops successfully",
         BlockRuns.PerMatch => "runs once per match",
         BlockRuns.OnCreate => "sets properties on the new entity",
+        BlockRuns.Times => "runs n times; a stop ends that turn only",
         _ => "runs in a later year, as a rule of its own",
     } + Sees switch
     {

@@ -108,7 +108,7 @@ entity B {
     prop y: number
 }
 
-event create {
+event make {
     create A $p
     set y = 12
 }
@@ -123,7 +123,7 @@ entity A {
     prop x: number
 }
 
-event create {
+event make {
     create A $p
     set x = 12
 }
@@ -139,13 +139,13 @@ entity Person {
 }
 enum Job { None, Farmer, Smith }
 
-event create {
+event make {
     create Person $p: ()
     set job = Asd
 }
 ";
         var db = Run(s, out var errors, 2);
-        db.RunAction("create");
+        db.RunAction("make");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetPropertyId("Person","job");
@@ -160,13 +160,13 @@ entity Person {
 enum Job { None,  Smith }
 enum A { None, Farmer,}
 
-event create {
+event make {
     create Person $p
     set job = A.Farmer
 }
 ";
         var db = Run(s, out var errors, 1);
-        db.RunAction("create");
+        db.RunAction("make");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetPropertyId("Person","job");
@@ -252,7 +252,7 @@ entity Person {
     prop link: Person
 }
 
-event create {
+event make {
     create Person $p
     create Person $p2
     set $p.link = $p2
@@ -261,7 +261,7 @@ event create {
 }
 ";
         var db = Run(s, out var errors);
-        db.RunAction("create");
+        db.RunAction("make");
         db.Printer.PrintDb();
     }
     [Test]
@@ -273,7 +273,7 @@ entity Person {
     prop link: Person
 }
 
-event create {
+event make {
     create Person $p
     create Person $p2
     set $p.link = $p2
@@ -282,7 +282,7 @@ event create {
 }
 ";
         var db = Run(s, out var errors);
-        db.RunAction("create");
+        db.RunAction("make");
         db.Printer.PrintDb();
     }
     [Test]
@@ -294,7 +294,7 @@ entity Person {
     prop link: Person
 }
 
-event create {
+event make {
     create Person $p2
     create Person $p
     set $p.link = $p2
@@ -309,7 +309,7 @@ event check {
 }
 ";
         var db = Run(s, out var errors);
-        db.RunAction("create");
+        db.RunAction("make");
         db.Printer.PrintDb();
         db.RunAction("check");
     }
@@ -682,7 +682,7 @@ entity Person {
     prop link: Person
 }
 
-event create {
+event make {
     create Person $p
     create Person $p2
     set $p.link = $p2
@@ -692,7 +692,7 @@ event create {
 }
 ";
         var db = Run(s, out var errors);
-        db.RunAction("create");
+        db.RunAction("make");
         db.Printer.PrintDb();
     }
 
@@ -706,13 +706,13 @@ entity Person {
 }
 enum Job { None, Farmer, Smith }
 
-event create {
+event make {
     create Person $p
     set $p.job = Job.Farmer
 }
 ";
         var db = Run(s, out var errors);
-        db.RunAction("create");
+        db.RunAction("make");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetPropertyId("Person","job");
@@ -732,13 +732,13 @@ entity Person {
     prop job: Job
 }
 
-event create {
+event make {
     create Person $p
     set $p.job = 1
 }
 ";
         var db = Run(s, out var errors);
-        db.RunAction("create");
+        db.RunAction("make");
         db.Printer.PrintDb();
         var e = db.Entities.Single();
         PropertyId jobProp = db.GetPropertyId("Person","job");
@@ -759,7 +759,7 @@ entity Person {
 }
 enum Job { Farmer, Smith, Mayor }
 
-event create {
+event make {
     create Person $p
     set $p.job = random Job
 }
@@ -769,7 +769,7 @@ event create {
         int count = 1;
         for (int i = 0; i < count; i++)
         {
-            db.RunAction("create");
+            db.RunAction("make");
         }
 
         db.Printer.PrintDb();
@@ -779,8 +779,9 @@ event create {
         Assert.IsTrue(db.GetEnumDefinition("Job", out var enumDefinition));
         Assert.AreEqual(enumDefinition.ValueType, value.Type);
         Assert.AreEqual(PropertyValue.ValueBaseType.Enum, value.Type.BaseType);
-        // Exact draw is deterministic per (seed, event stream); re-baselined after per-event RNG streams.
-        Assert.AreEqual(1, value.IntValue);
+        // Exact draw is deterministic per (seed, event stream), and the stream is keyed by the event's name:
+        // re-baselined when the event was renamed from 'create', which is a built-in's name.
+        Assert.AreEqual(2, value.IntValue);
     }
 
     [Test]
@@ -903,7 +904,7 @@ entity E {}
 event called {
     create E $e
 }
-event call {
+event run {
     call called
 }";
         var db = Run(s, out var errors);
@@ -922,7 +923,7 @@ entity E {
 event called {
     create E $x
 }
-event call {
+event run {
     var $x: call called
     var $y: call called
     
@@ -945,7 +946,7 @@ entity E {
     prop x: number
 }
 
-event call {
+event run {
     var $w:  42
     var $g: 43
     assert_eq($w, 42)
@@ -961,7 +962,7 @@ event call {
     public void Singleton()
     {
         var s = @"
-event create {
+event make {
     create Time $t: 'time'
     set year = 1000
 }

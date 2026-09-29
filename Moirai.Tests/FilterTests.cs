@@ -10,7 +10,7 @@ entity Person {
 prop x: number
 }
 @start
-event create {
+event make {
     create Time $t
 }
 event e {

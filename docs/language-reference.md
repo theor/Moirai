@@ -170,6 +170,25 @@ mark($p)
 record('{$p.name} goes on a pilgrimage')
 ```
 
+### `repeat`
+
+```moirai
+repeat(n: number) { ... }
+```
+
+Runs the block n times; n is read once, before the first turn. Each turn is a scope of its own, and a statement that stops (a failed pick) ends that turn only, so calling an event n times this way is n separate runs of it. Draws no random numbers of its own.
+
+- `{ ... }`: runs n times; a stop ends that turn only; sees the rule's locals.
+
+```moirai
+repeat(3) {
+    harvest()
+}
+repeat(count Person $p: (alive)) {
+    record('A lantern is lit')
+}
+```
+
 ### `schedule`
 
 ```moirai

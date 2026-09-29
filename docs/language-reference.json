@@ -319,6 +319,37 @@
     },
     {
       "kind": "function",
+      "name": "repeat",
+      "category": "rules",
+      "signatures": [
+        "repeat(n: number) { ... }"
+      ],
+      "summary": "Runs the block n times; n is read once, before the first turn. Each turn is a scope of its own, and a statement that stops (a failed pick) ends that turn only, so calling an event n times this way is n separate runs of it. Draws no random numbers of its own.",
+      "example": "repeat(3) {\n    harvest()\n}\nrepeat(count Person $p: (alive)) {\n    record('A lantern is lit')\n}",
+      "forms": [
+        {
+          "kind": "call",
+          "signature": "repeat(n: number) { ... }",
+          "parameters": [
+            {
+              "name": "n",
+              "kind": "value",
+              "type": "number"
+            }
+          ],
+          "blocks": [
+            {
+              "runs": "times",
+              "sees": "enclosing",
+              "describes": "runs n times; a stop ends that turn only; sees the rule's locals"
+            }
+          ]
+        }
+      ],
+      "checked": true
+    },
+    {
+      "kind": "function",
       "name": "schedule",
       "category": "rules",
       "signatures": [

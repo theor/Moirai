@@ -151,6 +151,9 @@ public partial class AstVisitor : StoryParser.IVisitor
 
         var name = fundef.Name.Text;
         _currentFunctionName = instanceType != null ? $"{instanceType.Name}.{name}" : name;
+        if (instanceType == null && Database.Actions.Exists(r => r.Name == name))
+            AddError(StoryParser.ErrorCode.DuplicateDefinition, fundef.Name.Span,
+                $"'{name}' is already an event; a function and an event are called the same way, so they need different names");
         PropertyValue.ValueType returnType = PropertyValue.ValueType.Null;
         if (fundef.ReturnType != null)
             returnType = ParseType(fundef.ReturnType.Name);
@@ -266,6 +269,10 @@ public partial class AstVisitor : StoryParser.IVisitor
     /// parsed later, by <see cref="VisitEvent"/>, into the same object.
     private void RegisterEvent(EventNode context)
     {
+        // Events, functions and built-ins are all called by name, so they share one namespace.
+        if (StoryParser.GetFunctionDescriptor(context.Name.Text, out _))
+            AddError(StoryParser.ErrorCode.DuplicateDefinition, context.Name.Span,
+                $"'{context.Name.Text}' is a built-in; an event cannot have its name");
         ParseAttributes(AttributeTarget.Event, out var tags, out var f);
         var rule = new EventTrigger(Database.Actions.Count + 1, context.Name.Text, false, f, tags: tags)
             { Line = context.Name.Span.Position.Line };
@@ -824,6 +831,16 @@ public partial class AstVisitor : StoryParser.IVisitor
         {
             Linker?.LinkFunction(new FileRange(context.FunId.Span), f);
             return f.Parse(this, context, out returnType);
+        }
+
+        // An event, called by name: `harvest()`, `found_city($p)`.
+        var eventIndex = Database.Actions.FindIndex(r => r.Name == funcName);
+        if (eventIndex != -1)
+        {
+            returnType = PropertyValue.ValueType.Null;
+            if (context.Scope != null)
+                AddError(StoryParser.ErrorCode.InvalidArgument, context.Scope.Span, $"calling {funcName}() takes no {{ }} block");
+            return StoryParser.EventCall(new FunctionParseContext(this, context, null), eventIndex, 0, $"{funcName}()");
         }
 
         returnType = default!;

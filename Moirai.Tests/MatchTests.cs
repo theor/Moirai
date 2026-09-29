@@ -88,7 +88,7 @@ prop y: number
 prop z: number
 }
 @start
-event create {
+event make {
     create T $t
 }
 event r {
@@ -117,7 +117,7 @@ prop y: number
 prop z: number
 }
 @start
-event create {
+event make {
     create T $t
 }
 event r {
@@ -144,7 +144,7 @@ entity Asteroid {}
 entity Star {}
 entity Planet {}
 entity Satelite {}
-event create {
+event make {
     random_weighted 10 {
         1 => create Star $x
         6 => create Asteroid $x
@@ -154,7 +154,7 @@ event create {
 }", out _);
         for (int i = 0; i < 100; i++)
         {
-            db.RunAction("create");
+            db.RunAction("make");
         }
 
         db.Printer.PrintDb();
@@ -175,7 +175,7 @@ enum Job {
     Soldier,
     King,
 }
-event create {
+event make {
     create Person $p
     random_weighted 10 {
         6 => set job = Job.Farmer
@@ -185,7 +185,7 @@ event create {
 }", out _);
         for (int i = 0; i < 100; i++)
         {
-            db.RunAction("create");
+            db.RunAction("make");
         }
 
         db.Printer.PrintDb();

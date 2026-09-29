@@ -157,31 +157,8 @@ public static class StoryParser
             {
                 // A parameterized event takes the trailing call() args as its arguments (the count
                 // form is only for zero-parameter events).
-                var pars = ctx.Visitor.Database.Actions[eventIndex].Parameters;
-                if (pars is { Count: > 0 })
-                {
-                    var args = new IValue[pars.Count];
-                    for (int i = 0; i < pars.Count; i++)
-                    {
-                        if (i + 1 >= ctx.ArgCount)
-                        {
-                            ctx.Visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span,
-                                $"call({eventName}) is missing argument {pars[i].ParamName}: {ctx.Visitor.Database.Printer.Print(pars[i].ParamType)}");
-                            args[i] = new Literal(0);
-                            continue;
-                        }
-
-                        var av = ctx.ParseArgument(i + 1, out var at);
-                        if (!AstVisitor.Accepts(pars[i].ParamType, at))
-                            ctx.Visitor.AddError(ErrorCode.MismatchedAssignmentTypes,
-                                ctx.GetArgumentToken(i + 1)?.Span ?? ctx.CallContext.Span,
-                                $"Expected {ctx.Visitor.Database.Printer.Print(pars[i].ParamType)} got {ctx.Visitor.Database.Printer.Print(at)}");
-                        args[i] = av;
-                    }
-
-                    return (new CallRule(eventIndex, args), PropertyValue.ValueType.Null);
-                }
-
+                if (ctx.Visitor.Database.Actions[eventIndex].Parameters is { Count: > 0 })
+                    return (EventCall(ctx, eventIndex, firstArgument: 1, $"call({eventName})"), PropertyValue.ValueType.Null);
                 return (new CallRule(eventIndex, count), PropertyValue.ValueType.Null);
             }
 
@@ -230,6 +207,11 @@ public static class StoryParser
             new FunctionDoc(DocCategory.Randomness,
                 "True with probability p, a percentage: `chance(3%)`. It always draws exactly once, whatever p is. With a block, it is a statement: the block runs when the draw hits, and the rule carries on either way. It cannot be part of a pick or each predicate: pick first, then test chance.",
                 "pick Person $p: (alive)\nchance(5%) {\n    record('{$p.name} finds a fortune')\n}\nif chance(50%) {\n    set $p.wealth = $p.wealth + 1\n}")),
+        new("repeat", [P.Call(FnReturn.Nothing, P.Number("n")).With(new BlockSpec(BlockRuns.Times, BlockSees.Enclosing))],
+            call => new Repeat(call.Value(0), call.Block()!),
+            new FunctionDoc(DocCategory.Rules,
+                "Runs the block n times; n is read once, before the first turn. Each turn is a scope of its own, and a statement that stops (a failed pick) ends that turn only, so calling an event n times this way is n separate runs of it. Draws no random numbers of its own.",
+                "repeat(3) {\n    harvest()\n}\nrepeat(count Person $p: (alive)) {\n    record('A lantern is lit')\n}")),
         new("roll", [P.Call(FnReturn.TableEntryOfArg, P.Table("T"))],
             call => new RollTable(call.Table(0).Id, call.Table(0).Name),
             new FunctionDoc(DocCategory.Randomness,
@@ -388,6 +370,40 @@ public static class StoryParser
         return null;
     }
 
+    /// A call to an event, `name(args...)`: the arguments from <paramref name="firstArgument"/> on are the
+    /// event's parameters, each checked against the type it declares. An event runs as a rule of its own
+    /// (see CallRule), so the call is a statement: it has no value.
+    internal static IValueCall EventCall(FunctionParseContext ctx, int eventIndex, int firstArgument, string label)
+    {
+        var visitor = ctx.Visitor;
+        var pars = visitor.Database.Actions[eventIndex].Parameters ?? [];
+        var given = ctx.ArgCount - firstArgument;
+        if (given > pars.Count)
+            visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span,
+                $"{label} takes {pars.Count} argument{(pars.Count == 1 ? "" : "s")}, got {given}");
+
+        var args = new IValue[pars.Count];
+        for (int i = 0; i < pars.Count; i++)
+        {
+            if (i >= given)
+            {
+                visitor.AddError(ErrorCode.MissingArgument, ctx.CallContext.Span,
+                    $"{label} is missing argument {pars[i].ParamName}: {visitor.Database.Printer.Print(pars[i].ParamType)}");
+                args[i] = new Literal(0);
+                continue;
+            }
+
+            var value = ctx.ParseArgument(firstArgument + i, out var type);
+            if (!AstVisitor.Accepts(pars[i].ParamType, type))
+                visitor.AddError(ErrorCode.MismatchedAssignmentTypes,
+                    ctx.GetArgumentToken(firstArgument + i)?.Span ?? ctx.CallContext.Span,
+                    $"Expected {visitor.Database.Printer.Print(pars[i].ParamType)} got {visitor.Database.Printer.Print(type)}");
+            args[i] = value;
+        }
+
+        return pars.Count == 0 ? new CallRule(eventIndex, 1) : new CallRule(eventIndex, args);
+    }
+
     static IValueCall CollectionCall(BoundCall call, Func<PropertyPath, PropertyPath, PropertyId, IValueCall> make)
     {
         var (full, owner, coll) = call.Collection(0);
@@ -456,6 +472,8 @@ public static class StoryParser
         DuplicateDefinition,
         UnknownTable,
         InvalidArgument,
+        /// A construct that still works but has a newer way to be written.
+        Deprecated,
     }
 
     /// <summary>How a <see cref="Error"/> should be surfaced. Defaults to <see cref="Error"/> (value 0)
