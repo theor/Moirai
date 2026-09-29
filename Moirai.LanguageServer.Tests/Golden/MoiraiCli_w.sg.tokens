@@ -5905,8 +5905,8 @@
 931:4-931:7 keyword
 931:8-931:10 variable
 932:15-932:17 number
-932:18-932:19 operator
-932:20-932:21 number
+932:19-932:20 operator
+932:21-932:22 number
 932:4-932:6 keyword
 932:8-932:14 function
 933:12-933:14 variable

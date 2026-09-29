@@ -184,7 +184,7 @@ function create_god() {
     create God $g: ('{roll(Name)}, God of {$dom}') {
         domain := $dom
     }
-    record '{$g.name} appears'
+    record('{$g.name} appears')
 }
 @start
 event create_time {
@@ -372,7 +372,7 @@ trigger inherit {
         record('{$child.name} lose their parent, {$new.name}')
         if $new.killer {
             var $k: $new.killer
-            record '{$child.name} starts a vendetta with {$k.name}'
+            record('{$child.name} starts a vendetta with {$k.name}')
         }
     }
     each Item $i: (owner = $new) {
@@ -708,8 +708,8 @@ event bandits_attack_town {
     set $y.alive = false
     set $y.killer = $x
     set $x.prosperity = $x.prosperity + 30%
-    record '{$x.name} bandits pillage a town of {$c.name}' 
-    record '{$y.name} die in the pillage of {$c.name}'
+    record('{$x.name} bandits pillage a town of {$c.name}')
+    record('{$y.name} die in the pillage of {$c.name}')
 }
 @frequency(1, PerXYear, 4)
 @tag('country')
@@ -930,7 +930,7 @@ event item_painted {
     set $i.maker = $p
     set $i.item_type = ItemSource.Painted
     set $i.creation_date = #Time.year
-    if (random 10 > 5){
+    if (random(10) > 5){
         set $i.owner = $p
         record('{$p.name} depicts {$t.name} in the {$i.name}')
     } else {    

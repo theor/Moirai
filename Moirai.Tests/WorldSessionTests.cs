@@ -577,7 +577,7 @@ event begin {
         var declared = s.Database.GetEntityType("Person").Attributes.Select(a => a.Label).ToList();
         Assert.That(declared, Is.Not.Empty, "the village gives Person @display back-references");
 
-        var result = s.Query("pick Person $p: (not $p.alive)");
+        var result = s.Query("pick Person $p: (not($p.alive))");
         Assert.That(result.Errors, Is.Null.Or.Empty, () => string.Join("\n", result.Errors));
         Assert.That(result.Results.Length, Is.GreaterThan(1));
 

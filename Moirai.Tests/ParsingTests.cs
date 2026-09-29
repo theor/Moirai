@@ -99,7 +99,7 @@ prop alive: bool
         StoryParser.Parse(PersonEntity + @"
 event e {
     each Person $p: (type = Person, alive = true) {
-        record ''
+        record('')
     }
 }", out var errors);
 
@@ -128,7 +128,7 @@ event e {
         StoryParser.Parse(PersonEntity + @"
 event e {
     each Person $p: (alive = true) {
-        record ''
+        record('')
     }
 }", out var errors);
 
@@ -148,7 +148,7 @@ entity Item {
 }
 event e {
     each Person $p: (type = Item, alive = true) {
-        record ''
+        record('')
     }
 }", out var errors);
 

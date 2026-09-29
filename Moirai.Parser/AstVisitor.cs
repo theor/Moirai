@@ -799,6 +799,11 @@ public partial class AstVisitor : StoryParser.IVisitor
     private IValue ParseRawCall(RawCallNode context, out PropertyValue.ValueType returnType)
     {
         var funcName = context.FunId.Text;
+        // `name value`, with no parentheses: the grammar still reads it, so the error can say what to write.
+        // It is still built as before, so the one error is all the story reports.
+        if (context.DeclType == null)
+            AddError(StoryParser.ErrorCode.Parser, context.Span,
+                $"write {funcName}({context.Value!.Span.ToStringValue()}): a call takes its arguments in parentheses");
         if (Database.GetFunctionDefinition(funcName, out var fd))
         {
             var ctx = new FunctionParseContext(this, context, fd.Value);

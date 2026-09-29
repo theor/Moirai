@@ -43,6 +43,8 @@ public class GrammarRuleTests : TestsBase
     [Test]
     public void Scope_EmptyBody() => AssertParses("event e {}\n");
 
+    // The grammar still reads the paren-less form, so the engine can report it with the fix
+    // (RecordWeightTests.TheParenLessFormIsAnErrorThatSaysWhatToWrite).
     [TestCase("event e { record('x') }\n")] // parenthesized call
     [TestCase("event e { record 'x' }\n")] // paren-less (raw_call) form
     public void Record_ParenAndParenLess_BothParse(string source) => AssertParses(source);

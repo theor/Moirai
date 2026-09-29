@@ -77,9 +77,10 @@ follow-up if desired.
 Comma vs `and` are used interchangeably: `(alive, age = Age.Child)` vs `(alive and partner = null)`.
 Pick a canonical form (lint the other) or at least document that comma ≡ `and`.
 
-### ⬜ `record('x')` vs `record 'x'`, empty-predicate `pick`
-Both call forms (`record(…)` and `record …`) and both empty-pick spellings (`pick T $v` and
-`pick T $v: ()`) appear. A formatter rule could normalize.
+### 🟡 `record('x')` vs `record 'x'`, empty-predicate `pick`
+A call takes its arguments in parentheses: `record 'x'`, `random 10`, `not $p.alive` and every other
+paren-less call are an error that says what to write (`write record('x')`). The grammar still reads the
+form, only so the error can quote it. Both empty-pick spellings (`pick T $v` and `pick T $v: ()`) remain.
 
 ### ✅ Redundant `type = T` inside a typed `each`
 Warned by the visitor (`RedundantTypeFilter`), which the language server shows faded as unnecessary.

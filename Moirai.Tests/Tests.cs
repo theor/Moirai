@@ -16,7 +16,7 @@ entity A {
 event e {
     create A $asd: 'asd'
     each A $a { }
-    debug $a
+    debug($a)
 }
 ", out var errors, 1);
         db.RunAction("e");
@@ -31,7 +31,7 @@ entity A {
 event e {
     create A $asd: 'asd'
     pick A $a
-    debug $a
+    debug($a)
 }
 ", out var errors, 0);
         db.RunAction("e");
@@ -48,7 +48,7 @@ entity Item {
 }
 event e {
    each Person $child {
-        record ''
+        record('')
     }
     each Item $i {
         pick Person $child: (alive)
@@ -69,7 +69,7 @@ event e {
     var $a: 12
     each A $b: (x = 32) {
         pick A $a: (x = 11)
-        record ''
+        record('')
     }
     
 }", out _);
@@ -379,7 +379,7 @@ entity Person {
 event r {
     create Person $p
     set f = 42 > 4
-    assert $0.f
+    assert($0.f)
 }
 ";
 
@@ -763,7 +763,7 @@ enum Job { Farmer, Smith, Mayor }
 
 event make {
     create Person $p
-    set $p.job = random Job
+    set $p.job = random(Job)
 }
 ";
         var db = Run(s, out var errors);
@@ -860,7 +860,7 @@ entity Person {}
 @frequency(1, EveryXYear, 1)
 event youngs_grow {
     each Person $p: (type = Person){
-        record ''
+        record('')
     }
 }", out _).RunAction("youngs_grow");
     }
@@ -1150,7 +1150,7 @@ event pass_15_years {
     {
         var s = @"
 event r {
-    assert false
+    assert(false)
 }";
         var db = Run(s, out var errors);
         db.History = new();

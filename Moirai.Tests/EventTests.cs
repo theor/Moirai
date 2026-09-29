@@ -159,16 +159,16 @@ event parent_dies {
     pick Person $p: (id = 1)
     debug('{$p} {$p.name}')
     set $p.alive = false
-    record '{$p.name} dies'
+    record('{$p.name} dies')
     pick Person $child: (alive, parent1 = $p or parent2 = $p)
-    record 'child: {$child.name}'
+    record('child: {$child.name}')
 
 }
 trigger inherit {
     when Person and alive = false and $old.alive
-    record '{$new.name} inherits'
+    record('{$new.name} inherits')
     each Item $i: (owner = $new){
-        record 'item {$i.name}, looking for children of {$new.name}'
+        record('item {$i.name}, looking for children of {$new.name}')
         pick Person $child: (alive and parent1 = $new or parent2 = $new)
         record('{$child.name} inherits the {$i.name} from {$new.name}')
     }

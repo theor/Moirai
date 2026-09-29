@@ -53,7 +53,7 @@ event create_station {
     set kind = Kind.Station
     pick System $s
     set $p.system = $s
-    record '{$p.name} created'
+    record('{$p.name} created')
 }
 
 @start
@@ -105,7 +105,7 @@ event create_solar_system {
     set kind = Kind.Satelite
     set system = $s
 
-    record '{$s.name} created'
+    record('{$s.name} created')
 
     repeat(10) {
         create_station()
@@ -136,9 +136,9 @@ trigger when_born {
     set $new.birthplace = $o
     set $new.location = $o 
     if(pick Person $parent: (alive and age = Age.Adult)){
-        record '{$new.name}  was born on {$o.name} from {$parent.name}' 
+        record('{$new.name}  was born on {$o.name} from {$parent.name}')
     } else {
-        record '{$new.name}  was born on {$o.name}' 
+        record('{$new.name}  was born on {$o.name}')
     }
 }
 
@@ -147,14 +147,14 @@ event grow {
     each Person $p: (alive, age = Age.Old) {
         if random(120) < #Time.year - birthyear {
             set $p.alive = false
-            record '{$p.name} dies of old age at {$p.age_years_str()}'
+            record('{$p.name} dies of old age at {$p.age_years_str()}')
         }
     }
     each Person $p: (alive, age != Age.Old, #Time.year - birthyear > 0, (#Time.year - birthyear) % 20 = 0) {
         // record 'grow {$p.name} {$p.age} {#Time.year - $p.birthyear}'
         
         set $p.age = $p.age + 1
-        record '{$p.name} is now {$p.age}'
+        record('{$p.name} is now {$p.age}')
         
     }
 }
@@ -164,13 +164,13 @@ event expedition {
     pick Person $p: ($p.available())
     pick Object $loc: (kind = Kind.Station and not(dead))
     random_weighted 100 {
-        40 => record '{$p.name}\'s expedition  at {$loc.name} success'
+        40 => record('{$p.name}\'s expedition  at {$loc.name} success')
         30 => {
             set $p.alive = false
-            record '{$p.name} dies at {$loc.name}'
+            record('{$p.name} dies at {$loc.name}')
         }
         _ => {
-            record '{$p.name} is injured at {$loc.name}'
+            record('{$p.name} is injured at {$loc.name}')
         }
     }
 }

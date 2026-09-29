@@ -18,7 +18,6 @@ event e {
     record('heavy', 4)
     record('noise', 0)
     record('by rank', $p.rank + 1)
-    record 'bare'
 }
 ";
 
@@ -33,7 +32,6 @@ event e {
         Assert.That(weights["heavy"], Is.EqualTo(4));
         Assert.That(weights["noise"], Is.EqualTo(0));
         Assert.That(weights["by rank"], Is.EqualTo(4));
-        Assert.That(weights["bare"], Is.EqualTo(Database.Record.DefaultWeight));
     }
 
     [TestCase("record('x', 'heavy')")]
@@ -44,5 +42,12 @@ event e {
         StoryParser.Parse($"event e {{\n    {call}\n}}\n", out var errors);
         Assert.That(errors.Select(e => e.Code),
             Has.Some.EqualTo(StoryParser.ErrorCode.InvalidArgument).Or.Some.EqualTo(StoryParser.ErrorCode.MissingArgument));
+    }
+
+    [Test]
+    public void TheParenLessFormIsAnErrorThatSaysWhatToWrite()
+    {
+        StoryParser.Parse("event e {\n    record '{#Time.year}'\n}\n", out var errors);
+        Assert.That(errors.Select(e => e.Message), Has.Some.Contains("write record('{#Time.year}')"));
     }
 }

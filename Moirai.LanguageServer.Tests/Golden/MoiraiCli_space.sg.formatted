@@ -76,7 +76,7 @@ event create_solar_system {
     set kind = Kind.Satelite
     set system = $s
 
-    record '{$s.name} created'
+    record('{$s.name} created')
 }
 
 // @start
@@ -95,5 +95,5 @@ event born {
     pick Object $o: (kind = Kind.Planet or kind = Kind.Satelite)
     set $p.birthplace = $o
     set $p.location = $o
-    record '{$p.name} was born on {$o.name}'
+    record('{$p.name} was born on {$o.name}')
 }

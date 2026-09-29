@@ -122,11 +122,10 @@ public static class StoryParser
             new FunctionDoc(DocCategory.Kinship,
                 "True when a and b share an ancestor within n degrees of kinship, counted the civil-law way: parent 1, grandparent or sibling 2, aunt or uncle 3, first cousin 4. The parents are the type's `@parents`, or `parent1`/`parent2` by default, and the type must have them.",
                 "pick Person $x: (alive, partner = null)\npick Person $y: (alive, partner = null, $y != $x, not(related($x, $y, 4)))")),
-        // Only the () form can carry a weight: the bare `record '...'` form has a single argument.
         new("record", [P.Call(FnReturn.Nothing, P.Text("text"), P.Number("weight").Optional())],
             call => new Record(call.Text(0), call.Count > 1 ? call.Value(1) : null),
             new FunctionDoc(DocCategory.Records,
-                "Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight (taken as a whole number) says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs. The older bare form `record 'text'` takes no weight.",
+                "Writes a sentence into the world's history. The text is interpolated: `{$p.name}` inserts a value, and an entity mentioned this way becomes a participant of the record, so it links to that entity and shows on its Life page. The optional weight (taken as a whole number) says how much the record matters: 1 by default, 0 for background noise, higher for the turning points the chronicle surfaces. The weight is metadata only and never changes how the world runs.",
                 "pick Person $p: (alive)\nrecord('{$p.name} is crowned', 5)")),
         new("link", [P.Call(FnReturn.String, P.Entity("entity"), P.String("text"))],
             call => new InterpolatedStringLink(call.Value(0), call.Value(1)),
