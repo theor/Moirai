@@ -288,6 +288,8 @@ public static class FunctionBinder
         using var scope = new AstVisitor.VariableDeclarationScopeDisposable(visitor, pushScope ? node.Span : null);
         if (spec.Sees == BlockSees.OnlySelf)
         {
+            // It runs later: the rule's locals are gone by then, so naming one is an error, not a stale slot.
+            visitor.IsolateCurrentScope(ctx.CallContext.Call?.FunId.Text ?? "deferred");
             // $self takes the static type of argument 0, so `$self.prop` resolves.
             visitor.DeclareVar("$self", bound.Type(0), ctx.GetArgumentToken(0)!.Span, out var self);
             bound.SelfVariable = self;

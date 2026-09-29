@@ -779,6 +779,10 @@ public partial class AstVisitor : StoryParser.IVisitor
     /// debugger can still resolve their locals (<c>$self</c>, body vars).
     public Moirai.Core.DebugScope CaptureCurrentDebugScope() => ConvertScope(_current);
 
+    /// Marks the scope just pushed as running apart from the scopes around it (see
+    /// <see cref="Parser.VariableDeclarationScope.IsolatedBy"/>).
+    internal void IsolateCurrentScope(string by) => _current.IsolatedBy = by;
+
     /// Translate the parser's lexical scope tree into the engine-side <see cref="Moirai.Core.DebugScope"/>
     /// the debugger uses to resolve value-stack slots back to variable names.
     private static Moirai.Core.DebugScope ConvertScope(Parser.VariableDeclarationScope scope)
@@ -1105,13 +1109,17 @@ public partial class AstVisitor : StoryParser.IVisitor
             VariableDeclaration decl;
             if (!int.TryParse(varName.Text.Substring(1), out variableIndex))
             {
-                variableIndex = _current.GetVariableIndexByName(varName.Text, out decl);
+                variableIndex = _current.GetVariableIndexByName(varName.Text, out decl, out var crossed);
                 if (variableIndex == -1)
                 {
                     AddError(StoryParser.ErrorCode.VariableNotDeclared, context.Span, varName.Text);
                     type = default;
                     return new PropertyPath();
                 }
+
+                if (crossed != null)
+                    AddError(StoryParser.ErrorCode.VariableNotDeclared, varName.Span,
+                        $"{varName.Text} is gone by the time this {crossed.IsolatedBy} block runs; only $self is available there, so read what it needs from $self");
             }
             else
                 decl = _current[variableIndex];
