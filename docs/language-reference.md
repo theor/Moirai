@@ -442,11 +442,14 @@ debug($p.name, $p.age)
 ### `@frequency`
 
 ```moirai
-@frequency(x, PerXYear, y)
-@frequency(x, EveryXYear, y)
+@frequency(x, PerXYear | EveryXYear, y)
 ```
 
-Schedules the event. `PerXYear` is random: on average x runs every y years, drawn each year, so a year can have none or several. `EveryXYear` is exact: x runs in every window of y years, each on a year of the window drawn at random. x and y are whole-number literals. An event with no scheduling attribute runs only when something calls it.
+Schedules the event. `PerXYear` is random: on average x runs every y years, drawn each year, so a year can have none or several. `EveryXYear` is exact: x runs in every window of y years, each on a year of the window drawn at random. An event with no scheduling attribute runs only when something calls it.
+
+- `x`: a whole-number literal, at least 1.
+- `mode`: one of `PerXYear`, `EveryXYear`.
+- `y`: a whole-number literal, at least 1.
 
 Applies to: events.
 
@@ -486,7 +489,9 @@ event founding {
 @tag('name', ...)
 ```
 
-Labels an event or trigger with one or more string literals. The viewer's Records page groups and filters records by them.
+Labels an event or trigger with one or more names. The viewer's Records page groups and filters records by them.
+
+- `name`: a string literal (one or more).
 
 Applies to: events, triggers.
 
@@ -506,7 +511,9 @@ event chatter {
 @alive(p)
 ```
 
-Names the bool property that is true while an entity lives. The viewer counts the living with it. Defaults to `alive`. A type takes `@alive` or `@dead`, not both.
+Names the property that is true while an entity lives. The viewer counts the living with it. Defaults to `alive`. A type takes `@alive` or `@dead`, not both.
+
+- `p`: a bool property of the annotated type.
 
 Applies to: types.
 
@@ -523,7 +530,9 @@ entity Kin {
 @born(p)
 ```
 
-Names the number property that holds the year an entity was born. Defaults to `birthdate`, and then to the year the entity was created.
+Names the property that holds the year an entity was born. Defaults to `birthdate`, and then to the year the entity was created.
+
+- `p`: a number property of the annotated type.
 
 Applies to: types.
 
@@ -540,7 +549,9 @@ entity Kin {
 @dead(p)
 ```
 
-Names a bool property that is true once an entity has died, for a story that tracks death rather than life. A type takes `@alive` or `@dead`, not both.
+Names a property that is true once an entity has died, for a story that tracks death rather than life. A type takes `@alive` or `@dead`, not both.
+
+- `p`: a bool property of the annotated type.
 
 Applies to: types.
 
@@ -557,7 +568,9 @@ entity Kin {
 @died(p)
 ```
 
-Names the number property that holds the year an entity died. Defaults to `deathdate`.
+Names the property that holds the year an entity died. Defaults to `deathdate`.
+
+- `p`: a number property of the annotated type.
 
 Applies to: types.
 
@@ -571,11 +584,15 @@ entity Kin {
 ### `@display`
 
 ```moirai
-@display(OtherType, 'Label', predicate)
-@display(OtherType, 'Label', predicate, 'item format')
+@display(OtherType, 'Label', predicate[, 'item format'])
 ```
 
-Adds a derived field to the entity's details in the viewer: every OtherType the predicate matches, listed under Label. In the predicate, $self is the entity being shown and $other the candidate; a bare property name reads $other's. The optional item format is an interpolated string for each line, which can read $other.
+Adds a derived field to the entity's details in the viewer: every OtherType the predicate matches, listed under Label, each written with the item format when there is one.
+
+- `OtherType`: an entity type.
+- `Label`: a string literal.
+- `predicate`: a predicate over the `OtherType` entities: `$self` is the annotated entity, `$other` the candidate, and a bare property name reads `$other`'s.
+- `item format`: a string literal, which can interpolate `$other` (optional).
 
 Applies to: types.
 
@@ -596,7 +613,10 @@ entity Kin {
 @parents(a, b)
 ```
 
-Names the two properties that hold an entity's parents. Both must be references to the type itself. `related()`, the family tree and the Life page read them. Without it, properties named `parent1` and `parent2` are used.
+Names the two properties that hold an entity's parents. `related()`, the family tree and the Life page read them. Without it, properties named `parent1` and `parent2` are used.
+
+- `a`: a property of the annotated type that refers to that same type.
+- `b`: a property of the annotated type that refers to that same type.
 
 Applies to: types.
 
@@ -614,7 +634,9 @@ entity Kin {
 @partner(p)
 ```
 
-Names the property that holds an entity's partner, a reference to the type itself, shown in the family tree. Defaults to a property named `partner`.
+Names the property that holds an entity's partner, shown in the family tree. Defaults to a property named `partner`.
+
+- `p`: a property of the annotated type that refers to that same type.
 
 Applies to: types.
 
@@ -631,7 +653,10 @@ entity Kin {
 @period(from, to)
 ```
 
-Marks the type as an age of history, bounded by two number properties holding its first and last year. The chronicle on the Home page and the exported history are chaptered by these. Without it, a type with `start_year` and `end_year` and no reference properties counts as one.
+Marks the type as an age of history, from its first year to its last. The chronicle on the Home page and the exported history are chaptered by these. Without it, a type with `start_year` and `end_year` and no reference properties counts as one.
+
+- `from`: a number property of the annotated type.
+- `to`: a number property of the annotated type.
 
 Applies to: types.
 

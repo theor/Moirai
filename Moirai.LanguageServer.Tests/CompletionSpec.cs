@@ -156,6 +156,45 @@ trigger born {
             () => string.Join(", ", items.Select(i => i.Label)));
     }
 
+    // An attribute's arguments are completed from its parameters, the table the parser checks them with.
+
+    const string Kin = "@parents(mother, )\n@born()\nentity Kin {\n    prop mother: Kin\n    prop father: Kin\n" +
+                       "    prop friends: [Kin]\n    prop born_in: number\n    prop alive: bool\n}\n";
+
+    static List<string> Labels(string src, int line, int column) =>
+        MoiraiCompletion.Complete(Process(src), new Position(line, column)).Select(i => i.Label).ToList();
+
+    [Test]
+    public void A_choice_argument_offers_exactly_its_choices()
+    {
+        const string src = "@frequency(1, )\nevent e {\n    record('x')\n}\n";
+        Assert.That(Labels(src, 0, 14), Is.EquivalentTo(new[] { "PerXYear", "EveryXYear" }));
+        // Part-way through the word, the same list; the client filters it.
+        Assert.That(Labels(src.Replace("1, )", "1, Ev)"), 0, 16), Is.EquivalentTo(new[] { "PerXYear", "EveryXYear" }));
+    }
+
+    /// The definition does not parse (empty arguments), so these come from its tokens.
+    [Test]
+    public void A_property_argument_offers_the_annotated_types_properties_of_the_right_kind()
+    {
+        Assert.That(Labels(Kin, 0, 17), Is.EquivalentTo(new[] { "mother", "father" }), "@parents: references to Kin");
+        Assert.That(Labels(Kin, 1, 6), Is.EquivalentTo(new[] { "born_in" }), "@born: numbers");
+    }
+
+    [Test]
+    public void A_type_argument_offers_types()
+    {
+        const string src = "entity Kin {\n    prop age: number\n}\n@display()\nentity Clan {\n    prop size: number\n}\n";
+        Assert.That(Labels(src, 3, 9), Does.Contain("Kin"));
+    }
+
+    [Test]
+    public void No_suggestions_after_an_attributes_closing_parenthesis()
+    {
+        const string src = "@frequency(1, PerXYear, 2)\nevent e {\n    record('x')\n}\n";
+        Assert.That(Labels(src, 0, 26), Does.Not.Contain("PerXYear"));
+    }
+
     /// Nothing should be suggested in the middle of prose.
     [Test]
     public void No_suggestions_inside_a_string_literal()

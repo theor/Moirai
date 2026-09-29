@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { lookup, referenceEntries, summaryParts, wordAt } from './language-reference';
+import {
+  argumentSuggestions,
+  attributeArgumentAt,
+  lookup,
+  parameterAt,
+  referenceEntries,
+  summaryParts,
+  wordAt,
+} from './language-reference';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
 
@@ -63,5 +71,58 @@ describe('summaryParts', () => {
       { code: true, text: 'count' },
       { code: false, text: ' to tell none from zero.' },
     ]);
+  });
+});
+
+describe('attribute arguments', () => {
+  it('finds which argument the caret is on', () => {
+    expect(attributeArgumentAt('@frequency(1, ', 14)).toEqual({ name: 'frequency', argument: 1 });
+    expect(attributeArgumentAt('@frequency(', 11)).toEqual({ name: 'frequency', argument: 0 });
+  });
+
+  it('is nothing outside the parentheses, or inside a string', () => {
+    expect(attributeArgumentAt('@frequency(1, PerXYear, 2)', 26)).toBeNull();
+    expect(attributeArgumentAt('@frequency', 5)).toBeNull();
+    expect(attributeArgumentAt("@tag('a, b", 9)).toBeNull();
+    expect(attributeArgumentAt('    pick(', 9)).toBeNull();
+  });
+
+  it('counts commas only at the top level of the parentheses', () => {
+    const line = "@display(Kin, 'A, B', contains($self.friends, $other), ";
+    expect(attributeArgumentAt(line, line.length)?.argument).toBe(3);
+  });
+
+  it('binds a repeated last parameter to every argument from its position', () => {
+    const tag = lookup('tag', true)!;
+    expect(parameterAt(tag, 3)?.name).toBe('name');
+    expect(parameterAt(lookup('born', true)!, 1)).toBeUndefined();
+  });
+
+  const story = [
+    '@parents(',
+    '@born(',
+    'entity Kin {',
+    '    prop mother: Kin',
+    '    prop friends: [Kin]',
+    '    prop born_in: number',
+    '    prop alive: bool',
+    '}',
+    'entity Other {',
+    '    prop year: number',
+    '}',
+  ];
+
+  it("offers the annotated type's properties of the right kind", () => {
+    const parents = parameterAt(lookup('parents', true)!, 0)!;
+    const born = parameterAt(lookup('born', true)!, 0)!;
+    expect(argumentSuggestions(parents, story, 0)).toEqual(['mother']);
+    expect(argumentSuggestions(born, story, 1)).toEqual(['born_in']);
+  });
+
+  it("offers a choice's choices and the story's types", () => {
+    const mode = parameterAt(lookup('frequency', true)!, 1)!;
+    expect(argumentSuggestions(mode, story, 0)).toEqual(['PerXYear', 'EveryXYear']);
+    const other = parameterAt(lookup('display', true)!, 0)!;
+    expect(argumentSuggestions(other, story, 0)).toEqual(['Kin', 'Other']);
   });
 });

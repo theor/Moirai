@@ -43,6 +43,16 @@ public static class MoiraiCompletion
         Property,
         /// After `@`.
         AttributeName,
+        /// Inside an attribute's parentheses, at an argument whose parameter has a closed set of answers:
+        /// a choice (`PerXYear`), an entity type, or a property of the annotated type.
+        AttributeArgument,
+    }
+
+    /// Which argument of which attribute the caret is on: `@frequency(1, |` is (@frequency, 1).
+    /// `AttributeIndex` is the position of the attribute's `@` in the token list.
+    public readonly record struct AttributeSlot(AttributeDescriptor Attribute, int Argument, int AttributeIndex)
+    {
+        public AttributeParam? Param => Attribute.ParamAt(Argument);
     }
 
     public static List<CompletionItem> Complete(MoiraiDocument document, Position caret)
@@ -54,7 +64,7 @@ public static class MoiraiCompletion
 
     // ---- Locating the caret ---------------------------------------------------------------
 
-    public readonly record struct Analysis(Context Context, int? TargetIndex, int? BeforeIndex);
+    public readonly record struct Analysis(Context Context, int? TargetIndex, int? BeforeIndex, AttributeSlot? Slot = null);
 
     static bool IsTrivia(MoiraiTokenKind k) => k is MoiraiTokenKind.Space or MoiraiTokenKind.Comment;
 
@@ -108,7 +118,60 @@ public static class MoiraiCompletion
             before = i;
         }
 
+        if (before is { } b && AttributeArgumentAt(tokens, b) is { } slot)
+        {
+            // What an argument can be is its parameter's kind, from the same table the parser checks.
+            var context = slot.Param?.Kind switch
+            {
+                AttributeArgKind.Choice or AttributeArgKind.EntityType or AttributeArgKind.Property => Context.AttributeArgument,
+                AttributeArgKind.Predicate => Context.Expression,
+                _ => Context.None,
+            };
+            return new Analysis(context, target, before, slot);
+        }
+
         return new Analysis(Classify(tokens, before), target, before);
+    }
+
+    /// The attribute argument the caret is on, when the last token before it is inside the parentheses of
+    /// a top-level `@name(...)`: walks back along the line to the unmatched `(`, counting the commas at
+    /// that depth. An attribute is one line, so the walk never leaves it.
+    static AttributeSlot? AttributeArgumentAt(Token<MoiraiTokenKind>[] tokens, int beforeIndex)
+    {
+        if (InString(tokens, beforeIndex))
+            return null;
+
+        var line = Line(tokens[beforeIndex]);
+        int depth = 0, commas = 0;
+        for (int i = beforeIndex; i >= 0 && Line(tokens[i]) == line; i--)
+        {
+            switch (tokens[i].Kind)
+            {
+                case MoiraiTokenKind.ParenClose:
+                    if (i == beforeIndex)
+                        return null; // `@x(...)|`: past the attribute
+                    depth++;
+                    break;
+                case MoiraiTokenKind.Comma when depth == 0:
+                    commas++;
+                    break;
+                case MoiraiTokenKind.ParenOpen when depth > 0:
+                    depth--;
+                    break;
+                case MoiraiTokenKind.ParenOpen:
+                {
+                    var name = PreviousSignificant(tokens, i);
+                    var at = name is { } n ? PreviousSignificant(tokens, n) : null;
+                    if (name is not { } ni || at is not { } ai || tokens[ai].Kind != MoiraiTokenKind.At
+                        || StartCol(tokens[ai]) != 0)
+                        return null;
+                    var attribute = StoryParser.Attributes.Find(a => a.Name == tokens[ni].ToStringValue());
+                    return attribute == null ? null : new AttributeSlot(attribute, commas, ai);
+                }
+            }
+        }
+
+        return null;
     }
 
     // ---- The rule table --------------------------------------------------------------------
@@ -310,6 +373,10 @@ public static class MoiraiCompletion
                     Attributes();
                     break;
 
+                case Context.AttributeArgument:
+                    AttributeArgument(analysis.Slot!.Value);
+                    break;
+
                 case Context.TypeName:
                     Keywords("number", "string", "bool", "percentage");
                     Types();
@@ -361,6 +428,87 @@ public static class MoiraiCompletion
                     Detail = "attribute",
                     Documentation = Markdown(attribute.Doc.ToMarkdown()),
                 });
+        }
+
+        void AttributeArgument(AttributeSlot slot)
+        {
+            var param = slot.Param!;
+            switch (param.Kind)
+            {
+                case AttributeArgKind.Choice:
+                    foreach (var choice in param.Choices!)
+                        _items.Add(new CompletionItem
+                        {
+                            Label = choice,
+                            InsertText = choice,
+                            Kind = CompletionItemKind.EnumMember,
+                            Detail = $"@{slot.Attribute.Name} {param.Name}",
+                        });
+                    break;
+
+                case AttributeArgKind.EntityType:
+                    Types();
+                    break;
+
+                case AttributeArgKind.Property:
+                    foreach (var (name, type) in AnnotatedTypeProperties(slot.AttributeIndex, param.PropertyKind!.Value))
+                        _items.Add(new CompletionItem
+                        {
+                            Label = name,
+                            InsertText = name,
+                            Kind = CompletionItemKind.Property,
+                            Detail = type,
+                        });
+                    break;
+            }
+        }
+
+        /// The properties of the type an attribute annotates that fit a property parameter, read from the
+        /// tokens of that type's definition rather than the Database: while an attribute is half-typed, the
+        /// definition it sits on does not parse, so it is missing from the Database exactly when needed.
+        IEnumerable<(string Name, string Type)> AnnotatedTypeProperties(int attributeIndex, PropertyKind kind)
+        {
+            int i = attributeIndex;
+            while (i < tokens.Length && tokens[i].Kind is not (MoiraiTokenKind.Entity or MoiraiTokenKind.Singleton))
+                i++;
+            if (NextSignificant(i) is not { } ni)
+                yield break;
+            var typeName = tokens[ni].ToStringValue();
+
+            int depth = 0;
+            for (int j = ni + 1; j < tokens.Length; j++)
+            {
+                var k = tokens[j].Kind;
+                if (k == MoiraiTokenKind.ScopeOpen)
+                    depth++;
+                else if (k == MoiraiTokenKind.ScopeClose && --depth <= 0)
+                    yield break;
+                if (k != MoiraiTokenKind.Prop || depth != 1)
+                    continue;
+
+                // `prop name: type`; a collection (`[T]`) never fits a role.
+                if (NextSignificant(j) is not { } name || NextSignificant(name) is not { } colon
+                    || tokens[colon].Kind != MoiraiTokenKind.Colon || NextSignificant(colon) is not { } type
+                    || tokens[type].Kind == MoiraiTokenKind.LBrack)
+                    continue;
+                var propType = tokens[type].ToStringValue();
+                var fits = kind switch
+                {
+                    PropertyKind.SelfReference => propType == typeName,
+                    PropertyKind.Number => propType is "number" or "float",
+                    _ => propType == "bool",
+                };
+                if (fits)
+                    yield return (tokens[name].ToStringValue(), propType);
+            }
+        }
+
+        int? NextSignificant(int index)
+        {
+            for (int i = index + 1; i < tokens.Length; i++)
+                if (!IsTrivia(tokens[i].Kind))
+                    return i;
+            return null;
         }
 
         static StringOrMarkupContent Markdown(string text) =>

@@ -26,10 +26,14 @@ import {
 import { tags as t } from '@lezer/highlight';
 import { toCodeMirrorDiagnostics } from './diagnostics';
 import {
+  argumentSuggestions,
+  attributeArgumentAt,
   lookup,
+  parameterAt,
   referenceEntries,
   summaryParts,
   wordAt,
+  type AttributeArgument,
   type ReferenceEntry,
 } from './language-reference';
 import { KEYWORDS, moiraiLanguage } from './moirai-language';
@@ -77,6 +81,7 @@ const theme = EditorView.theme({
     whiteSpace: 'pre-wrap',
   },
   '.cm-moirai-doc p': { margin: '0', lineHeight: '1.4' },
+  '.cm-moirai-doc ul': { margin: '0.25rem 0 0', paddingLeft: '1.25rem', listStyle: 'disc' },
   '.cm-moirai-doc code': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
 });
 
@@ -95,6 +100,24 @@ function renderDoc(entry: ReferenceEntry): HTMLElement {
     summary.appendChild(node);
   }
   root.appendChild(summary);
+  if (entry.parameters?.length) {
+    const list = document.createElement('ul');
+    for (const p of entry.parameters) {
+      const item = document.createElement('li');
+      const name = document.createElement('code');
+      name.textContent = p.name;
+      item.append(name, ': ');
+      for (const part of summaryParts(p.accepts)) {
+        const node = part.code ? document.createElement('code') : document.createElement('span');
+        node.textContent = part.text;
+        item.appendChild(node);
+      }
+      if (p.optional) item.append(' (optional)');
+      if (p.repeated) item.append(' (one or more)');
+      list.appendChild(item);
+    }
+    root.appendChild(list);
+  }
   return root;
 }
 
@@ -135,6 +158,10 @@ const keywordOptions: Completion[] = [...KEYWORDS].map((k) => ({ label: k, type:
  * come from a parse, and the parse the editor has is the engine's, which answers with diagnostics only.
  */
 function completeReference(context: CompletionContext): CompletionResult | null {
+  const line = context.state.doc.lineAt(context.pos);
+  const slot = attributeArgumentAt(line.text, context.pos - line.from);
+  if (slot) return completeAttributeArgument(context, slot, line.number - 1);
+
   const match = context.matchBefore(/[@$#.]?\w*/);
   if (!match) return null;
   const sigil = match.text[0];
@@ -144,6 +171,26 @@ function completeReference(context: CompletionContext): CompletionResult | null 
   return {
     from: attribute ? match.from + 1 : match.from,
     options: attribute ? attributeOptions : [...functionOptions, ...keywordOptions],
+    validFor: /^\w*$/,
+  };
+}
+
+/** Inside `@name(...)`: what the parameter at the caret accepts, when it is a closed set. */
+function completeAttributeArgument(
+  context: CompletionContext,
+  slot: AttributeArgument,
+  lineIndex: number,
+): CompletionResult | null {
+  const entry = lookup(slot.name, true);
+  const param = entry && parameterAt(entry, slot.argument);
+  if (!param) return null;
+  const labels = argumentSuggestions(param, context.state.doc.toString().split('\n'), lineIndex);
+  if (labels.length === 0) return null;
+  const word = context.matchBefore(/\w*/)!;
+  const type = param.kind === 'choice' ? 'enum' : param.kind === 'property' ? 'property' : 'type';
+  return {
+    from: word.from,
+    options: labels.map((label) => ({ label, type, detail: `@${slot.name} ${param.name}` })),
     validFor: /^\w*$/,
   };
 }

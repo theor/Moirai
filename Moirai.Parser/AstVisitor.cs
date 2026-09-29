@@ -3,7 +3,7 @@ using Superpower.Model;
 
 namespace Moirai.Parser;
 
-public class AstVisitor : StoryParser.IVisitor
+public partial class AstVisitor : StoryParser.IVisitor
 {
     public record struct VariableDeclaration(string Name, PropertyValue.ValueType Type, FileRange DeclarationRange)
     {
@@ -29,96 +29,6 @@ public class AstVisitor : StoryParser.IVisitor
 
     AttributeNode[] _currentAttribute;
 
-    // The role attributes a type can carry, and what each needs: how many properties, and of what kind.
-    // Parents and partner must point at the annotated type itself -- a family tree reads them through
-    // that type's property ids, and another type's would be garbage.
-    private static readonly Dictionary<string, (EntityRole[] Roles, string Kind)> RoleAttributes = new()
-    {
-        ["parents"] = ([EntityRole.Parent1, EntityRole.Parent2], "self"),
-        ["partner"] = ([EntityRole.Partner], "self"),
-        ["born"] = ([EntityRole.Birth], "number"),
-        ["died"] = ([EntityRole.Death], "number"),
-        ["alive"] = ([EntityRole.Alive], "bool"),
-        ["dead"] = ([EntityRole.Dead], "bool"),
-        ["period"] = ([EntityRole.PeriodStart, EntityRole.PeriodEnd], "number"),
-    };
-
-    /// <summary>
-    /// Lowers one of the role attributes (@parents, @partner, @born, @died, @alive, @dead, @period,
-    /// @population) onto its type. Returns false for any other attribute, which the @display pass then
-    /// handles or reports. Every mistake is an error with a position, because the alternative -- the old
-    /// naming convention -- failed by quietly showing nothing.
-    /// </summary>
-    private bool VisitRoleAttribute(EntityType type, AttributeNode attr, ref bool populationDeclared)
-    {
-        var name = attr.Name.Text;
-        if (name == "population")
-        {
-            if (attr.Args.Length != 0)
-                AddError(StoryParser.ErrorCode.InvalidArgument, attr.Span, "@population takes no arguments");
-            if (populationDeclared)
-                AddError(StoryParser.ErrorCode.InvalidArgument, attr.Span, "only one type can be the @population");
-            populationDeclared = true;
-            type.IsPopulation = true;
-            return true;
-        }
-
-        if (!RoleAttributes.TryGetValue(name, out var spec))
-            return false;
-
-        if (attr.Args.Length != spec.Roles.Length)
-        {
-            AddError(StoryParser.ErrorCode.MissingArgument, attr.Span,
-                $"@{name} expects {spec.Roles.Length} propert{(spec.Roles.Length == 1 ? "y" : "ies")} of {type.Name}");
-            return true;
-        }
-
-        var ids = new PropertyId[spec.Roles.Length];
-        for (int i = 0; i < ids.Length; i++)
-        {
-            var arg = attr.Args[i];
-            var propName = GetText(arg.Span).Trim();
-            if (arg.Value?.Path == null || propName.Length == 0 || !propName.All(c => char.IsLetterOrDigit(c) || c == '_'))
-            {
-                AddError(StoryParser.ErrorCode.InvalidArgument, arg.Span, $"@{name} expects a property name of {type.Name}");
-                return true;
-            }
-
-            var def = type.Properties.FirstOrDefault(p => p.Name == propName);
-            if (def.Name == null || !def.PropertyId.IsValid)
-            {
-                AddError(StoryParser.ErrorCode.UnknownProperty, arg.Span, $"{type.Name} has no property '{propName}'");
-                return true;
-            }
-            Linker?.LinkProperty(new FileRange(arg.Span), def.PropertyId);
-
-            var ok = spec.Kind switch
-            {
-                "self" => !def.IsCollection && def.Type.BaseType == PropertyValue.ValueBaseType.Ref && def.Type.Index == type.Id.Id,
-                "number" => !def.IsCollection && def.Type.BaseType is PropertyValue.ValueBaseType.Number or PropertyValue.ValueBaseType.Float,
-                _ => !def.IsCollection && def.Type.BaseType == PropertyValue.ValueBaseType.Bool,
-            };
-            if (!ok)
-            {
-                var want = spec.Kind == "self" ? $"a {type.Name}" : $"a {spec.Kind}";
-                AddError(StoryParser.ErrorCode.InvalidArgument, arg.Span, $"@{name} needs {want} property; '{propName}' is not one");
-                return true;
-            }
-            ids[i] = def.PropertyId;
-        }
-
-        var other = name == "alive" ? EntityRole.Dead : name == "dead" ? EntityRole.Alive : (EntityRole?)null;
-        if (other is { } o && type.IsDeclared(o))
-        {
-            AddError(StoryParser.ErrorCode.InvalidArgument, attr.Span, "@alive and @dead say the same thing; use one");
-            return true;
-        }
-
-        for (int i = 0; i < ids.Length; i++)
-            type.DeclareRole(spec.Roles[i], ids[i]);
-        return true;
-    }
-
     public void VisitR(RNode context)
     {
         // enum_definition first (types/tables may reference enums).
@@ -128,7 +38,6 @@ public class AstVisitor : StoryParser.IVisitor
 
         List<(EntityType Id, TypeDefinitionNode Node)> typesContexts = new();
         List<(EntityType Id, AttributeNode Attr)> deferredTypeAttributes = new();
-        HashSet<AttributeNode> roleAttributes = new();
 
         foreach (var def in context.Defs)
         {
@@ -152,7 +61,7 @@ public class AstVisitor : StoryParser.IVisitor
             foreach (var attr in def.Attributes)
             {
                 // StoryParser.Attributes is the registry: an attribute it does not list is unknown here.
-                if (!StoryParser.IsAttribute(attr.Name.Text, AttributeTarget.Type))
+                if (StoryParser.GetAttribute(attr.Name.Text, AttributeTarget.Type) == null)
                 {
                     AddError(StoryParser.ErrorCode.UnknownAttribute, attr.Name.Span, attr.Name.Text);
                     continue;
@@ -189,8 +98,7 @@ public class AstVisitor : StoryParser.IVisitor
         // fill whatever a story did not declare.
         bool populationDeclared = false;
         foreach (var (type, attr) in deferredTypeAttributes)
-            if (VisitRoleAttribute(type, attr, ref populationDeclared))
-                roleAttributes.Add(attr);
+            VisitRoleAttribute(type, attr, ref populationDeclared);
         foreach (var (type, _) in typesContexts)
             type.InferRoles(Database.DefaultProperties().Count);
 
@@ -204,48 +112,10 @@ public class AstVisitor : StoryParser.IVisitor
             if (def.TableDefinition != null)
                 VisitTableDefinition(def.TableDefinition);
 
-        foreach (var (tid, attr) in deferredTypeAttributes)
-        {
-            if (roleAttributes.Contains(attr))
-                continue;
-            if (attr.Name.Text != "display")
-            {
-                AddError(StoryParser.ErrorCode.UnknownAttribute, attr.Name.Span, attr.Name.Text);
-                continue;
-            }
-
-            if (attr.Args.Length < 3)
-            {
-                AddError(StoryParser.ErrorCode.MissingArgument, attr.Span,
-                    "display expects two arguments, a string and and expression");
-                continue;
-            }
-
-            var refTypeIdent = attr.Args[0].Value?.TypeId;
-            if (refTypeIdent == null)
-            {
-                AddError(StoryParser.ErrorCode.UnknownEntityType, attr.Args[0].Span, "expected an Entity type");
-                continue;
-            }
-
-            var refReferencedType = ParseType(refTypeIdent.Value);
-            if (!refReferencedType.IsRefType)
-                AddError(StoryParser.ErrorCode.UnknownEntityType, attr.Span, "expected an Entity type");
-
-            using (new VariableDeclarationScopeDisposable(this, attr.Span))
-            {
-                DeclareVar("$self", tid.RefType, attr.Name.Span, out var varIndex);
-                DeclareVar("$other", refReferencedType, attr.Name.Span, out var otherVarIndex);
-                var expr = ParseExprSql(attr.Args[2])!;
-                InterpolatedString? itemDisplay = null;
-                if (attr.Args.Length > 3 && attr.Args[3].Value?.StringLit != null)
-                    itemDisplay = ParseInterpolatedString(attr.Args[3].Value!.StringLit);
-                Display d = new Display(Database.GetEntityType(refReferencedType)!, varIndex, otherVarIndex,
-                    GetText(attr.Args[1].Span), expr, itemDisplay);
-                var t = Database.Types[(int) (tid.Id.Id)];
-                t.Attributes.Add(d);
-            }
-        }
+        // @display after tables and every type's properties, since its predicate may read any of them.
+        foreach (var (type, attr) in deferredTypeAttributes)
+            if (attr.Name.Text == "display")
+                VisitDisplayAttribute(type, attr);
 
         foreach (var def in context.Defs)
             if (def.FunctionDefinition != null)
@@ -416,65 +286,6 @@ public class AstVisitor : StoryParser.IVisitor
         CurrentEventTrigger.DebugScopeRoot = ConvertScope(rootScope);
         Database.Actions.Add(CurrentEventTrigger);
         CurrentEventTrigger = null;
-    }
-
-    private void ParseAttributes(AttributeTarget target, out List<string>? tags, out IFilter? f)
-    {
-        tags = null;
-        f = null;
-        if (_currentAttribute == null) return;
-
-        foreach (var p in _currentAttribute)
-        {
-            // StoryParser.Attributes is the registry: an attribute it does not list for this kind of
-            // definition is unknown, which also stops a trigger's @frequency being silently ignored.
-            if (!StoryParser.IsAttribute(p.Name.Text, target))
-            {
-                AddError(StoryParser.ErrorCode.UnknownCall, p.Span, "Unknown attribute");
-                continue;
-            }
-
-            switch (p.Name.Text)
-            {
-                case "tag":
-                    tags ??= new();
-                    foreach (var arg in p.Args)
-                        // GetText (not GetString): the original ANTLR port used the string literal's raw
-                        // text including its surrounding quotes here (a pre-existing quirk, not something
-                        // introduced by this migration -- preserved as-is; see call()'s use of GetString
-                        // for the deliberately-trimmed counterpart).
-                        tags.Add(GetText(arg.Span));
-                    break;
-                case "start":
-                    f = new FilterAtStart();
-                    break;
-                case "frequency":
-                    if (p.Args.Length != 3)
-                        AddError(StoryParser.ErrorCode.MissingArgument, p.Span, "frequency expects 3 arguments");
-
-                    if (!ParseEnum<Database.Frequency>(p.Args[1].Value!, out var val))
-                        AddError(StoryParser.ErrorCode.UnknownEnum, p.Args[1].Span,
-                            "Should be a value among " + string.Join(", ", Enum.GetNames<Database.Frequency>()));
-                    var x = int.Parse(GetText(p.Args[0].Span));
-                    var y = int.Parse(GetText(p.Args[2].Span));
-                    switch (val)
-                    {
-                        case Database.Frequency.EveryXYear:
-                            f = new FilterExactlyXEveryYYears(x, y, Database.Actions.Count + 1);
-                            break;
-                        case Database.Frequency.PerXYear:
-                            f = new FilterProbabilityXPerYears(x, y);
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-
-                    break;
-                default:
-                    AddError(StoryParser.ErrorCode.UnknownCall, p.Span, "Unknown attribute");
-                    break;
-            }
-        }
     }
 
     public EventTrigger? CurrentEventTrigger;

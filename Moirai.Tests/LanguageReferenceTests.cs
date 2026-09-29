@@ -129,6 +129,56 @@ function feast() {
         Assert.That(errors.Select(e => e.Code), Does.Contain(code), () => string.Join("\n", errors));
     }
 
+    /// An attribute's signature is generated from its parameters. These pin the notation: choices joined
+    /// by `|`, an optional parameter in brackets, a repeated one followed by `...`, no parentheses for none.
+    [TestCase("frequency", AttributeTarget.Event, "@frequency(x, PerXYear | EveryXYear, y)")]
+    [TestCase("display", AttributeTarget.Type, "@display(OtherType, 'Label', predicate[, 'item format'])")]
+    [TestCase("tag", AttributeTarget.Trigger, "@tag('name', ...)")]
+    [TestCase("parents", AttributeTarget.Type, "@parents(a, b)")]
+    [TestCase("start", AttributeTarget.Event, "@start")]
+    public void AnAttributesSignatureIsGeneratedFromItsParameters(string name, AttributeTarget target, string signature) =>
+        Assert.That(StoryParser.GetAttribute(name, target)!.Signature, Is.EqualTo(signature));
+
+    [Test]
+    public void OnlyAnAttributesLastParameterIsOptionalOrRepeated()
+    {
+        foreach (var a in StoryParser.Attributes)
+        {
+            Assert.That(a.Params.SkipLast(1).Any(p => p.Optional || p.Repeated), Is.False, a.Name);
+            foreach (var p in a.Params.Where(p => p.Kind == AttributeArgKind.Predicate))
+                Assert.That(a.Params[p.Over!.Value].Kind, Is.EqualTo(AttributeArgKind.EntityType), a.Name);
+        }
+    }
+
+    /// Every attribute's arguments go through one binder. Each case is a mistake it catches, with the
+    /// error code the attribute's own checks used before they were shared; the first used to read an
+    /// argument that was not there.
+    [TestCase("@frequency(1)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.MissingArgument)]
+    [TestCase("@frequency(1, PerXYear, 2, 3)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("@frequency(1, Weekly, 2)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.UnknownEnum)]
+    [TestCase("@frequency(1, Job.Farmer, 2)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.UnknownEnum)]
+    [TestCase("@frequency(0, EveryXYear, 2)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("@frequency(1.5, PerXYear, 2)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("@start(1)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("@tag\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.MissingArgument)]
+    [TestCase("@tag(war)\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("@tag('{$x}')\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.InvalidArgument)]
+    [TestCase("@display(Person, 'Kin')\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.MissingArgument)]
+    [TestCase("@display(Nobody, 'Kin', age > 1)\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.UnknownEntityType)]
+    [TestCase("@display(Person, 'Kin', age > 1, 4)\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.InvalidArgument)]
+    public void AnAttributesArgumentsAreCheckedAgainstItsParameters(string definition, StoryParser.ErrorCode code)
+    {
+        StoryParser.Parse(Prelude + definition + "\n", out var errors);
+        Assert.That(errors.Select(e => e.Code), Does.Contain(code), () => string.Join("\n", errors));
+    }
+
+    [Test]
+    public void AChoiceMayBeQualifiedByItsEnum()
+    {
+        StoryParser.Parse(Prelude + "@frequency(1, Frequency.EveryXYear, 2)\nevent e {\n    record('x')\n}\n", out var errors);
+        Assert.That(errors, Is.Empty, () => string.Join("\n", errors));
+    }
+
     /// The hand-written guide opens on a whole story; a reader will paste it, so it has to work.
     [Test]
     public void TheGuidesFirstStoryParsesCleanly()
@@ -187,6 +237,22 @@ function feast() {
                     b.Append(s.GetString()).Append('\n');
                 b.Append("```\n\n");
                 b.Append(e.GetProperty("summary").GetString()).Append("\n\n");
+                if (e.TryGetProperty("parameters", out var parameters) && parameters.GetArrayLength() > 0)
+                {
+                    foreach (var p in parameters.EnumerateArray())
+                    {
+                        var flags = new List<string>();
+                        if (p.TryGetProperty("optional", out _)) flags.Add("optional");
+                        if (p.TryGetProperty("repeated", out _)) flags.Add("one or more");
+                        b.Append("- `").Append(p.GetProperty("name").GetString()).Append("`: ")
+                            .Append(p.GetProperty("accepts").GetString())
+                            .Append(flags.Count > 0 ? $" ({string.Join(", ", flags)})" : "")
+                            .Append(".\n");
+                    }
+
+                    b.Append('\n');
+                }
+
                 if (e.TryGetProperty("targets", out var targets))
                     b.Append("Applies to: ")
                         .Append(string.Join(", ", targets.EnumerateArray().Select(t => t.GetString() + "s")))

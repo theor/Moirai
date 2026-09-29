@@ -18,6 +18,20 @@ export interface ReferenceEntry {
   summary: string;
   example?: string;
   targets?: string[];
+  /** An attribute's parameters, from which its signature was generated. */
+  parameters?: ReferenceParameter[];
+}
+
+/** One parameter of an attribute: `AttributeParam` in `Moirai.Parser/AttributeSchema.cs`. */
+export interface ReferenceParameter {
+  name: string;
+  kind: 'number' | 'choice' | 'string' | 'text' | 'entityType' | 'predicate' | 'property';
+  /** What it accepts, as a phrase a reader sees. */
+  accepts: string;
+  optional?: boolean;
+  repeated?: boolean;
+  choices?: string[];
+  propertyKind?: 'selfReference' | 'number' | 'bool';
 }
 
 const entries = reference.entries as ReferenceEntry[];
@@ -62,4 +76,83 @@ export function summaryParts(summary: string): { code: boolean; text: string }[]
     .split('`')
     .map((text, i) => ({ code: i % 2 === 1, text }))
     .filter((p) => p.text !== '');
+}
+
+/** The parameter an attribute's argument at `index` binds to: a repeated last one takes the rest. */
+export function parameterAt(entry: ReferenceEntry, index: number): ReferenceParameter | undefined {
+  const params = entry.parameters ?? [];
+  if (index < params.length) return params[index];
+  const last = params[params.length - 1];
+  return last?.repeated ? last : undefined;
+}
+
+export interface AttributeArgument {
+  name: string;
+  /** 0-based position among the attribute's arguments. */
+  argument: number;
+}
+
+/**
+ * The attribute argument `column` sits in, on a line holding a top-level `@name(...)`:
+ * `@frequency(1, |` is `{ name: 'frequency', argument: 1 }`. Null outside the parentheses and inside a
+ * string literal, where nothing is worth suggesting.
+ */
+export function attributeArgumentAt(line: string, column: number): AttributeArgument | null {
+  const head = /^@(\w+)\(/.exec(line);
+  if (!head || column < head[0].length) return null;
+  let depth = 0;
+  let argument = 0;
+  let inString = false;
+  for (let i = head[0].length; i < column; i++) {
+    const c = line[i];
+    if (c === "'") inString = !inString;
+    else if (inString) continue;
+    else if (c === '(') depth++;
+    else if (c === ')') {
+      if (depth === 0) return null;
+      depth--;
+    } else if (c === ',' && depth === 0) argument++;
+  }
+  return inString ? null : { name: head[1], argument };
+}
+
+/**
+ * What to offer for an argument, read from the story's text: a choice parameter's choices, the story's
+ * entity types, or the properties of the type the attribute annotates that fit a property parameter.
+ * The text rather than a parse, because the definition being annotated is the one being typed, and does
+ * not parse yet. Empty for parameters with no closed set of answers.
+ */
+export function argumentSuggestions(
+  param: ReferenceParameter,
+  lines: readonly string[],
+  lineIndex: number,
+): string[] {
+  switch (param.kind) {
+    case 'choice':
+      return param.choices ?? [];
+    case 'entityType':
+      return lines.flatMap((l) => /^(?:entity|singleton)\s+([A-Z]\w*)/.exec(l)?.[1] ?? []);
+    case 'property': {
+      let i = lineIndex;
+      let typeName: string | undefined;
+      for (; i < lines.length && !typeName; i++)
+        typeName = /^(?:entity|singleton)\s+(\w+)/.exec(lines[i])?.[1];
+      const found: string[] = [];
+      for (; i < lines.length && !/^}/.test(lines[i]); i++) {
+        const prop = /^\s*prop\s+(\w+)\s*:\s*(\[?)\s*(\w+)/.exec(lines[i]);
+        if (!prop || prop[2]) continue;
+        const type = prop[3];
+        const fits =
+          param.propertyKind === 'selfReference'
+            ? type === typeName
+            : param.propertyKind === 'number'
+              ? type === 'number' || type === 'float'
+              : type === 'bool';
+        if (fits) found.push(prop[1]);
+      }
+      return found;
+    }
+    default:
+      return [];
+  }
 }

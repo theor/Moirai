@@ -353,13 +353,33 @@
       "name": "frequency",
       "category": "eventAttributes",
       "signatures": [
-        "@frequency(x, PerXYear, y)",
-        "@frequency(x, EveryXYear, y)"
+        "@frequency(x, PerXYear | EveryXYear, y)"
       ],
-      "summary": "Schedules the event. `PerXYear` is random: on average x runs every y years, drawn each year, so a year can have none or several. `EveryXYear` is exact: x runs in every window of y years, each on a year of the window drawn at random. x and y are whole-number literals. An event with no scheduling attribute runs only when something calls it.",
+      "summary": "Schedules the event. `PerXYear` is random: on average x runs every y years, drawn each year, so a year can have none or several. `EveryXYear` is exact: x runs in every window of y years, each on a year of the window drawn at random. An event with no scheduling attribute runs only when something calls it.",
       "example": "@frequency(1, PerXYear, 2)\nevent quarrel {\n    record('A quarrel')\n}\n@frequency(1, EveryXYear, 10)\nevent census {\n    record('A census')\n}",
       "targets": [
         "event"
+      ],
+      "parameters": [
+        {
+          "name": "x",
+          "kind": "number",
+          "accepts": "a whole-number literal, at least 1"
+        },
+        {
+          "name": "mode",
+          "kind": "choice",
+          "accepts": "one of `PerXYear`, `EveryXYear`",
+          "choices": [
+            "PerXYear",
+            "EveryXYear"
+          ]
+        },
+        {
+          "name": "y",
+          "kind": "number",
+          "accepts": "a whole-number literal, at least 1"
+        }
       ]
     },
     {
@@ -373,7 +393,8 @@
       "example": "@start\nevent founding {\n    create Person $p: 'Ada' {\n        alive := true\n    }\n}",
       "targets": [
         "event"
-      ]
+      ],
+      "parameters": []
     },
     {
       "kind": "attribute",
@@ -382,11 +403,19 @@
       "signatures": [
         "@tag('name', ...)"
       ],
-      "summary": "Labels an event or trigger with one or more string literals. The viewer's Records page groups and filters records by them.",
+      "summary": "Labels an event or trigger with one or more names. The viewer's Records page groups and filters records by them.",
       "example": "@tag('family', 'noise')\n@frequency(1, PerXYear, 1)\nevent chatter {\n    record('People talk', 0)\n}",
       "targets": [
         "event",
         "trigger"
+      ],
+      "parameters": [
+        {
+          "name": "name",
+          "kind": "string",
+          "accepts": "a string literal",
+          "repeated": true
+        }
       ]
     },
     {
@@ -396,10 +425,18 @@
       "signatures": [
         "@alive(p)"
       ],
-      "summary": "Names the bool property that is true while an entity lives. The viewer counts the living with it. Defaults to `alive`. A type takes `@alive` or `@dead`, not both.",
+      "summary": "Names the property that is true while an entity lives. The viewer counts the living with it. Defaults to `alive`. A type takes `@alive` or `@dead`, not both.",
       "example": "@alive(breathing)\nentity Kin {\n    prop breathing: bool\n}",
       "targets": [
         "type"
+      ],
+      "parameters": [
+        {
+          "name": "p",
+          "kind": "property",
+          "accepts": "a bool property of the annotated type",
+          "propertyKind": "bool"
+        }
       ]
     },
     {
@@ -409,10 +446,18 @@
       "signatures": [
         "@born(p)"
       ],
-      "summary": "Names the number property that holds the year an entity was born. Defaults to `birthdate`, and then to the year the entity was created.",
+      "summary": "Names the property that holds the year an entity was born. Defaults to `birthdate`, and then to the year the entity was created.",
       "example": "@born(born_in)\nentity Kin {\n    prop born_in: number\n}",
       "targets": [
         "type"
+      ],
+      "parameters": [
+        {
+          "name": "p",
+          "kind": "property",
+          "accepts": "a number property of the annotated type",
+          "propertyKind": "number"
+        }
       ]
     },
     {
@@ -422,10 +467,18 @@
       "signatures": [
         "@dead(p)"
       ],
-      "summary": "Names a bool property that is true once an entity has died, for a story that tracks death rather than life. A type takes `@alive` or `@dead`, not both.",
+      "summary": "Names a property that is true once an entity has died, for a story that tracks death rather than life. A type takes `@alive` or `@dead`, not both.",
       "example": "@dead(fallen)\nentity Kin {\n    prop fallen: bool\n}",
       "targets": [
         "type"
+      ],
+      "parameters": [
+        {
+          "name": "p",
+          "kind": "property",
+          "accepts": "a bool property of the annotated type",
+          "propertyKind": "bool"
+        }
       ]
     },
     {
@@ -435,10 +488,18 @@
       "signatures": [
         "@died(p)"
       ],
-      "summary": "Names the number property that holds the year an entity died. Defaults to `deathdate`.",
+      "summary": "Names the property that holds the year an entity died. Defaults to `deathdate`.",
       "example": "@died(died_in)\nentity Kin {\n    prop died_in: number\n}",
       "targets": [
         "type"
+      ],
+      "parameters": [
+        {
+          "name": "p",
+          "kind": "property",
+          "accepts": "a number property of the annotated type",
+          "propertyKind": "number"
+        }
       ]
     },
     {
@@ -446,13 +507,35 @@
       "name": "display",
       "category": "typeAttributes",
       "signatures": [
-        "@display(OtherType, 'Label', predicate)",
-        "@display(OtherType, 'Label', predicate, 'item format')"
+        "@display(OtherType, 'Label', predicate[, 'item format'])"
       ],
-      "summary": "Adds a derived field to the entity's details in the viewer: every OtherType the predicate matches, listed under Label. In the predicate, $self is the entity being shown and $other the candidate; a bare property name reads $other's. The optional item format is an interpolated string for each line, which can read $other.",
+      "summary": "Adds a derived field to the entity's details in the viewer: every OtherType the predicate matches, listed under Label, each written with the item format when there is one.",
       "example": "@display(Kin, 'Children', parent1 = $self or parent2 = $self)\n@display(Kin, 'Friends', contains($self.friends, $other), '{$other.name}, aged {$other.age}')\nentity Kin {\n    prop age: number\n    prop parent1: Kin\n    prop parent2: Kin\n    prop friends: [Kin]\n}",
       "targets": [
         "type"
+      ],
+      "parameters": [
+        {
+          "name": "OtherType",
+          "kind": "entityType",
+          "accepts": "an entity type"
+        },
+        {
+          "name": "Label",
+          "kind": "string",
+          "accepts": "a string literal"
+        },
+        {
+          "name": "predicate",
+          "kind": "predicate",
+          "accepts": "a predicate over the `OtherType` entities: `$self` is the annotated entity, `$other` the candidate, and a bare property name reads `$other`'s"
+        },
+        {
+          "name": "item format",
+          "kind": "text",
+          "accepts": "a string literal, which can interpolate `$other`",
+          "optional": true
+        }
       ]
     },
     {
@@ -462,10 +545,24 @@
       "signatures": [
         "@parents(a, b)"
       ],
-      "summary": "Names the two properties that hold an entity's parents. Both must be references to the type itself. `related()`, the family tree and the Life page read them. Without it, properties named `parent1` and `parent2` are used.",
+      "summary": "Names the two properties that hold an entity's parents. `related()`, the family tree and the Life page read them. Without it, properties named `parent1` and `parent2` are used.",
       "example": "@parents(mother, father)\nentity Kin {\n    prop mother: Kin\n    prop father: Kin\n}",
       "targets": [
         "type"
+      ],
+      "parameters": [
+        {
+          "name": "a",
+          "kind": "property",
+          "accepts": "a property of the annotated type that refers to that same type",
+          "propertyKind": "selfReference"
+        },
+        {
+          "name": "b",
+          "kind": "property",
+          "accepts": "a property of the annotated type that refers to that same type",
+          "propertyKind": "selfReference"
+        }
       ]
     },
     {
@@ -475,10 +572,18 @@
       "signatures": [
         "@partner(p)"
       ],
-      "summary": "Names the property that holds an entity's partner, a reference to the type itself, shown in the family tree. Defaults to a property named `partner`.",
+      "summary": "Names the property that holds an entity's partner, shown in the family tree. Defaults to a property named `partner`.",
       "example": "@partner(spouse)\nentity Kin {\n    prop spouse: Kin\n}",
       "targets": [
         "type"
+      ],
+      "parameters": [
+        {
+          "name": "p",
+          "kind": "property",
+          "accepts": "a property of the annotated type that refers to that same type",
+          "propertyKind": "selfReference"
+        }
       ]
     },
     {
@@ -488,10 +593,24 @@
       "signatures": [
         "@period(from, to)"
       ],
-      "summary": "Marks the type as an age of history, bounded by two number properties holding its first and last year. The chronicle on the Home page and the exported history are chaptered by these. Without it, a type with `start_year` and `end_year` and no reference properties counts as one.",
+      "summary": "Marks the type as an age of history, from its first year to its last. The chronicle on the Home page and the exported history are chaptered by these. Without it, a type with `start_year` and `end_year` and no reference properties counts as one.",
       "example": "@period(from, to)\nentity Era {\n    prop from: number\n    prop to: number\n}",
       "targets": [
         "type"
+      ],
+      "parameters": [
+        {
+          "name": "from",
+          "kind": "property",
+          "accepts": "a number property of the annotated type",
+          "propertyKind": "number"
+        },
+        {
+          "name": "to",
+          "kind": "property",
+          "accepts": "a number property of the annotated type",
+          "propertyKind": "number"
+        }
       ]
     },
     {
@@ -505,7 +624,8 @@
       "example": "@population\nentity Villager {\n    prop alive: bool\n}",
       "targets": [
         "type"
-      ]
+      ],
+      "parameters": []
     }
   ]
 }

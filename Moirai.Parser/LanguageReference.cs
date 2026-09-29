@@ -44,10 +44,6 @@ public enum AttributeTarget
     Type = 4,
 }
 
-/// One `@name(...)` attribute. <see cref="StoryParser.Attributes"/> is the registry the parser checks
-/// before lowering an attribute, so an attribute that is not documented here is not accepted either.
-public sealed record AttributeDescriptor(string Name, AttributeTarget Targets, BuiltinDoc Doc);
-
 /// The language reference as data: every built-in function and attribute with its documentation.
 /// `docs/language-reference.json` is this, serialized; the Markdown reference and the Story page's hover
 /// and completion are generated from that file, and `LanguageReferenceTests` keeps it in step with the code.
@@ -70,22 +66,31 @@ public static class LanguageReference
     ];
 
     public sealed record Entry(string Kind, string Name, DocCategory Category, string[] Signatures,
-        string Summary, string? Example, string[]? Targets);
+        string Summary, string? Example, string[]? Targets = null, Parameter[]? Parameters = null);
+
+    /// An attribute's parameter as the reference shows it. `Kind` is the AttributeArgKind, `Accepts` the
+    /// phrase a reader sees ("a whole-number literal, at least 1").
+    public sealed record Parameter(string Name, string Kind, string Accepts, bool? Optional, bool? Repeated,
+        string[]? Choices, string? PropertyKind);
 
     public static IEnumerable<Entry> Entries()
     {
         foreach (var f in StoryParser.Functions)
         {
             var d = f.Doc ?? throw new InvalidOperationException($"built-in '{f.FuncName}' has no documentation");
-            yield return new Entry("function", f.FuncName, d.Category, d.Signatures, d.Summary, d.Example, null);
+            yield return new Entry("function", f.FuncName, d.Category, d.Signatures, d.Summary, d.Example);
         }
 
         foreach (var a in StoryParser.Attributes)
         {
             var targets = Enum.GetValues<AttributeTarget>().Where(t => a.Targets.HasFlag(t))
                 .Select(t => t.ToString().ToLowerInvariant()).ToArray();
-            yield return new Entry("attribute", a.Name, a.Doc.Category, a.Doc.Signatures, a.Doc.Summary,
-                a.Doc.Example, targets);
+            var parameters = a.Params.Select(p => new Parameter(p.Name, Camel(p.Kind.ToString()), p.Describe(a.Params),
+                p.Optional ? true : null, p.Repeated ? true : null, p.Choices, p.PropertyKind is { } k ? Camel(k.ToString()) : null)).ToArray();
+            yield return new Entry("attribute", a.Name, a.Category, [a.Signature], a.Summary, a.Example, targets,
+                parameters);
         }
     }
+
+    static string Camel(string s) => char.ToLowerInvariant(s[0]) + s[1..];
 }
