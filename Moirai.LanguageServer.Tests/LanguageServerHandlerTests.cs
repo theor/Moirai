@@ -334,8 +334,8 @@ event start {
             new CodeLensParams { TextDocument = new TextDocumentIdentifier(uri) }, default);
 
         Assert.That(result, Is.Not.Null);
-        // One lens per declaration: the `Person` type and the two props. Builtins and the `start`
-        // event are not tracked as linkable declarations, so they get no lens.
+        // One lens per declaration: the `Person` type and the two props. Builtins get none, and nor does
+        // the `start` event: it runs on its schedule, so a count of calls to it would mislead.
         var byLine = result!.ToDictionary(l => l.Range.Start.Line, l => l.Command!.Title);
         Assert.That(byLine, Has.Count.EqualTo(3));
         Assert.That(byLine[0], Is.EqualTo("2 usages")); // entity Person -> `partner: Person`, `create Person`
@@ -449,6 +449,95 @@ event start {
 
         Assert.That(hover!.Contents.MarkedStrings!.Select(m => m.Value),
             Has.Member("older($a: Person, $years: number): number"));
+    }
+
+    // ---- Events called by name ----
+
+    // `greet` is called from above its declaration, twice; `unused` is never called; `tick` is scheduled.
+    const string EventSource = @"entity Person {
+    prop age: number
+}
+@start
+event start {
+    create Person $p: ('p')
+    greet($p, 2)
+    greet($p, 3)
+}
+event greet($who: Person, $times: number) {
+    record('{$who.name}')
+}
+event unused {
+    record('never')
+}
+@frequency(1, PerXYear, 2)
+event tick {
+    record('tick')
+}
+";
+
+    [Test]
+    public async Task DeclarationHandler_links_an_event_call_to_the_event()
+    {
+        var (cache, uri, content) = await OpenAsync(EventSource);
+        var handler = new MyDeclarationHandler(new FakeLogger<MyDeclarationHandler>(), cache);
+
+        var result = await handler.Handle(new DefinitionParams
+        {
+            TextDocument = new TextDocumentIdentifier(uri),
+            Position = PositionInside(content, "greet", occurrence: 1),
+        }, default);
+
+        // The callee is written below the call: events are registered before any body is parsed.
+        Assert.That(result!.Single().Location!.Range.Start.Line, Is.EqualTo(9));
+    }
+
+    [Test]
+    public async Task UsageHandler_finds_every_call_to_an_event()
+    {
+        var (cache, uri, content) = await OpenAsync(EventSource);
+        var handler = new MyUsageHandler(new FakeLogger<MyUsageHandler>(), cache);
+
+        var result = await handler.Handle(new ReferenceParams
+        {
+            TextDocument = new TextDocumentIdentifier(uri),
+            Position = PositionInside(content, "greet", occurrence: 3), // the declaration
+            Context = new ReferenceContext { IncludeDeclaration = false },
+        }, default);
+
+        Assert.That(result!.Select(l => l.Range.Start.Line), Is.EquivalentTo(new[] { 6, 7 }));
+    }
+
+    [Test]
+    public async Task HoverHandler_shows_an_events_parameters()
+    {
+        var (cache, uri, content) = await OpenAsync(EventSource);
+        var handler = new MyHoverHandler(new FakeLogger<MyHoverHandler>(), cache);
+
+        var hover = await handler.Handle(new HoverParams
+        {
+            TextDocument = new TextDocumentIdentifier(uri),
+            Position = PositionInside(content, "greet", occurrence: 1),
+        }, default);
+
+        Assert.That(hover!.Contents.MarkedStrings!.Select(m => m.Value),
+            Has.Member("event greet($who: Person, $times: number)"));
+    }
+
+    /// Calls are the only way an unscheduled event runs, so its lens counts them, and a count of 0 is dead
+    /// code. A scheduled event runs on its schedule, and gets no lens.
+    [Test]
+    public async Task CodeLensHandler_counts_calls_to_unscheduled_events_only()
+    {
+        var (cache, uri, _) = await OpenAsync(EventSource);
+        var handler = new MoiraiCodeLensHandler(cache);
+
+        var result = await handler.Handle(new CodeLensParams { TextDocument = new TextDocumentIdentifier(uri) }, default);
+
+        var byLine = result!.ToDictionary(l => l.Range.Start.Line, l => l.Command!.Title);
+        Assert.That(byLine[9], Is.EqualTo("2 usages"));  // greet
+        Assert.That(byLine[12], Is.EqualTo("0 usages")); // unused
+        Assert.That(byLine.ContainsKey(3) || byLine.ContainsKey(4), Is.False, "start is scheduled");
+        Assert.That(byLine.ContainsKey(16), Is.False, "tick is scheduled");
     }
 
     [Test]

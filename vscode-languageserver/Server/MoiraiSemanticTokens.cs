@@ -245,6 +245,7 @@ public static class MoiraiSemanticTokens
         [MoiraiSymbol.DefinitionType.Function] = SemanticTokenType.Function,
         [MoiraiSymbol.DefinitionType.Variable] = SemanticTokenType.Variable,
         [MoiraiSymbol.DefinitionType.Table] = SemanticTokenType.Type,
+        [MoiraiSymbol.DefinitionType.Event] = SemanticTokenType.Event,
     };
 
     // ---- Syntactic layer -----------------------------------------------------------------

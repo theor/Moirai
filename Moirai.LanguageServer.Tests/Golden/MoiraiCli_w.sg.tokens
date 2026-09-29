@@ -43,7 +43,7 @@
 1007:5-1007:6 string
 1007:6-1007:14 string
 1008:0-1008:5 keyword
-1008:6-1008:24 class
+1008:6-1008:24 event
 1009:16-1009:18 variable
 1009:21-1009:26 property
 1009:28-1009:35 property
@@ -134,7 +134,7 @@
 1022:5-1022:6 string
 1022:6-1022:14 string
 1023:0-1023:5 keyword
-1023:6-1023:18 class
+1023:6-1023:18 event
 1024:16-1024:23 variable
 1024:26-1024:31 property
 1024:32-1024:35 operator
@@ -238,7 +238,7 @@
 1038:5-1038:6 string
 1038:6-1038:13 string
 1039:0-1039:5 keyword
-1039:6-1039:21 class
+1039:6-1039:21 event
 103:0-103:102 comment
 1040:17-1040:19 variable
 1040:4-1040:8 function
@@ -325,7 +325,7 @@
 1057:5-1057:6 string
 1057:6-1057:13 string
 1058:0-1058:5 keyword
-1058:6-1058:19 class
+1058:6-1058:19 event
 1059:17-1059:19 variable
 1059:22-1059:27 property
 1059:4-1059:8 function
@@ -421,7 +421,7 @@
 1075:5-1075:6 string
 1075:6-1075:13 string
 1076:0-1076:5 keyword
-1076:6-1076:16 class
+1076:6-1076:16 event
 1077:17-1077:19 variable
 1077:22-1077:27 property
 1077:4-1077:8 function
@@ -811,7 +811,7 @@
 188:0-188:1 decorator
 188:1-188:6 decorator
 189:0-189:5 keyword
-189:6-189:17 class
+189:6-189:17 event
 18:18-18:25 type
 18:4-18:8 keyword
 18:9-18:16 property
@@ -888,7 +888,7 @@
 207:0-207:1 decorator
 207:1-207:6 decorator
 208:0-208:5 keyword
-208:6-208:19 class
+208:6-208:19 event
 209:11-209:14 type
 209:15-209:17 variable
 209:20-209:21 string
@@ -914,7 +914,7 @@
 216:6-216:9 string
 216:9-216:10 string
 217:0-217:5 keyword
-217:6-217:17 class
+217:6-217:17 event
 218:13-218:17 variable
 218:20-218:28 property
 218:29-218:30 operator
@@ -964,7 +964,7 @@
 227:0-227:1 decorator
 227:1-227:6 decorator
 228:0-228:5 keyword
-228:6-228:20 class
+228:6-228:20 event
 229:17-229:19 variable
 229:4-229:8 function
 229:9-229:16 type
@@ -1033,7 +1033,7 @@
 242:5-242:6 string
 242:6-242:20 string
 243:0-243:5 keyword
-243:6-243:27 class
+243:6-243:27 event
 244:17-244:19 variable
 244:4-244:8 function
 244:9-244:16 type
@@ -1180,7 +1180,7 @@
 272:33-272:39 type
 272:41-272:47 variable
 272:49-272:56 type
-272:6-272:22 class
+272:6-272:22 event
 273:11-273:21 type
 273:22-273:24 variable
 273:27-273:28 string
@@ -1264,7 +1264,7 @@
 287:5-287:6 string
 287:6-287:14 string
 288:0-288:5 keyword
-288:6-288:19 class
+288:6-288:19 event
 289:17-289:23 variable
 289:26-289:31 property
 289:32-289:33 operator
@@ -1334,7 +1334,7 @@
 294:84-294:85 number
 295:21-295:23 variable
 295:25-295:31 variable
-295:4-295:20 function
+295:4-295:20 event
 298:0-298:1 decorator
 298:1-298:10 decorator
 298:11-298:12 number
@@ -1366,7 +1366,7 @@
 2:69-2:76 property
 2:9-2:15 type
 300:0-300:5 keyword
-300:6-300:12 class
+300:6-300:12 event
 301:16-301:24 variable
 301:27-301:32 property
 301:33-301:36 operator
@@ -1386,7 +1386,7 @@
 303:7-303:13 variable
 304:25-304:33 variable
 304:35-304:41 variable
-304:8-304:24 function
+304:8-304:24 event
 308:0-308:69 comment
 309:0-309:1 decorator
 309:1-309:10 decorator
@@ -1402,7 +1402,7 @@
 310:5-310:6 string
 310:6-310:15 string
 311:0-311:5 keyword
-311:6-311:22 class
+311:6-311:22 event
 312:20-312:22 variable
 312:25-312:31 property
 312:32-312:33 operator
@@ -1496,7 +1496,7 @@
 32:4-32:8 keyword
 32:9-32:22 property
 330:0-330:5 keyword
-330:6-330:23 class
+330:6-330:23 event
 331:17-331:19 variable
 331:22-331:30 property
 331:31-331:33 operator
@@ -3827,7 +3827,7 @@
 555:14-555:22 type
 555:24-555:25 number
 556:0-556:5 keyword
-556:6-556:15 class
+556:6-556:15 event
 557:16-557:17 string
 557:18-557:22 function
 557:23-557:27 type
@@ -3915,7 +3915,7 @@
 583:5-583:6 string
 583:6-583:11 string
 584:0-584:5 keyword
-584:6-584:26 class
+584:6-584:26 event
 585:16-585:18 variable
 585:21-585:26 property
 585:28-585:36 property
@@ -4049,7 +4049,7 @@
 612:14-612:22 type
 612:24-612:25 number
 613:0-613:5 keyword
-613:6-613:22 class
+613:6-613:22 event
 614:16-614:18 variable
 614:21-614:26 property
 614:28-614:31 property
@@ -4097,7 +4097,7 @@
 624:5-624:6 string
 624:6-624:11 string
 625:0-625:5 keyword
-625:6-625:18 class
+625:6-625:18 event
 626:16-626:18 variable
 626:21-626:26 property
 626:27-626:30 operator
@@ -4135,7 +4135,7 @@
 633:5-633:6 string
 633:6-633:11 string
 634:0-634:5 keyword
-634:6-634:20 class
+634:6-634:20 event
 635:16-635:18 variable
 635:21-635:26 property
 635:27-635:30 operator
@@ -4200,7 +4200,7 @@
 644:5-644:6 string
 644:6-644:11 string
 645:0-645:5 keyword
-645:6-645:19 class
+645:6-645:19 event
 646:16-646:18 variable
 646:21-646:26 property
 646:27-646:30 operator
@@ -4309,7 +4309,7 @@
 663:5-663:6 string
 663:6-663:11 string
 664:0-664:5 keyword
-664:6-664:18 class
+664:6-664:18 event
 665:13-665:15 variable
 665:4-665:8 function
 665:9-665:12 type
@@ -4349,7 +4349,7 @@
 670:14-670:22 type
 670:24-670:25 number
 671:0-671:5 keyword
-671:6-671:13 class
+671:6-671:13 event
 672:16-672:18 variable
 672:21-672:26 property
 672:27-672:28 operator
@@ -4464,7 +4464,7 @@
 683:14-683:22 type
 683:24-683:26 number
 684:0-684:5 keyword
-684:6-684:13 class
+684:6-684:13 event
 685:16-685:18 variable
 685:21-685:26 property
 685:27-685:28 operator
@@ -4515,7 +4515,7 @@
 691:14-691:22 type
 691:24-691:26 number
 692:0-692:5 keyword
-692:6-692:12 class
+692:6-692:12 event
 693:4-693:102 comment
 694:4-694:98 comment
 695:16-695:19 function
@@ -4608,7 +4608,7 @@
 702:14-702:22 type
 702:24-702:26 number
 703:0-703:5 keyword
-703:6-703:25 class
+703:6-703:25 event
 704:16-704:18 variable
 704:21-704:26 property
 704:27-704:28 operator
@@ -4695,7 +4695,7 @@
 714:5-714:6 string
 714:6-714:13 string
 715:0-715:5 keyword
-715:6-715:19 class
+715:6-715:19 event
 716:16-716:18 variable
 716:21-716:26 property
 716:28-716:35 property
@@ -4752,7 +4752,7 @@
 724:6-724:9 string
 724:9-724:10 string
 725:0-725:5 keyword
-725:6-725:23 class
+725:6-725:23 event
 726:17-726:19 variable
 726:22-726:30 property
 726:31-726:32 operator
@@ -4835,7 +4835,7 @@
 736:6-736:9 string
 736:9-736:10 string
 737:0-737:5 keyword
-737:6-737:29 class
+737:6-737:29 event
 738:17-738:19 variable
 738:22-738:30 property
 738:31-738:33 operator
@@ -4956,7 +4956,7 @@
 777:6-777:9 string
 777:9-777:10 string
 778:0-778:5 keyword
-778:6-778:23 class
+778:6-778:23 event
 779:17-779:19 variable
 779:22-779:30 property
 779:31-779:33 operator
@@ -5028,7 +5028,7 @@
 788:6-788:9 string
 788:9-788:10 string
 789:0-789:5 keyword
-789:6-789:21 class
+789:6-789:21 event
 78:18-78:25 type
 78:4-78:8 keyword
 78:9-78:16 property
@@ -5103,7 +5103,7 @@
 800:5-800:6 string
 800:6-800:13 string
 801:0-801:5 keyword
-801:6-801:30 class
+801:6-801:30 event
 802:17-802:19 variable
 802:4-802:8 function
 802:9-802:16 type
@@ -5155,7 +5155,7 @@
 812:14-812:22 type
 812:24-812:25 number
 813:0-813:5 keyword
-813:6-813:22 class
+813:6-813:22 event
 814:16-814:18 variable
 814:21-814:26 property
 814:27-814:28 operator
@@ -5277,7 +5277,7 @@
 833:14-833:22 type
 833:24-833:26 number
 834:0-834:5 keyword
-834:6-834:26 class
+834:6-834:26 event
 835:16-835:18 variable
 835:21-835:26 property
 835:27-835:28 operator
@@ -5346,7 +5346,7 @@
 843:5-843:6 string
 843:6-843:11 string
 844:0-844:5 keyword
-844:6-844:17 class
+844:6-844:17 event
 845:16-845:18 variable
 845:21-845:26 property
 845:27-845:28 operator
@@ -5514,7 +5514,7 @@
 866:5-866:6 string
 866:6-866:11 string
 867:0-867:5 keyword
-867:6-867:20 class
+867:6-867:20 event
 868:16-868:18 variable
 868:21-868:26 property
 868:27-868:30 operator
@@ -5640,7 +5640,7 @@
 890:5-890:6 string
 890:6-890:11 string
 891:0-891:5 keyword
-891:6-891:21 class
+891:6-891:21 event
 892:16-892:18 variable
 892:21-892:26 property
 892:27-892:30 operator
@@ -5759,7 +5759,7 @@
 912:5-912:6 string
 912:6-912:11 string
 913:0-913:5 keyword
-913:6-913:24 class
+913:6-913:24 event
 914:16-914:18 variable
 914:21-914:26 property
 914:27-914:30 operator
@@ -5834,7 +5834,7 @@
 923:5-923:6 string
 923:6-923:11 string
 924:0-924:5 keyword
-924:6-924:18 class
+924:6-924:18 event
 925:16-925:18 variable
 925:21-925:26 property
 925:27-925:28 operator
@@ -5963,7 +5963,7 @@
 941:5-941:6 string
 941:6-941:11 string
 942:0-942:5 keyword
-942:6-942:15 class
+942:6-942:15 event
 943:14-943:16 variable
 943:19-943:24 property
 943:25-943:27 operator
@@ -6012,7 +6012,7 @@
 950:5-950:6 string
 950:6-950:11 string
 951:0-951:5 keyword
-951:6-951:16 class
+951:6-951:16 event
 952:16-952:18 variable
 952:21-952:26 property
 952:27-952:28 operator
@@ -6052,7 +6052,7 @@
 958:5-958:6 string
 958:6-958:11 string
 959:0-959:5 keyword
-959:6-959:15 class
+959:6-959:15 event
 95:0-95:96 comment
 960:14-960:16 variable
 960:19-960:24 property
@@ -6162,7 +6162,7 @@
 974:5-974:6 string
 974:6-974:14 string
 975:0-975:5 keyword
-975:6-975:20 class
+975:6-975:20 event
 976:16-976:18 variable
 976:21-976:26 property
 976:28-976:35 property

@@ -680,6 +680,11 @@ public static class StoryParser
         void DeclareFunction(FileRange fileRange, IFunctionDescriptor descriptor, string? inlineDef = null);
         void LinkFunction(FileRange range, IFunctionDescriptor descriptor);
         void DeclareTable(FileRange range, Moirai.Core.TableDefinition table);
+        /// An event, at its name: registered before any body is parsed, so a call can link to it wherever
+        /// either is written.
+        void DeclareEvent(FileRange range, EventTrigger rule);
+        /// A call to an event by name, `harvest()`.
+        void LinkEvent(FileRange range, EventTrigger rule);
         void LinkTable(FileRange range, Moirai.Core.TableDefinition table, bool isDeclaration = false);
     }
 

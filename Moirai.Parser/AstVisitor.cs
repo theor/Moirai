@@ -285,6 +285,7 @@ public partial class AstVisitor : StoryParser.IVisitor
                 .ToList();
 
         Database.Actions.Add(rule);
+        Linker?.DeclareEvent(new FileRange(context.Name.Span), rule);
     }
 
     private void VisitEvent(EventNode context, EventTrigger rule)
@@ -841,6 +842,7 @@ public partial class AstVisitor : StoryParser.IVisitor
         if (eventIndex != -1)
         {
             returnType = PropertyValue.ValueType.Null;
+            Linker?.LinkEvent(new FileRange(context.FunId.Span), Database.Actions[eventIndex]);
             if (context.Scope != null)
                 AddError(StoryParser.ErrorCode.InvalidArgument, context.Scope.Span, $"calling {funcName}() takes no {{ }} block");
             return StoryParser.EventCall(new FunctionParseContext(this, context, null), eventIndex, 0, $"{funcName}()");

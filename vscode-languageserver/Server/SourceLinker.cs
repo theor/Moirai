@@ -12,6 +12,7 @@ public class SourceLinker : StoryParser.ILinker
     private IntervalTree<Position, MoiraiSymbol.Definition> _tree = new();
     private Dictionary<string, MoiraiSymbol.FunctionDefinition> _funDefinitions = new();
     private Dictionary<int, MoiraiSymbol.TableDefinition> _tableDefinitions = new();
+    private Dictionary<int, MoiraiSymbol.EventDefinition> _eventDefinitions = new();
 
     public SourceLinker()
     {
@@ -101,7 +102,7 @@ public class SourceLinker : StoryParser.ILinker
     private const MoiraiSymbol.DefinitionType LensKinds =
         MoiraiSymbol.DefinitionType.Type | MoiraiSymbol.DefinitionType.TypeProperty |
         MoiraiSymbol.DefinitionType.Enum | MoiraiSymbol.DefinitionType.Function |
-        MoiraiSymbol.DefinitionType.Table;
+        MoiraiSymbol.DefinitionType.Table | MoiraiSymbol.DefinitionType.Event;
 
     /// <summary>
     /// One entry per declaration that should carry a usage-count CodeLens: the declaration's
@@ -114,7 +115,7 @@ public class SourceLinker : StoryParser.ILinker
         foreach (var entry in _tree)
         {
             var def = entry.Value;
-            if ((def.Type & LensKinds) == 0 || def.SymbolKey == null)
+            if ((def.Type & LensKinds) == 0 || def.SymbolKey == null || def is MoiraiSymbol.EventDefinition { Scheduled: true })
                 continue;
             var key = (def.Type, def.SymbolKey);
             if (!groups.TryGetValue(key, out var group))
@@ -228,6 +229,22 @@ public class SourceLinker : StoryParser.ILinker
     public void DeclareTable(FileRange range, Moirai.Core.TableDefinition table)
     {
         _tableDefinitions.Add(table.Id, new MoiraiSymbol.TableDefinition(table, range.ToLspRange()));
+    }
+
+    public void DeclareEvent(FileRange range, EventTrigger rule)
+    {
+        var r = range.ToLspRange();
+        var definition = new MoiraiSymbol.EventDefinition(rule, r) { DeclarationNameRange = r };
+        _eventDefinitions[rule.Id] = definition;
+        _tree.Add(r.Start, r.End, definition);
+    }
+
+    public void LinkEvent(FileRange range, EventTrigger rule)
+    {
+        if (!_eventDefinitions.TryGetValue(rule.Id, out var definition))
+            return;
+        var r = range.ToLspRange();
+        _tree.Add(r.Start, r.End, definition);
     }
 
     public void LinkTable(FileRange range, Moirai.Core.TableDefinition table, bool isDeclaration = false)

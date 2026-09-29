@@ -25,6 +25,7 @@ public static class MoiraiSymbol
         Variable = 1 << 5,
         VariableScope = 1 << 6,
         Table = 1 << 7,
+        Event = 1 << 8,
     }
 
     public abstract class Definition(DefinitionType Type, string Name, Range? FullDefinition)
@@ -101,6 +102,23 @@ public static class MoiraiSymbol
         public override void GetHoverText(List<MarkedString> markedStrings)
         {
             markedStrings.Add(new MarkedString("moirai", $"table {Name}"));
+        }
+    }
+
+    /// Keyed by the event's id, so a key compares by value.
+    public class EventDefinition(EventTrigger rule, Range? declarationRange)
+        : Definition<int>(DefinitionType.Event, rule.Id, rule.Name, declarationRange)
+    {
+        /// Run by the schedule (`@start`, `@frequency`) as well as by any call. Only an unscheduled
+        /// event gets a usage lens: for it, calls are the only way it ever runs.
+        public bool Scheduled { get; } = rule.Filter != null;
+
+        public override void GetHoverText(List<MarkedString> markedStrings)
+        {
+            var printer = Database.Instance.Printer;
+            var parameters = (rule.Parameters ?? []).Select(p => $"{p.ParamName}: {printer.Print(p.ParamType)}");
+            markedStrings.Add(new MarkedString("moirai", $"event {rule.Name}({string.Join(", ", parameters)})"));
+            markedStrings.Add(new MarkedString("Runs as a rule of its own when called by name."));
         }
     }
 
