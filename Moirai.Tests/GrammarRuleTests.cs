@@ -34,7 +34,7 @@ public class GrammarRuleTests : TestsBase
 
     [Test]
     public void Scope_BlankLinesInsideAreLegal() => AssertParses(
-        "trigger t {\n  when Person and alive = true\n\n\n  record('x')\n}\n");
+        "trigger t {\n  when Person $new: (alive = true)\n\n\n  record('x')\n}\n");
 
     [Test]
     public void Scope_SingleTrailingEffect_NoLineBreakBeforeClose() => AssertParses(
@@ -82,12 +82,12 @@ public class GrammarRuleTests : TestsBase
 
     [Test]
     public void Trigger_WhenCreated() =>
-        AssertParses("entity Item {}\ntrigger t { when_created Item\n  record('x')\n}\n");
+        AssertParses("entity Item {}\ntrigger t { when created Item $new\n  record('x')\n}\n");
 
     [Test]
     public void Trigger_WhenWithAndChain() => AssertParses(
         "entity Item {\n  prop a: bool\n  prop b: bool\n}\n" +
-        "trigger t { when Item and a = true and b = false\n  record('x')\n}\n");
+        "trigger t { when Item $new: (a = true and b = false)\n  record('x')\n}\n");
 
     [Test]
     public void FunctionDefinition_WithParamsAndReturnType() => AssertParses(

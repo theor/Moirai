@@ -81,7 +81,7 @@ function isAdult($p: Person): bool {
     $p.age >= 18
 }
 trigger mark_adult {
-    when Person and isAdult($new)
+    when Person $new: (isAdult($new))
     set $new.adult = true
 }";
         var (_, markers) = Parse(s);

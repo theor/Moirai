@@ -11,13 +11,13 @@ event create_solar_system {
     // }
 }
 trigger born {
-    when_created System
-    // record('!!! BORN {$new.birthdate} {#Time.year}')
-    // assert_eq $new.birthdate, null
-    set $new.name = 'asd'
+    when created System $s
+    // record('!!! BORN {$s.birthdate} {#Time.year}')
+    // assert_eq $s.birthdate, null
+    set $s.name = 'asd'
 }
 
 trigger test {
-    when System
-    set $new.name = 'qweqe'
+    when System $s
+    set $s.name = 'qweqe'
 }

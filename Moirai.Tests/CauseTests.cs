@@ -30,7 +30,7 @@ event murder {
 }
 @tag('politics')
 trigger mourning {
-    when Person and $old.alive = true and $new.alive = false
+    when Person $new: ($old.alive = true and $new.alive = false)
     record('the realm mourns {$new.name}')
 }
 event feast {

@@ -59,7 +59,7 @@ event create_solar_system {
     create System $sys: ()
 }
 trigger born {
-    when_created System
+    when created System $new
     set $
 }
 ";
@@ -80,7 +80,7 @@ trigger born {
         yield return Case(PersonBirthPlace, 10, 0, Expect.FunctionName, "    |<func call>");
         // Both of these sit in a definition that does not parse -- the case the rewrite must handle.
         yield return Case(SystemSource, 11, 9, Expect.VariableOrType, "set $| in a broken trigger");
-        yield return Case(SystemSource, 10, 6, Expect.Keyword, "when| (completes to when/when_created)");
+        yield return Case(SystemSource, 10, 6, Expect.Keyword, "when| (completes to when)");
     }
 
     static TestCaseData Case(string code, int line, int column, Expect expect, string name) =>

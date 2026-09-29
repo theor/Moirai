@@ -44,8 +44,8 @@ event wanderer {
 }
 
 trigger first_words {
-    when_created Person
-    record('{$new.name} is here')
+    when created Person $p
+    record('{$p.name} is here')
 }
 ```
 
@@ -169,22 +169,26 @@ A trigger reacts to change. After each rule finishes, its changes are checked ag
 
 ```moirai
 trigger inherit {
-    when Person and alive = false and $old.alive
-    set $new.deathdate = #Time.year
-    record('{$new.name} dies')
+    when Person $p: (alive = false, $old.alive)
+    set $p.deathdate = #Time.year
+    record('{$p.name} dies')
 }
 
 trigger born {
-    when_created Person
-    set $new.birthdate = #Time.year
+    when created Person $p
+    set $p.birthdate = #Time.year
 }
 ```
 
-- `when_created T` fires for each new entity of type T.
-- `when T and <predicate>` fires for each T whose change leaves the predicate true. In the predicate, a bare
-  property name reads the changed entity.
-- In the body, `$new` is the entity as it is now, and `$old.p` is the value p had before the change. The test
-  `alive = false and $old.alive` therefore means "has just died", not "is dead".
+A trigger's first line is written as a query is: the type, a name for the entity, and a predicate.
+
+- `when created T $v` fires for each new entity of type T, bound to `$v`. `when created T $v: (predicate)`
+  fires only for those the predicate holds for.
+- `when T $v: (predicate)` fires for each T whose change leaves the predicate true. In the predicate, a bare
+  property name reads the changed entity, as it reads the candidate in a `pick`. `when T $v` fires on every
+  change.
+- `$v` is the entity as it is now, and `$old.p` is the value p had before the change. The test
+  `alive = false, $old.alive` therefore means "has just died", not "is dead".
 
 ### Functions
 

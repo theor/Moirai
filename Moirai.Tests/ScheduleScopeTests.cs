@@ -17,7 +17,7 @@ public class ScheduleScopeTests
 
     [TestCase("event e {\n    pick P $p\n    var $k = 5\n    schedule($p, 10) {\n        set $self.n = $k\n    }\n}\n", "$k")]
     [TestCase("event e {\n    pick P $p\n    schedule($p, 10) {\n        set $p.n = 1\n    }\n}\n", "$p")]
-    [TestCase("trigger t {\n    when_created P\n    schedule($new, 10) {\n        set $new.n = 1\n    }\n}\n", "$new")]
+    [TestCase("trigger t {\n    when created P $new\n    schedule($new, 10) {\n        set $new.n = 1\n    }\n}\n", "$new")]
     [TestCase("event e($who: P) {\n    schedule($who, 10) {\n        set $who.n = 1\n    }\n}\n", "$who")]
     public void ARuleLocalInsideAScheduleBlockIsAnError(string story, string local)
     {

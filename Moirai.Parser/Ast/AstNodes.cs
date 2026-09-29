@@ -35,7 +35,11 @@ public sealed record TriggerNode(Ident Name, ScopeNode Scope, TextSpan Span);
 
 /// `keyword` is the WHEN/WHEN_CREATED token itself — AstVisitor uses its position as the anchor for
 /// declaring $old/$new (previously `whenContext.WHEN().Symbol`).
-public sealed record WhenNode(Ident Keyword, Ident TypeId, ExprNode[] Exprs, TextSpan Span);
+/// `when [created] T $v[: (predicate...)]`. <paramref name="Created"/> is the contextual `created` word, and
+/// <paramref name="VarId"/> the variable the changed entity is bound to. With no VarId it is the old
+/// `when T and predicate`, still read so the error can say what to write.
+public sealed record WhenNode(Ident Keyword, Ident TypeId, ExprNode[] Exprs, TextSpan Span,
+    Ident? Created = null, Ident? VarId = null);
 
 public sealed record WhenCreatedNode(Ident Keyword, Ident TypeId, ExprNode[] Exprs, TextSpan Span);
 

@@ -29,11 +29,11 @@ event age_up {
     }
 }
 trigger on_birth {
-    when_created Person
+    when created Person $new
     set $new.age = 0
 }
 trigger on_death {
-    when Person and $new.alive = false
+    when Person $new: ($new.alive = false)
     record('died')
 }";
 

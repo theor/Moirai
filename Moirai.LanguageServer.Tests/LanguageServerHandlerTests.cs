@@ -603,23 +603,23 @@ function adult($p: Person): bool {
     $p.age > 1
 }
 trigger on_death {
-    when Person and alive = false and $old.alive
+    when Person $new: (alive = false and $old.alive)
     record('died')
 }
 trigger poor_death {
-    when Person and alive = false and prosperity < 10%
+    when Person $new: (alive = false and prosperity < 10%)
     record('poor')
 }
 trigger any_change {
-    when Person
+    when Person $new
     record('changed')
 }
 trigger complex {
-    when Person and adult($new)
+    when Person $new: (adult($new))
     record('complex')
 }
 trigger spawned {
-    when_created Person
+    when created Person $new
     record('born')
 }
 ");

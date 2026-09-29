@@ -910,8 +910,8 @@ public sealed class WorldSession
     {
         var (whenType, typeId, predicate) = t.When;
         var typeName = _db.GetEntityType(typeId).Name;
-        var keyword = whenType == EventTrigger.WhenType.Created ? "when_created" : "when";
-        return predicate == null ? $"{keyword} {typeName}" : $"{keyword} {typeName} and …";
+        var keyword = whenType == EventTrigger.WhenType.Created ? "when created" : "when";
+        return predicate == null ? $"{keyword} {typeName}" : $"{keyword} {typeName}: (…)";
     }
 
     /// <summary>

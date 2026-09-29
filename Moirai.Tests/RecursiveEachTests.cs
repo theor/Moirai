@@ -26,7 +26,7 @@ event bump {
     set #Counter.n = #Counter.n + 1
 }
 trigger walk {
-    when Counter
+    when Counter $new
     each Thing $t: (seen = 0) {
         set $t.seen = 1
         record('{$t.name}')

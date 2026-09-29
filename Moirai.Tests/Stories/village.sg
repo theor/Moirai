@@ -49,22 +49,22 @@ event founding {
 }
 
 trigger born {
-    when_created Person
-    set $new.alive = true
-    set $new.age = Age.Child
-    set $new.birthdate = #Time.year
-    schedule($new, $new.birthdate + 16) {
+    when created Person $p
+    set $p.alive = true
+    set $p.age = Age.Child
+    set $p.birthdate = #Time.year
+    schedule($p, $p.birthdate + 16) {
         if $self.alive {
             set $self.age = Age.Adult
             record('{$self.name} comes of age', 0)
         }
     }
-    schedule($new, $new.birthdate + 40) {
+    schedule($p, $p.birthdate + 40) {
         if $self.alive {
             set $self.age = Age.Old
         }
     }
-    schedule($new, $new.birthdate + 50) {
+    schedule($p, $p.birthdate + 50) {
         if $self.alive {
             set $self.alive = false
             set $self.deathdate = #Time.year

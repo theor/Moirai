@@ -30,11 +30,11 @@ event die {
     set $p.alive = false
 }
 trigger saint {
-    when Person and alive = false and $old.alive and devotion > 20
+    when Person $new: (alive = false and $old.alive and devotion > 20)
     record('saint')
 }
 trigger devout {
-    when Person and devotion > 20
+    when Person $new: (devotion > 20)
     record('devout')
 }
 ";
@@ -85,7 +85,7 @@ event pray {
     set $p.devotion = $p.devotion + 10
 }
 trigger saint {
-    when Person and $old.alive and pious($new)
+    when Person $new: ($old.alive and pious($new))
     record('saint')
 }
 ", out _);

@@ -338,15 +338,15 @@ event settlement_sacked {
 
 @tag('items')
 trigger item_created {
-    when_created Item
+    when created Item $i
     create ItemOwnership $on
-    set $on.owner = $new.owner
-    set $on.item = $new
+    set $on.owner = $i.owner
+    set $on.item = $i
     set $on.start_year = #Time.year
 }
 @tag('items')
 trigger item_change_owner {
-    when Item and owner != $old.owner
+    when Item $i: (owner != $old.owner)
 
     // Close the currently-open ownership record BEFORE opening the new one. Otherwise the pick below
     // matches the just-created (end_year = 0) record too and, picking at random, may close that one
@@ -357,41 +357,41 @@ trigger item_change_owner {
     }
 
     create ItemOwnership $on
-    set $on.owner = $new.owner
-    set $on.item = $new
+    set $on.owner = $i.owner
+    set $on.item = $i
     set $on.start_year = #Time.year
 }
 
 @tag('items')
 trigger inherit {
-    when Person and alive = false and $old.alive
-    // record('{$new.name} died')
-    set $new.deathdate = #Time.year
-    set $new.age = Age.Dead
-    each Person $child: (is_child_of($child, $new) and alive) {
-        record('{$child.name} lose their parent, {$new.name}')
-        if $new.killer {
-            var $k = $new.killer
+    when Person $p: (alive = false and $old.alive)
+    // record('{$p.name} died')
+    set $p.deathdate = #Time.year
+    set $p.age = Age.Dead
+    each Person $child: (is_child_of($child, $p) and alive) {
+        record('{$child.name} lose their parent, {$p.name}')
+        if $p.killer {
+            var $k = $p.killer
             record('{$child.name} starts a vendetta with {$k.name}')
         }
     }
-    each Item $i: (owner = $new) {
-        pick Person $child: (alive and is_child_of($child, $new)) else {
-            record('The {$i.name} is lost after the death of {$new.name}')
+    each Item $i: (owner = $p) {
+        pick Person $child: (alive and is_child_of($child, $p)) else {
+            record('The {$i.name} is lost after the death of {$p.name}')
             set $i.owner = null
         }
         set $i.owner = $child
-        record('{$child.name} inherits the {$i.name} from {$new.name}')
+        record('{$child.name} inherits the {$i.name} from {$p.name}')
     }
 }
 
 @tag('death')
 trigger buries_children {
-    when Person and alive = false and $old.alive
+    when Person $p: (alive = false and $old.alive)
 
-    each Person $parent: (is_child_of($new, $parent) and alive) {
+    each Person $parent: (is_child_of($p, $parent) and alive) {
         set $parent.prosperity = $parent.prosperity - 20%
-        record('{$parent.name} bury their child, {$new.name}')
+        record('{$parent.name} bury their child, {$p.name}')
     }
 }
 
@@ -400,19 +400,19 @@ trigger buries_children {
 // `inherit` (both react to a Person's death).
 @tag('politics')
 trigger succession {
-    when Person and alive = false and $old.alive
+    when Person $p: (alive = false and $old.alive)
 
     // Release EVERY throne the deceased held (a monarch can hold more than one crown via inheritance),
     // so no realm is ever left with a corpse on the throne.
-    each Country $realm: (ruler = $new) {
-        pick Person $heir: (alive and is_child_of($heir, $new)) else {
+    each Country $realm: (ruler = $p) {
+        pick Person $heir: (alive and is_child_of($heir, $p)) else {
             set $realm.ruler = null
-            record('The throne of {$realm.name} is left vacant after the death of {$new.name}', 4)
+            record('The throne of {$realm.name} is left vacant after the death of {$p.name}', 4)
         }
         set $realm.ruler = $heir
         set $heir.title = Title.King
         set $heir.prestige = $heir.prestige + 20%
-        record('{$heir.name} of House {$heir.family_name} succeeds {$new.name} as ruler of {$realm.name}', 3)
+        record('{$heir.name} of House {$heir.family_name} succeeds {$p.name} as ruler of {$realm.name}', 3)
     }
 }
 
@@ -420,31 +420,31 @@ trigger succession {
 // their god long after death.
 @tag('faith')
 trigger canonize_saint {
-    when Person and alive = false and $old.alive and devotion > 80% and god != null
+    when Person $p: (alive = false and $old.alive and devotion > 80% and god != null)
 
     // Only a rare few of the deeply devout are remembered as saints, so the title stays meaningful.
     if random(100) < 8 {
-        set $new.is_saint = true
-        record('{$new.name} is canonized as a saint of {$new.god.name}', 2)
+        set $p.is_saint = true
+        record('{$p.name} is canonized as a saint of {$p.god.name}', 2)
     }
 }
 
 trigger born {
-    when_created Person
-    // record('!!! BORN {$new.birthdate} {#Time.year}')
-    // assert_eq $new.birthdate, null
-    set $new.alive = true
-    set $new.prosperity = 50%
-    set $new.age = Age.Child
-    set $new.title = Title.Commoner
-    set $new.birthdate = #Time.year
-    set $new.place = $new.birthplace
+    when created Person $p
+    // record('!!! BORN {$p.birthdate} {#Time.year}')
+    // assert_eq $p.birthdate, null
+    set $p.alive = true
+    set $p.prosperity = 50%
+    set $p.age = Age.Child
+    set $p.title = Title.Commoner
+    set $p.birthdate = #Time.year
+    set $p.place = $p.birthplace
 
     // A person's age transitions are known the instant they're born, so schedule each one to fire at its
     // exact future year instead of re-scanning the whole population every year. This replaces the old
     // children_grow / youngs_grow / adults_grow events (each was an `each Person` poll). $self is the
     // person; `if $self.alive` skips anyone who died before the transition came due.
-    schedule($new, $new.birthdate + 20) {
+    schedule($p, $p.birthdate + 20) {
         if $self.alive {
             set $self.age = Age.Young
             random_weighted 100 {
@@ -468,12 +468,12 @@ trigger born {
             record('{$self.name} becomes a {$self.job}', 0)
         }
     }
-    schedule($new, $new.birthdate + 40) {
+    schedule($p, $p.birthdate + 40) {
         if $self.alive {
             set $self.age = Age.Adult
         }
     }
-    schedule($new, $new.birthdate + 60) {
+    schedule($p, $p.birthdate + 60) {
         if $self.alive {
             set $self.age = Age.Old
             if random(100) < 10 {

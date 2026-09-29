@@ -74,19 +74,20 @@ event start {
 }
 
 trigger born {
-    when_created Country
+    when created Country $new
     record('made {$new.name}')
 }
 
 trigger grows {
-    when Country and $new.health > 0
+    when Country $new: ($new.health > 0)
     set $new.health = $new.health
 }
 ";
 
-    // Keyword literals deliberately NOT highlighted as keywords. Documented here so the
-    // exemption is a conscious choice rather than a silent gap. (Currently empty: every keyword is highlighted.)
-    private static readonly HashSet<string> ExemptKeywords = new();
+    // Keyword literals deliberately NOT exercised or highlighted. Documented here so the exemption is a
+    // conscious choice rather than a silent gap. `when_created` is lexed only so the old trigger head can
+    // be reported with its replacement, `when created T $v`; no story that parses cleanly contains it.
+    private static readonly HashSet<string> ExemptKeywords = new() { "when_created" };
 
     private static readonly DocumentUri Uri = new("file", null, "/highlight-corpus.sg", null, null);
 

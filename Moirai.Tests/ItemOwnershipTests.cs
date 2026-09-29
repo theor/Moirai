@@ -39,14 +39,14 @@ event handover {
     set $i.owner = $p
 }
 trigger item_created {
-    when_created Item
+    when created Item $new
     create ItemOwnership $on
     set $on.owner = $new.owner
     set $on.item = $new
     set $on.start_year = #Time.year
 }
 trigger item_change_owner {
-    when Item and owner != $old.owner
+    when Item $new: (owner != $old.owner)
     if (pick ItemOwnership $o: (item = $old and end_year = 0)) {
         set $o.end_year = #Time.year
     }

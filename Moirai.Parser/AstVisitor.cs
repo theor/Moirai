@@ -365,12 +365,19 @@ public partial class AstVisitor : StoryParser.IVisitor
 
         using var scopeDisposable = new VariableDeclarationScopeDisposable(this, context.Scope.Span);
         var rootScope = _current;
+        // A trigger's head is written as a query's: `when T $v: (predicate...)`, or `when created T $v[: (...)]`.
+        // $v is the entity that changed; a changed trigger also has $old, its values before the change.
+        // The engine writes $old into slot 0 and the entity into the slot after it (slot 0 when created).
         if (context.Scope.WhenCreated is { } createdContext)
         {
+            // The old `when_created T and predicate`: say what to write, then read it as that.
             EntityType type = Database.GetEntityType(createdContext.TypeId.Text);
             if (!type.Id.IsValid)
                 AddError(StoryParser.ErrorCode.UnknownPropertyType, createdContext.TypeId.Span,
                     createdContext.TypeId.Text);
+            AddError(StoryParser.ErrorCode.Parser, createdContext.Span,
+                $"write when created {createdContext.TypeId.Text} $new{OldPredicate(createdContext.Exprs)}: " +
+                "a trigger names its entity as a query does");
 
             DeclareVar("$new", type.RefType, createdContext.Keyword.Span, out _);
             CurrentEventTrigger.When = (EventTrigger.WhenType.Created, type.Id, ParsePredicate(createdContext.Exprs));
@@ -380,10 +387,26 @@ public partial class AstVisitor : StoryParser.IVisitor
             EntityType type = Database.GetEntityType(whenContext.TypeId.Text);
             if (!type.Id.IsValid)
                 AddError(StoryParser.ErrorCode.UnknownPropertyType, whenContext.TypeId.Span, whenContext.TypeId.Text);
+            if (whenContext.VarId == null)
+                AddError(StoryParser.ErrorCode.Parser, whenContext.Span,
+                    $"write when {(whenContext.Created != null ? "created " : "")}{whenContext.TypeId.Text} $new" +
+                    $"{OldPredicate(whenContext.Exprs)}: a trigger names its entity as a query does");
 
-            DeclareVar("$old", type.RefType, whenContext.Keyword.Span, out _);
-            DeclareVar("$new", type.RefType, whenContext.Keyword.Span, out _);
-            CurrentEventTrigger.When = (EventTrigger.WhenType.Changed, type.Id, ParsePredicate(whenContext.Exprs));
+            var created = whenContext.Created != null;
+            if (!created)
+                DeclareVar("$old", type.RefType, whenContext.Keyword.Span, out _);
+            if (whenContext.VarId is { } v)
+            {
+                if (v.Text == "$old")
+                    AddError(StoryParser.ErrorCode.DuplicateVariableDefinition, v.Span,
+                        "$old is the entity's values before the change; name the entity something else");
+                DeclareVar(v.Text, type.RefType, v.Span, out _);
+            }
+            else
+                DeclareVar("$new", type.RefType, whenContext.Keyword.Span, out _);
+
+            CurrentEventTrigger.When = (created ? EventTrigger.WhenType.Created : EventTrigger.WhenType.Changed,
+                type.Id, ParsePredicate(whenContext.Exprs));
         }
 
         Database.Triggers.Add(CurrentEventTrigger);
@@ -397,6 +420,10 @@ public partial class AstVisitor : StoryParser.IVisitor
         CurrentEventTrigger.DebugScopeRoot = ConvertScope(rootScope);
         CurrentEventTrigger = null;
     }
+
+    /// An old trigger head's `and`-joined predicate, as the new form writes it: `: (a and b)`.
+    private string OldPredicate(ExprNode[] exprs) =>
+        exprs.Length == 0 ? "" : $": ({string.Join(" and ", exprs.Select(e => GetText(e.Span)))})";
 
     private IInstruction ParseEffect(EffectNode effectContext, out PropertyValue.ValueType type)
     {

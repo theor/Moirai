@@ -7,6 +7,11 @@
     { "include": "#comments" },
     { "include": "#attribute" },
     { "include": "#definition" },
+    {
+      "$comment": "`created` is a word only after `when` (a trigger head, `when created T $v`); a property may still be called created.",
+      "match": "\\b(when)\\s+(created)\\b",
+      "captures": { "1": { "name": "keyword.control.moirai" }, "2": { "name": "keyword.control.moirai" } }
+    },
     { "include": "#expression" },
     { "match": "[{}]", "name": "punctuation.section.block.moirai" }
   ],

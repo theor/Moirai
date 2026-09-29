@@ -29,7 +29,7 @@ event caller {
     callee()
 }
 trigger saw_x {
-    when Thing and $new.x = 1 and $old.x = 0
+    when Thing $new: ($new.x = 1 and $old.x = 0)
     record('saw x')
 }
 ";

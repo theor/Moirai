@@ -120,7 +120,7 @@ function feast() {
 
     [TestCase("@lineage(mother)\nentity Kin {\n    prop mother: Kin\n}", StoryParser.ErrorCode.UnknownAttribute)]
     [TestCase("@shiny\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.UnknownCall)]
-    [TestCase("@frequency(1, PerXYear, 2)\ntrigger t {\n    when_created Person\n}", StoryParser.ErrorCode.UnknownCall)]
+    [TestCase("@frequency(1, PerXYear, 2)\ntrigger t {\n    when created Person $new\n}", StoryParser.ErrorCode.UnknownCall)]
     [TestCase("@display('Kin', each Person $p: (parent1 = $self))\nevent e {\n    record('x')\n}", StoryParser.ErrorCode.UnknownCall)]
     [TestCase("@start\nentity Kin {\n    prop age: number\n}", StoryParser.ErrorCode.UnknownAttribute)]
     public void AnAttributeTheRegistryDoesNotListForThatDefinitionIsAnError(string definition, StoryParser.ErrorCode code)

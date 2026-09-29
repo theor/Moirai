@@ -125,7 +125,7 @@ event expedition {
 
 }
 trigger when_born {
-  when_created Person
+  when created Person $0
     set $0.age = Age.Child
     set $0.birthyear = #Time.year
     set $0.alive = true

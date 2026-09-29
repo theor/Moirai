@@ -178,34 +178,83 @@ public static partial class MoiraiGrammar
         return TokenListParserResult.Value(new ScopeNode(when, whenCreated, body.Value, span), input, remainder);
     }
 
-    // when: WHEN type_id (AND expr)* SPACE* LINE_BREAK+ ;
+    // when: WHEN ('created')? type_id VAR_ID (COLON PAREN_OPEN expr (COMMA expr)* PAREN_CLOSE)? LINE_BREAK+
+    //     | WHEN type_id (AND expr)* LINE_BREAK+   -- the old form, read only so the error can say what to write
     static TokenListParserResult<MoiraiTokenKind, WhenNode> WhenRule(TokenList<MoiraiTokenKind> input)
     {
         var kw = input.ConsumeToken();
         if (!kw.HasValue || kw.Value.Kind != MoiraiTokenKind.When)
             return TokenListParserResult.Empty<MoiraiTokenKind, WhenNode>(input, "'when'");
-        var typeId = TypeId(kw.Remainder);
+
+        // `created` is a word only here, not a keyword: a property can still be called `created`.
+        Ident? created = null;
+        var afterKw = kw.Remainder;
+        var maybeCreated = afterKw.ConsumeToken();
+        if (maybeCreated.HasValue && maybeCreated.Value.Kind == MoiraiTokenKind.Id &&
+            maybeCreated.Value.ToStringValue() == "created")
+        {
+            created = IdentOf(maybeCreated.Value);
+            afterKw = maybeCreated.Remainder;
+        }
+
+        var typeId = TypeId(afterKw);
         if (!typeId.HasValue)
             return TokenListParserResult.CastEmpty<MoiraiTokenKind, Ident, WhenNode>(typeId);
 
         var exprs = new List<ExprNode>();
         var remainder = typeId.Remainder;
-        while (PeekKind(remainder) == MoiraiTokenKind.And)
+        Ident? varId = null;
+        TextSpan? end = null;
+        var v = remainder.ConsumeToken();
+        if (v.HasValue && v.Value.Kind == MoiraiTokenKind.VarId)
         {
-            var and = remainder.ConsumeToken();
-            var e = Expr(and.Remainder);
-            if (!e.HasValue) return TokenListParserResult.CastEmpty<MoiraiTokenKind, ExprNode, WhenNode>(e);
-            exprs.Add(e.Value);
-            remainder = e.Remainder;
+            varId = IdentOf(v.Value);
+            end = varId.Value.Span;
+            remainder = v.Remainder;
+            if (PeekKind(remainder) == MoiraiTokenKind.Colon)
+            {
+                var open = remainder.ConsumeToken().Remainder.ConsumeToken();
+                if (!open.HasValue || open.Value.Kind != MoiraiTokenKind.ParenOpen)
+                    return TokenListParserResult.Empty<MoiraiTokenKind, WhenNode>(remainder.ConsumeToken().Remainder, "'('");
+                remainder = open.Remainder;
+                while (true)
+                {
+                    var e = Expr(remainder);
+                    if (!e.HasValue) return TokenListParserResult.CastEmpty<MoiraiTokenKind, ExprNode, WhenNode>(e);
+                    exprs.Add(e.Value);
+                    remainder = e.Remainder;
+                    if (PeekKind(remainder) != MoiraiTokenKind.Comma)
+                        break;
+                    remainder = remainder.ConsumeToken().Remainder;
+                }
+
+                var close = remainder.ConsumeToken();
+                if (!close.HasValue || close.Value.Kind != MoiraiTokenKind.ParenClose)
+                    return TokenListParserResult.Empty<MoiraiTokenKind, WhenNode>(remainder, "')'");
+                end = close.Value.Span;
+                remainder = close.Remainder;
+            }
+        }
+        else
+        {
+            while (PeekKind(remainder) == MoiraiTokenKind.And)
+            {
+                var and = remainder.ConsumeToken();
+                var e = Expr(and.Remainder);
+                if (!e.HasValue) return TokenListParserResult.CastEmpty<MoiraiTokenKind, ExprNode, WhenNode>(e);
+                exprs.Add(e.Value);
+                remainder = e.Remainder;
+            }
         }
 
         var lb = SkipLineBreaksPlus(remainder);
         if (!lb.HasValue)
             return TokenListParserResult.CastEmpty<MoiraiTokenKind, Unit, WhenNode>(lb);
 
-        var endSpan = exprs.Count > 0 ? exprs[^1].Span : typeId.Value.Span;
+        var endSpan = end ?? (exprs.Count > 0 ? exprs[^1].Span : typeId.Value.Span);
         var span = Combine(kw.Value.Span, endSpan);
-        return TokenListParserResult.Value(new WhenNode(IdentOf(kw.Value), typeId.Value, exprs.ToArray(), span),
+        return TokenListParserResult.Value(
+            new WhenNode(IdentOf(kw.Value), typeId.Value, exprs.ToArray(), span, created, varId),
             input, lb.Remainder);
     }
 

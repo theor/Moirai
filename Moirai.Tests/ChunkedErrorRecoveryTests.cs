@@ -64,7 +64,7 @@ event e {
     create Person $p: 'x'
 }
 trigger t {
-    when_created Person
+    when created Person $new
     record('created')
 }";
         var db = StoryParser.Parse(s, out var errors);

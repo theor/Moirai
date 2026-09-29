@@ -226,7 +226,7 @@ event e {
     record('never')
 }
 trigger died {
-    when Thing and alive = false and $old.alive
+    when Thing $new: (alive = false and $old.alive)
     record('died')
 }
 ", out _);

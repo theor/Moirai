@@ -339,6 +339,9 @@ public static class MoiraiSemanticTokens
         {
             if (scope.When is { } when)
             {
+                // `created` is a word only in `when created T`, so the lexer calls it an identifier.
+                if (when.Created is { } created)
+                    Push(created, SemanticTokenType.Keyword);
                 Push(when.TypeId, SemanticTokenType.Type);
                 foreach (var e in when.Exprs)
                     Expr(e);

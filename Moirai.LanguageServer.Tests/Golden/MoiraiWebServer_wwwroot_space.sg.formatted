@@ -128,17 +128,17 @@ event born {
 }
 
 trigger when_born {
-    when_created Person
-    set $new.age = Age.Child
-    set $new.birthyear = #Time.year
-    set $new.alive = true
+    when created Person $p
+    set $p.age = Age.Child
+    set $p.birthyear = #Time.year
+    set $p.alive = true
     pick Object $o: (kind = Kind.Planet or kind = Kind.Satelite)
-    set $new.birthplace = $o
-    set $new.location = $o 
+    set $p.birthplace = $o
+    set $p.location = $o 
     if(pick Person $parent: (alive and age = Age.Adult)){
-        record('{$new.name}  was born on {$o.name} from {$parent.name}')
+        record('{$p.name}  was born on {$o.name} from {$parent.name}')
     } else {
-        record('{$new.name}  was born on {$o.name}')
+        record('{$p.name}  was born on {$o.name}')
     }
 }
 

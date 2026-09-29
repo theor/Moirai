@@ -26,7 +26,7 @@ event die {
 }
 
 trigger on_death {
-    when Person and $new.alive = false
+    when Person $new: ($new.alive = false)
 
     set test = true
     record('trigger on {$new}')
@@ -70,13 +70,13 @@ event die {
 }
 
 trigger on_death {
-    when Person and $new.x = 2 and $old.x = 1
+    when Person $new: ($new.x = 2 and $old.x = 1)
 
     set test = 10
     record('trigger on {$new}')
 }
 trigger on_death2 {
-    when Person and $new.x = 2 and $old.x = 3
+    when Person $new: ($new.x = 2 and $old.x = 3)
 
     set test = 20
     record('trigger on {$new}')
@@ -114,7 +114,7 @@ entity Link {
 }
 
 trigger inherit {
-    when Person and $new.alive = false
+    when Person $new: ($new.alive = false)
     each Item $i: (owner = $new) {
         pick Link $l: ($l.parent = $new) 
         pick Person $c: (alive = true, id = $l.child)
@@ -165,7 +165,7 @@ event parent_dies {
 
 }
 trigger inherit {
-    when Person and alive = false and $old.alive
+    when Person $new: (alive = false and $old.alive)
     record('{$new.name} inherits')
     each Item $i: (owner = $new){
         record('item {$i.name}, looking for children of {$new.name}')
@@ -258,7 +258,7 @@ event make {
     set $p.birthdate = #Time.year
 }
 trigger born {
-    when_created Person
+    when created Person $new
     schedule($new, $new.birthdate + 3) {
         set $self.grown = true
         record('grew at {#Time.year}')
@@ -333,7 +333,7 @@ event make {
     set $p.birthdate = #Time.year
 }
 trigger born {
-    when_created Person
+    when created Person $new
     schedule($new, $new.birthdate + 2) {
         set $self.job = random(Job)
         record('job {$self.job} at {#Time.year}')

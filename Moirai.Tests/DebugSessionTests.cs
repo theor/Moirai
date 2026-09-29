@@ -31,7 +31,7 @@ event age_up {
     }
 }
 trigger on_birth {
-    when_created Person
+    when created Person $new
     set $new.age = 0
 }";
 
@@ -163,7 +163,7 @@ event make {
     set $p.birthdate = #Time.year
 }
 trigger born {
-    when_created Person
+    when created Person $new
     schedule($new, $new.birthdate + 1) {
         set $self.grown = true
         record('grew')

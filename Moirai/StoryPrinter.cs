@@ -67,8 +67,12 @@ public partial class StoryPrinter
             sb.AppendLine(
                 $"{(action.IsTrigger ? "trigger" : "event")} {action.Name}{paramList} {{");
             if (action.IsTrigger)
+            {
+                // The entity is slot 0 when created, and slot 1 after $old when changed.
+                var created = action.When.Item1 == EventTrigger.WhenType.Created;
                 sb.AppendLine(
-                    $"  when{(action.When.Item1 == EventTrigger.WhenType.Created ? "_created" : "")} {Print(action.When.Item2)}{(action.When.Item3 == null ? "" : (" and " + Print(action.When.Item3)))}");
+                    $"  when {(created ? "created " : "")}{Print(action.When.Item2)} ${(created ? 0 : 1)}{(action.When.Item3 == null ? "" : $": ({Print(action.When.Item3)})")}");
+            }
             foreach (var effect in action.Effects)
             {
                 PrintEffect(effect, sb, 1);

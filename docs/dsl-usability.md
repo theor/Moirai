@@ -108,10 +108,10 @@ is a possible follow-up.)
 References compare directly (`$y != $x`), and `id` read through a type is a reference to that type, so
 `$a.id` can be passed where a `Person` is expected.
 
-### ⬜ Implicit `$new` in `when`
-In triggers, a bare property means `$new.<prop>` while `$old.<prop>` is explicit
-(`when Item and owner != $old.owner`). Powerful but subtle — document the "bare prop = `$new`" rule
-prominently.
+### ✅ Implicit `$new` in `when`
+A trigger's head is now written as a query's and names its entity: `when Item $i: (owner != $old.owner)`,
+`when created Person $p`. A bare property reads the named entity, as it reads a pick's candidate.
+`$old` stays implicit. The old `when T and p` and `when_created T` are errors that write the new form.
 
 ### ✅ `event` keyword is overloaded
 `function` now doubles as the procedural keyword: a no-return `function name() { ...effects... }` is a

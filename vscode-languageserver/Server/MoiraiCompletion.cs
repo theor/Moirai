@@ -203,6 +203,11 @@ public static class MoiraiCompletion
             case MoiraiTokenKind.WhenCreated:
                 return Context.TypeName;
 
+            // `when created |`: `created` is a word only there, and a type follows it.
+            case MoiraiTokenKind.Id when before.ToStringValue() == "created"
+                                         && PreviousSignificant(tokens, bi) is { } w && tokens[w].Kind == MoiraiTokenKind.When:
+                return Context.TypeName;
+
             // The user is naming something new; we have nothing to suggest.
             case MoiraiTokenKind.Entity:
             case MoiraiTokenKind.Singleton:
@@ -392,7 +397,7 @@ public static class MoiraiCompletion
                     break;
 
                 case Context.Statement:
-                    Keywords("set", "var", "if", "match", "random_weighted", "when", "when_created");
+                    Keywords("set", "var", "if", "match", "random_weighted", "when");
                     Functions();
                     break;
 
