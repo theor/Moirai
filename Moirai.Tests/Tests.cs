@@ -331,12 +331,12 @@ entity Person {
 event r {
     create Person $p
     set $p.f = 42
-    assert $p.f = 42
+    assert($p.f = 42)
 }
 event rr {
     pick Person $p
     set $p.f = 43
-    assert $p.f = 43
+    assert($p.f = 43)
 }
 ";
 
@@ -358,9 +358,9 @@ enum E { A, B, C }
 event r {
     create Person $p
     set f = E.B
-    assert $0.f = 2
+    assert($0.f = 2)
     set f = E.C * 2
-    assert $0.f = 6
+    assert($0.f = 6)
 }
 ";
 
@@ -399,7 +399,7 @@ event r {
     create Person $p
     set f = 42
     set f = f + 1
-    assert $0.f = 43
+    assert($0.f = 43)
 }
 ";
 

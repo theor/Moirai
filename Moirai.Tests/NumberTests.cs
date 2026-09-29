@@ -10,7 +10,7 @@ entity Person {
 event r {
     create Person $p
     set $p.f = 2 + 3
-    assert $p.f = 5
+    assert($p.f = 5)
 }
 ");
 
@@ -22,7 +22,7 @@ entity Person {
 event r {
     create Person $p
     set $p.f = -2 + 3
-    assert $p.f = 1
+    assert($p.f = 1)
 }
 ");
 
@@ -34,7 +34,7 @@ prop f: number
 event r {
     create Person $p
     set $p.f = -4 - -3
-    assert $p.f = -1
+    assert($p.f = -1)
 }
 ");
 
@@ -46,7 +46,7 @@ prop f: float
 event r {
     create Person $p
     set $p.f = 2.1 + 3.2
-    assert $p.f = 5.3
+    assert($p.f = 5.3)
 }
 ");
 
@@ -59,7 +59,7 @@ entity Person {
 event r {
     create Person $p
     set $p.f = floor(2.1 + 3.2)
-    assert $p.f = 5
+    assert($p.f = 5)
 }
 ");
 
